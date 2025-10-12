@@ -4,7 +4,9 @@ import { useState } from 'react';
 import { motion } from 'motion/react';
 import { ArrowLeft, Save, X, Calendar, DollarSign, Users } from 'lucide-react';
 import { AssetFlowLayout } from '../layout/AssetFlowLayout';
+import { usePrefs } from '../layout/PrefsContext';
 import { License } from '../../../lib/data';
+import { createLicense } from '../../../lib/api';
 import { logLicenseCreated } from '../../../lib/events';
 
 interface AddLicensePageProps {
@@ -16,6 +18,7 @@ const licenseTypes: License['type'][] = ['Software', 'SaaS', 'Cloud'];
 const complianceStatuses: License['compliance'][] = ['Compliant', 'Warning', 'Non-Compliant'];
 
 export function AddLicensePage({ onNavigate, onSearch }: AddLicensePageProps) {
+  const { formatCurrency, currencySymbol } = usePrefs();
   const [formData, setFormData] = useState({
     name: '',
     vendor: '',
@@ -33,7 +36,7 @@ export function AddLicensePage({ onNavigate, onSearch }: AddLicensePageProps) {
     setFormData(prev => ({ ...prev, [field]: value }));
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     // Calculate renewal date (30 days before expiration if not set)
@@ -66,7 +69,11 @@ export function AddLicensePage({ onNavigate, onSearch }: AddLicensePageProps) {
       seats: newLicense.seats
     });
 
-    console.log('Creating license:', newLicense);
+    try {
+      await createLicense(newLicense);
+    } catch (err) {
+      console.error('Failed to create license', err);
+    }
     onNavigate?.('licenses');
   };
 
@@ -76,7 +83,7 @@ export function AddLicensePage({ onNavigate, onSearch }: AddLicensePageProps) {
     : 0;
 
   // Calculate monthly cost
-  const monthlyCost = formData.cost ? (parseFloat(formData.cost) / 12).toFixed(2) : '0.00';
+  const monthlyCost = formData.cost ? (parseFloat(formData.cost) / 12) : 0;
 
   return (
     <AssetFlowLayout
@@ -86,7 +93,6 @@ export function AddLicensePage({ onNavigate, onSearch }: AddLicensePageProps) {
         { label: 'Add License' }
       ]}
       currentPage="licenses"
-      onNavigate={onNavigate}
       onSearch={onSearch}
     >
       {/* Header */}
@@ -275,7 +281,7 @@ export function AddLicensePage({ onNavigate, onSearch }: AddLicensePageProps) {
                     Annual Cost *
                   </label>
                   <div className="relative">
-                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[#64748b]">$</span>
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[#64748b]">{currencySymbol}</span>
                     <input
                       type="number"
                       required
@@ -289,7 +295,7 @@ export function AddLicensePage({ onNavigate, onSearch }: AddLicensePageProps) {
                   </div>
                   {formData.cost && (
                     <p className="text-xs text-[#94a3b8] mt-1">
-                      ≈ ${monthlyCost}/month
+                      ≈ {formatCurrency(monthlyCost)}/month
                     </p>
                   )}
                 </div>
@@ -378,7 +384,7 @@ export function AddLicensePage({ onNavigate, onSearch }: AddLicensePageProps) {
                 {formData.cost && (
                   <div className="flex justify-between items-center pb-2 border-b border-white/20">
                     <span className="text-sm text-white/80">Annual Cost</span>
-                    <span className="font-semibold">${parseFloat(formData.cost).toLocaleString()}</span>
+                    <span className="font-semibold">{formatCurrency(parseFloat(formData.cost))}</span>
                   </div>
                 )}
               </div>

@@ -17,6 +17,8 @@ export interface Asset {
     ram?: string;
     storage?: string;
     os?: string;
+    // Arbitrary key-value pairs entered per asset
+    customFields?: Record<string, string>;
   };
 }
 
@@ -524,6 +526,11 @@ export function getAssetDistribution() {
     name: type,
     count: getAssetsByType(type).length
   }));
+}
+
+// Lookup helpers
+export function getAssetById(id: string): Asset | undefined {
+  return mockAssets.find(a => a.id === id);
 }
 
 // Initialize event bus with sample events

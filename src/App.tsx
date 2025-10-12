@@ -1,5 +1,10 @@
 import AppRouter from "./components/AppRouter";
+import { PrefsProvider } from "./components/assetflow/layout/PrefsContext";
 
 export default function App() {
-  return <AppRouter />;
+  return (
+    <PrefsProvider>
+      <AppRouter />
+    </PrefsProvider>
+  );
 }

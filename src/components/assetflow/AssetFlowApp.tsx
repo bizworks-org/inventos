@@ -5,10 +5,13 @@ import { AssetFlowDashboard } from './AssetFlowDashboard';
 import { AssetFlowLayout } from './layout/AssetFlowLayout';
 import { AssetsPage } from './assets/AssetsPage';
 import { AddAssetPage } from './assets/AddAssetPage';
+import { EditAssetPage } from './assets/EditAssetPage';
 import { LicensesPage } from './licenses/LicensesPage';
 import { AddLicensePage } from './licenses/AddLicensePage';
+import { EditLicensePage } from './licenses/EditLicensePage';
 import { VendorsPage } from './vendors/VendorsPage';
 import { AddVendorPage } from './vendors/AddVendorPage';
+import { EditVendorPage } from './vendors/EditVendorPage';
 import { EventsPage } from './events/EventsPage';
 import { SettingsPage } from './settings/SettingsPage';
 
@@ -24,7 +27,6 @@ export type AssetFlowPage =
   | 'vendors-add'
   | 'vendors-edit'
   | 'events' 
-  | 'predictive-analytics' 
   | 'settings' 
   | 'search';
 
@@ -62,7 +64,7 @@ export function AssetFlowApp() {
 
   // Edit Asset
   if (currentPage === 'assets-edit') {
-    return <AddAssetPage onNavigate={handleNavigate} onSearch={handleSearch} />;
+    return <EditAssetPage assetId={selectedItemId ?? ''} onNavigate={handleNavigate} onSearch={handleSearch} />;
   }
 
   // Licenses
@@ -77,7 +79,7 @@ export function AssetFlowApp() {
 
   // Edit License
   if (currentPage === 'licenses-edit') {
-    return <AddLicensePage onNavigate={handleNavigate} onSearch={handleSearch} />;
+    return <EditLicensePage licenseId={selectedItemId ?? ''} onNavigate={handleNavigate} onSearch={handleSearch} />;
   }
 
   // Vendors
@@ -92,7 +94,7 @@ export function AssetFlowApp() {
 
   // Edit Vendor
   if (currentPage === 'vendors-edit') {
-    return <AddVendorPage onNavigate={handleNavigate} onSearch={handleSearch} />;
+    return <EditVendorPage vendorId={selectedItemId ?? ''} onNavigate={handleNavigate} onSearch={handleSearch} />;
   }
 
   // Events
@@ -109,7 +111,6 @@ export function AssetFlowApp() {
   return (
     <AssetFlowLayout
       currentPage={currentPage}
-      onNavigate={handleNavigate}
       onSearch={handleSearch}
       breadcrumbs={[
         { label: 'Home', href: '#' },

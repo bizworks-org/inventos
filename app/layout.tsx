@@ -1,8 +1,12 @@
 import type { ReactNode } from "react";
 import "./globals.css";
+import { ThemeProvider } from "../src/components/ui/theme-provider";
 export const metadata = {
-  title: "Plan That Trip. (Community)",
-  viewport: "width=device-width, initial-scale=1",
+  title: "AssetFlow - IT Asset Management",
+};
+export const viewport = {
+  width: "device-width",
+  initialScale: 1,
 };
 
 export default function RootLayout({
@@ -13,7 +17,9 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body>
-        {children}
+        <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
+          {children}
+        </ThemeProvider>
       </body>
     </html>
   );

@@ -2,10 +2,12 @@ import { motion } from 'motion/react';
 import { Edit2, Trash2, Mail, Phone, Star, Building2, AlertCircle } from 'lucide-react';
 import { Vendor } from '../../../lib/data';
 import { useState } from 'react';
+import { usePrefs } from '../layout/PrefsContext';
 
 interface VendorsTableProps {
   vendors: Vendor[];
   onNavigate?: (page: string, vendorId?: string) => void;
+  onDelete?: (id: string, name: string) => void;
 }
 
 function getStatusColor(status: Vendor['status']) {
@@ -27,13 +29,9 @@ function getTypeColor(type: Vendor['type']) {
   return colors[type];
 }
 
-function formatCurrency(amount: number): string {
-  return new Intl.NumberFormat('en-US', {
-    style: 'currency',
-    currency: 'USD',
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 0
-  }).format(amount);
+function useCurrencyFormatter() {
+  const { formatCurrency } = usePrefs();
+  return (amount: number) => formatCurrency(amount, { minimumFractionDigits: 0, maximumFractionDigits: 0 });
 }
 
 function formatDate(dateString: string): string {
@@ -78,8 +76,9 @@ function StarRating({ rating }: { rating: number }) {
   );
 }
 
-export function VendorsTable({ vendors, onNavigate }: VendorsTableProps) {
+export function VendorsTable({ vendors, onNavigate, onDelete }: VendorsTableProps) {
   const [hoveredRow, setHoveredRow] = useState<string | null>(null);
+  const formatCurrency = useCurrencyFormatter();
 
   const handleEdit = (vendorId: string) => {
     onNavigate?.('vendors-edit', vendorId);
@@ -87,7 +86,7 @@ export function VendorsTable({ vendors, onNavigate }: VendorsTableProps) {
 
   const handleDelete = (vendorId: string, vendorName: string) => {
     if (confirm(`Are you sure you want to delete ${vendorName}?`)) {
-      console.log('Deleting vendor:', vendorId);
+      onDelete?.(vendorId, vendorName);
     }
   };
 

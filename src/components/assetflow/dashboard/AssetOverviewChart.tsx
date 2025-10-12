@@ -1,11 +1,30 @@
 import { motion } from 'motion/react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts';
-import { getAssetDistribution } from '../../../lib/data';
+import { useEffect, useMemo, useState } from 'react';
+import { fetchAssets } from '../../../lib/api';
+import type { Asset } from '../../../lib/data';
 
 const COLORS = ['#6366f1', '#8b5cf6', '#ec4899', '#f59e0b', '#10b981', '#3b82f6'];
 
 export function AssetOverviewChart() {
-  const data = getAssetDistribution();
+  const [assets, setAssets] = useState<Asset[]>([]);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    fetchAssets()
+      .then(rows => { if (!cancelled) { setAssets(rows); setError(null); } })
+      .catch(e => { if (!cancelled) setError(e?.message || 'Failed to load assets'); });
+    return () => { cancelled = true; };
+  }, []);
+
+  const data = useMemo(() => {
+    const map = new Map<string, number>();
+    assets.forEach(a => {
+      map.set(a.type, (map.get(a.type) || 0) + 1);
+    });
+    return Array.from(map.entries()).map(([name, count]) => ({ name, count }));
+  }, [assets]);
 
   return (
     <motion.div
@@ -65,6 +84,7 @@ export function AssetOverviewChart() {
           </div>
         ))}
       </div>
+      {error && <p className="text-sm text-[#ef4444] mt-2">{error}</p>}
     </motion.div>
   );
 }

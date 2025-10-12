@@ -1,12 +1,14 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Package, FileText, Users, Wrench } from 'lucide-react';
 import { AssetFlowLayout } from './layout/AssetFlowLayout';
 import { StatCard } from './dashboard/StatCard';
 import { AssetOverviewChart } from './dashboard/AssetOverviewChart';
 import { RecentActivityTable } from './dashboard/RecentActivityTable';
-import { getDashboardStats, initializeSampleEvents } from '../../lib/data';
+import { initializeSampleEvents } from '../../lib/data';
+import { fetchAssets, fetchLicenses, fetchVendors } from '../../lib/api';
+import type { Asset, License, Vendor } from '../../lib/data';
 
 interface AssetFlowDashboardProps {
   onNavigate?: (page: string) => void;
@@ -14,18 +16,44 @@ interface AssetFlowDashboardProps {
 }
 
 export function AssetFlowDashboard({ onNavigate, onSearch }: AssetFlowDashboardProps) {
-  const stats = getDashboardStats();
+  const [assets, setAssets] = useState<Asset[]>([]);
+  const [licenses, setLicenses] = useState<License[]>([]);
+  const [vendors, setVendors] = useState<Vendor[]>([]);
+  const [errors, setErrors] = useState<string | null>(null);
 
-  // Initialize sample events on first load
+  // Load data and initialize sample events on first load
   useEffect(() => {
     initializeSampleEvents();
+    let cancelled = false;
+    Promise.all([fetchAssets(), fetchLicenses(), fetchVendors()])
+      .then(([a, l, v]) => {
+        if (cancelled) return;
+        setAssets(a);
+        setLicenses(l);
+        setVendors(v);
+        setErrors(null);
+      })
+      .catch((e) => { if (!cancelled) setErrors(e?.message || 'Failed to load dashboard data'); });
+    return () => { cancelled = true; };
   }, []);
+
+  const stats = useMemo(() => {
+    const totalAssets = assets.length;
+    const assetsInRepair = assets.filter(a => a.status === 'In Repair').length;
+    const licensesExpiringSoon = licenses.filter(l => {
+      const d = new Date(l.expirationDate);
+      const now = new Date();
+      const days = Math.floor((d.getTime() - now.getTime()) / 86400000);
+      return days <= 90 && days >= 0;
+    }).length;
+    const totalVendors = vendors.length;
+    return { totalAssets, assetsInRepair, licensesExpiringSoon, totalVendors };
+  }, [assets, licenses, vendors]);
 
   return (
     <AssetFlowLayout 
       breadcrumbs={[{ label: 'Dashboard' }]}
       currentPage="dashboard"
-      onNavigate={onNavigate}
       onSearch={onSearch}
     >
       {/* Welcome Section */}
@@ -75,6 +103,7 @@ export function AssetFlowDashboard({ onNavigate, onSearch }: AssetFlowDashboardP
         <AssetOverviewChart />
         <RecentActivityTable />
       </div>
+      {errors && <p className="text-sm text-[#ef4444] mt-4">{errors}</p>}
     </AssetFlowLayout>
   );
 }

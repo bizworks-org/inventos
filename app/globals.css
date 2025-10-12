@@ -1,2 +1,20 @@
 @import url('../src/index.css');
 @import url('../src/styles/globals.css');
+
+/* Global cursor pointer for clickable elements */
+button,
+a,
+label[for],
+[role="button"],
+input[type="button"],
+input[type="submit"],
+select,
+summary,
+[data-cursor-pointer] {
+	cursor: pointer;
+}
+
+/* Allow explicit override where necessary */
+[data-cursor-default] {
+	cursor: default !important;
+}

@@ -59,6 +59,9 @@ Thumbs.db
 .vercel/
 .sass-cache/
 
+# Secure config storage (server encrypted blobs)
+.data/
+
 # Images processed or generated
 *.coverage
 

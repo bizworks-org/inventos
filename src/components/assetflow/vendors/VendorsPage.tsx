@@ -1,11 +1,16 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { motion } from 'motion/react';
 import { Plus, Download, Upload, Search, Star, TrendingUp } from 'lucide-react';
 import { AssetFlowLayout } from '../layout/AssetFlowLayout';
-import { mockVendors, Vendor } from '../../../lib/data';
+import { Vendor } from '../../../lib/data';
+import { fetchVendors, deleteVendor } from '../../../lib/api';
 import { VendorsTable } from './VendorsTable';
+import { usePrefs } from '../layout/PrefsContext';
+import { exportVendorsToCSV } from '../../../lib/export';
+import { importVendors, parseVendorsFile } from '../../../lib/import';
+import { toast } from 'sonner@2.0.3';
 
 interface VendorsPageProps {
   onNavigate?: (page: string, vendorId?: string) => void;
@@ -16,12 +21,23 @@ export type VendorTypeFilter = 'All' | 'Hardware' | 'Software' | 'Services' | 'C
 export type VendorStatusFilter = 'All' | 'Approved' | 'Pending' | 'Rejected';
 
 export function VendorsPage({ onNavigate, onSearch }: VendorsPageProps) {
+  const { formatCurrency } = usePrefs();
   const [selectedType, setSelectedType] = useState<VendorTypeFilter>('All');
   const [selectedStatus, setSelectedStatus] = useState<VendorStatusFilter>('All');
   const [searchQuery, setSearchQuery] = useState('');
+  const [vendors, setVendors] = useState<Vendor[]>([]);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    fetchVendors()
+      .then((rows) => { if (!cancelled) { setVendors(rows); setError(null); } })
+      .catch((e) => { if (!cancelled) setError(e.message || 'Failed to load vendors'); });
+    return () => { cancelled = true; };
+  }, []);
 
   // Filter vendors based on selected filters
-  const filteredVendors = mockVendors.filter(vendor => {
+  const filteredVendors = useMemo(() => vendors.filter(vendor => {
     const matchesType = selectedType === 'All' || vendor.type === selectedType;
     const matchesStatus = selectedStatus === 'All' || vendor.status === selectedStatus;
     const matchesSearch = searchQuery === '' || 
@@ -30,32 +46,38 @@ export function VendorsPage({ onNavigate, onSearch }: VendorsPageProps) {
       vendor.email.toLowerCase().includes(searchQuery.toLowerCase());
     
     return matchesType && matchesStatus && matchesSearch;
-  });
+  }), [vendors, selectedType, selectedStatus, searchQuery]);
 
   const vendorTypes: VendorTypeFilter[] = ['All', 'Hardware', 'Software', 'Services', 'Cloud'];
 
   // Count vendors by type
   const getTypeCount = (type: VendorTypeFilter) => {
-    if (type === 'All') return mockVendors.length;
-    return mockVendors.filter(v => v.type === type).length;
+    if (type === 'All') return vendors.length;
+    return vendors.filter(v => v.type === type).length;
   };
 
   // Calculate total contract value
-  const totalContractValue = mockVendors.reduce((sum, vendor) => sum + vendor.contractValue, 0);
+  const totalContractValue = useMemo(() => vendors.reduce((sum, vendor) => sum + vendor.contractValue, 0), [vendors]);
 
   // Calculate average rating
-  const averageRating = mockVendors.reduce((sum, vendor) => sum + vendor.rating, 0) / mockVendors.length;
+  const averageRating = useMemo(() => vendors.length ? vendors.reduce((sum, vendor) => sum + vendor.rating, 0) / vendors.length : 0, [vendors]);
 
   // Count approved vendors
-  const approvedCount = mockVendors.filter(v => v.status === 'Approved').length;
+  const approvedCount = useMemo(() => vendors.filter(v => v.status === 'Approved').length, [vendors]);
 
   // Count contracts expiring soon (within 90 days)
-  const expiringCount = mockVendors.filter(vendor => {
+  const expiringCount = useMemo(() => vendors.filter(vendor => {
     const expiryDate = new Date(vendor.contractExpiry);
     const now = new Date();
     const daysUntilExpiry = Math.floor((expiryDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
     return daysUntilExpiry <= 90 && daysUntilExpiry >= 0;
-  }).length;
+  }).length, [vendors]);
+
+  const handleDelete = async (id: string) => {
+    const keep = vendors.filter(v => v.id !== id);
+    setVendors(keep);
+    try { await deleteVendor(id); } catch (e) { setVendors(vendors); console.error(e); }
+  };
 
   return (
     <AssetFlowLayout
@@ -64,7 +86,6 @@ export function VendorsPage({ onNavigate, onSearch }: VendorsPageProps) {
         { label: 'Vendors' }
       ]}
       currentPage="vendors"
-      onNavigate={onNavigate}
       onSearch={onSearch}
     >
       {/* Header */}
@@ -81,11 +102,31 @@ export function VendorsPage({ onNavigate, onSearch }: VendorsPageProps) {
           transition={{ duration: 0.3 }}
           className="flex gap-3"
         >
-          <button className="flex items-center gap-2 px-4 py-2 rounded-lg bg-white border border-[rgba(0,0,0,0.1)] hover:bg-[#f8f9ff] transition-all duration-200 text-[#1a1d2e]">
+          <button onClick={() => document.getElementById('vendor-import-input')?.click()} className="flex items-center gap-2 px-4 py-2 rounded-lg bg-white border border-[rgba(0,0,0,0.1)] hover:bg-[#f8f9ff] transition-all duration-200 text-[#1a1d2e]">
             <Upload className="h-4 w-4" />
             Import
           </button>
-          <button className="flex items-center gap-2 px-4 py-2 rounded-lg bg-white border border-[rgba(0,0,0,0.1)] hover:bg-[#f8f9ff] transition-all duration-200 text-[#1a1d2e]">
+          <input id="vendor-import-input" type="file" accept=".csv,.json" className="hidden" onChange={async (e) => {
+            const file = e.target.files?.[0];
+            if (!file) return;
+            try {
+              const text = await file.text();
+              const items = parseVendorsFile(file.name, text);
+              const doing = toast.loading(`Importing ${items.length} vendors…`);
+              const res = await importVendors(items);
+              toast.dismiss(doing);
+              toast.success(`Imported ${res.created} created, ${res.updated} updated, ${res.failed} failed`);
+              // refresh list
+              setVendors(await fetchVendors());
+            } catch (err: any) {
+              toast.error(`Import failed: ${err?.message || err}`);
+            } finally {
+              (e.target as HTMLInputElement).value = '';
+            }
+          }} />
+          <button 
+            onClick={() => exportVendorsToCSV(filteredVendors)}
+            className="flex items-center gap-2 px-4 py-2 rounded-lg bg-white border border-[rgba(0,0,0,0.1)] hover:bg-[#f8f9ff] transition-all duration-200 text-[#1a1d2e]">
             <Download className="h-4 w-4" />
             Export
           </button>
@@ -114,9 +155,9 @@ export function VendorsPage({ onNavigate, onSearch }: VendorsPageProps) {
             </div>
           </div>
           <p className="text-2xl font-bold text-[#1a1d2e]">
-            ${(totalContractValue / 1000000).toFixed(1)}M
+            {formatCurrency(totalContractValue)}
           </p>
-          <p className="text-xs text-[#94a3b8] mt-1">Across {mockVendors.length} vendors</p>
+              <p className="text-xs text-[#94a3b8] mt-1">Across {vendors.length} vendors</p>
         </motion.div>
 
         <motion.div
@@ -261,13 +302,13 @@ export function VendorsPage({ onNavigate, onSearch }: VendorsPageProps) {
         <div className="mt-4 pt-4 border-t border-[rgba(0,0,0,0.05)]">
           <p className="text-sm text-[#64748b]">
             Showing <span className="font-semibold text-[#1a1d2e]">{filteredVendors.length}</span> of{' '}
-            <span className="font-semibold text-[#1a1d2e]">{mockVendors.length}</span> vendors
+            <span className="font-semibold text-[#1a1d2e]">{vendors.length}</span> vendors
           </p>
         </div>
       </motion.div>
 
-      {/* Vendors Table */}
-      <VendorsTable vendors={filteredVendors} onNavigate={onNavigate} />
+  {/* Vendors Table */}
+  <VendorsTable vendors={filteredVendors} onNavigate={onNavigate} onDelete={(id, _name) => handleDelete(id)} />
     </AssetFlowLayout>
   );
 }

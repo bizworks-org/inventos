@@ -1,11 +1,14 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { motion } from 'motion/react';
 import { Plus, Download, Upload, Search, Filter } from 'lucide-react';
 import { AssetFlowLayout } from '../layout/AssetFlowLayout';
-import { mockAssets, Asset } from '../../../lib/data';
+import { Asset } from '../../../lib/data';
+import { fetchAssets, deleteAsset } from '../../../lib/api';
 import { exportAssetsToCSV } from '../../../lib/export';
+import { importAssets, parseAssetsFile } from '../../../lib/import';
+import { toast } from 'sonner@2.0.3';
 import { AssetsTable } from './AssetsTable';
 import { Tabs } from '../../ui/tabs';
 
@@ -21,26 +24,60 @@ export function AssetsPage({ onNavigate, onSearch }: AssetsPageProps) {
   const [selectedType, setSelectedType] = useState<AssetType>('All');
   const [selectedStatus, setSelectedStatus] = useState<AssetStatus>('All');
   const [searchQuery, setSearchQuery] = useState('');
+  const [assets, setAssets] = useState<Asset[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  // Filter assets based on selected filters
-  const filteredAssets = mockAssets.filter(asset => {
-    const matchesType = selectedType === 'All' || asset.type === selectedType;
-    const matchesStatus = selectedStatus === 'All' || asset.status === selectedStatus;
-    const matchesSearch = searchQuery === '' || 
-      asset.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      asset.serialNumber.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      asset.assignedTo.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      asset.department.toLowerCase().includes(searchQuery.toLowerCase());
-    
-    return matchesType && matchesStatus && matchesSearch;
-  });
+  useEffect(() => {
+    let cancelled = false;
+    setLoading(true);
+    fetchAssets()
+      .then((rows) => { if (!cancelled) { setAssets(rows); setError(null); } })
+      .catch((e) => { if (!cancelled) setError(e.message || 'Failed to load assets'); })
+      .finally(() => { if (!cancelled) setLoading(false); });
+    return () => { cancelled = true; };
+  }, []);
+
+  const filteredAssets = useMemo(() => {
+    const q = searchQuery.toLowerCase();
+    return assets.filter(asset => {
+      const matchesType = selectedType === 'All' || asset.type === selectedType;
+      const matchesStatus = selectedStatus === 'All' || asset.status === selectedStatus;
+      const matchesSearch = !q ||
+        asset.name.toLowerCase().includes(q) ||
+        asset.serialNumber.toLowerCase().includes(q) ||
+        asset.assignedTo.toLowerCase().includes(q) ||
+        asset.department.toLowerCase().includes(q) ||
+        // search in custom fields keys and values
+        (() => {
+          const cf = asset.specifications?.customFields;
+          if (!cf) return false;
+          for (const [k, v] of Object.entries(cf)) {
+            if (k.toLowerCase().includes(q) || String(v).toLowerCase().includes(q)) return true;
+          }
+          return false;
+        })();
+      return matchesType && matchesStatus && matchesSearch;
+    });
+  }, [assets, selectedType, selectedStatus, searchQuery]);
 
   const assetTypes: AssetType[] = ['All', 'Laptop', 'Desktop', 'Server', 'Monitor', 'Printer', 'Phone'];
 
-  // Count assets by type
   const getTypeCount = (type: AssetType) => {
-    if (type === 'All') return mockAssets.length;
-    return mockAssets.filter(a => a.type === type).length;
+    if (type === 'All') return assets.length;
+    return assets.filter(a => a.type === type).length;
+  };
+
+  const handleDelete = async (id: string, _name?: string) => {
+    const keep = assets.filter(a => a.id !== id);
+    setAssets(keep); // optimistic
+    try {
+      await deleteAsset(id);
+    } catch (e) {
+      // rollback on error
+      setAssets(assets);
+      console.error(e);
+    }
   };
 
   return (
@@ -50,7 +87,6 @@ export function AssetsPage({ onNavigate, onSearch }: AssetsPageProps) {
         { label: 'IT Assets' }
       ]}
       currentPage="assets"
-      onNavigate={onNavigate}
       onSearch={onSearch}
     >
       {/* Header */}
@@ -67,10 +103,28 @@ export function AssetsPage({ onNavigate, onSearch }: AssetsPageProps) {
           transition={{ duration: 0.3 }}
           className="flex gap-3"
         >
-          <button className="flex items-center gap-2 px-4 py-2 rounded-lg bg-white border border-[rgba(0,0,0,0.1)] hover:bg-[#f8f9ff] transition-all duration-200 text-[#1a1d2e]">
+          <button onClick={() => document.getElementById('asset-import-input')?.click()} className="flex items-center gap-2 px-4 py-2 rounded-lg bg-white border border-[rgba(0,0,0,0.1)] hover:bg-[#f8f9ff] transition-all duration-200 text-[#1a1d2e]">
             <Upload className="h-4 w-4" />
             Import
           </button>
+          <input id="asset-import-input" type="file" accept=".csv,.json" className="hidden" onChange={async (e) => {
+            const file = e.target.files?.[0];
+            if (!file) return;
+            try {
+              const text = await file.text();
+              const items = parseAssetsFile(file.name, text);
+              const doing = toast.loading(`Importing ${items.length} assets…`);
+              const res = await importAssets(items);
+              toast.dismiss(doing);
+              toast.success(`Imported ${res.created} created, ${res.updated} updated, ${res.failed} failed`);
+              // refresh list
+              setAssets(await fetchAssets());
+            } catch (err: any) {
+              toast.error(`Import failed: ${err?.message || err}`);
+            } finally {
+              (e.target as HTMLInputElement).value = '';
+            }
+          }} />
           <button 
             onClick={() => exportAssetsToCSV(filteredAssets)}
             className="flex items-center gap-2 px-4 py-2 rounded-lg bg-white border border-[rgba(0,0,0,0.1)] hover:bg-[#f8f9ff] transition-all duration-200 text-[#1a1d2e]"
@@ -173,13 +227,16 @@ export function AssetsPage({ onNavigate, onSearch }: AssetsPageProps) {
         <div className="mt-4 pt-4 border-t border-[rgba(0,0,0,0.05)]">
           <p className="text-sm text-[#64748b]">
             Showing <span className="font-semibold text-[#1a1d2e]">{filteredAssets.length}</span> of{' '}
-            <span className="font-semibold text-[#1a1d2e]">{mockAssets.length}</span> assets
+            <span className="font-semibold text-[#1a1d2e]">{assets.length}</span> assets
           </p>
         </div>
       </motion.div>
 
       {/* Assets Table */}
-      <AssetsTable assets={filteredAssets} onNavigate={onNavigate} />
+      {error && (
+        <div className="mb-4 text-sm text-red-600">{error}</div>
+      )}
+  <AssetsTable assets={filteredAssets} onNavigate={onNavigate} onDelete={handleDelete} />
     </AssetFlowLayout>
   );
 }

@@ -243,14 +243,14 @@ export function EventsTimeline({ events }: EventsTimelineProps) {
                       {/* Metadata */}
                       {Object.keys(event.metadata).length > 0 && (
                         <div className="mt-2 p-2 bg-[#f8f9ff] rounded-lg">
-                          <div className="flex flex-wrap gap-x-4 gap-y-1">
+                          <div className="flex flex-col gap-1">
                             {Object.entries(event.metadata).map(([key, value]) => (
-                              <span key={key} className="text-xs text-[#64748b]">
-                                <span className="font-semibold">{key}:</span>{' '}
-                                <span className="font-mono">
-                                  {typeof value === 'object' ? JSON.stringify(value) : String(value)}
-                                </span>
-                              </span>
+                              <div key={key} className="text-xs text-[#64748b]">
+                                <span className="font-semibold">{key}:</span>
+                                <pre className="font-mono whitespace-pre-wrap break-words bg-white/60 border border-[rgba(0,0,0,0.05)] rounded px-2 py-1 mt-1">
+                                  {typeof value === 'object' ? JSON.stringify(value, null, 2) : String(value)}
+                                </pre>
+                              </div>
                             ))}
                           </div>
                         </div>

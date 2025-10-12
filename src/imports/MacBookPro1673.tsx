@@ -315,7 +315,7 @@ export default function MacBookPro1673({ onBack, onNavigateToWaiting }: { onBack
 
       {onNavigateToWaiting && (
         <motion.button
-          className="absolute bottom-[50px] left-1/2 transform -translate-x-1/2 bg-[#b282e5] text-white px-[60px] py-[12px] rounded-[12px] font-['Outfit',_sans-serif] font-medium text-[16px] tracking-[-0.352px] hover:bg-[#9a6fcf] transition-colors duration-200"
+          className="absolute bottom-[50px] left-1/2 transform -translate-x-1/2 bg-[#b282e5] text-white px-[60px] py-[12px] rounded-[12px] font-['Outfit',_sans-serif] font-medium text-[16px] tracking-[-0.352px] hover:bg-[#9a6fcf] transition-colors duration-200 cursor-pointer"
           onClick={onNavigateToWaiting}
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}

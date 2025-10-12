@@ -1,11 +1,16 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { motion } from 'motion/react';
 import { Plus, Download, Upload, Search, AlertTriangle } from 'lucide-react';
 import { AssetFlowLayout } from '../layout/AssetFlowLayout';
-import { mockLicenses, License, getLicensesExpiringSoon } from '../../../lib/data';
+import { License } from '../../../lib/data';
+import { fetchLicenses, deleteLicense } from '../../../lib/api';
 import { LicensesTable } from './LicensesTable';
+import { exportLicensesToCSV } from '../../../lib/export';
+import { importLicenses, parseLicensesFile } from '../../../lib/import';
+import { toast } from 'sonner@2.0.3';
+import { usePrefs } from '../layout/PrefsContext';
 
 interface LicensesPageProps {
   onNavigate?: (page: string, licenseId?: string) => void;
@@ -16,12 +21,23 @@ export type LicenseTypeFilter = 'All' | 'Software' | 'SaaS' | 'Cloud';
 export type ComplianceFilter = 'All' | 'Compliant' | 'Warning' | 'Non-Compliant';
 
 export function LicensesPage({ onNavigate, onSearch }: LicensesPageProps) {
+  const { formatCurrency, t } = usePrefs();
   const [selectedType, setSelectedType] = useState<LicenseTypeFilter>('All');
   const [selectedCompliance, setSelectedCompliance] = useState<ComplianceFilter>('All');
   const [searchQuery, setSearchQuery] = useState('');
+  const [licenses, setLicenses] = useState<License[]>([]);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    fetchLicenses()
+      .then((rows) => { if (!cancelled) { setLicenses(rows); setError(null); } })
+      .catch((e) => { if (!cancelled) setError(e.message || 'Failed to load licenses'); });
+    return () => { cancelled = true; };
+  }, []);
 
   // Filter licenses based on selected filters
-  const filteredLicenses = mockLicenses.filter(license => {
+  const filteredLicenses = useMemo(() => licenses.filter(license => {
     const matchesType = selectedType === 'All' || license.type === selectedType;
     const matchesCompliance = selectedCompliance === 'All' || license.compliance === selectedCompliance;
     const matchesSearch = searchQuery === '' || 
@@ -30,26 +46,39 @@ export function LicensesPage({ onNavigate, onSearch }: LicensesPageProps) {
       license.owner.toLowerCase().includes(searchQuery.toLowerCase());
     
     return matchesType && matchesCompliance && matchesSearch;
-  });
+  }), [licenses, selectedType, selectedCompliance, searchQuery]);
 
   const licenseTypes: LicenseTypeFilter[] = ['All', 'Software', 'SaaS', 'Cloud'];
 
   // Count licenses by type
   const getTypeCount = (type: LicenseTypeFilter) => {
-    if (type === 'All') return mockLicenses.length;
-    return mockLicenses.filter(l => l.type === type).length;
+    if (type === 'All') return licenses.length;
+    return licenses.filter(l => l.type === type).length;
   };
 
   // Get expiring licenses count
-  const expiringCount = getLicensesExpiringSoon(90).length;
+  const expiringCount = useMemo(() => {
+    const now = new Date();
+    const future = new Date(now.getTime() + 90 * 24 * 60 * 60 * 1000);
+    return licenses.filter(l => {
+      const d = new Date(l.expirationDate);
+      return d <= future && d >= now;
+    }).length;
+  }, [licenses]);
 
   // Calculate total license value
-  const totalValue = mockLicenses.reduce((sum, license) => sum + license.cost, 0);
+  const totalValue = useMemo(() => licenses.reduce((sum, license) => sum + license.cost, 0), [licenses]);
 
   // Calculate total seats
-  const totalSeats = mockLicenses.reduce((sum, license) => sum + license.seats, 0);
-  const seatsUsed = mockLicenses.reduce((sum, license) => sum + license.seatsUsed, 0);
+  const totalSeats = useMemo(() => licenses.reduce((sum, license) => sum + license.seats, 0), [licenses]);
+  const seatsUsed = useMemo(() => licenses.reduce((sum, license) => sum + license.seatsUsed, 0), [licenses]);
   const utilizationRate = Math.round((seatsUsed / totalSeats) * 100);
+
+  const handleDelete = async (id: string) => {
+    const keep = licenses.filter(l => l.id !== id);
+    setLicenses(keep);
+    try { await deleteLicense(id); } catch (e) { setLicenses(licenses); console.error(e); }
+  };
 
   return (
     <AssetFlowLayout
@@ -58,7 +87,6 @@ export function LicensesPage({ onNavigate, onSearch }: LicensesPageProps) {
         { label: 'Licenses' }
       ]}
       currentPage="licenses"
-      onNavigate={onNavigate}
       onSearch={onSearch}
     >
       {/* Header */}
@@ -75,11 +103,31 @@ export function LicensesPage({ onNavigate, onSearch }: LicensesPageProps) {
           transition={{ duration: 0.3 }}
           className="flex gap-3"
         >
-          <button className="flex items-center gap-2 px-4 py-2 rounded-lg bg-white border border-[rgba(0,0,0,0.1)] hover:bg-[#f8f9ff] transition-all duration-200 text-[#1a1d2e]">
+          <button onClick={() => document.getElementById('license-import-input')?.click()} className="flex items-center gap-2 px-4 py-2 rounded-lg bg-white border border-[rgba(0,0,0,0.1)] hover:bg-[#f8f9ff] transition-all duration-200 text-[#1a1d2e]">
             <Upload className="h-4 w-4" />
             Import
           </button>
-          <button className="flex items-center gap-2 px-4 py-2 rounded-lg bg-white border border-[rgba(0,0,0,0.1)] hover:bg-[#f8f9ff] transition-all duration-200 text-[#1a1d2e]">
+          <input id="license-import-input" type="file" accept=".csv,.json" className="hidden" onChange={async (e) => {
+            const file = e.target.files?.[0];
+            if (!file) return;
+            try {
+              const text = await file.text();
+              const items = parseLicensesFile(file.name, text);
+              const doing = toast.loading(`Importing ${items.length} licenses…`);
+              const res = await importLicenses(items);
+              toast.dismiss(doing);
+              toast.success(`Imported ${res.created} created, ${res.updated} updated, ${res.failed} failed`);
+              // refresh list
+              setLicenses(await fetchLicenses());
+            } catch (err: any) {
+              toast.error(`Import failed: ${err?.message || err}`);
+            } finally {
+              (e.target as HTMLInputElement).value = '';
+            }
+          }} />
+          <button 
+            onClick={() => exportLicensesToCSV(filteredLicenses)}
+            className="flex items-center gap-2 px-4 py-2 rounded-lg bg-white border border-[rgba(0,0,0,0.1)] hover:bg-[#f8f9ff] transition-all duration-200 text-[#1a1d2e]">
             <Download className="h-4 w-4" />
             Export
           </button>
@@ -104,13 +152,13 @@ export function LicensesPage({ onNavigate, onSearch }: LicensesPageProps) {
           <div className="flex items-center justify-between mb-2">
             <p className="text-sm text-[#64748b]">Total Licenses</p>
             <div className="h-10 w-10 rounded-lg bg-gradient-to-br from-[#6366f1] to-[#8b5cf6] flex items-center justify-center">
-              <span className="text-white font-bold">{mockLicenses.length}</span>
+              <span className="text-white font-bold">{licenses.length}</span>
             </div>
           </div>
           <p className="text-2xl font-bold text-[#1a1d2e]">
-            ${(totalValue / 1000).toFixed(0)}K
+            {formatCurrency(totalValue)}
           </p>
-          <p className="text-xs text-[#94a3b8] mt-1">Annual spend</p>
+          <p className="text-xs text-[#94a3b8] mt-1">{t('annualSpend')}</p>
         </motion.div>
 
         <motion.div
@@ -158,7 +206,7 @@ export function LicensesPage({ onNavigate, onSearch }: LicensesPageProps) {
             </div>
           </div>
           <p className="text-2xl font-bold text-[#10b981]">
-            {mockLicenses.filter(l => l.compliance === 'Compliant').length}
+            {licenses.filter(l => l.compliance === 'Compliant').length}
           </p>
           <p className="text-xs text-[#94a3b8] mt-1">Compliant licenses</p>
         </motion.div>
@@ -247,13 +295,13 @@ export function LicensesPage({ onNavigate, onSearch }: LicensesPageProps) {
         <div className="mt-4 pt-4 border-t border-[rgba(0,0,0,0.05)]">
           <p className="text-sm text-[#64748b]">
             Showing <span className="font-semibold text-[#1a1d2e]">{filteredLicenses.length}</span> of{' '}
-            <span className="font-semibold text-[#1a1d2e]">{mockLicenses.length}</span> licenses
+            <span className="font-semibold text-[#1a1d2e]">{licenses.length}</span> licenses
           </p>
         </div>
       </motion.div>
 
-      {/* Licenses Table */}
-      <LicensesTable licenses={filteredLicenses} onNavigate={onNavigate} />
+  {/* Licenses Table */}
+  <LicensesTable licenses={filteredLicenses} onNavigate={onNavigate} onDelete={handleDelete} />
     </AssetFlowLayout>
   );
 }

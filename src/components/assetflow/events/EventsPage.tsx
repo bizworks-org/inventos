@@ -4,7 +4,8 @@ import { useState, useEffect } from 'react';
 import { motion } from 'motion/react';
 import { Download, Search, Filter, RefreshCw, Activity } from 'lucide-react';
 import { AssetFlowLayout } from '../layout/AssetFlowLayout';
-import { eventBus, SystemEvent, EventSeverity, EntityType } from '../../../lib/events';
+import { SystemEvent, EventSeverity, EntityType } from '../../../lib/events';
+import { fetchEvents } from '../../../lib/api';
 import { EventsTimeline } from './EventsTimeline';
 
 interface EventsPageProps {
@@ -21,27 +22,27 @@ export function EventsPage({ onNavigate, onSearch }: EventsPageProps) {
   const [selectedTimeFilter, setSelectedTimeFilter] = useState<TimeFilter>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  // Load events and subscribe to new ones
+  // Load events from backend
   useEffect(() => {
     loadEvents();
-
-    const unsubscribe = eventBus.subscribe((newEvent) => {
-      loadEvents();
-    });
-
-    return () => unsubscribe();
   }, []);
 
-  const loadEvents = () => {
-    const allEvents = eventBus.getEvents();
-    setEvents(allEvents);
+  const loadEvents = async () => {
+    try {
+      const rows = await fetchEvents(1000);
+      setEvents(rows);
+      setError(null);
+    } catch (e: any) {
+      setError(e?.message || 'Failed to load events');
+    }
   };
 
-  const handleRefresh = () => {
+  const handleRefresh = async () => {
     setIsRefreshing(true);
-    loadEvents();
-    setTimeout(() => setIsRefreshing(false), 500);
+    await loadEvents();
+    setIsRefreshing(false);
   };
 
   // Filter events
@@ -104,7 +105,6 @@ export function EventsPage({ onNavigate, onSearch }: EventsPageProps) {
         { label: 'Events Log' }
       ]}
       currentPage="events"
-      onNavigate={onNavigate}
       onSearch={onSearch}
     >
       {/* Header */}
@@ -306,10 +306,11 @@ export function EventsPage({ onNavigate, onSearch }: EventsPageProps) {
 
         {/* Results Count */}
         <div className="mt-4 pt-4 border-t border-[rgba(0,0,0,0.05)]">
-          <p className="text-sm text-[#64748b]">
-            Showing <span className="font-semibold text-[#1a1d2e]">{filteredEvents.length}</span> of{' '}
-            <span className="font-semibold text-[#1a1d2e]">{events.length}</span> events
-          </p>
+            <p className="text-sm text-[#64748b]">
+              Showing <span className="font-semibold text-[#1a1d2e]">{filteredEvents.length}</span> of{' '}
+              <span className="font-semibold text-[#1a1d2e]">{events.length}</span> events
+              {error && <span className="text-[#ef4444] ml-2">{error}</span>}
+            </p>
         </div>
       </motion.div>
 

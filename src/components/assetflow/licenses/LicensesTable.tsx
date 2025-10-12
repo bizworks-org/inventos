@@ -2,10 +2,12 @@ import { motion } from 'motion/react';
 import { Edit2, Trash2, AlertCircle, CheckCircle, AlertTriangle, Users } from 'lucide-react';
 import { License } from '../../../lib/data';
 import { useState } from 'react';
+import { usePrefs } from '../layout/PrefsContext';
 
 interface LicensesTableProps {
   licenses: License[];
   onNavigate?: (page: string, licenseId?: string) => void;
+  onDelete?: (id: string, name: string) => void;
 }
 
 function getComplianceColor(compliance: License['compliance']) {
@@ -37,13 +39,9 @@ function getTypeColor(type: License['type']) {
   return colors[type];
 }
 
-function formatCurrency(amount: number): string {
-  return new Intl.NumberFormat('en-US', {
-    style: 'currency',
-    currency: 'USD',
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 0
-  }).format(amount);
+function useCurrencyFormatter() {
+  const { formatCurrency } = usePrefs();
+  return (amount: number) => formatCurrency(amount, { minimumFractionDigits: 0, maximumFractionDigits: 0 });
 }
 
 function formatDate(dateString: string): string {
@@ -80,8 +78,9 @@ function getSeatUtilizationColor(utilization: number): string {
   return 'text-[#10b981]';
 }
 
-export function LicensesTable({ licenses, onNavigate }: LicensesTableProps) {
+export function LicensesTable({ licenses, onNavigate, onDelete }: LicensesTableProps) {
   const [hoveredRow, setHoveredRow] = useState<string | null>(null);
+  const formatCurrency = useCurrencyFormatter();
 
   const handleEdit = (licenseId: string) => {
     onNavigate?.('licenses-edit', licenseId);
@@ -89,7 +88,7 @@ export function LicensesTable({ licenses, onNavigate }: LicensesTableProps) {
 
   const handleDelete = (licenseId: string, licenseName: string) => {
     if (confirm(`Are you sure you want to delete ${licenseName}?`)) {
-      console.log('Deleting license:', licenseId);
+      onDelete?.(licenseId, licenseName);
     }
   };
 

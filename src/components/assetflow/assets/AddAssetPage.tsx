@@ -1,10 +1,12 @@
 'use client';
 
 import { useState } from 'react';
+import { usePrefs } from '../layout/PrefsContext';
 import { motion } from 'motion/react';
 import { ArrowLeft, Save, X } from 'lucide-react';
 import { AssetFlowLayout } from '../layout/AssetFlowLayout';
 import { Asset } from '../../../lib/data';
+import { createAsset } from '../../../lib/api';
 import { logAssetCreated } from '../../../lib/events';
 
 interface AddAssetPageProps {
@@ -16,6 +18,7 @@ const assetTypes: Asset['type'][] = ['Laptop', 'Desktop', 'Server', 'Monitor', '
 const assetStatuses: Asset['status'][] = ['Active', 'In Repair', 'Retired', 'In Storage'];
 
 export function AddAssetPage({ onNavigate, onSearch }: AddAssetPageProps) {
+  const { currencySymbol, formatCurrency } = usePrefs();
   const [assetType, setAssetType] = useState<Asset['type']>('Laptop');
   const [formData, setFormData] = useState({
     name: '',
@@ -33,12 +36,17 @@ export function AddAssetPage({ onNavigate, onSearch }: AddAssetPageProps) {
     storage: '',
     os: ''
   });
+  const [customFields, setCustomFields] = useState<Array<{ key: string; value: string }>>([]);
+
+  const addCustomField = () => setCustomFields((arr) => [...arr, { key: '', value: '' }]);
+  const removeCustomField = (idx: number) => setCustomFields((arr) => arr.filter((_, i) => i !== idx));
+  const updateCustomField = (idx: number, which: 'key' | 'value', val: string) => setCustomFields((arr) => arr.map((it, i) => i === idx ? { ...it, [which]: val } : it));
 
   const handleInputChange = (field: string, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }));
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     // Create new asset
@@ -58,7 +66,8 @@ export function AddAssetPage({ onNavigate, onSearch }: AddAssetPageProps) {
         processor: formData.processor,
         ram: formData.ram,
         storage: formData.storage,
-        os: formData.os
+        os: formData.os,
+        customFields: Object.fromEntries(customFields.filter(cf => cf.key.trim() !== '').map(cf => [cf.key.trim(), cf.value]))
       }
     };
 
@@ -68,8 +77,11 @@ export function AddAssetPage({ onNavigate, onSearch }: AddAssetPageProps) {
       cost: newAsset.cost
     });
 
-    // In a real app, this would save to a database
-    console.log('Creating asset:', newAsset);
+    try {
+      await createAsset(newAsset);
+    } catch (err) {
+      console.error('Failed to create asset', err);
+    }
 
     // Navigate back to assets page
     onNavigate?.('assets');
@@ -85,7 +97,6 @@ export function AddAssetPage({ onNavigate, onSearch }: AddAssetPageProps) {
         { label: 'Add Asset' }
       ]}
       currentPage="assets"
-      onNavigate={onNavigate}
       onSearch={onSearch}
     >
       {/* Header */}
@@ -253,7 +264,7 @@ export function AddAssetPage({ onNavigate, onSearch }: AddAssetPageProps) {
                     Purchase Cost *
                   </label>
                   <div className="relative">
-                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[#64748b]">$</span>
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[#64748b]">{currencySymbol}</span>
                     <input
                       type="number"
                       required
@@ -368,6 +379,42 @@ export function AddAssetPage({ onNavigate, onSearch }: AddAssetPageProps) {
                 </div>
               </motion.div>
             )}
+
+            {/* Custom Fields */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.4, delay: 0.25 }}
+              className="bg-white rounded-2xl border border-[rgba(0,0,0,0.08)] p-6 shadow-sm"
+            >
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-lg font-semibold text-[#1a1d2e]">Custom Fields</h3>
+                <button type="button" onClick={addCustomField} className="px-3 py-2 rounded-lg bg-[#f8f9ff] border border-[rgba(0,0,0,0.08)] text-[#1a1d2e] hover:bg-[#eef2ff]">Add Field</button>
+              </div>
+              <p className="text-sm text-[#64748b] mb-3">Add any additional key-value properties for this asset.</p>
+              <div className="space-y-3">
+                {customFields.length === 0 && (
+                  <p className="text-sm text-[#94a3b8]">No custom fields yet.</p>
+                )}
+                {customFields.map((cf, idx) => (
+                  <div key={idx} className="grid grid-cols-1 md:grid-cols-12 gap-3 items-center">
+                    <input
+                      placeholder="Key (e.g., Asset Tag)"
+                      value={cf.key}
+                      onChange={(e) => updateCustomField(idx, 'key', e.target.value)}
+                      className="md:col-span-5 w-full px-3 py-2 rounded-lg bg-[#f8f9ff] border border-[rgba(0,0,0,0.08)]"
+                    />
+                    <input
+                      placeholder="Value (e.g., TAG-00123)"
+                      value={cf.value}
+                      onChange={(e) => updateCustomField(idx, 'value', e.target.value)}
+                      className="md:col-span-6 w-full px-3 py-2 rounded-lg bg-[#f8f9ff] border border-[rgba(0,0,0,0.08)]"
+                    />
+                    <button type="button" onClick={() => removeCustomField(idx)} className="md:col-span-1 px-3 py-2 rounded-lg bg-white border border-[rgba(0,0,0,0.08)] hover:bg-[#fee2e2] text-[#ef4444]">Remove</button>
+                  </div>
+                ))}
+              </div>
+            </motion.div>
           </div>
 
           {/* Sidebar - Summary */}
@@ -392,7 +439,7 @@ export function AddAssetPage({ onNavigate, onSearch }: AddAssetPageProps) {
                 {formData.cost && (
                   <div className="flex justify-between items-center pb-2 border-b border-white/20">
                     <span className="text-sm text-white/80">Cost</span>
-                    <span className="font-semibold">${parseFloat(formData.cost).toFixed(2)}</span>
+                    <span className="font-semibold">{formatCurrency(parseFloat(formData.cost))}</span>
                   </div>
                 )}
               </div>

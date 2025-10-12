@@ -1,11 +1,19 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { motion } from 'motion/react';
 import { AssetFlowLayout } from '../layout/AssetFlowLayout';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../../ui/tabs';
-import { useTheme } from 'next-themes@0.4.6';
-import { Sun, Moon, Laptop, Bell, User, SlidersHorizontal } from 'lucide-react';
+import { useTheme } from 'next-themes';
+import { Sun, Moon, Laptop, Bell, User, SlidersHorizontal, Server, Webhook, Rss, Send, Check, Plug, Database } from 'lucide-react';
+import { Switch } from '../../ui/switch';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../ui/card';
+import { Button } from '../../ui/button';
+import { Badge } from '../../ui/badge';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '../../ui/dialog';
+import { Label } from '../../ui/label';
+import { Input } from '../../ui/input';
+import { fetchSettings, saveSettings, type ServerSettings } from '../../../lib/api';
 
 interface SettingsPageProps {
   onNavigate?: (page: string) => void;
@@ -14,35 +22,119 @@ interface SettingsPageProps {
 
 type ThemeMode = 'light' | 'dark' | 'system';
 
-type NotificationPrefs = {
-  email: boolean;
-  desktop: boolean;
-  system: boolean;
+type NotificationSettings = {
+  channels: {
+    email: boolean;
+    push: boolean;
+  };
+  events: {
+    assets: { newAsset: boolean; statusChange: boolean; maintenanceDue: boolean };
+    licenses: { expiringSoon: boolean; expired: boolean; complianceChange: boolean };
+    vendors: { contractRenewal: boolean; newVendorApproved: boolean };
+  };
 };
 
 type Preferences = {
   density: 'compact' | 'comfortable';
   dateFormat: 'YYYY-MM-DD' | 'MM/DD/YYYY' | 'DD/MM/YYYY';
+  currency: 'USD' | 'EUR' | 'GBP' | 'INR' | 'JPY' | 'AUD' | 'CAD' | 'CNY' | 'SGD';
+  language: 'en' | 'hi' | 'ta' | 'te' | 'bn' | 'mr' | 'gu' | 'kn' | 'ml' | 'pa' | 'or' | 'as' | 'sa' | 'kok' | 'ur' | 'ar';
+};
+
+type EventDeliveryMethod = 'kafka' | 'webhook';
+
+type EventsConfig = {
+  enabled: boolean;
+  method: EventDeliveryMethod;
+  // Kafka
+  kafkaBrokers: string; // comma-separated
+  kafkaTopic: string;
+  kafkaClientId?: string;
+  kafkaSaslMechanism: 'none' | 'plain' | 'scram-sha-256' | 'scram-sha-512';
+  kafkaUsername?: string;
+  kafkaPassword?: string;
+  // Webhook
+  webhookUrl: string;
+  webhookMethod: 'POST' | 'PUT';
+  webhookHeaders: string; // JSON string
+  webhookSecret?: string; // optional shared secret for signing
 };
 
 export function SettingsPage({ onNavigate, onSearch }: SettingsPageProps) {
   const { theme, setTheme, systemTheme } = useTheme();
   const [activeTab, setActiveTab] = useState<string>('profile');
+  const [saving, setSaving] = useState(false);
+  const [serverError, setServerError] = useState<string | null>(null);
 
   // Profile (mock)
   const [name, setName] = useState('John Doe');
   const [email, setEmail] = useState('john.doe@company.com');
 
   // Preferences
-  const [prefs, setPrefs] = useState<Preferences>({ density: 'comfortable', dateFormat: 'YYYY-MM-DD' });
+  const [prefs, setPrefs] = useState<Preferences>({ density: 'comfortable', dateFormat: 'YYYY-MM-DD', currency: 'USD', language: 'en' });
+  const allowedLanguages: Preferences['language'][] = ['en','hi','ta','te','bn','mr','gu','kn','ml','pa','or','as','sa','kok','ur','ar'];
+  const ensureAllowedLanguage = (lang: any): Preferences['language'] => (allowedLanguages as string[]).includes(lang) ? (lang as Preferences['language']) : 'en';
 
-  // Notifications
-  const [notify, setNotify] = useState<NotificationPrefs>({ email: true, desktop: true, system: false });
+  // Notifications (channels + event groups)
+  const defaultNotify: NotificationSettings = useMemo(() => ({
+    channels: { email: true, push: false },
+    events: {
+      assets: { newAsset: true, statusChange: true, maintenanceDue: true },
+      licenses: { expiringSoon: true, expired: true, complianceChange: true },
+      vendors: { contractRenewal: true, newVendorApproved: true },
+    }
+  }), []);
+  const normalizeNotify = (raw: any): NotificationSettings => {
+    const channels = {
+      email: Boolean(raw?.channels?.email ?? raw?.email ?? true),
+      push: Boolean(raw?.channels?.push ?? false),
+    };
+    const events = {
+      assets: {
+        newAsset: Boolean(raw?.events?.assets?.newAsset ?? true),
+        statusChange: Boolean(raw?.events?.assets?.statusChange ?? true),
+        maintenanceDue: Boolean(raw?.events?.assets?.maintenanceDue ?? true),
+      },
+      licenses: {
+        expiringSoon: Boolean(raw?.events?.licenses?.expiringSoon ?? true),
+        expired: Boolean(raw?.events?.licenses?.expired ?? true),
+        complianceChange: Boolean(raw?.events?.licenses?.complianceChange ?? true),
+      },
+      vendors: {
+        contractRenewal: Boolean(raw?.events?.vendors?.contractRenewal ?? true),
+        newVendorApproved: Boolean(raw?.events?.vendors?.newVendorApproved ?? true),
+      },
+    };
+    return { channels, events };
+  };
+  const [notify, setNotify] = useState<NotificationSettings>(defaultNotify);
 
   // Theme
   const [mode, setMode] = useState<ThemeMode>('system');
 
-  // Load persisted settings
+  // Events
+  const [events, setEvents] = useState<EventsConfig>({
+    enabled: false,
+    method: 'webhook',
+    kafkaBrokers: '',
+    kafkaTopic: '',
+    kafkaClientId: '',
+    kafkaSaslMechanism: 'none',
+    kafkaUsername: '',
+    kafkaPassword: '',
+    webhookUrl: '',
+    webhookMethod: 'POST',
+    webhookHeaders: '{"Content-Type": "application/json"}',
+    webhookSecret: ''
+  });
+  const [headersError, setHeadersError] = useState<string | null>(null);
+  // DB
+  const [dbForm, setDbForm] = useState({ host: 'localhost', port: '3306', user: 'root', password: '', database: 'inventos' });
+  const [dbBusy, setDbBusy] = useState(false);
+  const [dbMsg, setDbMsg] = useState<string | null>(null);
+  const [dbTestBusy, setDbTestBusy] = useState(false);
+
+  // Load persisted settings from localStorage and then try server
   useEffect(() => {
     try {
       const raw = localStorage.getItem('assetflow:settings');
@@ -50,11 +142,80 @@ export function SettingsPage({ onNavigate, onSearch }: SettingsPageProps) {
         const parsed = JSON.parse(raw);
         if (parsed.name) setName(parsed.name);
         if (parsed.email) setEmail(parsed.email);
-        if (parsed.prefs) setPrefs(parsed.prefs);
-        if (parsed.notify) setNotify(parsed.notify);
+  if (parsed.prefs) setPrefs((prev) => ({ ...prev, ...parsed.prefs, language: ensureAllowedLanguage(parsed.prefs.language) }));
+        if (parsed.notify) {
+          setNotify(normalizeNotify(parsed.notify));
+        }
         if (parsed.mode) setMode(parsed.mode);
+        if (parsed.integrations) {
+          setConnected((prev) => ({ ...prev, ...parsed.integrations }));
+        }
+        if (parsed.events) setEvents({
+          enabled: !!parsed.events.enabled,
+          method: parsed.events.method === 'kafka' ? 'kafka' : 'webhook',
+          kafkaBrokers: parsed.events.kafkaBrokers ?? '',
+          kafkaTopic: parsed.events.kafkaTopic ?? '',
+          kafkaClientId: parsed.events.kafkaClientId ?? '',
+          kafkaSaslMechanism: parsed.events.kafkaSaslMechanism ?? 'none',
+          kafkaUsername: parsed.events.kafkaUsername ?? '',
+          kafkaPassword: parsed.events.kafkaPassword ?? '',
+          webhookUrl: parsed.events.webhookUrl ?? '',
+          webhookMethod: parsed.events.webhookMethod === 'PUT' ? 'PUT' : 'POST',
+          webhookHeaders: parsed.events.webhookHeaders ?? '{"Content-Type": "application/json"}',
+          webhookSecret: parsed.events.webhookSecret ?? ''
+        });
       }
     } catch {}
+
+    // Load from server by user email
+    (async () => {
+      try {
+        const data = await fetchSettings(email);
+        if (data) {
+          // hydrate UI state from server settings
+          if (data.name) setName(data.name);
+          if (data.user_email) setEmail(data.user_email);
+          if (data.prefs) setPrefs((prev) => ({ ...prev, ...(data.prefs as Partial<Preferences>), language: ensureAllowedLanguage((data.prefs as any).language) }));
+          if (data.notify) setNotify(normalizeNotify(data.notify));
+          if (data.mode) setMode(data.mode as ThemeMode);
+          if (data.events) setEvents({
+            enabled: !!(data.events as any).enabled,
+            method: (data.events as any).method === 'kafka' ? 'kafka' : 'webhook',
+            kafkaBrokers: (data.events as any).kafkaBrokers ?? '',
+            kafkaTopic: (data.events as any).kafkaTopic ?? '',
+            kafkaClientId: (data.events as any).kafkaClientId ?? '',
+            kafkaSaslMechanism: (data.events as any).kafkaSaslMechanism ?? 'none',
+            kafkaUsername: (data.events as any).kafkaUsername ?? '',
+            kafkaPassword: (data.events as any).kafkaPassword ?? '',
+            webhookUrl: (data.events as any).webhookUrl ?? '',
+            webhookMethod: (data.events as any).webhookMethod === 'PUT' ? 'PUT' : 'POST',
+            webhookHeaders: (data.events as any).webhookHeaders ?? '{"Content-Type": "application/json"}',
+            webhookSecret: (data.events as any).webhookSecret ?? ''
+          });
+          if (data.integrations) {
+            setConnected((prev) => ({ ...prev, ...(data.integrations as Record<string, boolean>) }));
+          }
+        }
+        setServerError(null);
+      } catch (e: any) {
+        setServerError(e?.message || 'Failed to load server settings');
+      }
+    })();
+  }, []);
+
+  // Prefill DB form from saved secure config if available
+  useEffect(() => {
+    (async () => {
+      try {
+        const res = await fetch('/api/db/config', { method: 'GET' });
+        if (res.ok) {
+          const data = await res.json();
+          if (data?.ok) {
+            setDbForm((v) => ({ ...v, host: data.host, port: String(data.port ?? 3306), user: data.user, database: data.database }));
+          }
+        }
+      } catch {}
+    })();
   }, []);
 
   // Reflect theme changes
@@ -62,9 +223,82 @@ export function SettingsPage({ onNavigate, onSearch }: SettingsPageProps) {
     setTheme(mode);
   }, [mode, setTheme]);
 
-  const handleSave = () => {
-    const payload = { name, email, prefs, notify, mode };
-    localStorage.setItem('assetflow:settings', JSON.stringify(payload));
+  const handleSave = async () => {
+    // validate webhook headers JSON if method is webhook
+    if (events.method === 'webhook') {
+      try {
+        const obj = JSON.parse(events.webhookHeaders || '{}');
+        if (obj && typeof obj === 'object') {
+          setHeadersError(null);
+        }
+      } catch (e) {
+        setHeadersError('Headers must be a valid JSON object');
+        return;
+      }
+    }
+
+    const payload: ServerSettings = {
+      user_email: email,
+      name,
+      prefs,
+      notify,
+      mode,
+      events,
+      integrations: connected,
+    } as any;
+
+    try {
+      setSaving(true);
+      await saveSettings(payload);
+      localStorage.setItem('assetflow:settings', JSON.stringify({ name, email, prefs, notify, mode, events, integrations: connected }));
+      setServerError(null);
+    } catch (e: any) {
+      setServerError(e?.message || 'Failed to save settings');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const saveRestSettings = () => {
+    // basic JSON validation for headers
+    try {
+      if (events.webhookHeaders) JSON.parse(events.webhookHeaders);
+      setHeadersError(null);
+    } catch {
+      setHeadersError('Headers must be a valid JSON object');
+      return;
+    }
+    handleSave();
+  };
+
+  const saveKafkaSettings = () => {
+    handleSave();
+  };
+
+  // Integrations mock state
+  type IntegrationId = 'ad' | 'aws' | 'azure' | 'mdm';
+  const [connected, setConnected] = useState<Record<IntegrationId, boolean>>({ ad: false, aws: false, azure: false, mdm: false });
+  const [dialogOpenFor, setDialogOpenFor] = useState<IntegrationId | null>(null);
+  const [apiKey, setApiKey] = useState('');
+  const [endpointUrl, setEndpointUrl] = useState('');
+
+  const integrations: Array<{ id: IntegrationId; name: string; description: string; icon: any }> = [
+    { id: 'ad', name: 'Active Directory', description: 'Sync users and devices from on-prem AD or Azure AD.', icon: Server },
+    { id: 'aws', name: 'Amazon Web Services', description: 'Discover EC2 instances and inventory cloud assets.', icon: CloudIcon },
+    { id: 'azure', name: 'Microsoft Azure', description: 'Sync VMs and resources across your Azure subscriptions.', icon: CloudIcon },
+    { id: 'mdm', name: 'MDM Tools', description: 'Integrate with MDM providers to inventory enrolled devices.', icon: Plug },
+  ];
+
+  function CloudIcon(props: any) {
+    return <Server {...props} />; // simple placeholder icon
+  }
+
+  const handleConnect = (id: IntegrationId) => {
+    // Mock connect
+    setConnected((c) => ({ ...c, [id]: true }));
+    setDialogOpenFor(null);
+    setApiKey('');
+    setEndpointUrl('');
   };
 
   return (
@@ -74,7 +308,6 @@ export function SettingsPage({ onNavigate, onSearch }: SettingsPageProps) {
         { label: 'Settings' },
       ]}
       currentPage="settings"
-      onNavigate={onNavigate}
       onSearch={onSearch}
     >
       {/* Header */}
@@ -87,9 +320,12 @@ export function SettingsPage({ onNavigate, onSearch }: SettingsPageProps) {
           onClick={handleSave}
           className="px-4 py-2 rounded-lg bg-gradient-to-r from-[#6366f1] to-[#8b5cf6] text-white hover:shadow-lg hover:shadow-[#6366f1]/30 transition-all duration-200"
         >
-          Save Changes
+          {saving ? 'Saving…' : 'Save Changes'}
         </button>
       </div>
+      {serverError && (
+        <p className="text-sm text-[#ef4444] mb-4">{serverError}</p>
+      )}
 
       <motion.div
         initial={{ opacity: 0, y: 20 }}
@@ -110,6 +346,15 @@ export function SettingsPage({ onNavigate, onSearch }: SettingsPageProps) {
             </TabsTrigger>
             <TabsTrigger value="appearance" className="min-w-28">
               <Sun className="h-4 w-4" /> Appearance
+            </TabsTrigger>
+            <TabsTrigger value="integrations" className="min-w-28">
+              <Server className="h-4 w-4" /> Integrations
+            </TabsTrigger>
+            <TabsTrigger value="events" className="min-w-28">
+              <Bell className="h-4 w-4" /> Events
+            </TabsTrigger>
+            <TabsTrigger value="database" className="min-w-28">
+              <Database className="h-4 w-4" /> Database
             </TabsTrigger>
           </TabsList>
 
@@ -159,6 +404,49 @@ export function SettingsPage({ onNavigate, onSearch }: SettingsPageProps) {
                     Comfortable
                   </button>
                 </div>
+                  <div>
+                    <label className="block text-sm font-medium text-[#1a1d2e] mb-2">Currency</label>
+                    <select
+                      className="w-full px-3 py-2 rounded-lg bg-[#f8f9ff] border border-[rgba(0,0,0,0.08)]"
+                      value={prefs.currency}
+                      onChange={(e) => setPrefs((p) => ({ ...p, currency: e.target.value as Preferences['currency'] }))}
+                    >
+                      {(['USD','EUR','GBP','INR','JPY','AUD','CAD','CNY','SGD'] as const).map((c) => (
+                        <option key={c} value={c}>{c}</option>
+                      ))}
+                    </select>
+                    <p className="text-xs text-[#94a3b8] mt-1">Used for cost and value displays.</p>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-[#1a1d2e] mb-2">Language</label>
+                    <select
+                      className="w-full px-3 py-2 rounded-lg bg-[#f8f9ff] border border-[rgba(0,0,0,0.08)]"
+                      value={prefs.language}
+                      onChange={(e) => setPrefs((p) => ({ ...p, language: e.target.value as Preferences['language'] }))}
+                    >
+                      {([
+                        { code: 'en', label: 'English' },
+                        { code: 'hi', label: 'हिंदी (Hindi)' },
+                        { code: 'ta', label: 'தமிழ் (Tamil)' },
+                        { code: 'te', label: 'తెలుగు (Telugu)' },
+                        { code: 'bn', label: 'বাংলা (Bengali)' },
+                        { code: 'mr', label: 'मराठी (Marathi)' },
+                        { code: 'gu', label: 'ગુજરાતી (Gujarati)' },
+                        { code: 'kn', label: 'ಕನ್ನಡ (Kannada)' },
+                        { code: 'ml', label: 'മലയാളം (Malayalam)' },
+                        { code: 'pa', label: 'ਪੰਜਾਬੀ (Punjabi)' },
+                        { code: 'or', label: 'ଓଡ଼ିଆ (Odia)' },
+                        { code: 'as', label: 'অসমীয়া (Assamese)' },
+                        { code: 'sa', label: 'संस्कृतम् (Sanskrit)' },
+                        { code: 'kok', label: 'कोंकणी (Konkani)' },
+                        { code: 'ur', label: 'اُردو (Urdu)' },
+                        { code: 'ar', label: 'العربية (Arabic)' },
+                      ] as const).map((lng) => (
+                        <option key={lng.code} value={lng.code}>{lng.label}</option>
+                      ))}
+                    </select>
+                    <p className="text-xs text-[#94a3b8] mt-1">Applies to UI text (requires translation files to fully localize).</p>
+                  </div>
               </div>
               <div>
                 <label className="block text-sm font-medium text-[#1a1d2e] mb-2">Date Format</label>
@@ -181,41 +469,168 @@ export function SettingsPage({ onNavigate, onSearch }: SettingsPageProps) {
 
           {/* Notifications */}
           <TabsContent value="notifications" className="mt-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="flex items-center justify-between p-4 border rounded-xl bg-[#f8f9ff] border-[rgba(0,0,0,0.08)]">
-                <div>
-                  <p className="font-medium text-[#1a1d2e]">Email Alerts</p>
-                  <p className="text-sm text-[#64748b]">Critical events and weekly summaries</p>
-                </div>
-                <input
-                  type="checkbox"
-                  checked={notify.email}
-                  onChange={(e) => setNotify((n) => ({ ...n, email: e.target.checked }))}
-                />
+            <form className="space-y-6" onSubmit={(e) => { e.preventDefault(); handleSave(); }}>
+              <Card>
+                <CardHeader>
+                  <CardTitle>Notification Channels</CardTitle>
+                  <CardDescription>Choose how you want to be notified.</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="flex items-center justify-between p-4 border rounded-xl bg-[#f8f9ff] border-[rgba(0,0,0,0.08)]">
+                      <div>
+                        <p className="font-medium text-[#1a1d2e]">Email</p>
+                        <p className="text-sm text-[#64748b]">Get notifications via email</p>
+                      </div>
+                      <Switch
+                        checked={notify.channels.email}
+                        onCheckedChange={(val) => setNotify((n) => ({ ...n, channels: { ...n.channels, email: !!val } }))}
+                        aria-label="Toggle email notifications"
+                      />
+                    </div>
+                    <div className="flex items-center justify-between p-4 border rounded-xl bg-[#f8f9ff] border-[rgba(0,0,0,0.08)] opacity-70">
+                      <div>
+                        <p className="font-medium text-[#1a1d2e]">Push Notifications</p>
+                        <p className="text-sm text-[#64748b]">Not available yet</p>
+                      </div>
+                      <Switch checked={false} disabled aria-label="Push notifications disabled" />
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle>Event Notifications</CardTitle>
+                  <CardDescription>Choose which events trigger notifications.</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  {/* Assets */}
+                  <div className="border rounded-xl p-4">
+                    <p className="font-semibold text-[#1a1d2e] mb-3">Assets</p>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                      <div className="flex items-center justify-between p-3 rounded-lg bg-[#f8f9ff]">
+                        <span className="text-sm">New Asset Added</span>
+                        <Switch checked={notify.events.assets.newAsset} onCheckedChange={(v) => setNotify((n) => ({ ...n, events: { ...n.events, assets: { ...n.events.assets, newAsset: !!v } } }))} />
+                      </div>
+                      <div className="flex items-center justify-between p-3 rounded-lg bg-[#f8f9ff]">
+                        <span className="text-sm">Asset Status Change</span>
+                        <Switch checked={notify.events.assets.statusChange} onCheckedChange={(v) => setNotify((n) => ({ ...n, events: { ...n.events, assets: { ...n.events.assets, statusChange: !!v } } }))} />
+                      </div>
+                      <div className="flex items-center justify-between p-3 rounded-lg bg-[#f8f9ff]">
+                        <span className="text-sm">Maintenance Due</span>
+                        <Switch checked={notify.events.assets.maintenanceDue} onCheckedChange={(v) => setNotify((n) => ({ ...n, events: { ...n.events, assets: { ...n.events.assets, maintenanceDue: !!v } } }))} />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Licenses */}
+                  <div className="border rounded-xl p-4">
+                    <p className="font-semibold text-[#1a1d2e] mb-3">Licenses</p>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                      <div className="flex items-center justify-between p-3 rounded-lg bg-[#f8f9ff]">
+                        <span className="text-sm">License Expiring Soon</span>
+                        <Switch checked={notify.events.licenses.expiringSoon} onCheckedChange={(v) => setNotify((n) => ({ ...n, events: { ...n.events, licenses: { ...n.events.licenses, expiringSoon: !!v } } }))} />
+                      </div>
+                      <div className="flex items-center justify-between p-3 rounded-lg bg-[#f8f9ff]">
+                        <span className="text-sm">License Expired</span>
+                        <Switch checked={notify.events.licenses.expired} onCheckedChange={(v) => setNotify((n) => ({ ...n, events: { ...n.events, licenses: { ...n.events.licenses, expired: !!v } } }))} />
+                      </div>
+                      <div className="flex items-center justify-between p-3 rounded-lg bg-[#f8f9ff]">
+                        <span className="text-sm">Compliance Status Change</span>
+                        <Switch checked={notify.events.licenses.complianceChange} onCheckedChange={(v) => setNotify((n) => ({ ...n, events: { ...n.events, licenses: { ...n.events.licenses, complianceChange: !!v } } }))} />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Vendors */}
+                  <div className="border rounded-xl p-4">
+                    <p className="font-semibold text-[#1a1d2e] mb-3">Vendors</p>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                      <div className="flex items-center justify-between p-3 rounded-lg bg-[#f8f9ff]">
+                        <span className="text-sm">Contract Nears Renewal</span>
+                        <Switch checked={notify.events.vendors.contractRenewal} onCheckedChange={(v) => setNotify((n) => ({ ...n, events: { ...n.events, vendors: { ...n.events.vendors, contractRenewal: !!v } } }))} />
+                      </div>
+                      <div className="flex items-center justify-between p-3 rounded-lg bg-[#f8f9ff]">
+                        <span className="text-sm">New Vendor Approved</span>
+                        <Switch checked={notify.events.vendors.newVendorApproved} onCheckedChange={(v) => setNotify((n) => ({ ...n, events: { ...n.events, vendors: { ...n.events.vendors, newVendorApproved: !!v } } }))} />
+                      </div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <div className="flex justify-end">
+                <Button type="submit">Save Preferences</Button>
               </div>
-              <div className="flex items-center justify-between p-4 border rounded-xl bg-[#f8f9ff] border-[rgba(0,0,0,0.08)]">
-                <div>
-                  <p className="font-medium text-[#1a1d2e]">Desktop Notifications</p>
-                  <p className="text-sm text-[#64748b]">Real-time updates in your browser</p>
+            </form>
+          </TabsContent>
+          {/* Integrations */}
+          <TabsContent value="integrations" className="mt-4">
+            <Card>
+              <CardHeader>
+                <CardTitle>Automated Asset Discovery</CardTitle>
+                <CardDescription>Connect to external systems to discover and track assets automatically.</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                  {integrations.map((it) => {
+                    const Icon = it.icon;
+                    const isConnected = connected[it.id];
+                    return (
+                      <div key={it.id} className="flex items-center justify-between p-4 border rounded-xl bg-[#f8f9ff] border-[rgba(0,0,0,0.08)]">
+                        <div className="flex items-center gap-3">
+                          <div className="h-10 w-10 rounded-lg bg-white border border-[rgba(0,0,0,0.06)] flex items-center justify-center">
+                            <Icon className="h-5 w-5 text-[#6366f1]" />
+                          </div>
+                          <div>
+                            <p className="font-medium text-[#1a1d2e] flex items-center gap-2">
+                              {it.name}
+                              {isConnected && (
+                                <Badge variant="secondary" className="bg-[#e0f2f1] text-[#065f46] border-[#10b981]/20">
+                                  <Check className="h-3 w-3" /> Connected
+                                </Badge>
+                              )}
+                            </p>
+                            <p className="text-sm text-[#64748b]">{it.description}</p>
+                          </div>
+                        </div>
+
+                        {!isConnected ? (
+                          <Dialog open={dialogOpenFor === it.id} onOpenChange={(o) => setDialogOpenFor(o ? it.id : null)}>
+                            <DialogTrigger asChild>
+                              <Button>Connect</Button>
+                            </DialogTrigger>
+                            <DialogContent>
+                              <DialogHeader>
+                                <DialogTitle>Connect {it.name}</DialogTitle>
+                                <DialogDescription>Enter credentials to authorize this integration.</DialogDescription>
+                              </DialogHeader>
+                              <div className="space-y-4">
+                                <div className="space-y-2">
+                                  <Label htmlFor="apiKey">API Key</Label>
+                                  <Input id="apiKey" type="password" value={apiKey} onChange={(e) => setApiKey(e.target.value)} placeholder="••••••••" />
+                                </div>
+                                <div className="space-y-2">
+                                  <Label htmlFor="endpoint">Endpoint URL (optional)</Label>
+                                  <Input id="endpoint" value={endpointUrl} onChange={(e) => setEndpointUrl(e.target.value)} placeholder="https://api.example.com" />
+                                </div>
+                              </div>
+                              <DialogFooter className="mt-4">
+                                <Button variant="outline" type="button" onClick={() => setDialogOpenFor(null)}>Cancel</Button>
+                                <Button type="button" onClick={() => handleConnect(it.id)}>Connect</Button>
+                              </DialogFooter>
+                            </DialogContent>
+                          </Dialog>
+                        ) : (
+                          <Button variant="outline" onClick={() => setConnected((c) => ({ ...c, [it.id]: false }))}>Disconnect</Button>
+                        )}
+                      </div>
+                    );
+                  })}
                 </div>
-                <input
-                  type="checkbox"
-                  checked={notify.desktop}
-                  onChange={(e) => setNotify((n) => ({ ...n, desktop: e.target.checked }))}
-                />
-              </div>
-              <div className="flex items-center justify-between p-4 border rounded-xl bg-[#f8f9ff] border-[rgba(0,0,0,0.08)]">
-                <div>
-                  <p className="font-medium text-[#1a1d2e]">System Messages</p>
-                  <p className="text-sm text-[#64748b]">Maintenance and policy updates</p>
-                </div>
-                <input
-                  type="checkbox"
-                  checked={notify.system}
-                  onChange={(e) => setNotify((n) => ({ ...n, system: e.target.checked }))}
-                />
-              </div>
-            </div>
+              </CardContent>
+            </Card>
           </TabsContent>
 
           {/* Appearance */}
@@ -255,6 +670,218 @@ export function SettingsPage({ onNavigate, onSearch }: SettingsPageProps) {
             <p className="text-sm text-[#94a3b8] mt-4">
               Current theme: <span className="font-medium text-[#1a1d2e]">{(mode === 'system' ? systemTheme : mode) || 'system'}</span>
             </p>
+          </TabsContent>
+
+          {/* Events */}
+          <TabsContent value="events" className="mt-4">
+            <div className="space-y-6">
+              {/* Enable */}
+              <div className="flex items-center justify-between p-4 border rounded-xl bg-[#f8f9ff] border-[rgba(0,0,0,0.08)]">
+                <div>
+                  <p className="font-medium text-[#1a1d2e]">Enable Event Delivery</p>
+                  <p className="text-sm text-[#64748b]">Send AssetFlow events to your system</p>
+                </div>
+                <Switch checked={events.enabled} onCheckedChange={(v) => setEvents((e) => ({ ...e, enabled: !!v }))} />
+              </div>
+
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                {/* REST Webhook Card */}
+                <Card>
+                  <CardHeader>
+                    <div className="flex items-center gap-2">
+                      <Rss className="h-5 w-5 text-[#6366f1]" />
+                      <CardTitle>REST API Endpoint</CardTitle>
+                    </div>
+                    <CardDescription>Send events via HTTP POST/PUT to your endpoint.</CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div>
+                      <Label className="mb-1 block">Endpoint URL</Label>
+                      <Input placeholder="https://example.com/webhook" value={events.webhookUrl} onChange={(e) => setEvents((v) => ({ ...v, webhookUrl: e.target.value }))} />
+                    </div>
+                    <div>
+                      <Label className="mb-1 block">HTTP Method</Label>
+                      <select
+                        className="w-full px-3 py-2 rounded-lg bg-[#f8f9ff] border border-[rgba(0,0,0,0.08)]"
+                        value={events.webhookMethod}
+                        onChange={(e) => setEvents((v) => ({ ...v, webhookMethod: e.target.value as 'POST' | 'PUT' }))}
+                      >
+                        <option value="POST">POST</option>
+                        <option value="PUT">PUT</option>
+                      </select>
+                    </div>
+                    <div>
+                      <Label className="mb-1 block">Headers (JSON)</Label>
+                      <textarea
+                        rows={4}
+                        className={`w-full px-3 py-2 rounded-lg bg-[#f8f9ff] border ${headersError ? 'border-red-400' : 'border-[rgba(0,0,0,0.08)]'} focus:outline-none focus:ring-2 focus:ring-[#6366f1]/20`}
+                        value={events.webhookHeaders}
+                        onChange={(e) => {
+                          setEvents((v) => ({ ...v, webhookHeaders: e.target.value }));
+                          setHeadersError(null);
+                        }}
+                      />
+                      {headersError && <p className="text-sm text-red-500 mt-1">{headersError}</p>}
+                    </div>
+                    <div>
+                      <Label className="mb-1 block">Secret Token (optional)</Label>
+                      <Input type="password" placeholder="Used to sign requests (e.g., HMAC)" value={events.webhookSecret} onChange={(e) => setEvents((v) => ({ ...v, webhookSecret: e.target.value }))} />
+                    </div>
+                    <div className="flex justify-end">
+                      <Button type="button" onClick={saveRestSettings}>Save REST Settings</Button>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* Kafka Card */}
+                <Card>
+                  <CardHeader>
+                    <div className="flex items-center gap-2">
+                      <Send className="h-5 w-5 text-[#6366f1]" />
+                      <CardTitle>Apache Kafka</CardTitle>
+                    </div>
+                    <CardDescription>Publish events to a Kafka topic.</CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div>
+                      <Label className="mb-1 block">Bootstrap Servers</Label>
+                      <Input placeholder="broker1:9092,broker2:9092" value={events.kafkaBrokers} onChange={(e) => setEvents((v) => ({ ...v, kafkaBrokers: e.target.value }))} />
+                    </div>
+                    <div>
+                      <Label className="mb-1 block">Topic Name</Label>
+                      <Input placeholder="assetflow.events" value={events.kafkaTopic} onChange={(e) => setEvents((v) => ({ ...v, kafkaTopic: e.target.value }))} />
+                    </div>
+                    <div>
+                      <Label className="mb-1 block">Client ID</Label>
+                      <Input placeholder="assetflow-ui" value={events.kafkaClientId} onChange={(e) => setEvents((v) => ({ ...v, kafkaClientId: e.target.value }))} />
+                    </div>
+                    <div>
+                      <Label className="mb-1 block">SASL Mechanism</Label>
+                      <select
+                        className="w-full px-3 py-2 rounded-lg bg-[#f8f9ff] border border-[rgba(0,0,0,0.08)]"
+                        value={events.kafkaSaslMechanism}
+                        onChange={(e) => setEvents((v) => ({ ...v, kafkaSaslMechanism: e.target.value as EventsConfig['kafkaSaslMechanism'] }))}
+                      >
+                        <option value="none">None</option>
+                        <option value="plain">PLAIN</option>
+                        <option value="scram-sha-256">SCRAM-SHA-256</option>
+                        <option value="scram-sha-512">SCRAM-SHA-512</option>
+                      </select>
+                    </div>
+                    {events.kafkaSaslMechanism !== 'none' && (
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                          <Label className="mb-1 block">Username</Label>
+                          <Input value={events.kafkaUsername} onChange={(e) => setEvents((v) => ({ ...v, kafkaUsername: e.target.value }))} />
+                        </div>
+                        <div>
+                          <Label className="mb-1 block">Password</Label>
+                          <Input type="password" value={events.kafkaPassword} onChange={(e) => setEvents((v) => ({ ...v, kafkaPassword: e.target.value }))} />
+                        </div>
+                      </div>
+                    )}
+                    <div className="flex justify-end">
+                      <Button type="button" onClick={saveKafkaSettings}>Save Kafka Settings</Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+            </div>
+          </TabsContent>
+
+          {/* Database */}
+          <TabsContent value="database" className="mt-4">
+            <Card>
+              <CardHeader>
+                <CardTitle>Database Connection</CardTitle>
+                <CardDescription>Provide MySQL connection details to initialize required tables.</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <Label className="mb-1 block">Host</Label>
+                    <Input value={dbForm.host} onChange={(e) => setDbForm((v) => ({ ...v, host: e.target.value }))} placeholder="localhost" />
+                  </div>
+                  <div>
+                    <Label className="mb-1 block">Port</Label>
+                    <Input value={dbForm.port} onChange={(e) => setDbForm((v) => ({ ...v, port: e.target.value }))} placeholder="3306" />
+                  </div>
+                  <div>
+                    <Label className="mb-1 block">User</Label>
+                    <Input value={dbForm.user} onChange={(e) => setDbForm((v) => ({ ...v, user: e.target.value }))} placeholder="root" />
+                  </div>
+                  <div>
+                    <Label className="mb-1 block">Password</Label>
+                    <Input type="password" value={dbForm.password} onChange={(e) => setDbForm((v) => ({ ...v, password: e.target.value }))} />
+                  </div>
+                  <div className="md:col-span-2">
+                    <Label className="mb-1 block">Database</Label>
+                    <Input value={dbForm.database} onChange={(e) => setDbForm((v) => ({ ...v, database: e.target.value }))} placeholder="inventos" />
+                  </div>
+                </div>
+                {dbMsg && <p className={`text-sm ${dbMsg.startsWith('OK') ? 'text-green-600' : 'text-red-600'}`}>{dbMsg}</p>}
+                <div className="flex justify-between gap-3 flex-wrap">
+                  <div className="flex items-center gap-2">
+                    <Button type="button" variant="outline" disabled={dbTestBusy} onClick={async () => {
+                      setDbTestBusy(true);
+                      setDbMsg(null);
+                      try {
+                        const res = await fetch('/api/db/config', {
+                          method: 'PUT',
+                          headers: { 'Content-Type': 'application/json' },
+                          body: JSON.stringify({ host: dbForm.host, port: Number(dbForm.port) || 3306, user: dbForm.user, password: dbForm.password, database: dbForm.database }),
+                        });
+                        const data = await res.json();
+                        if (!res.ok) throw new Error(data?.error || 'Failed');
+                        setDbMsg('OK: Connection successful');
+                      } catch (e: any) {
+                        setDbMsg(`Error: ${e?.message || e}`);
+                      } finally {
+                        setDbTestBusy(false);
+                      }
+                    }}>
+                      {dbTestBusy ? 'Testing…' : 'Test Connection'}
+                    </Button>
+                    <Button type="button" variant="secondary" onClick={async () => {
+                      try {
+                        const res = await fetch('/api/db/config', {
+                          method: 'POST',
+                          headers: { 'Content-Type': 'application/json' },
+                          body: JSON.stringify({ host: dbForm.host, port: Number(dbForm.port) || 3306, user: dbForm.user, password: dbForm.password, database: dbForm.database }),
+                        });
+                        const data = await res.json();
+                        if (!res.ok) throw new Error(data?.error || 'Failed');
+                        setDbMsg('OK: Configuration saved securely on server');
+                      } catch (e: any) {
+                        setDbMsg(`Error: ${e?.message || e}`);
+                      }
+                    }}>
+                      Save Config Securely
+                    </Button>
+                  </div>
+                  <Button type="button" disabled={dbBusy} onClick={async () => {
+                    setDbBusy(true);
+                    setDbMsg(null);
+                    try {
+                      const res = await fetch('/api/db/init', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ host: dbForm.host, port: Number(dbForm.port) || 3306, user: dbForm.user, password: dbForm.password, database: dbForm.database }),
+                      });
+                      const data = await res.json();
+                      if (!res.ok) throw new Error(data?.error || 'Failed');
+                      setDbMsg(`OK: Database initialized${data?.persisted ? ' and configuration saved securely' : ''}.`);
+                    } catch (e: any) {
+                      setDbMsg(`Error: ${e?.message || e}`);
+                    } finally {
+                      setDbBusy(false);
+                    }
+                  }}>
+                    {dbBusy ? 'Initializing…' : 'Initialize Database'}
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
           </TabsContent>
         </Tabs>
       </motion.div>

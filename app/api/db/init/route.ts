@@ -1,0 +1,172 @@
+import { NextRequest, NextResponse } from 'next/server';
+import mysql from 'mysql2/promise';
+import { getPool } from '@/lib/db';
+import { saveDbConfig } from '@/lib/configStore';
+
+type DbPayload = {
+  host: string;
+  port?: number;
+  user: string;
+  password?: string;
+  database: string;
+};
+
+function validate(body: any): { ok: boolean; error?: string } {
+  if (!body) return { ok: false, error: 'Missing payload' };
+  const { host, user, database } = body as Partial<DbPayload>;
+  if (!host || !user || !database) return { ok: false, error: 'host, user and database are required' };
+  return { ok: true };
+}
+
+async function runMigrations(conn: any) {
+  // same SQL as /api/dev/migrate but without env guard
+  await conn.query(`
+    CREATE TABLE IF NOT EXISTS assets (
+      id VARCHAR(64) PRIMARY KEY,
+      name VARCHAR(255) NOT NULL,
+      type VARCHAR(50) NOT NULL,
+      serial_number VARCHAR(255),
+      assigned_to VARCHAR(255),
+      department VARCHAR(255),
+      status VARCHAR(50) NOT NULL,
+      purchase_date DATE,
+      warranty_expiry DATE,
+      cost DECIMAL(15,2) DEFAULT 0,
+      location VARCHAR(255),
+      specifications LONGTEXT,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+  `);
+
+  await conn.query(`
+    CREATE TABLE IF NOT EXISTS licenses (
+      id VARCHAR(64) PRIMARY KEY,
+      name VARCHAR(255) NOT NULL,
+      vendor VARCHAR(255) NOT NULL,
+      type VARCHAR(50) NOT NULL,
+      seats INT DEFAULT 0,
+      seats_used INT DEFAULT 0,
+      expiration_date DATE,
+      cost DECIMAL(15,2) DEFAULT 0,
+      owner VARCHAR(255),
+      compliance VARCHAR(50),
+      renewal_date DATE,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+  `);
+
+  await conn.query(`
+    CREATE TABLE IF NOT EXISTS vendors (
+      id VARCHAR(64) PRIMARY KEY,
+      name VARCHAR(255) NOT NULL,
+      type VARCHAR(50) NOT NULL,
+      contact_person VARCHAR(255),
+      email VARCHAR(255),
+      phone VARCHAR(100),
+      status VARCHAR(50) NOT NULL,
+      contract_value DECIMAL(15,2) DEFAULT 0,
+      contract_expiry DATE,
+      rating DECIMAL(3,1) DEFAULT 0,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+  `);
+
+  await conn.query(`
+    CREATE TABLE IF NOT EXISTS activities (
+      id VARCHAR(64) PRIMARY KEY,
+      ts DATETIME NOT NULL,
+      user VARCHAR(255) NOT NULL,
+      action VARCHAR(255) NOT NULL,
+      entity VARCHAR(50) NOT NULL,
+      entity_id VARCHAR(64) NOT NULL,
+      details TEXT,
+      severity VARCHAR(20) NOT NULL,
+      INDEX idx_ts (ts)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+  `);
+
+  await conn.query(`
+    CREATE TABLE IF NOT EXISTS events (
+      id VARCHAR(64) PRIMARY KEY,
+      ts DATETIME NOT NULL,
+      severity VARCHAR(20) NOT NULL,
+      entity_type VARCHAR(50) NOT NULL,
+      entity_id VARCHAR(64) NOT NULL,
+      action VARCHAR(255) NOT NULL,
+      user VARCHAR(255) NOT NULL,
+      details TEXT,
+      metadata LONGTEXT,
+      INDEX idx_ts (ts)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+  `);
+
+  await conn.query(`
+    CREATE TABLE IF NOT EXISTS user_settings (
+      user_email VARCHAR(255) PRIMARY KEY,
+      name VARCHAR(255),
+      prefs LONGTEXT,
+      notify LONGTEXT,
+      mode VARCHAR(10),
+      events LONGTEXT,
+      integrations LONGTEXT
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+  `);
+}
+
+export async function POST(req: NextRequest) {
+  try {
+    const body = await req.json();
+    const v = validate(body);
+    if (!v.ok) return NextResponse.json({ error: v.error }, { status: 400 });
+
+    const cfg: DbPayload = {
+      host: body.host,
+      port: body.port ? Number(body.port) : 3306,
+      user: body.user,
+      password: body.password ?? '',
+      database: body.database,
+    };
+
+    // Try connect to provided DB
+    const conn = await mysql.createConnection({
+      host: cfg.host,
+      port: cfg.port,
+      user: cfg.user,
+      password: cfg.password,
+      database: cfg.database,
+      timezone: 'Z',
+      connectTimeout: 8000,
+    });
+
+    try {
+      // Run migrations
+      await runMigrations(conn);
+    } finally {
+      await conn.end();
+    }
+
+    // Persist config in memory for this process by mutating env used by getPool
+    process.env.MYSQL_HOST = cfg.host;
+    process.env.MYSQL_PORT = String(cfg.port);
+    process.env.MYSQL_USER = cfg.user;
+    process.env.MYSQL_PASSWORD = cfg.password ?? '';
+    process.env.MYSQL_DATABASE = cfg.database;
+
+    // Persist securely if secret configured; then reset pool so subsequent requests use new config
+    try {
+      if (process.env.APP_CONFIG_SECRET) {
+        await saveDbConfig(cfg);
+      }
+      // @ts-ignore
+      const mod = await import('@/lib/db');
+      if (mod && mod.__resetPool) {
+        mod.__resetPool();
+      }
+    } catch {}
+
+    return NextResponse.json({ ok: true, persisted: Boolean(process.env.APP_CONFIG_SECRET) });
+  } catch (e: any) {
+    console.error('DB init failed', e);
+    return NextResponse.json({ error: e?.message || 'DB init failed' }, { status: 500 });
+  }
+}

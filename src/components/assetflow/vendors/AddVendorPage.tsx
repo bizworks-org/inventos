@@ -5,6 +5,7 @@ import { motion } from 'motion/react';
 import { ArrowLeft, Save, X, Building2, Star, Calendar } from 'lucide-react';
 import { AssetFlowLayout } from '../layout/AssetFlowLayout';
 import { Vendor } from '../../../lib/data';
+import { createVendor } from '../../../lib/api';
 import { logVendorCreated } from '../../../lib/events';
 
 interface AddVendorPageProps {
@@ -36,7 +37,7 @@ export function AddVendorPage({ onNavigate, onSearch }: AddVendorPageProps) {
     setFormData(prev => ({ ...prev, [field]: value }));
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     // Create new vendor
@@ -59,8 +60,13 @@ export function AddVendorPage({ onNavigate, onSearch }: AddVendorPageProps) {
       contractValue: newVendor.contractValue
     });
 
-    console.log('Creating vendor:', newVendor);
-    onNavigate?.('vendors');
+    try {
+      await createVendor(newVendor);
+      onNavigate?.('vendors');
+    } catch (err) {
+      console.error('Failed to create vendor', err);
+      alert('Failed to create vendor. Please try again.');
+    }
   };
 
   const ratingValue = parseFloat(formData.rating) || 0;
@@ -73,7 +79,6 @@ export function AddVendorPage({ onNavigate, onSearch }: AddVendorPageProps) {
         { label: 'Add Vendor' }
       ]}
       currentPage="vendors"
-      onNavigate={onNavigate}
       onSearch={onSearch}
     >
       {/* Header */}

@@ -1,5 +1,7 @@
 import { motion } from 'motion/react';
-import { mockActivities, Activity } from '../../../lib/data';
+import { Activity } from '../../../lib/data';
+import { useEffect, useState } from 'react';
+import { fetchActivities } from '../../../lib/api';
 import { AlertCircle, CheckCircle, Info, AlertTriangle } from 'lucide-react';
 
 function formatTimestamp(timestamp: string): string {
@@ -48,7 +50,16 @@ function getSeverityBadge(severity: Activity['severity']) {
 }
 
 export function RecentActivityTable() {
-  const activities = mockActivities.slice(0, 5);
+  const [activities, setActivities] = useState<Activity[]>([]);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    fetchActivities(5)
+      .then(rows => { if (!cancelled) { setActivities(rows); setError(null); } })
+      .catch(e => { if (!cancelled) setError(e?.message || 'Failed to load activity'); });
+    return () => { cancelled = true; };
+  }, []);
 
   return (
     <motion.div
@@ -92,6 +103,12 @@ export function RecentActivityTable() {
             {getSeverityBadge(activity.severity)}
           </motion.div>
         ))}
+        {activities.length === 0 && !error && (
+          <p className="text-sm text-[#64748b]">No recent activity.</p>
+        )}
+        {error && (
+          <p className="text-sm text-[#ef4444]">{error}</p>
+        )}
       </div>
 
       <div className="mt-6 pt-4 border-t border-[#e5e7eb]">

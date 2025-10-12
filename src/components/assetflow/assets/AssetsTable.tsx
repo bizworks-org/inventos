@@ -2,10 +2,12 @@ import { motion } from 'motion/react';
 import { Edit2, Trash2, ExternalLink } from 'lucide-react';
 import { Asset } from '../../../lib/data';
 import { useState } from 'react';
+import { usePrefs } from '../layout/PrefsContext';
 
 interface AssetsTableProps {
   assets: Asset[];
   onNavigate?: (page: string, assetId?: string) => void;
+  onDelete?: (id: string, name: string) => void;
 }
 
 function getStatusColor(status: Asset['status']) {
@@ -18,13 +20,9 @@ function getStatusColor(status: Asset['status']) {
   return colors[status] || colors['Active'];
 }
 
-function formatCurrency(amount: number): string {
-  return new Intl.NumberFormat('en-US', {
-    style: 'currency',
-    currency: 'USD',
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 0
-  }).format(amount);
+function useCurrencyFormatter() {
+  const { formatCurrency } = usePrefs();
+  return (amount: number) => formatCurrency(amount, { minimumFractionDigits: 0, maximumFractionDigits: 0 });
 }
 
 function formatDate(dateString: string): string {
@@ -42,8 +40,9 @@ function isWarrantyExpiring(dateString: string): boolean {
   return daysUntilExpiry <= 90 && daysUntilExpiry >= 0;
 }
 
-export function AssetsTable({ assets, onNavigate }: AssetsTableProps) {
+export function AssetsTable({ assets, onNavigate, onDelete }: AssetsTableProps) {
   const [hoveredRow, setHoveredRow] = useState<string | null>(null);
+  const formatCurrency = useCurrencyFormatter();
 
   const handleEdit = (assetId: string) => {
     onNavigate?.('assets-edit', assetId);
@@ -51,8 +50,7 @@ export function AssetsTable({ assets, onNavigate }: AssetsTableProps) {
 
   const handleDelete = (assetId: string, assetName: string) => {
     if (confirm(`Are you sure you want to delete ${assetName}?`)) {
-      // In a real app, this would call an API to delete the asset
-      console.log('Deleting asset:', assetId);
+      onDelete?.(assetId, assetName);
     }
   };
 
