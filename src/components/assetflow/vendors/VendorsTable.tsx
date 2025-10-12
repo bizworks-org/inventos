@@ -79,6 +79,10 @@ function StarRating({ rating }: { rating: number }) {
 export function VendorsTable({ vendors, onNavigate, onDelete }: VendorsTableProps) {
   const [hoveredRow, setHoveredRow] = useState<string | null>(null);
   const formatCurrency = useCurrencyFormatter();
+  const { density } = usePrefs();
+  const cellPad = density === 'ultra-compact' ? 'px-3 py-1.5' : density === 'compact' ? 'px-4 py-2' : 'px-6 py-4';
+  const headPad = density === 'ultra-compact' ? 'px-3 py-2' : density === 'compact' ? 'px-4 py-2.5' : 'px-6 py-4';
+  const subText = density === 'ultra-compact' ? 'text-[11px]' : 'text-xs';
 
   const handleEdit = (vendorId: string) => {
     onNavigate?.('vendors-edit', vendorId);
@@ -128,25 +132,25 @@ export function VendorsTable({ vendors, onNavigate, onDelete }: VendorsTableProp
         <table className="w-full">
           <thead>
             <tr className="bg-gradient-to-r from-[#f8f9ff] to-[#f0f4ff] border-b border-[rgba(0,0,0,0.05)]">
-              <th className="px-6 py-4 text-left text-xs font-semibold text-[#64748b] uppercase tracking-wider">
+              <th className={`${headPad} text-left text-xs font-semibold text-[#64748b] uppercase tracking-wider`}>
                 Vendor
               </th>
-              <th className="px-6 py-4 text-left text-xs font-semibold text-[#64748b] uppercase tracking-wider">
+              <th className={`${headPad} text-left text-xs font-semibold text-[#64748b] uppercase tracking-wider`}>
                 Contact
               </th>
-              <th className="px-6 py-4 text-left text-xs font-semibold text-[#64748b] uppercase tracking-wider">
+              <th className={`${headPad} text-left text-xs font-semibold text-[#64748b] uppercase tracking-wider`}>
                 Rating
               </th>
-              <th className="px-6 py-4 text-left text-xs font-semibold text-[#64748b] uppercase tracking-wider">
+              <th className={`${headPad} text-left text-xs font-semibold text-[#64748b] uppercase tracking-wider`}>
                 Status
               </th>
-              <th className="px-6 py-4 text-left text-xs font-semibold text-[#64748b] uppercase tracking-wider">
+              <th className={`${headPad} text-left text-xs font-semibold text-[#64748b] uppercase tracking-wider`}>
                 Contract Value
               </th>
-              <th className="px-6 py-4 text-left text-xs font-semibold text-[#64748b] uppercase tracking-wider">
+              <th className={`${headPad} text-left text-xs font-semibold text-[#64748b] uppercase tracking-wider`}>
                 Contract Expiry
               </th>
-              <th className="px-6 py-4 text-left text-xs font-semibold text-[#64748b] uppercase tracking-wider">
+              <th className={`${headPad} text-left text-xs font-semibold text-[#64748b] uppercase tracking-wider`}>
                 Actions
               </th>
             </tr>
@@ -171,7 +175,7 @@ export function VendorsTable({ vendors, onNavigate, onDelete }: VendorsTableProp
                   `}
                 >
                   {/* Vendor Name & Type */}
-                  <td className="px-6 py-4">
+                  <td className={`${cellPad}`}>
                     <div>
                       <p className="font-semibold text-[#1a1d2e] mb-1">{vendor.name}</p>
                       <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold ${getTypeColor(vendor.type)}`}>
@@ -181,10 +185,10 @@ export function VendorsTable({ vendors, onNavigate, onDelete }: VendorsTableProp
                   </td>
 
                   {/* Contact Info */}
-                  <td className="px-6 py-4">
+                  <td className={`${cellPad}`}>
                     <div className="space-y-1">
-                      <p className="text-sm font-medium text-[#1a1d2e]">{vendor.contactPerson}</p>
-                      <div className="flex items-center gap-1 text-xs text-[#64748b]">
+                      <p className={`text-sm font-medium text-[#1a1d2e] ${density==='ultra-compact' ? 'text-[12px]' : ''}`}>{vendor.contactPerson}</p>
+                      <div className={`flex items-center gap-1 text-[#64748b] ${subText}`}>
                         <Mail className="h-3 w-3" />
                         <a 
                           href={`mailto:${vendor.email}`}
@@ -194,7 +198,7 @@ export function VendorsTable({ vendors, onNavigate, onDelete }: VendorsTableProp
                           {vendor.email}
                         </a>
                       </div>
-                      <div className="flex items-center gap-1 text-xs text-[#64748b]">
+                      <div className={`flex items-center gap-1 text-[#64748b] ${subText}`}>
                         <Phone className="h-3 w-3" />
                         <a 
                           href={`tel:${vendor.phone}`}
@@ -208,12 +212,12 @@ export function VendorsTable({ vendors, onNavigate, onDelete }: VendorsTableProp
                   </td>
 
                   {/* Rating */}
-                  <td className="px-6 py-4">
+                  <td className={`${cellPad}`}>
                     <StarRating rating={vendor.rating} />
                   </td>
 
                   {/* Status */}
-                  <td className="px-6 py-4">
+                  <td className={`${cellPad}`}>
                     <span className={`
                       inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold border
                       ${getStatusColor(vendor.status)}
@@ -226,53 +230,53 @@ export function VendorsTable({ vendors, onNavigate, onDelete }: VendorsTableProp
                   </td>
 
                   {/* Contract Value */}
-                  <td className="px-6 py-4">
-                    <p className="text-sm font-semibold text-[#1a1d2e]">
+                  <td className={`${cellPad}`}>
+                    <p className={`text-sm font-semibold text-[#1a1d2e] ${density==='ultra-compact' ? 'text-[12px]' : ''}`}>
                       {formatCurrency(vendor.contractValue)}
                     </p>
-                    <p className="text-xs text-[#94a3b8] mt-0.5">
+                    <p className={`${subText} text-[#94a3b8] mt-0.5`}>
                       {formatCurrency(vendor.contractValue / 12)}/mo avg
                     </p>
                   </td>
 
                   {/* Contract Expiry */}
-                  <td className="px-6 py-4">
+                  <td className={`${cellPad}`}>
                     <div>
                       <p className={`text-sm font-medium ${
                         expired ? 'text-[#ef4444]' : 
                         expiringSoon ? 'text-[#f59e0b]' : 
                         'text-[#64748b]'
-                      }`}>
+                      } ${density==='ultra-compact' ? 'text-[12px]' : ''}`}>
                         {formatDate(vendor.contractExpiry)}
                       </p>
                       {expired && (
                         <div className="flex items-center gap-1 mt-0.5">
                           <AlertCircle className="h-3 w-3 text-[#ef4444]" />
-                          <p className="text-xs text-[#ef4444] font-semibold">Expired!</p>
+                          <p className={`${subText} text-[#ef4444] font-semibold`}>Expired!</p>
                         </div>
                       )}
                       {!expired && expiringSoon && (
-                        <p className="text-xs text-[#f59e0b] mt-0.5">{daysUntilExpiry} days left</p>
+                        <p className={`${subText} text-[#f59e0b] mt-0.5`}>{daysUntilExpiry} days left</p>
                       )}
                     </div>
                   </td>
 
                   {/* Actions */}
-                  <td className="px-6 py-4">
-                    <div className="flex items-center gap-2">
+                  <td className={`${cellPad}`}>
+                    <div className={`flex items-center ${density==='ultra-compact' ? 'gap-1.5' : 'gap-2'}`}>
                       <button
                         onClick={() => handleEdit(vendor.id)}
-                        className="p-2 rounded-lg hover:bg-[#6366f1]/10 text-[#6366f1] transition-all duration-200 group"
+                        className={`rounded-lg hover:bg-[#6366f1]/10 text-[#6366f1] transition-all duration-200 group ${density==='ultra-compact' ? 'p-1.5' : 'p-2'}`}
                         title="Edit vendor"
                       >
-                        <Edit2 className="h-4 w-4 group-hover:scale-110 transition-transform" />
+                        <Edit2 className={`${density==='ultra-compact' ? 'h-3.5 w-3.5' : 'h-4 w-4'} group-hover:scale-110 transition-transform`} />
                       </button>
                       <button
                         onClick={() => handleDelete(vendor.id, vendor.name)}
-                        className="p-2 rounded-lg hover:bg-[#ef4444]/10 text-[#ef4444] transition-all duration-200 group"
+                        className={`rounded-lg hover:bg-[#ef4444]/10 text-[#ef4444] transition-all duration-200 group ${density==='ultra-compact' ? 'p-1.5' : 'p-2'}`}
                         title="Delete vendor"
                       >
-                        <Trash2 className="h-4 w-4 group-hover:scale-110 transition-transform" />
+                        <Trash2 className={`${density==='ultra-compact' ? 'h-3.5 w-3.5' : 'h-4 w-4'} group-hover:scale-110 transition-transform`} />
                       </button>
                     </div>
                   </td>

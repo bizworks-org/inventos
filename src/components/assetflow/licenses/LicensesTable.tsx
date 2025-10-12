@@ -81,6 +81,10 @@ function getSeatUtilizationColor(utilization: number): string {
 export function LicensesTable({ licenses, onNavigate, onDelete }: LicensesTableProps) {
   const [hoveredRow, setHoveredRow] = useState<string | null>(null);
   const formatCurrency = useCurrencyFormatter();
+  const { density } = usePrefs();
+  const cellPad = density === 'ultra-compact' ? 'px-3 py-1.5' : density === 'compact' ? 'px-4 py-2' : 'px-6 py-4';
+  const headPad = density === 'ultra-compact' ? 'px-3 py-2' : density === 'compact' ? 'px-4 py-2.5' : 'px-6 py-4';
+  const subText = density === 'ultra-compact' ? 'text-[11px]' : 'text-xs';
 
   const handleEdit = (licenseId: string) => {
     onNavigate?.('licenses-edit', licenseId);
@@ -130,28 +134,28 @@ export function LicensesTable({ licenses, onNavigate, onDelete }: LicensesTableP
         <table className="w-full">
           <thead>
             <tr className="bg-gradient-to-r from-[#f8f9ff] to-[#f0f4ff] border-b border-[rgba(0,0,0,0.05)]">
-              <th className="px-6 py-4 text-left text-xs font-semibold text-[#64748b] uppercase tracking-wider">
+              <th className={`${headPad} text-left text-xs font-semibold text-[#64748b] uppercase tracking-wider`}>
                 License
               </th>
-              <th className="px-6 py-4 text-left text-xs font-semibold text-[#64748b] uppercase tracking-wider">
+              <th className={`${headPad} text-left text-xs font-semibold text-[#64748b] uppercase tracking-wider`}>
                 Vendor
               </th>
-              <th className="px-6 py-4 text-left text-xs font-semibold text-[#64748b] uppercase tracking-wider">
+              <th className={`${headPad} text-left text-xs font-semibold text-[#64748b] uppercase tracking-wider`}>
                 Owner
               </th>
-              <th className="px-6 py-4 text-left text-xs font-semibold text-[#64748b] uppercase tracking-wider">
+              <th className={`${headPad} text-left text-xs font-semibold text-[#64748b] uppercase tracking-wider`}>
                 Seats
               </th>
-              <th className="px-6 py-4 text-left text-xs font-semibold text-[#64748b] uppercase tracking-wider">
+              <th className={`${headPad} text-left text-xs font-semibold text-[#64748b] uppercase tracking-wider`}>
                 Expiration
               </th>
-              <th className="px-6 py-4 text-left text-xs font-semibold text-[#64748b] uppercase tracking-wider">
+              <th className={`${headPad} text-left text-xs font-semibold text-[#64748b] uppercase tracking-wider`}>
                 Compliance
               </th>
-              <th className="px-6 py-4 text-left text-xs font-semibold text-[#64748b] uppercase tracking-wider">
+              <th className={`${headPad} text-left text-xs font-semibold text-[#64748b] uppercase tracking-wider`}>
                 Annual Cost
               </th>
-              <th className="px-6 py-4 text-left text-xs font-semibold text-[#64748b] uppercase tracking-wider">
+              <th className={`${headPad} text-left text-xs font-semibold text-[#64748b] uppercase tracking-wider`}>
                 Actions
               </th>
             </tr>
@@ -177,7 +181,7 @@ export function LicensesTable({ licenses, onNavigate, onDelete }: LicensesTableP
                   `}
                 >
                   {/* License Name & Type */}
-                  <td className="px-6 py-4">
+                  <td className={`${cellPad}`}>
                     <div>
                       <p className="font-semibold text-[#1a1d2e] mb-1">{license.name}</p>
                       <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold ${getTypeColor(license.type)}`}>
@@ -187,17 +191,17 @@ export function LicensesTable({ licenses, onNavigate, onDelete }: LicensesTableP
                   </td>
 
                   {/* Vendor */}
-                  <td className="px-6 py-4">
-                    <p className="text-sm text-[#64748b]">{license.vendor}</p>
+                  <td className={`${cellPad}`}>
+                    <p className={`text-sm text-[#64748b] ${density==='ultra-compact' ? 'text-[12px]' : ''}`}>{license.vendor}</p>
                   </td>
 
                   {/* Owner */}
-                  <td className="px-6 py-4">
-                    <p className="text-sm text-[#1a1d2e] font-medium">{license.owner}</p>
+                  <td className={`${cellPad}`}>
+                    <p className={`text-sm text-[#1a1d2e] font-medium ${density==='ultra-compact' ? 'text-[12px]' : ''}`}>{license.owner}</p>
                   </td>
 
                   {/* Seats */}
-                  <td className="px-6 py-4">
+                  <td className={`${cellPad}`}>
                     <div>
                       <div className="flex items-center gap-2 mb-1">
                         <Users className="h-4 w-4 text-[#64748b]" />
@@ -216,31 +220,31 @@ export function LicensesTable({ licenses, onNavigate, onDelete }: LicensesTableP
                           style={{ width: `${utilization}%` }}
                         />
                       </div>
-                      <p className="text-xs text-[#94a3b8] mt-0.5">{utilization}% used</p>
+                      <p className={`${subText} text-[#94a3b8] mt-0.5`}>{utilization}% used</p>
                     </div>
                   </td>
 
                   {/* Expiration */}
-                  <td className="px-6 py-4">
+                  <td className={`${cellPad}`}>
                     <div>
                       <p className={`text-sm font-medium ${
                         expired ? 'text-[#ef4444]' : 
                         expiringSoon ? 'text-[#f59e0b]' : 
                         'text-[#64748b]'
-                      }`}>
+                      } ${density==='ultra-compact' ? 'text-[12px]' : ''}`}>
                         {formatDate(license.expirationDate)}
                       </p>
                       {expired && (
-                        <p className="text-xs text-[#ef4444] font-semibold mt-0.5">Expired!</p>
+                        <p className={`${subText} text-[#ef4444] font-semibold mt-0.5`}>Expired!</p>
                       )}
                       {!expired && expiringSoon && (
-                        <p className="text-xs text-[#f59e0b] mt-0.5">{daysUntilExpiry} days left</p>
+                        <p className={`${subText} text-[#f59e0b] mt-0.5`}>{daysUntilExpiry} days left</p>
                       )}
                     </div>
                   </td>
 
                   {/* Compliance */}
-                  <td className="px-6 py-4">
+                  <td className={`${cellPad}`}>
                     <span className={`
                       inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold border
                       ${getComplianceColor(license.compliance)}
@@ -251,29 +255,29 @@ export function LicensesTable({ licenses, onNavigate, onDelete }: LicensesTableP
                   </td>
 
                   {/* Annual Cost */}
-                  <td className="px-6 py-4">
-                    <p className="text-sm font-semibold text-[#1a1d2e]">{formatCurrency(license.cost)}</p>
-                    <p className="text-xs text-[#94a3b8] mt-0.5">
+                  <td className={`${cellPad}`}>
+                    <p className={`text-sm font-semibold text-[#1a1d2e] ${density==='ultra-compact' ? 'text-[12px]' : ''}`}>{formatCurrency(license.cost)}</p>
+                    <p className={`${subText} text-[#94a3b8] mt-0.5`}>
                       {formatCurrency(license.cost / 12)}/mo
                     </p>
                   </td>
 
                   {/* Actions */}
-                  <td className="px-6 py-4">
-                    <div className="flex items-center gap-2">
+                  <td className={`${cellPad}`}>
+                    <div className={`flex items-center ${density==='ultra-compact' ? 'gap-1.5' : 'gap-2'}`}>
                       <button
                         onClick={() => handleEdit(license.id)}
-                        className="p-2 rounded-lg hover:bg-[#6366f1]/10 text-[#6366f1] transition-all duration-200 group"
+                        className={`rounded-lg hover:bg-[#6366f1]/10 text-[#6366f1] transition-all duration-200 group ${density==='ultra-compact' ? 'p-1.5' : 'p-2'}`}
                         title="Edit license"
                       >
-                        <Edit2 className="h-4 w-4 group-hover:scale-110 transition-transform" />
+                        <Edit2 className={`${density==='ultra-compact' ? 'h-3.5 w-3.5' : 'h-4 w-4'} group-hover:scale-110 transition-transform`} />
                       </button>
                       <button
                         onClick={() => handleDelete(license.id, license.name)}
-                        className="p-2 rounded-lg hover:bg-[#ef4444]/10 text-[#ef4444] transition-all duration-200 group"
+                        className={`rounded-lg hover:bg-[#ef4444]/10 text-[#ef4444] transition-all duration-200 group ${density==='ultra-compact' ? 'p-1.5' : 'p-2'}`}
                         title="Delete license"
                       >
-                        <Trash2 className="h-4 w-4 group-hover:scale-110 transition-transform" />
+                        <Trash2 className={`${density==='ultra-compact' ? 'h-3.5 w-3.5' : 'h-4 w-4'} group-hover:scale-110 transition-transform`} />
                       </button>
                     </div>
                   </td>

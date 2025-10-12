@@ -9,6 +9,7 @@ type Currency = 'USD' | 'EUR' | 'GBP' | 'INR' | 'JPY' | 'AUD' | 'CAD' | 'CNY' | 
 type Prefs = {
   language: Language;
   currency: Currency;
+  density: 'comfortable' | 'compact' | 'ultra-compact';
 };
 
 type PrefsContextType = Prefs & {
@@ -36,10 +37,13 @@ function readPrefsFromStorage(): Prefs {
       const parsed = JSON.parse(raw);
       const lang = allowedLanguages.includes(parsed?.prefs?.language) ? parsed.prefs.language : 'en';
       const currency = (parsed?.prefs?.currency as Currency) || 'USD';
-      return { language: lang, currency };
+      const density = (['comfortable','compact','ultra-compact'] as const).includes(parsed?.prefs?.density as any)
+        ? (parsed.prefs.density as Prefs['density'])
+        : 'comfortable';
+      return { language: lang, currency, density };
     }
   } catch {}
-  return { language: 'en', currency: 'USD' };
+  return { language: 'en', currency: 'USD', density: 'comfortable' };
 }
 
 const translations: Record<Language, Record<string, string>> = {
@@ -89,7 +93,7 @@ function getCurrencySymbolFor(locale: string, currency: Currency): string {
 }
 
 export function PrefsProvider({ children }: { children: React.ReactNode }) {
-  const [prefs, setPrefs] = useState<Prefs>(() => (typeof window !== 'undefined' ? readPrefsFromStorage() : { language: 'en', currency: 'USD' }));
+  const [prefs, setPrefs] = useState<Prefs>(() => (typeof window !== 'undefined' ? readPrefsFromStorage() : { language: 'en', currency: 'USD', density: 'comfortable' }));
 
   useEffect(() => {
     const onStorage = (e: StorageEvent) => {
@@ -110,7 +114,7 @@ export function PrefsProvider({ children }: { children: React.ReactNode }) {
   const t = (key: string) => translations[prefs.language]?.[key] || translations.en[key] || key;
   const formatCurrency = (amount: number, opts?: Intl.NumberFormatOptions) => new Intl.NumberFormat(locale, { style: 'currency', currency: prefs.currency, ...opts }).format(amount);
 
-  const value: PrefsContextType = { language: prefs.language, currency: prefs.currency, t, formatCurrency, currencySymbol };
+  const value: PrefsContextType = { language: prefs.language, currency: prefs.currency, density: prefs.density, t, formatCurrency, currencySymbol };
   return <PrefsContext.Provider value={value}>{children}</PrefsContext.Provider>;
 }
 
@@ -119,14 +123,15 @@ export function usePrefs() {
   if (ctx) return ctx;
   // Fallback: derive prefs from storage/defaults so callers don't crash
   const fallback = ((): PrefsContextType => {
-    const raw = (typeof window !== 'undefined') ? readPrefsFromStorage() : { language: 'en', currency: 'USD' };
+    const raw = (typeof window !== 'undefined') ? readPrefsFromStorage() : { language: 'en', currency: 'USD', density: 'comfortable' } as Prefs;
     const language = (allowedLanguages.includes(raw.language as Language) ? raw.language : 'en') as Language;
     const currency = (['USD','EUR','GBP','INR','JPY','AUD','CAD','CNY','SGD'] as const).includes(raw.currency as any) ? (raw.currency as Currency) : 'USD';
+    const density = (['comfortable','compact','ultra-compact'] as const).includes(raw.density as any) ? raw.density : 'comfortable';
     const locale = getLocaleForLanguage(language);
     const currencySymbol = getCurrencySymbolFor(locale, currency);
     const t = (key: string) => translations[language]?.[key] || translations.en[key] || key;
     const formatCurrency = (amount: number, opts?: Intl.NumberFormatOptions) => new Intl.NumberFormat(locale, { style: 'currency', currency, ...opts }).format(amount);
-    return { language, currency, t, formatCurrency, currencySymbol };
+    return { language, currency, density, t, formatCurrency, currencySymbol };
   })();
   return fallback;
 }

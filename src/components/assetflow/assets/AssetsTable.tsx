@@ -43,6 +43,13 @@ function isWarrantyExpiring(dateString: string): boolean {
 export function AssetsTable({ assets, onNavigate, onDelete }: AssetsTableProps) {
   const [hoveredRow, setHoveredRow] = useState<string | null>(null);
   const formatCurrency = useCurrencyFormatter();
+  const { density } = usePrefs();
+
+  const cellPad = density === 'ultra-compact' ? 'px-3 py-1.5' : density === 'compact' ? 'px-4 py-2' : 'px-6 py-4';
+  const headPad = density === 'ultra-compact' ? 'px-3 py-2' : density === 'compact' ? 'px-4 py-2.5' : 'px-6 py-4';
+  const iconBox = density === 'ultra-compact' ? 'h-8 w-8 text-[10px]' : density === 'compact' ? 'h-9 w-9 text-[11px]' : 'h-10 w-10 text-xs';
+  const nameText = density === 'ultra-compact' ? 'text-sm' : density === 'compact' ? 'text-sm' : '';
+  const subText = density === 'ultra-compact' ? 'text-[11px]' : 'text-xs';
 
   const handleEdit = (assetId: string) => {
     onNavigate?.('assets-edit', assetId);
@@ -92,28 +99,28 @@ export function AssetsTable({ assets, onNavigate, onDelete }: AssetsTableProps) 
         <table className="w-full">
           <thead>
             <tr className="bg-gradient-to-r from-[#f8f9ff] to-[#f0f4ff] border-b border-[rgba(0,0,0,0.05)]">
-              <th className="px-6 py-4 text-left text-xs font-semibold text-[#64748b] uppercase tracking-wider">
+              <th className={`${headPad} text-left text-xs font-semibold text-[#64748b] uppercase tracking-wider`}>
                 Asset
               </th>
-              <th className="px-6 py-4 text-left text-xs font-semibold text-[#64748b] uppercase tracking-wider">
+              <th className={`${headPad} text-left text-xs font-semibold text-[#64748b] uppercase tracking-wider`}>
                 Serial Number
               </th>
-              <th className="px-6 py-4 text-left text-xs font-semibold text-[#64748b] uppercase tracking-wider">
+              <th className={`${headPad} text-left text-xs font-semibold text-[#64748b] uppercase tracking-wider`}>
                 Assigned To
               </th>
-              <th className="px-6 py-4 text-left text-xs font-semibold text-[#64748b] uppercase tracking-wider">
+              <th className={`${headPad} text-left text-xs font-semibold text-[#64748b] uppercase tracking-wider`}>
                 Department
               </th>
-              <th className="px-6 py-4 text-left text-xs font-semibold text-[#64748b] uppercase tracking-wider">
+              <th className={`${headPad} text-left text-xs font-semibold text-[#64748b] uppercase tracking-wider`}>
                 Status
               </th>
-              <th className="px-6 py-4 text-left text-xs font-semibold text-[#64748b] uppercase tracking-wider">
+              <th className={`${headPad} text-left text-xs font-semibold text-[#64748b] uppercase tracking-wider`}>
                 Warranty
               </th>
-              <th className="px-6 py-4 text-left text-xs font-semibold text-[#64748b] uppercase tracking-wider">
+              <th className={`${headPad} text-left text-xs font-semibold text-[#64748b] uppercase tracking-wider`}>
                 Cost
               </th>
-              <th className="px-6 py-4 text-left text-xs font-semibold text-[#64748b] uppercase tracking-wider">
+              <th className={`${headPad} text-left text-xs font-semibold text-[#64748b] uppercase tracking-wider`}>
                 Actions
               </th>
             </tr>
@@ -133,10 +140,10 @@ export function AssetsTable({ assets, onNavigate, onDelete }: AssetsTableProps) 
                 `}
               >
                 {/* Asset Name & Type */}
-                <td className="px-6 py-4">
+                <td className={`${cellPad}`}>
                   <div className="flex items-center gap-3">
                     <div className={`
-                      h-10 w-10 rounded-lg flex items-center justify-center text-xs font-semibold
+                      ${iconBox} rounded-lg flex items-center justify-center font-semibold
                       ${asset.type === 'Laptop' ? 'bg-[#6366f1]/10 text-[#6366f1]' : ''}
                       ${asset.type === 'Desktop' ? 'bg-[#8b5cf6]/10 text-[#8b5cf6]' : ''}
                       ${asset.type === 'Server' ? 'bg-[#ec4899]/10 text-[#ec4899]' : ''}
@@ -147,29 +154,29 @@ export function AssetsTable({ assets, onNavigate, onDelete }: AssetsTableProps) 
                       {asset.type.substring(0, 2).toUpperCase()}
                     </div>
                     <div>
-                      <p className="font-semibold text-[#1a1d2e]">{asset.name}</p>
-                      <p className="text-xs text-[#94a3b8]">{asset.type}</p>
+                      <p className={`font-semibold text-[#1a1d2e] ${nameText}`}>{asset.name}</p>
+                      <p className={`${subText} text-[#94a3b8]`}>{asset.type}</p>
                     </div>
                   </div>
                 </td>
 
                 {/* Serial Number */}
-                <td className="px-6 py-4">
-                  <p className="text-sm text-[#64748b] font-mono">{asset.serialNumber}</p>
+                <td className={`${cellPad}`}>
+                  <p className={`text-sm text-[#64748b] font-mono ${density==='ultra-compact' ? 'text-[12px]' : ''}`}>{asset.serialNumber}</p>
                 </td>
 
                 {/* Assigned To */}
-                <td className="px-6 py-4">
-                  <p className="text-sm text-[#1a1d2e] font-medium">{asset.assignedTo}</p>
+                <td className={`${cellPad}`}>
+                  <p className={`text-sm text-[#1a1d2e] font-medium ${density==='ultra-compact' ? 'text-[12px]' : ''}`}>{asset.assignedTo}</p>
                 </td>
 
                 {/* Department */}
-                <td className="px-6 py-4">
-                  <p className="text-sm text-[#64748b]">{asset.department}</p>
+                <td className={`${cellPad}`}>
+                  <p className={`text-sm text-[#64748b] ${density==='ultra-compact' ? 'text-[12px]' : ''}`}>{asset.department}</p>
                 </td>
 
                 {/* Status */}
-                <td className="px-6 py-4">
+                <td className={`${cellPad}`}>
                   <span className={`
                     inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold border
                     ${getStatusColor(asset.status)}
@@ -179,38 +186,38 @@ export function AssetsTable({ assets, onNavigate, onDelete }: AssetsTableProps) 
                 </td>
 
                 {/* Warranty */}
-                <td className="px-6 py-4">
+                <td className={`${cellPad}`}>
                   <div>
-                    <p className={`text-sm font-medium ${isWarrantyExpiring(asset.warrantyExpiry) ? 'text-[#f59e0b]' : 'text-[#64748b]'}`}>
+                    <p className={`text-sm font-medium ${isWarrantyExpiring(asset.warrantyExpiry) ? 'text-[#f59e0b]' : 'text-[#64748b]'} ${density==='ultra-compact' ? 'text-[12px]' : ''}`}>
                       {formatDate(asset.warrantyExpiry)}
                     </p>
                     {isWarrantyExpiring(asset.warrantyExpiry) && (
-                      <p className="text-xs text-[#f59e0b]">Expiring soon</p>
+                      <p className={`${subText} text-[#f59e0b]`}>Expiring soon</p>
                     )}
                   </div>
                 </td>
 
                 {/* Cost */}
-                <td className="px-6 py-4">
-                  <p className="text-sm font-semibold text-[#1a1d2e]">{formatCurrency(asset.cost)}</p>
+                <td className={`${cellPad}`}>
+                  <p className={`text-sm font-semibold text-[#1a1d2e] ${density==='ultra-compact' ? 'text-[12px]' : ''}`}>{formatCurrency(asset.cost)}</p>
                 </td>
 
                 {/* Actions */}
-                <td className="px-6 py-4">
-                  <div className="flex items-center gap-2">
+                <td className={`${cellPad}`}>
+                  <div className={`flex items-center ${density==='ultra-compact' ? 'gap-1.5' : 'gap-2'}`}>
                     <button
                       onClick={() => handleEdit(asset.id)}
-                      className="p-2 rounded-lg hover:bg-[#6366f1]/10 text-[#6366f1] transition-all duration-200 group"
+                      className={`rounded-lg text-[#6366f1] transition-all duration-200 group ${density==='ultra-compact' ? 'p-1.5' : 'p-2'} hover:bg-[#6366f1]/10`}
                       title="Edit asset"
                     >
-                      <Edit2 className="h-4 w-4 group-hover:scale-110 transition-transform" />
+                      <Edit2 className={`${density==='ultra-compact' ? 'h-3.5 w-3.5' : 'h-4 w-4'} group-hover:scale-110 transition-transform`} />
                     </button>
                     <button
                       onClick={() => handleDelete(asset.id, asset.name)}
-                      className="p-2 rounded-lg hover:bg-[#ef4444]/10 text-[#ef4444] transition-all duration-200 group"
+                      className={`rounded-lg text-[#ef4444] transition-all duration-200 group ${density==='ultra-compact' ? 'p-1.5' : 'p-2'} hover:bg-[#ef4444]/10`}
                       title="Delete asset"
                     >
-                      <Trash2 className="h-4 w-4 group-hover:scale-110 transition-transform" />
+                      <Trash2 className={`${density==='ultra-compact' ? 'h-3.5 w-3.5' : 'h-4 w-4'} group-hover:scale-110 transition-transform`} />
                     </button>
                   </div>
                 </td>

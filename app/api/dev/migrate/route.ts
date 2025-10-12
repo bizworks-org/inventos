@@ -111,9 +111,16 @@ export async function POST(req: NextRequest) {
         notify LONGTEXT,
         mode VARCHAR(10),
         events LONGTEXT,
-        integrations LONGTEXT
+        integrations LONGTEXT,
+        asset_fields LONGTEXT
       ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
     `);
+    // Also ensure column exists on previously created tables
+    try {
+      await conn.query('ALTER TABLE user_settings ADD COLUMN asset_fields LONGTEXT');
+    } catch (e) {
+      // ignore if column already exists
+    }
 
     return NextResponse.json({ ok: true });
   } catch (e: any) {

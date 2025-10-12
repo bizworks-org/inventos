@@ -1,5 +1,5 @@
 // Lightweight API client with mapping between DB snake_case and UI camelCase shapes
-import type { Asset, License, Vendor, Activity as UiActivity, Event as UiEvent } from './data';
+import type { Asset, License, Vendor, Activity as UiActivity, Event as UiEvent, AssetFieldDef } from './data';
 import type { SystemEvent } from './events';
 
 // Generic fetch helper
@@ -322,6 +322,7 @@ export type ServerSettings = {
   mode: 'light' | 'dark' | 'system';
   events: any;
   integrations: any;
+  assetFields?: AssetFieldDef[]; // global asset custom fields definitions
 };
 
 export async function fetchSettings(email: string): Promise<ServerSettings | null> {

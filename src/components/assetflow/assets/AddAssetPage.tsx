@@ -1,11 +1,11 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { usePrefs } from '../layout/PrefsContext';
 import { motion } from 'motion/react';
 import { ArrowLeft, Save, X } from 'lucide-react';
 import { AssetFlowLayout } from '../layout/AssetFlowLayout';
-import { Asset } from '../../../lib/data';
+import { Asset, AssetFieldDef } from '../../../lib/data';
 import { createAsset } from '../../../lib/api';
 import { logAssetCreated } from '../../../lib/events';
 
@@ -36,11 +36,20 @@ export function AddAssetPage({ onNavigate, onSearch }: AddAssetPageProps) {
     storage: '',
     os: ''
   });
-  const [customFields, setCustomFields] = useState<Array<{ key: string; value: string }>>([]);
+  // Global field definitions loaded from settings
+  const [fieldDefs, setFieldDefs] = useState<AssetFieldDef[]>([]);
+  const [customFieldValues, setCustomFieldValues] = useState<Record<string, string>>({});
+  const [extraFields, setExtraFields] = useState<Array<{ key: string; value: string }>>([]); // for backward compat free-form
 
-  const addCustomField = () => setCustomFields((arr) => [...arr, { key: '', value: '' }]);
-  const removeCustomField = (idx: number) => setCustomFields((arr) => arr.filter((_, i) => i !== idx));
-  const updateCustomField = (idx: number, which: 'key' | 'value', val: string) => setCustomFields((arr) => arr.map((it, i) => i === idx ? { ...it, [which]: val } : it));
+  useEffect(() => {
+    try {
+      const s = localStorage.getItem('assetflow:settings');
+      if (s) {
+        const parsed = JSON.parse(s);
+        if (Array.isArray(parsed.assetFields)) setFieldDefs(parsed.assetFields as AssetFieldDef[]);
+      }
+    } catch {}
+  }, []);
 
   const handleInputChange = (field: string, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }));
@@ -67,7 +76,10 @@ export function AddAssetPage({ onNavigate, onSearch }: AddAssetPageProps) {
         ram: formData.ram,
         storage: formData.storage,
         os: formData.os,
-        customFields: Object.fromEntries(customFields.filter(cf => cf.key.trim() !== '').map(cf => [cf.key.trim(), cf.value]))
+        customFields: {
+          ...Object.fromEntries(fieldDefs.map(def => [def.key, customFieldValues[def.key] ?? ''])),
+          ...Object.fromEntries(extraFields.filter(cf => cf.key.trim() !== '').map(cf => [cf.key.trim(), cf.value]))
+        }
       }
     };
 
@@ -380,7 +392,7 @@ export function AddAssetPage({ onNavigate, onSearch }: AddAssetPageProps) {
               </motion.div>
             )}
 
-            {/* Custom Fields */}
+            {/* Custom Fields (from Settings) */}
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
@@ -389,31 +401,54 @@ export function AddAssetPage({ onNavigate, onSearch }: AddAssetPageProps) {
             >
               <div className="flex items-center justify-between mb-4">
                 <h3 className="text-lg font-semibold text-[#1a1d2e]">Custom Fields</h3>
-                <button type="button" onClick={addCustomField} className="px-3 py-2 rounded-lg bg-[#f8f9ff] border border-[rgba(0,0,0,0.08)] text-[#1a1d2e] hover:bg-[#eef2ff]">Add Field</button>
               </div>
-              <p className="text-sm text-[#64748b] mb-3">Add any additional key-value properties for this asset.</p>
-              <div className="space-y-3">
-                {customFields.length === 0 && (
-                  <p className="text-sm text-[#94a3b8]">No custom fields yet.</p>
+              <p className="text-sm text-[#64748b] mb-3">These fields are defined globally in Settings.</p>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {fieldDefs.length === 0 && (
+                  <p className="text-sm text-[#94a3b8] md:col-span-2">No custom fields configured. Add them in Settings → Asset Fields.</p>
                 )}
-                {customFields.map((cf, idx) => (
-                  <div key={idx} className="grid grid-cols-1 md:grid-cols-12 gap-3 items-center">
+                {fieldDefs.map((def) => (
+                  <div key={def.key}>
+                    <label className="block text-sm font-medium text-[#1a1d2e] mb-2">
+                      {def.label}{def.required ? ' *' : ''}
+                    </label>
                     <input
-                      placeholder="Key (e.g., Asset Tag)"
-                      value={cf.key}
-                      onChange={(e) => updateCustomField(idx, 'key', e.target.value)}
-                      className="md:col-span-5 w-full px-3 py-2 rounded-lg bg-[#f8f9ff] border border-[rgba(0,0,0,0.08)]"
+                      type="text"
+                      required={!!def.required}
+                      value={customFieldValues[def.key] ?? ''}
+                      onChange={(e) => setCustomFieldValues((v) => ({ ...v, [def.key]: e.target.value }))}
+                      placeholder={def.placeholder || ''}
+                      className="w-full px-3 py-2 rounded-lg bg-[#f8f9ff] border border-[rgba(0,0,0,0.08)]"
                     />
-                    <input
-                      placeholder="Value (e.g., TAG-00123)"
-                      value={cf.value}
-                      onChange={(e) => updateCustomField(idx, 'value', e.target.value)}
-                      className="md:col-span-6 w-full px-3 py-2 rounded-lg bg-[#f8f9ff] border border-[rgba(0,0,0,0.08)]"
-                    />
-                    <button type="button" onClick={() => removeCustomField(idx)} className="md:col-span-1 px-3 py-2 rounded-lg bg-white border border-[rgba(0,0,0,0.08)] hover:bg-[#fee2e2] text-[#ef4444]">Remove</button>
                   </div>
                 ))}
               </div>
+
+              {/* Backward-compat additional fields (optional) */}
+              {extraFields.length > 0 && (
+                <div className="mt-6">
+                  <h4 className="text-sm font-semibold text-[#1a1d2e] mb-2">Additional Fields</h4>
+                  <div className="space-y-3">
+                    {extraFields.map((cf, idx) => (
+                      <div key={idx} className="grid grid-cols-1 md:grid-cols-12 gap-3 items-center">
+                        <input
+                          placeholder="Key"
+                          value={cf.key}
+                          onChange={(e) => setExtraFields((arr) => arr.map((it, i) => i === idx ? { ...it, key: e.target.value } : it))}
+                          className="md:col-span-5 w-full px-3 py-2 rounded-lg bg-[#f8f9ff] border border-[rgba(0,0,0,0.08)]"
+                        />
+                        <input
+                          placeholder="Value"
+                          value={cf.value}
+                          onChange={(e) => setExtraFields((arr) => arr.map((it, i) => i === idx ? { ...it, value: e.target.value } : it))}
+                          className="md:col-span-6 w-full px-3 py-2 rounded-lg bg-[#f8f9ff] border border-[rgba(0,0,0,0.08)]"
+                        />
+                        <button type="button" onClick={() => setExtraFields((arr) => arr.filter((_, i) => i !== idx))} className="md:col-span-1 px-3 py-2 rounded-lg bg-white border border-[rgba(0,0,0,0.08)] hover:bg-[#fee2e2] text-[#ef4444]">Remove</button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
             </motion.div>
           </div>
 

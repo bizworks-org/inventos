@@ -108,9 +108,13 @@ async function runMigrations(conn: any) {
       notify LONGTEXT,
       mode VARCHAR(10),
       events LONGTEXT,
-      integrations LONGTEXT
+      integrations LONGTEXT,
+      asset_fields LONGTEXT
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
   `);
+  try {
+    await conn.query('ALTER TABLE user_settings ADD COLUMN asset_fields LONGTEXT');
+  } catch {}
 }
 
 export async function POST(req: NextRequest) {

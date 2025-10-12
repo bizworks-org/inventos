@@ -72,6 +72,14 @@ export interface Event {
   metadata: Record<string, any>;
 }
 
+// Global definition for custom fields shown on Asset pages
+export interface AssetFieldDef {
+  key: string;           // machine key used in specifications.customFields
+  label: string;         // human-friendly label shown in forms
+  required?: boolean;    // whether this field is required on the form
+  placeholder?: string;  // optional placeholder text
+}
+
 // Mock Assets
 export const mockAssets: Asset[] = [
   {

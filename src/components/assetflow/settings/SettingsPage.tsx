@@ -14,6 +14,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Label } from '../../ui/label';
 import { Input } from '../../ui/input';
 import { fetchSettings, saveSettings, type ServerSettings } from '../../../lib/api';
+import type { AssetFieldDef } from '../../../lib/data';
 
 interface SettingsPageProps {
   onNavigate?: (page: string) => void;
@@ -35,7 +36,7 @@ type NotificationSettings = {
 };
 
 type Preferences = {
-  density: 'compact' | 'comfortable';
+  density: 'ultra-compact' | 'compact' | 'comfortable';
   dateFormat: 'YYYY-MM-DD' | 'MM/DD/YYYY' | 'DD/MM/YYYY';
   currency: 'USD' | 'EUR' | 'GBP' | 'INR' | 'JPY' | 'AUD' | 'CAD' | 'CNY' | 'SGD';
   language: 'en' | 'hi' | 'ta' | 'te' | 'bn' | 'mr' | 'gu' | 'kn' | 'ml' | 'pa' | 'or' | 'as' | 'sa' | 'kok' | 'ur' | 'ar';
@@ -112,6 +113,18 @@ export function SettingsPage({ onNavigate, onSearch }: SettingsPageProps) {
   // Theme
   const [mode, setMode] = useState<ThemeMode>('system');
 
+  // Persist prefs immediately (for live updates like table density)
+  const persistPrefs = (next: Partial<Preferences>) => {
+    try {
+      const raw = localStorage.getItem('assetflow:settings');
+      const base = raw ? JSON.parse(raw) : {};
+      const mergedPrefs = { ...(base.prefs || {}), ...prefs, ...next };
+      const merged = { ...base, name, email, prefs: mergedPrefs };
+      localStorage.setItem('assetflow:settings', JSON.stringify(merged));
+      window.dispatchEvent(new Event('assetflow:prefs-updated'));
+    } catch {}
+  };
+
   // Events
   const [events, setEvents] = useState<EventsConfig>({
     enabled: false,
@@ -134,6 +147,12 @@ export function SettingsPage({ onNavigate, onSearch }: SettingsPageProps) {
   const [dbMsg, setDbMsg] = useState<string | null>(null);
   const [dbTestBusy, setDbTestBusy] = useState(false);
 
+  // Asset field definitions (global custom fields)
+  const [assetFields, setAssetFields] = useState<AssetFieldDef[]>([]);
+  const addAssetField = () => setAssetFields((arr) => [...arr, { key: '', label: '', required: false, placeholder: '' }]);
+  const removeAssetField = (idx: number) => setAssetFields((arr) => arr.filter((_, i) => i !== idx));
+  const updateAssetField = (idx: number, patch: Partial<AssetFieldDef>) => setAssetFields((arr) => arr.map((f, i) => i === idx ? { ...f, ...patch } : f));
+
   // Load persisted settings from localStorage and then try server
   useEffect(() => {
     try {
@@ -150,6 +169,7 @@ export function SettingsPage({ onNavigate, onSearch }: SettingsPageProps) {
         if (parsed.integrations) {
           setConnected((prev) => ({ ...prev, ...parsed.integrations }));
         }
+        if (Array.isArray(parsed.assetFields)) setAssetFields(parsed.assetFields as AssetFieldDef[]);
         if (parsed.events) setEvents({
           enabled: !!parsed.events.enabled,
           method: parsed.events.method === 'kafka' ? 'kafka' : 'webhook',
@@ -195,6 +215,7 @@ export function SettingsPage({ onNavigate, onSearch }: SettingsPageProps) {
           if (data.integrations) {
             setConnected((prev) => ({ ...prev, ...(data.integrations as Record<string, boolean>) }));
           }
+          if (Array.isArray((data as any).assetFields)) setAssetFields(((data as any).assetFields) as AssetFieldDef[]);
         }
         setServerError(null);
       } catch (e: any) {
@@ -245,12 +266,15 @@ export function SettingsPage({ onNavigate, onSearch }: SettingsPageProps) {
       mode,
       events,
       integrations: connected,
+      assetFields,
     } as any;
 
     try {
       setSaving(true);
       await saveSettings(payload);
-      localStorage.setItem('assetflow:settings', JSON.stringify({ name, email, prefs, notify, mode, events, integrations: connected }));
+      localStorage.setItem('assetflow:settings', JSON.stringify({ name, email, prefs, notify, mode, events, integrations: connected, assetFields }));
+      // Notify PrefsProvider listeners (density/language/currency can update live)
+      window.dispatchEvent(new Event('assetflow:prefs-updated'));
       setServerError(null);
     } catch (e: any) {
       setServerError(e?.message || 'Failed to save settings');
@@ -334,32 +358,43 @@ export function SettingsPage({ onNavigate, onSearch }: SettingsPageProps) {
         className="bg-white rounded-2xl border border-[rgba(0,0,0,0.08)] p-6 shadow-sm"
       >
         <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList>
-            <TabsTrigger value="profile" className="min-w-28">
-              <User className="h-4 w-4" /> Profile
-            </TabsTrigger>
-            <TabsTrigger value="preferences" className="min-w-28">
-              <SlidersHorizontal className="h-4 w-4" /> Preferences
-            </TabsTrigger>
-            <TabsTrigger value="notifications" className="min-w-28">
-              <Bell className="h-4 w-4" /> Notifications
-            </TabsTrigger>
-            <TabsTrigger value="appearance" className="min-w-28">
-              <Sun className="h-4 w-4" /> Appearance
-            </TabsTrigger>
-            <TabsTrigger value="integrations" className="min-w-28">
-              <Server className="h-4 w-4" /> Integrations
-            </TabsTrigger>
-            <TabsTrigger value="events" className="min-w-28">
-              <Bell className="h-4 w-4" /> Events
-            </TabsTrigger>
-            <TabsTrigger value="database" className="min-w-28">
-              <Database className="h-4 w-4" /> Database
-            </TabsTrigger>
-          </TabsList>
+          <div className="grid grid-cols-1 md:grid-cols-5 gap-6">
+            {/* Left sidebar nav */}
+            <div className="md:col-span-1">
+              <div className="rounded-xl border border-[rgba(0,0,0,0.08)] bg-[#f8f9ff] p-2">
+                <TabsList className="flex flex-col gap-1 w-full">
+                  <TabsTrigger value="profile" className="justify-start w-full data-[state=active]:bg-white data-[state=active]:border data-[state=active]:border-[rgba(0,0,0,0.08)]">
+                    <User className="h-4 w-4 mr-2" /> Profile
+                  </TabsTrigger>
+                  <TabsTrigger value="preferences" className="justify-start w-full data-[state=active]:bg-white data-[state=active]:border data-[state=active]:border-[rgba(0,0,0,0.08)]">
+                    <SlidersHorizontal className="h-4 w-4 mr-2" /> Preferences
+                  </TabsTrigger>
+                  <TabsTrigger value="notifications" className="justify-start w-full data-[state=active]:bg-white data-[state=active]:border data-[state=active]:border-[rgba(0,0,0,0.08)]">
+                    <Bell className="h-4 w-4 mr-2" /> Notifications
+                  </TabsTrigger>
+                  <TabsTrigger value="appearance" className="justify-start w-full data-[state=active]:bg-white data-[state=active]:border data-[state=active]:border-[rgba(0,0,0,0.08)]">
+                    <Sun className="h-4 w-4 mr-2" /> Appearance
+                  </TabsTrigger>
+                  <TabsTrigger value="integrations" className="justify-start w-full data-[state=active]:bg-white data-[state=active]:border data-[state=active]:border-[rgba(0,0,0,0.08)]">
+                    <Server className="h-4 w-4 mr-2" /> Integrations
+                  </TabsTrigger>
+                  <TabsTrigger value="events" className="justify-start w-full data-[state=active]:bg-white data-[state=active]:border data-[state=active]:border-[rgba(0,0,0,0.08)]">
+                    <Rss className="h-4 w-4 mr-2" /> Events
+                  </TabsTrigger>
+                  <TabsTrigger value="database" className="justify-start w-full data-[state=active]:bg-white data-[state=active]:border data-[state=active]:border-[rgba(0,0,0,0.08)]">
+                    <Database className="h-4 w-4 mr-2" /> Database
+                  </TabsTrigger>
+                  <TabsTrigger value="assetFields" className="justify-start w-full data-[state=active]:bg-white data-[state=active]:border data-[state=active]:border-[rgba(0,0,0,0.08)]">
+                    <SlidersHorizontal className="h-4 w-4 mr-2" /> Asset Fields
+                  </TabsTrigger>
+                </TabsList>
+              </div>
+            </div>
 
+            {/* Right content */}
+            <div className="md:col-span-4">
           {/* Profile */}
-          <TabsContent value="profile" className="mt-4">
+          <TabsContent value="profile" className="mt-0">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
                 <label className="block text-sm font-medium text-[#1a1d2e] mb-2">Full Name</label>
@@ -382,13 +417,23 @@ export function SettingsPage({ onNavigate, onSearch }: SettingsPageProps) {
           </TabsContent>
 
           {/* Preferences */}
-          <TabsContent value="preferences" className="mt-4">
+          <TabsContent value="preferences" className="mt-0">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
                 <label className="block text-sm font-medium text-[#1a1d2e] mb-2">Table Density</label>
                 <div className="flex gap-3">
                   <button
-                    onClick={() => setPrefs((p) => ({ ...p, density: 'compact' }))}
+                    type="button"
+                    onClick={() => { setPrefs((p) => ({ ...p, density: 'ultra-compact' })); persistPrefs({ density: 'ultra-compact' }); }}
+                    className={`px-3 py-2 rounded-lg border ${
+                      prefs.density === 'ultra-compact' ? 'bg-[#e0e7ff] border-[#6366f1] text-[#1a1d2e]' : 'bg-[#f8f9ff] border-[rgba(0,0,0,0.08)] text-[#64748b]'
+                    }`}
+                  >
+                    Ultra-compact
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => { setPrefs((p) => ({ ...p, density: 'compact' })); persistPrefs({ density: 'compact' }); }}
                     className={`px-3 py-2 rounded-lg border ${
                       prefs.density === 'compact' ? 'bg-[#e0e7ff] border-[#6366f1] text-[#1a1d2e]' : 'bg-[#f8f9ff] border-[rgba(0,0,0,0.08)] text-[#64748b]'
                     }`}
@@ -396,7 +441,8 @@ export function SettingsPage({ onNavigate, onSearch }: SettingsPageProps) {
                     Compact
                   </button>
                   <button
-                    onClick={() => setPrefs((p) => ({ ...p, density: 'comfortable' }))}
+                    type="button"
+                    onClick={() => { setPrefs((p) => ({ ...p, density: 'comfortable' })); persistPrefs({ density: 'comfortable' }); }}
                     className={`px-3 py-2 rounded-lg border ${
                       prefs.density === 'comfortable' ? 'bg-[#e0e7ff] border-[#6366f1] text-[#1a1d2e]' : 'bg-[#f8f9ff] border-[rgba(0,0,0,0.08)] text-[#64748b]'
                     }`}
@@ -468,7 +514,7 @@ export function SettingsPage({ onNavigate, onSearch }: SettingsPageProps) {
           </TabsContent>
 
           {/* Notifications */}
-          <TabsContent value="notifications" className="mt-4">
+          <TabsContent value="notifications" className="mt-0">
             <form className="space-y-6" onSubmit={(e) => { e.preventDefault(); handleSave(); }}>
               <Card>
                 <CardHeader>
@@ -566,7 +612,7 @@ export function SettingsPage({ onNavigate, onSearch }: SettingsPageProps) {
             </form>
           </TabsContent>
           {/* Integrations */}
-          <TabsContent value="integrations" className="mt-4">
+          <TabsContent value="integrations" className="mt-0">
             <Card>
               <CardHeader>
                 <CardTitle>Automated Asset Discovery</CardTitle>
@@ -634,7 +680,7 @@ export function SettingsPage({ onNavigate, onSearch }: SettingsPageProps) {
           </TabsContent>
 
           {/* Appearance */}
-          <TabsContent value="appearance" className="mt-4">
+          <TabsContent value="appearance" className="mt-0">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               <button
                 onClick={() => setMode('light')}
@@ -673,7 +719,7 @@ export function SettingsPage({ onNavigate, onSearch }: SettingsPageProps) {
           </TabsContent>
 
           {/* Events */}
-          <TabsContent value="events" className="mt-4">
+          <TabsContent value="events" className="mt-0">
             <div className="space-y-6">
               {/* Enable */}
               <div className="flex items-center justify-between p-4 border rounded-xl bg-[#f8f9ff] border-[rgba(0,0,0,0.08)]">
@@ -790,7 +836,7 @@ export function SettingsPage({ onNavigate, onSearch }: SettingsPageProps) {
           </TabsContent>
 
           {/* Database */}
-          <TabsContent value="database" className="mt-4">
+          <TabsContent value="database" className="mt-0">
             <Card>
               <CardHeader>
                 <CardTitle>Database Connection</CardTitle>
@@ -883,6 +929,54 @@ export function SettingsPage({ onNavigate, onSearch }: SettingsPageProps) {
               </CardContent>
             </Card>
           </TabsContent>
+
+          {/* Asset Fields */}
+          <TabsContent value="assetFields" className="mt-0">
+            <Card>
+              <CardHeader>
+                <CardTitle>Asset Custom Fields</CardTitle>
+                <CardDescription>Define the labels and inputs that appear on the Asset form. Values are stored under specifications.customFields by key.</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-3">
+                  {assetFields.length === 0 && (
+                    <p className="text-sm text-[#64748b]">No custom fields defined yet.</p>
+                  )}
+                  {assetFields.map((f, idx) => (
+                    <div key={idx} className="grid grid-cols-1 md:grid-cols-12 gap-3 items-start">
+                      <div className="md:col-span-3">
+                        <Label className="mb-1 block">Label</Label>
+                        <Input value={f.label} onChange={(e) => updateAssetField(idx, { label: e.target.value })} placeholder="e.g., Asset Tag" />
+                      </div>
+                      <div className="md:col-span-3">
+                        <Label className="mb-1 block">Key</Label>
+                        <Input value={f.key} onChange={(e) => updateAssetField(idx, { key: e.target.value.trim() })} placeholder="e.g., assetTag" />
+                        <p className="text-xs text-[#94a3b8] mt-1">Used in export/import and API as specifications.customFields[key]</p>
+                      </div>
+                      <div className="md:col-span-4">
+                        <Label className="mb-1 block">Placeholder</Label>
+                        <Input value={f.placeholder ?? ''} onChange={(e) => updateAssetField(idx, { placeholder: e.target.value })} placeholder="e.g., TAG-00123" />
+                      </div>
+                      <div className="md:col-span-1 flex items-center gap-2">
+                        <label className="text-sm text-[#1a1d2e] flex items-center gap-2">
+                          <input type="checkbox" checked={!!f.required} onChange={(e) => updateAssetField(idx, { required: e.target.checked })} /> Required
+                        </label>
+                      </div>
+                      <div className="md:col-span-1 flex items-center">
+                        <Button type="button" variant="outline" onClick={() => removeAssetField(idx)}>Remove</Button>
+                      </div>
+                    </div>
+                  ))}
+                  <div className="flex justify-between mt-3">
+                    <Button type="button" variant="outline" onClick={addAssetField}>Add Field</Button>
+                    <Button type="button" onClick={handleSave}>Save Fields</Button>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+            </div>
+          </div>
         </Tabs>
       </motion.div>
     </AssetFlowLayout>
