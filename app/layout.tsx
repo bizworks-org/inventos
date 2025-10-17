@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import "./globals.css";
 import { ThemeProvider } from "../src/components/ui/theme-provider";
+import { PrefsProvider } from "../src/components/assetflow/layout/PrefsContext";
 export const metadata = {
   title: "Inventos - IT Asset Management",
 };
@@ -18,7 +19,9 @@ export default function RootLayout({
     <html lang="en">
       <body>
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
-          {children}
+          <PrefsProvider>
+            {children}
+          </PrefsProvider>
         </ThemeProvider>
       </body>
     </html>

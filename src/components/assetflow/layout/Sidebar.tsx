@@ -1,4 +1,6 @@
+"use client";
 import { Home, Package, FileText, Users, Activity, Settings, Shield } from 'lucide-react';
+import { Skeleton } from '@/components/ui/skeleton';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useEffect, useMemo, useState } from 'react';
@@ -28,7 +30,8 @@ interface SidebarProps {
 
 export function Sidebar({ currentPage = 'dashboard' }: SidebarProps) {
   const pathname = usePathname();
-  const [me, setMe] = useState<{ id: string; email: string; role: Role; name?: string } | null>(null);
+  // undefined = loading, null = unauth, object = user
+  const [me, setMe] = useState<{ id: string; email: string; role: Role; name?: string } | null | undefined>(undefined);
   const pathById: Record<string, string> = {
     dashboard: '/dashboard',
     assets: '/assets',
@@ -55,7 +58,9 @@ export function Sidebar({ currentPage = 'dashboard' }: SidebarProps) {
   }, []);
 
   const itemsToRender = useMemo(() => {
-    if (me?.role === 'admin') {
+    const onAdminPath = pathname ? pathname.startsWith('/admin') : (currentPage?.startsWith('admin') ?? false);
+    const showAdmin = me?.role === 'admin' || onAdminPath;
+    if (showAdmin) {
       return [
         ...navItems,
         { name: 'Admin', id: 'admin', icon: Shield, colorClass: 'text-red-400' } as NavItem,
@@ -63,7 +68,7 @@ export function Sidebar({ currentPage = 'dashboard' }: SidebarProps) {
       ];
     }
     return navItems;
-  }, [me]);
+  }, [me, pathname, currentPage]);
 
   const initials = useMemo(() => {
     const name = me?.name || '';
@@ -73,6 +78,8 @@ export function Sidebar({ currentPage = 'dashboard' }: SidebarProps) {
     const second = parts[1]?.[0] || '';
     return (first + second).toUpperCase() || 'US';
   }, [me]);
+
+  const loading = me === undefined; // undefined while loading; null means unauth
 
   return (
     <aside className="fixed left-0 top-0 z-40 h-screen w-64 bg-gradient-to-b from-[#1a1d2e] to-[#0f1218] border-r border-[rgba(255,255,255,0.1)]">
@@ -88,7 +95,14 @@ export function Sidebar({ currentPage = 'dashboard' }: SidebarProps) {
 
       {/* Navigation */}
       <nav className="flex flex-col gap-1 p-4">
-        {itemsToRender.map((item) => {
+        {loading && (
+          <div className="flex flex-col gap-2">
+            <Skeleton className="h-10 w-full bg-white/10" />
+            <Skeleton className="h-10 w-full bg-white/10" />
+            <Skeleton className="h-10 w-full bg-white/10" />
+          </div>
+        )}
+        {!loading && itemsToRender.map((item) => {
           const Icon = item.icon;
           const href = pathById[item.id];
           // Ensure Admin isn't highlighted when Users is active.
@@ -127,21 +141,32 @@ export function Sidebar({ currentPage = 'dashboard' }: SidebarProps) {
       {/* Bottom Section */}
       <div className="absolute bottom-4 left-4 right-4">
         <div className="bg-gradient-to-br from-[#6366f1]/10 to-[#8b5cf6]/10 border border-[#6366f1]/20 rounded-lg p-4">
-          <div className="flex items-start gap-3">
-            <div className="h-10 w-10 rounded-full bg-gradient-to-br from-[#6366f1] to-[#8b5cf6] flex items-center justify-center">
-              <span className="text-white font-semibold">{initials}</span>
+          {loading ? (
+            <div className="flex items-center gap-3">
+              <Skeleton className="h-10 w-10 rounded-full bg-white/10" />
+              <div className="flex-1 min-w-0 space-y-2">
+                <Skeleton className="h-4 w-2/3 bg-white/10" />
+                <Skeleton className="h-3 w-1/3 bg-white/10" />
+              </div>
+              <Skeleton className="h-6 w-16 rounded bg-white/10" />
             </div>
-            <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium text-white truncate">{me?.name || me?.email || 'User'}</p>
-              <p className="text-xs text-[#a0a4b8] truncate">{me?.role === 'admin' ? 'Administrator' : 'User'}</p>
+          ) : (
+            <div className="flex items-start gap-3">
+              <div className="h-10 w-10 rounded-full bg-gradient-to-br from-[#6366f1] to-[#8b5cf6] flex items-center justify-center">
+                <span className="text-white font-semibold">{initials}</span>
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium text-white truncate">{me?.name || me?.email || 'User'}</p>
+                <p className="text-xs text-[#a0a4b8] truncate">{me?.role === 'admin' ? 'Administrator' : 'User'}</p>
+              </div>
+              <button
+                onClick={async (e) => { e.preventDefault(); (await import('@/lib/auth/client')).signOut(); }}
+                className="ml-auto text-xs px-2 py-1 rounded bg-white/10 text-white hover:bg-white/20"
+              >
+                Sign out
+              </button>
             </div>
-            <button
-              onClick={async (e) => { e.preventDefault(); (await import('@/lib/auth/client')).signOut(); }}
-              className="ml-auto text-xs px-2 py-1 rounded bg-white/10 text-white hover:bg-white/20"
-            >
-              Sign out
-            </button>
-          </div>
+          )}
         </div>
       </div>
     </aside>

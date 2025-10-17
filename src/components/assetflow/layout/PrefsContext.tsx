@@ -93,9 +93,16 @@ function getCurrencySymbolFor(locale: string, currency: Currency): string {
 }
 
 export function PrefsProvider({ children }: { children: React.ReactNode }) {
-  const [prefs, setPrefs] = useState<Prefs>(() => (typeof window !== 'undefined' ? readPrefsFromStorage() : { language: 'en', currency: 'USD', density: 'comfortable' }));
+  // Use a stable default on both server and first client render to avoid hydration mismatches,
+  // then load real prefs from localStorage after mount.
+  const [prefs, setPrefs] = useState<Prefs>({ language: 'en', currency: 'USD', density: 'comfortable' });
 
   useEffect(() => {
+    // Load initial prefs from storage post-mount
+    try {
+      setPrefs(readPrefsFromStorage());
+    } catch {}
+
     const onStorage = (e: StorageEvent) => {
       if (e.key === 'assetflow:settings') setPrefs(readPrefsFromStorage());
     };

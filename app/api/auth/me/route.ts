@@ -9,6 +9,6 @@ export async function GET() {
   const { id } = payload as any;
   const user = await dbFindUserById(id);
   if (!user) return NextResponse.json({ user: null }, { status: 200 });
-  const role = (user.roles[0] || 'user') as 'admin' | 'user';
+  const role: 'admin' | 'user' = (Array.isArray(user.roles) && user.roles.includes('admin')) ? 'admin' : 'user';
   return NextResponse.json({ user: { id: user.id, email: user.email, role, name: user.name } });
 }

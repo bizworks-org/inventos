@@ -1,7 +1,7 @@
 "use client";
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Shield, User as UserIcon, Check, Package, FileText, Building2, Activity } from 'lucide-react';
+import { Shield, User as UserIcon, Package, FileText, Building2, Activity } from 'lucide-react';
 
 type Role = 'admin' | 'user';
 type User = { id: string; name: string; email: string; roles: Role[]; active: boolean };
@@ -15,6 +15,23 @@ export default function ManageUsersPage() {
   const [allPermissions, setAllPermissions] = useState<string[]>([]);
   const [rolePerms, setRolePerms] = useState<Record<Role, Set<string>>>({ admin: new Set(), user: new Set() });
   const router = useRouter();
+
+  // Helpers: choose stable, high-contrast gradient colors for chips
+  const roleGradient = (r: Role) => {
+    // Admin: pink/rose; User: emerald/teal
+    return r === 'admin'
+      ? 'linear-gradient(to right, #ec4899, #f43f5e)'
+      : 'linear-gradient(to right, #10b981, #14b8a6)';
+  };
+
+  const permissionGradient = (p: string) => {
+    // Default indigo; map resources to brand palettes
+    if (p.includes('assets')) return 'linear-gradient(to right, #f59e0b, #f97316)';
+    if (p.includes('licenses')) return 'linear-gradient(to right, #ec4899, #f43f5e)';
+    if (p.includes('vendors')) return 'linear-gradient(to right, #06b6d4, #3b82f6)';
+    if (p.includes('events')) return 'linear-gradient(to right, #22c55e, #14b8a6)';
+    return 'linear-gradient(to right, #6366f1, #8b5cf6)';
+  };
 
   const load = async () => {
     setLoading(true);
@@ -56,16 +73,56 @@ export default function ManageUsersPage() {
     load();
   };
 
-  const updateUserRoles = async (id: string, roles: Role[]) => {
-    const res = await fetch('/api/admin/rbac/user-roles', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ userId: id, roles }) });
-    if (!res.ok) return alert('Update failed');
-    load();
+  // Queued updates for user roles (debounced per user)
+  const roleUpdateTimers = useRef<Record<string, any>>({});
+  const pendingUserRoles = useRef<Record<string, Role[]>>({});
+  const queueUserRolesUpdate = (id: string, roles: Role[]) => {
+    pendingUserRoles.current[id] = roles;
+    if (roleUpdateTimers.current[id]) clearTimeout(roleUpdateTimers.current[id]);
+    roleUpdateTimers.current[id] = setTimeout(async () => {
+      const latest = pendingUserRoles.current[id];
+      try {
+        const res = await fetch('/api/admin/rbac/user-roles', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ userId: id, roles: latest })
+        });
+        if (!res.ok) throw new Error('Update failed');
+      } catch (e) {
+        alert('Failed to update user roles');
+        // Optionally reload to resync
+        // load();
+      } finally {
+        delete roleUpdateTimers.current[id];
+      }
+    }, 500);
   };
 
   const deactivate = async (id: string) => {
     const res = await fetch('/api/admin/users', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id, active: false }) });
     if (!res.ok) return alert('Update failed');
     load();
+  };
+
+  // Queued updates for role permissions (debounced per role)
+  const rolePermUpdateTimers = useRef<Record<Role, any>>({ admin: null, user: null });
+  const pendingRolePerms = useRef<Record<Role, Set<string>>>({ admin: new Set(), user: new Set() });
+  const queueRolePermsUpdate = (role: Role, nextSet: Set<string>) => {
+    pendingRolePerms.current[role] = new Set(nextSet);
+    const timer = rolePermUpdateTimers.current[role];
+    if (timer) clearTimeout(timer);
+    rolePermUpdateTimers.current[role] = setTimeout(async () => {
+      const latest = Array.from(pendingRolePerms.current[role] || []);
+      try {
+        const res = await fetch('/api/admin/rbac/role-permissions', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ role, permissions: latest })
+        });
+        if (!res.ok) throw new Error('Failed to update permissions');
+      } catch {
+        alert('Failed to update permissions');
+      } finally {
+        rolePermUpdateTimers.current[role] = null;
+      }
+    }, 500);
   };
 
   const remove = async (id: string) => {
@@ -129,7 +186,6 @@ export default function ManageUsersPage() {
                         {allRoles.map((r) => {
                           const selected = u.roles?.includes(r);
                           const Icon = r === 'admin' ? Shield : UserIcon;
-                          const gradient = r === 'admin' ? 'from-[#f43f5e] to-[#ec4899]' : 'from-[#10b981] to-[#14b8a6]';
                           return (
                             <button
                               key={r}
@@ -137,12 +193,18 @@ export default function ManageUsersPage() {
                               onClick={() => {
                                 const next = new Set(u.roles || []);
                                 if (selected) next.delete(r); else next.add(r);
-                                updateUserRoles(u.id, Array.from(next));
+                                const nextArr = Array.from(next);
+                                // Optimistic UI update for the user's roles
+                                setUsers((cur) => cur.map((usr) => usr.id === u.id ? { ...usr, roles: nextArr } : usr));
+                                // Queue the backend update (debounced)
+                                queueUserRolesUpdate(u.id, nextArr);
                               }}
                               className={`relative group px-3 py-2 rounded-lg border transition-colors
                                 ${selected
-                                  ? `bg-gradient-to-r ${gradient} text-white border-transparent`
-                                  : 'bg-white text-[#1a1d2e] border-[#e2e8f0] hover:border-[#cbd5e1]'}`}
+                                  ? 'text-white border-transparent'
+                                  : 'bg-white text-[#1a1d2e] border-[#e2e8f0] hover:border-[#cbd5e1]'}
+                              `}
+                              style={selected ? { backgroundImage: roleGradient(r) } : undefined}
                               aria-pressed={selected}
                               aria-label={`Toggle ${r} role`}
                             >
@@ -150,11 +212,6 @@ export default function ManageUsersPage() {
                                 <Icon className={`h-4 w-4 ${selected ? 'text-white' : 'text-[#64748b]'}`} />
                                 <span className="text-sm font-medium capitalize">{r}</span>
                               </div>
-                              {selected && (
-                                <span className="absolute -top-1 -right-1 inline-flex h-5 w-5 items-center justify-center rounded-full bg-emerald-500 shadow">
-                                  <Check className="h-3.5 w-3.5 text-white" />
-                                </span>
-                              )}
                             </button>
                           );
                         })}
@@ -162,8 +219,25 @@ export default function ManageUsersPage() {
                     </td>
                     <td className="py-3 pr-4">{u.active ? 'Yes' : 'No'}</td>
                     <td className="py-3 pr-4 flex gap-2">
-                      <button onClick={() => deactivate(u.id)} disabled={!u.active} className="px-3 py-1.5 rounded bg-[#f1f5f9] text-[#1a1d2e] disabled:opacity-50">Deactivate</button>
-                      <button onClick={() => remove(u.id)} className="px-3 py-1.5 rounded bg-[#fee2e2] text-[#b91c1c]">Delete</button>
+                      <button
+                        onClick={() => deactivate(u.id)}
+                        disabled={!u.active}
+                        className={`px-3 py-1.5 rounded-lg transition-all text-sm font-medium
+                          ${u.active
+                            ? 'text-white shadow-sm hover:shadow-md focus:outline-none focus:ring-2 focus:ring-[#f59e0b]/40'
+                            : 'bg-[#f3f4f6] text-[#9ca3af] cursor-not-allowed'}
+                        `}
+                        style={u.active ? { backgroundImage: 'linear-gradient(to right, #f59e0b, #d97706)' } : undefined}
+                      >
+                        Deactivate
+                      </button>
+                      <button
+                        onClick={() => remove(u.id)}
+                        className="px-3 py-1.5 rounded-lg text-sm font-medium text-white shadow-sm hover:shadow-md focus:outline-none focus:ring-2 focus:ring-[#ef4444]/40 transition-all"
+                        style={{ backgroundImage: 'linear-gradient(to right, #ef4444, #b91c1c)' }}
+                      >
+                        Delete
+                      </button>
                     </td>
                   </tr>
                 ))}
@@ -184,32 +258,31 @@ export default function ManageUsersPage() {
                 {allPermissions.map((p) => {
                   const selected = rolePerms[role]?.has(p);
                   // Determine icon/gradient by resource
-                  let Icon: any = Shield; let gradient = 'from-[#6366f1] to-[#8b5cf6]';
-                  if (p.includes('assets')) { Icon = Package; gradient = 'from-[#f59e0b] to-[#f97316]'; }
-                  else if (p.includes('licenses')) { Icon = FileText; gradient = 'from-[#ec4899] to-[#f43f5e]'; }
-                  else if (p.includes('vendors')) { Icon = Building2; gradient = 'from-[#06b6d4] to-[#3b82f6]'; }
-                  else if (p.includes('events')) { Icon = Activity; gradient = 'from-[#22c55e] to-[#14b8a6]'; }
+                  let Icon: any = Shield; let gradient = 'from-[#4f46e5] to-[#4338ca]'; // indigo-600 to indigo-700
+                  if (p.includes('assets')) { Icon = Package; gradient = 'from-[#ea580c] to-[#c2410c]'; } // orange-600 -> orange-700
+                  else if (p.includes('licenses')) { Icon = FileText; gradient = 'from-[#db2777] to-[#be123c]'; } // pink-600 -> rose-700
+                  else if (p.includes('vendors')) { Icon = Building2; gradient = 'from-[#0369a1] to-[#1d4ed8]'; } // sky-700 -> blue-700
+                  else if (p.includes('events')) { Icon = Activity; gradient = 'from-[#16a34a] to-[#0f766e]'; } // green-600 -> teal-700
 
                   const label = p.replace(/_/g, ' ').replace(/\b\w/g, (m) => m.toUpperCase());
                   return (
                     <button
                       key={`${role}-${p}`}
                       type="button"
-                      onClick={async () => {
+                      onClick={() => {
                         const next = new Set(rolePerms[role] || []);
                         if (selected) next.delete(p); else next.add(p);
-                        // optimistic update
+                        // Optimistic update
                         setRolePerms((cur) => ({ ...cur, [role]: next }));
-                        const res = await fetch('/api/admin/rbac/role-permissions', {
-                          method: 'POST', headers: { 'Content-Type': 'application/json' },
-                          body: JSON.stringify({ role, permissions: Array.from(next) })
-                        });
-                        if (!res.ok) alert('Failed to update permissions');
+                        // Queue backend update (debounced per role)
+                        queueRolePermsUpdate(role, next);
                       }}
                       className={`relative group w-full text-left px-3 py-2.5 rounded-lg border transition-colors
                         ${selected
-                          ? `bg-gradient-to-r ${gradient} text-white border-transparent`
-                          : 'bg-white text-[#1a1d2e] border-[#e2e8f0] hover:border-[#cbd5e1]'}`}
+                          ? 'text-white border-transparent'
+                          : 'bg-white text-[#1a1d2e] border-[#e2e8f0] hover:border-[#cbd5e1]'}
+                      `}
+                      style={selected ? { backgroundImage: permissionGradient(p) } : undefined}
                       aria-pressed={selected}
                       aria-label={`Toggle ${label} permission for ${role}`}
                     >
@@ -217,11 +290,6 @@ export default function ManageUsersPage() {
                         <Icon className={`h-4 w-4 ${selected ? 'text-white' : 'text-[#64748b]'}`} />
                         <span className="text-sm font-medium">{label}</span>
                       </div>
-                      {selected && (
-                        <span className="absolute -top-1 -right-1 inline-flex h-5 w-5 items-center justify-center rounded-full bg-emerald-500 shadow">
-                          <Check className="h-3.5 w-3.5 text-white" />
-                        </span>
-                      )}
                     </button>
                   );
                 })}

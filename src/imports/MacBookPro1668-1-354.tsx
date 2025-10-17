@@ -304,7 +304,7 @@ function Frame15({ onNavigate }: { onNavigate?: () => void }) {
       
       {/* Hover glitter effect */}
       <motion.div
-        className="absolute inset-0 w-[150px] h-full bg-gradient-to-r from-transparent via-white to-transparent opacity-20 blur-sm"
+        className="absolute inset-0 w-[150px] h-full bg-gradient-to-r from-transparent via-[#e0e7ff] to-transparent opacity-20 blur-sm"
         animate={{ 
           x: -150, 
           opacity: 0,
