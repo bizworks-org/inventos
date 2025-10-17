@@ -1,7 +1,10 @@
 "use client";
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { toast } from 'sonner@2.0.3';
 import { useRouter } from 'next/navigation';
 import { Shield, User as UserIcon, Package, FileText, Building2, Activity } from 'lucide-react';
+import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
+import { AlertDialog, AlertDialogTrigger, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, AlertDialogAction, AlertDialogCancel } from '@/components/ui/alert-dialog';
 
 type Role = 'admin' | 'user';
 type User = { id: string; name: string; email: string; roles: Role[]; active: boolean };
@@ -14,6 +17,8 @@ export default function ManageUsersPage() {
   const [allRoles, setAllRoles] = useState<Role[]>([]);
   const [allPermissions, setAllPermissions] = useState<string[]>([]);
   const [rolePerms, setRolePerms] = useState<Record<Role, Set<string>>>({ admin: new Set(), user: new Set() });
+  const [me, setMe] = useState<{ id: string; email: string; role: Role } | null>(null);
+  const [confirmRemoveAdminFor, setConfirmRemoveAdminFor] = useState<{ userId: string; userName: string } | null>(null);
   const router = useRouter();
 
   // Helpers: choose stable, high-contrast gradient colors for chips
@@ -49,6 +54,8 @@ export default function ManageUsersPage() {
 
   useEffect(() => {
     load();
+    // fetch current user for self-guard
+    fetch('/api/auth/me', { cache: 'no-store' }).then(r => r.json()).then(d => setMe(d?.user || null)).catch(() => setMe(null));
     // fetch roles and permissions in parallel
     Promise.all([
       fetch('/api/admin/rbac/roles').then(r => r.json()).catch(() => ({ roles: [] })),
@@ -68,7 +75,7 @@ export default function ManageUsersPage() {
   const addUser = async () => {
     const res = await fetch('/api/admin/users', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(form) });
     const data = await res.json();
-    if (!res.ok) return alert(data?.error || 'Failed to create user');
+    if (!res.ok) return toast.error(data?.error || 'Failed to create user');
     setForm({ name: '', email: '', role: 'user', password: '' });
     load();
   };
@@ -87,7 +94,7 @@ export default function ManageUsersPage() {
         });
         if (!res.ok) throw new Error('Update failed');
       } catch (e) {
-        alert('Failed to update user roles');
+        toast.error('Failed to update user roles');
         // Optionally reload to resync
         // load();
       } finally {
@@ -98,7 +105,14 @@ export default function ManageUsersPage() {
 
   const deactivate = async (id: string) => {
     const res = await fetch('/api/admin/users', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id, active: false }) });
-    if (!res.ok) return alert('Update failed');
+    if (!res.ok) {
+      let msg = 'Update failed';
+      try {
+        const data = await res.json();
+        if (data?.error) msg = data.error;
+      } catch {}
+      return toast.error(msg);
+    }
     load();
   };
 
@@ -118,7 +132,7 @@ export default function ManageUsersPage() {
         });
         if (!res.ok) throw new Error('Failed to update permissions');
       } catch {
-        alert('Failed to update permissions');
+        toast.error('Failed to update permissions');
       } finally {
         rolePermUpdateTimers.current[role] = null;
       }
@@ -128,9 +142,14 @@ export default function ManageUsersPage() {
   const remove = async (id: string) => {
     if (!confirm('Delete this user?')) return;
     const res = await fetch(`/api/admin/users?id=${encodeURIComponent(id)}`, { method: 'DELETE' });
-    if (!res.ok) return alert('Delete failed');
+    if (!res.ok) return toast.error('Delete failed');
     load();
   };
+
+  // Count of active admins for UI safeguards
+  const activeAdminCount = useMemo(() => {
+    return users.filter((u) => u.active && (u.roles || []).includes('admin')).length;
+  }, [users]);
 
   return (
     <>
@@ -179,32 +198,59 @@ export default function ManageUsersPage() {
               <tbody>
                 {users.map((u) => (
                   <tr key={u.id} className="border-b border-[#f1f5f9]">
-                    <td className="py-3 pr-4">{u.name}</td>
+                    <td className="py-3 pr-4">
+                      <div className="flex items-center gap-2">
+                        <span>{u.name}</span>
+                        {(u.roles || []).includes('admin') && (
+                          <span
+                            className="px-2 py-0.5 rounded-full text-[11px] leading-none text-white shadow-sm"
+                            style={{ backgroundImage: roleGradient('admin') }}
+                            title="Admin"
+                            aria-label="Admin user"
+                          >
+                            Admin
+                          </span>
+                        )}
+                      </div>
+                    </td>
                     <td className="py-3 pr-4">{u.email}</td>
                     <td className="py-3 pr-4">
                       <div className="flex gap-3 flex-wrap py-0.5">
                         {allRoles.map((r) => {
                           const selected = u.roles?.includes(r);
                           const Icon = r === 'admin' ? Shield : UserIcon;
-                          return (
+                          const isSelf = me?.id === u.id;
+                          const isAdminChip = r === 'admin';
+                          const disabledSelfAdminToggle = isSelf && isAdminChip;
+                          const button = (
                             <button
                               key={r}
                               type="button"
                               onClick={() => {
+                                if (disabledSelfAdminToggle) return; // block self admin toggle in UI
                                 const next = new Set(u.roles || []);
-                                if (selected) next.delete(r); else next.add(r);
+                                if (selected) {
+                                  // if removing admin from someone, show confirm dialog
+                                  if (isAdminChip) {
+                                    setConfirmRemoveAdminFor({ userId: u.id, userName: u.name || u.email });
+                                    return;
+                                  }
+                                  next.delete(r);
+                                } else {
+                                  next.add(r);
+                                }
                                 const nextArr = Array.from(next);
-                                // Optimistic UI update for the user's roles
                                 setUsers((cur) => cur.map((usr) => usr.id === u.id ? { ...usr, roles: nextArr } : usr));
-                                // Queue the backend update (debounced)
                                 queueUserRolesUpdate(u.id, nextArr);
                               }}
+                              disabled={disabledSelfAdminToggle}
                               className={`relative group px-3 py-2 rounded-lg border transition-colors
                                 ${selected
                                   ? 'text-white border-transparent'
                                   : 'bg-white text-[#1a1d2e] border-[#e2e8f0] hover:border-[#cbd5e1]'}
+                                ${disabledSelfAdminToggle ? 'opacity-60 cursor-not-allowed' : ''}
                               `}
-                              style={selected ? { backgroundImage: roleGradient(r) } : undefined}
+                              style={selected ? { backgroundImage: roleGradient(r as Role) } : undefined}
                               aria-pressed={selected}
                               aria-label={`Toggle ${r} role`}
                             >
@@ -214,23 +260,50 @@ export default function ManageUsersPage() {
                               </div>
                             </button>
                           );
+                          if (disabledSelfAdminToggle) {
+                            return (
+                              <Tooltip key={r}>
+                                <TooltipTrigger asChild>
+                                  {button}
+                                </TooltipTrigger>
+                                <TooltipContent>Cannot change your own Admin role</TooltipContent>
+                              </Tooltip>
+                            );
+                          }
+                          return button;
                         })}
                       </div>
                     </td>
                     <td className="py-3 pr-4">{u.active ? 'Yes' : 'No'}</td>
                     <td className="py-3 pr-4 flex gap-2">
-                      <button
-                        onClick={() => deactivate(u.id)}
-                        disabled={!u.active}
-                        className={`px-3 py-1.5 rounded-lg transition-all text-sm font-medium
-                          ${u.active
-                            ? 'text-white shadow-sm hover:shadow-md focus:outline-none focus:ring-2 focus:ring-[#f59e0b]/40'
-                            : 'bg-[#f3f4f6] text-[#9ca3af] cursor-not-allowed'}
-                        `}
-                        style={u.active ? { backgroundImage: 'linear-gradient(to right, #f59e0b, #d97706)' } : undefined}
-                      >
-                        Deactivate
-                      </button>
+                      {(() => {
+                        const isLastActiveAdmin = u.active && (u.roles || []).includes('admin') && activeAdminCount === 1;
+                        const deactivateButton = (
+                          <button
+                            onClick={() => deactivate(u.id)}
+                            disabled={!u.active || isLastActiveAdmin}
+                            className={`px-3 py-1.5 rounded-lg transition-all text-sm font-medium
+                              ${(!u.active || isLastActiveAdmin)
+                                ? 'bg-[#f3f4f6] text-[#9ca3af] cursor-not-allowed'
+                                : 'text-white shadow-sm hover:shadow-md focus:outline-none focus:ring-2 focus:ring-[#f59e0b]/40'}
+                            `}
+                            style={(!u.active || isLastActiveAdmin) ? undefined : { backgroundImage: 'linear-gradient(to right, #f59e0b, #d97706)' }}
+                          >
+                            Deactivate
+                          </button>
+                        );
+                        if (isLastActiveAdmin) {
+                          return (
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <span className="inline-block">{deactivateButton}</span>
+                              </TooltipTrigger>
+                              <TooltipContent>Cannot deactivate the last active Admin</TooltipContent>
+                            </Tooltip>
+                          );
+                        }
+                        return deactivateButton;
+                      })()}
                       <button
                         onClick={() => remove(u.id)}
                         className="px-3 py-1.5 rounded-lg text-sm font-medium text-white shadow-sm hover:shadow-md focus:outline-none focus:ring-2 focus:ring-[#ef4444]/40 transition-all"
@@ -246,58 +319,39 @@ export default function ManageUsersPage() {
           </div>
         )}
       </div>
-
-      {/* Role Permissions */}
-      <div className="bg-white border border-[#e2e8f0] rounded-xl p-6">
-        <h2 className="text-lg font-semibold mb-3">Role Permissions</h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-5xl">
-          {(['admin','user'] as Role[]).map((role) => (
-            <div key={role} className="border border-[#e2e8f0] rounded-lg p-4">
-              <h3 className="text-base font-semibold mb-2 capitalize">{role}</h3>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                {allPermissions.map((p) => {
-                  const selected = rolePerms[role]?.has(p);
-                  // Determine icon/gradient by resource
-                  let Icon: any = Shield; let gradient = 'from-[#4f46e5] to-[#4338ca]'; // indigo-600 to indigo-700
-                  if (p.includes('assets')) { Icon = Package; gradient = 'from-[#ea580c] to-[#c2410c]'; } // orange-600 -> orange-700
-                  else if (p.includes('licenses')) { Icon = FileText; gradient = 'from-[#db2777] to-[#be123c]'; } // pink-600 -> rose-700
-                  else if (p.includes('vendors')) { Icon = Building2; gradient = 'from-[#0369a1] to-[#1d4ed8]'; } // sky-700 -> blue-700
-                  else if (p.includes('events')) { Icon = Activity; gradient = 'from-[#16a34a] to-[#0f766e]'; } // green-600 -> teal-700
-
-                  const label = p.replace(/_/g, ' ').replace(/\b\w/g, (m) => m.toUpperCase());
-                  return (
-                    <button
-                      key={`${role}-${p}`}
-                      type="button"
-                      onClick={() => {
-                        const next = new Set(rolePerms[role] || []);
-                        if (selected) next.delete(p); else next.add(p);
-                        // Optimistic update
-                        setRolePerms((cur) => ({ ...cur, [role]: next }));
-                        // Queue backend update (debounced per role)
-                        queueRolePermsUpdate(role, next);
-                      }}
-                      className={`relative group w-full text-left px-3 py-2.5 rounded-lg border transition-colors
-                        ${selected
-                          ? 'text-white border-transparent'
-                          : 'bg-white text-[#1a1d2e] border-[#e2e8f0] hover:border-[#cbd5e1]'}
-                      `}
-                      style={selected ? { backgroundImage: permissionGradient(p) } : undefined}
-                      aria-pressed={selected}
-                      aria-label={`Toggle ${label} permission for ${role}`}
-                    >
-                      <div className="flex items-center gap-2">
-                        <Icon className={`h-4 w-4 ${selected ? 'text-white' : 'text-[#64748b]'}`} />
-                        <span className="text-sm font-medium">{label}</span>
-                      </div>
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
+      {/* Confirm remove admin */}
+      <AlertDialog open={!!confirmRemoveAdminFor} onOpenChange={(open) => { if (!open) setConfirmRemoveAdminFor(null); }}>
+        {confirmRemoveAdminFor && (
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Remove Admin role?</AlertDialogTitle>
+              <AlertDialogDescription>
+                You are about to remove the Admin role from <span className="font-semibold">{confirmRemoveAdminFor.userName}</span>. This may restrict access to administrative features.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogAction
+                onClick={() => {
+                  const target = confirmRemoveAdminFor;
+                  if (!target) return;
+                  setConfirmRemoveAdminFor(null);
+                  // Proceed to remove admin role
+                  setUsers((cur) => cur.map((usr) => {
+                    if (usr.id !== target.userId) return usr;
+                    const next = (usr.roles || []).filter(r => r !== 'admin');
+                    queueUserRolesUpdate(usr.id, next);
+                    return { ...usr, roles: next };
+                  }));
+                }}
+                className="bg-[#ef4444] text-white hover:bg-[#dc2626]"
+              >
+                Remove
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        )}
+      </AlertDialog>
     </>
   );
 }

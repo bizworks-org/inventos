@@ -32,6 +32,11 @@ export function Sidebar({ currentPage = 'dashboard' }: SidebarProps) {
   const pathname = usePathname();
   // undefined = loading, null = unauth, object = user
   const [me, setMe] = useState<{ id: string; email: string; role: Role; name?: string } | null | undefined>(undefined);
+  // Persist admin visibility once detected in the client session
+  const [everAdmin, setEverAdmin] = useState<boolean>(() => {
+    if (typeof document === 'undefined') return false;
+    return document.documentElement.getAttribute('data-admin') === 'true';
+  });
   const pathById: Record<string, string> = {
     dashboard: '/dashboard',
     assets: '/assets',
@@ -41,34 +46,45 @@ export function Sidebar({ currentPage = 'dashboard' }: SidebarProps) {
     settings: '/settings',
     admin: '/admin',
     admin_users: '/admin/users',
+    admin_roles: '/admin/roles',
   };
 
   useEffect(() => {
     let mounted = true;
     (async () => {
       try {
-        const { getMe } = await import('@/lib/auth/client');
-        const user = await getMe();
-        if (mounted) setMe(user);
+        const res = await fetch('/api/auth/me', { cache: 'no-store', credentials: 'same-origin' });
+        const data = await res.json().catch(() => ({ user: null }));
+        if (mounted) setMe(data?.user ?? null);
       } catch {
-        // ignore
+        if (mounted) setMe(null); // end loading even on failure
       }
     })();
     return () => { mounted = false; };
   }, []);
 
+  // When we know we're on an admin path or me reveals admin, latch everAdmin=true for this session
+  useEffect(() => {
+    const onAdminPath = pathname?.startsWith('/admin') || currentPage?.startsWith('admin') || false;
+    if (onAdminPath || me?.role === 'admin') setEverAdmin(true);
+  }, [pathname, currentPage, me]);
+
   const itemsToRender = useMemo(() => {
-    const onAdminPath = pathname ? pathname.startsWith('/admin') : (currentPage?.startsWith('admin') ?? false);
-    const showAdmin = me?.role === 'admin' || onAdminPath;
+    const onAdminPath = pathname?.startsWith('/admin') || currentPage?.startsWith('admin') || false;
+    // Prefer server hint if present to avoid waiting for client fetch
+    const serverIsAdmin = typeof document !== 'undefined' ? document.documentElement.getAttribute('data-admin') === 'true' : false;
+    // Show Admin if: currently on admin route, server hinted admin, we've ever detected admin this session, or loading state
+    const showAdmin = onAdminPath || serverIsAdmin || everAdmin || me === undefined || me?.role === 'admin';
     if (showAdmin) {
       return [
         ...navItems,
         { name: 'Admin', id: 'admin', icon: Shield, colorClass: 'text-red-400' } as NavItem,
         { name: 'Users', id: 'admin_users', icon: Users, colorClass: 'text-red-300' } as NavItem,
+        { name: 'Roles / Permissions', id: 'admin_roles', icon: Shield, colorClass: 'text-red-300' } as NavItem,
       ];
     }
     return navItems;
-  }, [me, pathname, currentPage]);
+  }, [me, pathname, currentPage, everAdmin]);
 
   const initials = useMemo(() => {
     const name = me?.name || '';
@@ -125,8 +141,8 @@ export function Sidebar({ currentPage = 'dashboard' }: SidebarProps) {
               aria-current={isActive ? 'page' : undefined}
               className={`
                 flex items-center gap-3 ${item.id.startsWith('admin_') ? 'pl-10 pr-4' : 'px-4'} py-3 rounded-lg transition-all duration-200 text-left w-full cursor-pointer
-                ${isActive 
-                  ? 'bg-gradient-to-r from-[#6366f1] to-[#8b5cf6] text-white shadow-lg shadow-[#6366f1]/20' 
+                ${isActive
+                  ? 'bg-gradient-to-r from-[#6366f1] to-[#8b5cf6] text-white shadow-lg shadow-[#6366f1]/20'
                   : 'text-[#a0a4b8] hover:bg-[rgba(255,255,255,0.05)] hover:text-white'
                 }
               `}

@@ -46,8 +46,9 @@ export function verifyToken(token: string | undefined | null): (Omit<User, 'pass
   }
 }
 
-export function setAuthCookie(token: string) {
-  cookies().set(AUTH_COOKIE, token, {
+export async function setAuthCookie(token: string) {
+  const store = await cookies();
+  store.set(AUTH_COOKIE, token, {
     httpOnly: true,
     sameSite: 'lax',
     path: '/',
@@ -56,12 +57,14 @@ export function setAuthCookie(token: string) {
   });
 }
 
-export function clearAuthCookie() {
-  cookies().set(AUTH_COOKIE, '', { httpOnly: true, path: '/', maxAge: 0 });
+export async function clearAuthCookie() {
+  const store = await cookies();
+  store.set(AUTH_COOKIE, '', { httpOnly: true, path: '/', maxAge: 0 });
 }
 
-export function readAuthToken() {
-  return cookies().get(AUTH_COOKIE)?.value;
+export async function readAuthToken() {
+  const store = await cookies();
+  return store.get(AUTH_COOKIE)?.value;
 }
 
 // Password hashing helpers
