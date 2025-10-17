@@ -31,6 +31,35 @@ Root (/) redirects to /dashboard.
 
 By default the app runs on port 3000.
 
+## Authentication & Admin (MySQL-backed)
+
+This project includes a simple, secure auth layer with scrypt password hashes and an HMAC-signed cookie. Admin users can manage users at `/admin/users`.
+
+1) Env
+- Copy `.env.example` to `.env` and set DB vars.
+- Add `AUTH_SECRET` to sign auth tokens (any long random string).
+
+2) Migrations
+- Run `db/migrations/001_init.sql` first (core app schema).
+- Then run `db/migrations/002_auth_users.sql` (users, roles, permissions, sessions).
+
+3) Create your first admin user
+- Generate a password hash (choose one):
+	- CLI: `npm run hash:pw -- "YourStrongPassword"` → copy the output
+	- API (dev only): `POST /api/auth/hash` with `{ "password": "YourStrongPassword" }`
+- Insert user and grant admin role (replace values):
+	- INSERT INTO users (id, email, name, password_hash, active) VALUES (UUID(), 'admin@inventos.io', 'Admin User', '<HASH_FROM_ABOVE>', 1);
+	- INSERT INTO user_roles (user_id, role_id) SELECT id, 1 FROM users WHERE email='admin@inventos.io' LIMIT 1;
+
+4) Sign in and manage users
+- Visit `/login` and sign in with your admin email/password.
+- Go to `/admin/users` to create/disable/delete users and set roles.
+
+Notes
+- Auth token is stored in an HttpOnly cookie, signed with `AUTH_SECRET`.
+- Passwords are hashed with scrypt; the stored format is `scrypt$N$salt$hash`.
+- The dev-only hash API is disabled in production unless `AUTH_HASH_DEV=1` is set.
+
 ## Database (MySQL)
 
 This project includes a MySQL schema and basic APIs. To enable server-backed data:
