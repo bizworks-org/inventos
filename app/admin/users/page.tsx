@@ -83,24 +83,24 @@ export default function ManageUsersPage() {
       </div>
 
       {/* Add User Card */}
-      <div className="bg-white border border-[#e2e8f0] rounded-xl p-4 mb-6 max-w-3xl">
+      <div className="bg-white border border-[#e2e8f0] rounded-xl p-6 mb-6 max-w-3xl">
         <h2 className="text-lg font-semibold mb-3">Add User</h2>
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
-          <input className="px-3 py-2 rounded-lg border border-[#e2e8f0] bg-white" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="Full name" />
-          <input className="px-3 py-2 rounded-lg border border-[#e2e8f0] bg-white" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} placeholder="Email" />
-          <select className="px-3 py-2 rounded-lg border border-[#e2e8f0] bg-white" value={form.role} onChange={(e) => setForm({ ...form, role: e.target.value as Role })}>
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <input className="px-3 py-2.5 rounded-lg border border-[#e2e8f0] bg-white" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="Full name" />
+          <input className="px-3 py-2.5 rounded-lg border border-[#e2e8f0] bg-white" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} placeholder="Email" />
+          <select className="px-3 py-2.5 rounded-lg border border-[#e2e8f0] bg-white" value={form.role} onChange={(e) => setForm({ ...form, role: e.target.value as Role })}>
             <option value="user">User</option>
             <option value="admin">Admin</option>
           </select>
-          <input className="px-3 py-2 rounded-lg border border-[#e2e8f0] bg-white" type="password" value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} placeholder="Password" />
+          <input className="px-3 py-2.5 rounded-lg border border-[#e2e8f0] bg-white" type="password" value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} placeholder="Password" />
         </div>
-        <div className="mt-3">
-          <button onClick={addUser} className="px-4 py-2 rounded-lg bg-[#1a1d2e] text-white hover:opacity-90">Create</button>
+        <div className="mt-4">
+          <button onClick={addUser} className="px-4 py-2.5 rounded-lg bg-[#1a1d2e] text-white hover:opacity-90">Create</button>
         </div>
       </div>
 
       {/* Users Table */}
-      <div className="bg-white border border-[#e2e8f0] rounded-xl p-4 mb-6">
+      <div className="bg-white border border-[#e2e8f0] rounded-xl p-6 mb-6">
         <h2 className="text-lg font-semibold mb-3">Users</h2>
         {loading ? (
           <p>Loading…</p>
@@ -111,20 +111,20 @@ export default function ManageUsersPage() {
             <table className="min-w-full text-left">
               <thead>
                 <tr className="border-b border-[#e2e8f0] text-[#64748b]">
-                  <th className="py-2 pr-4">Name</th>
-                  <th className="py-2 pr-4">Email</th>
-                  <th className="py-2 pr-4">Roles</th>
-                  <th className="py-2 pr-4">Active</th>
-                  <th className="py-2 pr-4">Actions</th>
+                  <th className="py-3 pr-4">Name</th>
+                  <th className="py-3 pr-4">Email</th>
+                  <th className="py-3 pr-4">Roles</th>
+                  <th className="py-3 pr-4">Active</th>
+                  <th className="py-3 pr-4">Actions</th>
                 </tr>
               </thead>
               <tbody>
                 {users.map((u) => (
                   <tr key={u.id} className="border-b border-[#f1f5f9]">
-                    <td className="py-2 pr-4">{u.name}</td>
-                    <td className="py-2 pr-4">{u.email}</td>
-                    <td className="py-2 pr-4">
-                      <div className="flex gap-3 flex-wrap">
+                    <td className="py-3 pr-4">{u.name}</td>
+                    <td className="py-3 pr-4">{u.email}</td>
+                    <td className="py-3 pr-4">
+                      <div className="flex gap-3 flex-wrap py-0.5">
                         {allRoles.map((r) => {
                           const checked = u.roles?.includes(r);
                           return (
@@ -144,10 +144,10 @@ export default function ManageUsersPage() {
                         })}
                       </div>
                     </td>
-                    <td className="py-2 pr-4">{u.active ? 'Yes' : 'No'}</td>
-                    <td className="py-2 pr-4 flex gap-2">
-                      <button onClick={() => deactivate(u.id)} disabled={!u.active} className="px-3 py-1 rounded bg-[#f1f5f9] text-[#1a1d2e] disabled:opacity-50">Deactivate</button>
-                      <button onClick={() => remove(u.id)} className="px-3 py-1 rounded bg-[#fee2e2] text-[#b91c1c]">Delete</button>
+                    <td className="py-3 pr-4">{u.active ? 'Yes' : 'No'}</td>
+                    <td className="py-3 pr-4 flex gap-2">
+                      <button onClick={() => deactivate(u.id)} disabled={!u.active} className="px-3 py-1.5 rounded bg-[#f1f5f9] text-[#1a1d2e] disabled:opacity-50">Deactivate</button>
+                      <button onClick={() => remove(u.id)} className="px-3 py-1.5 rounded bg-[#fee2e2] text-[#b91c1c]">Delete</button>
                     </td>
                   </tr>
                 ))}
@@ -158,11 +158,11 @@ export default function ManageUsersPage() {
       </div>
 
       {/* Role Permissions */}
-      <div className="bg-white border border-[#e2e8f0] rounded-xl p-4">
+      <div className="bg-white border border-[#e2e8f0] rounded-xl p-6">
         <h2 className="text-lg font-semibold mb-3">Role Permissions</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-5xl">
           {(['admin','user'] as Role[]).map((role) => (
-            <div key={role} className="border border-[#e2e8f0] rounded-lg p-3">
+            <div key={role} className="border border-[#e2e8f0] rounded-lg p-4">
               <h3 className="text-base font-semibold mb-2 capitalize">{role}</h3>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                 {allPermissions.map((p) => {

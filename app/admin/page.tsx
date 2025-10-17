@@ -30,12 +30,12 @@ export default function AdminHomePage() {
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
         {cards.map(({ title, desc, href, Icon, gradient }) => (
           <Link key={href} href={href} className="group">
-            <div className="bg-white border border-[#e2e8f0] rounded-xl p-5 h-full transition-all group-hover:shadow-lg group-hover:border-[#d1d5db]">
+            <div className="bg-white border border-[#e2e8f0] rounded-xl p-6 h-full transition-all group-hover:shadow-lg group-hover:border-[#d1d5db]">
               <div className={`h-12 w-12 rounded-lg bg-gradient-to-br ${gradient} flex items-center justify-center mb-4`}>
                 <Icon className="h-6 w-6 text-white" />
               </div>
               <h3 className="text-lg font-semibold text-[#1a1d2e] mb-1">{title}</h3>
-              <p className="text-sm text-[#64748b] mb-4">{desc}</p>
+              <p className="text-sm text-[#64748b] mb-5">{desc}</p>
               <span className="inline-flex items-center text-sm font-medium text-[#1a1d2e]">
                 Open <span className="ml-1 transition-transform group-hover:translate-x-0.5">→</span>
               </span>
