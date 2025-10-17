@@ -108,6 +108,10 @@ export async function dbUpdateUser(id: string, patch: Partial<{ name: string; em
   return dbFindUserById(id);
 }
 
+export async function dbUpdateUserPassword(id: string, password_hash: string): Promise<void> {
+  await query(`UPDATE users SET password_hash = :password_hash WHERE id = :id`, { id, password_hash });
+}
+
 export async function dbDeleteUser(id: string): Promise<boolean> {
   await query(`DELETE FROM user_roles WHERE user_id = :id`, { id });
   const res = await query<any>(`DELETE FROM users WHERE id = :id`, { id });

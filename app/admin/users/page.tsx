@@ -52,6 +52,28 @@ export default function ManageUsersPage() {
     setLoading(false);
   };
 
+  // Local password generator: 12 chars [a-zA-Z0-9_], at least one lower, upper, number
+  const generatePassword = () => {
+    const length = 12;
+    const lowers = 'abcdefghijklmnopqrstuvwxyz';
+    const uppers = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+    const digits = '0123456789';
+    const extra = '_';
+    const all = lowers + uppers + digits + extra;
+    const pick = (set: string) => set[Math.floor(Math.random() * set.length)];
+    let pwd = pick(lowers) + pick(uppers) + pick(digits);
+    while (pwd.length < length) pwd += pick(all);
+    // shuffle
+    const arr = pwd.split('');
+    for (let i = arr.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [arr[i], arr[j]] = [arr[j], arr[i]];
+    }
+    const finalPwd = arr.join('');
+    setForm((f) => ({ ...f, password: finalPwd }));
+    (async () => { try { await navigator.clipboard.writeText(finalPwd); toast.success(`Password generated (copied)`); } catch { toast.success('Password generated'); } })();
+  };
+
   useEffect(() => {
     load();
     // fetch current user for self-guard
@@ -146,6 +168,37 @@ export default function ManageUsersPage() {
     load();
   };
 
+  const activate = async (id: string) => {
+    const res = await fetch('/api/admin/users', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id, active: true }) });
+    if (!res.ok) {
+      let msg = 'Update failed';
+      try {
+        const data = await res.json();
+        if (data?.error) msg = data.error;
+      } catch {}
+      return toast.error(msg);
+    }
+    toast.success('User activated');
+    load();
+  };
+
+  const resetPassword = async (id: string) => {
+    try {
+      const res = await fetch('/api/admin/users/reset-password', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ userId: id }) });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data?.error || 'Failed to reset password');
+      const pwd = data?.password as string;
+      if (pwd) {
+        try { await navigator.clipboard.writeText(pwd); } catch {}
+        toast.success(`New password: ${pwd}${' '}(copied)`);
+      } else {
+        toast.success('Password reset');
+      }
+    } catch (e: any) {
+      toast.error(e?.message || 'Failed to reset password');
+    }
+  };
+
   // Count of active admins for UI safeguards
   const activeAdminCount = useMemo(() => {
     return users.filter((u) => u.active && (u.roles || []).includes('admin')).length;
@@ -169,10 +222,28 @@ export default function ManageUsersPage() {
             <option value="user">User</option>
             <option value="admin">Admin</option>
           </select>
-          <input className="px-3 py-2.5 rounded-lg border border-[#e2e8f0] bg-white" type="password" value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} placeholder="Password" />
+          <button
+            type="button"
+            onClick={generatePassword}
+            className="px-3 py-2.5 rounded-lg text-sm font-medium text-white shadow-sm hover:shadow-md focus:outline-none focus:ring-2 focus:ring-sky-500/40 transition-all"
+            style={{ backgroundImage: 'linear-gradient(to right, #06b6d4, #3b82f6)' }}
+            title={form.password ? `Generated: ${form.password}` : 'Generate a secure password'}
+          >
+            Generate Password
+          </button>
         </div>
         <div className="mt-4">
-          <button onClick={addUser} className="px-4 py-2.5 rounded-lg bg-[#1a1d2e] text-white hover:opacity-90">Create</button>
+          <button
+            onClick={addUser}
+            disabled={!form.name || !form.email || !form.password}
+            className={`px-4 py-2.5 rounded-lg text-white hover:opacity-90 ${(!form.name || !form.email || !form.password) ? 'cursor-not-allowed' : ''}`}
+            style={(!form.name || !form.email || !form.password)
+              ? { backgroundColor: '#9ca3af' }
+              : { backgroundImage: 'linear-gradient(to right, #1a1d2e, #0f1218)' }}
+          >
+            Create
+          </button>
+          <p className="mt-2 text-xs text-[#64748b]">{form.password ? 'Password generated and ready.' : 'Click “Generate Password” to enable Create.'}</p>
         </div>
       </div>
 
@@ -198,23 +269,9 @@ export default function ManageUsersPage() {
               <tbody>
                 {users.map((u) => (
                   <tr key={u.id} className="border-b border-[#f1f5f9]">
-                    <td className="py-3 pr-4">
-                      <div className="flex items-center gap-2">
-                        <span>{u.name}</span>
-                        {(u.roles || []).includes('admin') && (
-                          <span
-                            className="px-2 py-0.5 rounded-full text-[11px] leading-none text-white shadow-sm"
-                            style={{ backgroundImage: roleGradient('admin') }}
-                            title="Admin"
-                            aria-label="Admin user"
-                          >
-                            Admin
-                          </span>
-                        )}
-                      </div>
-                    </td>
+                    <td className="py-3 pr-4 align-middle">{u.name}</td>
                     <td className="py-3 pr-4">{u.email}</td>
-                    <td className="py-3 pr-4">
+                    <td className="py-3 pr-4 align-middle">
                       <div className="flex gap-3 flex-wrap py-0.5">
                         {allRoles.map((r) => {
                           const selected = u.roles?.includes(r);
@@ -274,15 +331,25 @@ export default function ManageUsersPage() {
                         })}
                       </div>
                     </td>
-                    <td className="py-3 pr-4">{u.active ? 'Yes' : 'No'}</td>
-                    <td className="py-3 pr-4 flex gap-2">
+                    <td className="py-3 pr-4 align-middle">{u.active ? 'Yes' : 'No'}</td>
+                    <td className="py-3 pr-4 align-middle">
+                      <div className="flex gap-2 items-center">
+                        {!u.active ? (
+                          <button
+                            onClick={() => activate(u.id)}
+                            className="px-3 py-2 rounded-lg text-sm font-medium text-white shadow-sm hover:shadow-md focus:outline-none focus:ring-2 focus:ring-emerald-500/40 transition-all"
+                            style={{ backgroundImage: 'linear-gradient(to right, #10b981, #059669)' }}
+                          >
+                            Activate
+                          </button>
+                        ) : null}
                       {(() => {
                         const isLastActiveAdmin = u.active && (u.roles || []).includes('admin') && activeAdminCount === 1;
                         const deactivateButton = (
                           <button
                             onClick={() => deactivate(u.id)}
                             disabled={!u.active || isLastActiveAdmin}
-                            className={`px-3 py-1.5 rounded-lg transition-all text-sm font-medium
+                            className={`px-3 py-2 rounded-lg transition-all text-sm font-medium
                               ${(!u.active || isLastActiveAdmin)
                                 ? 'bg-[#f3f4f6] text-[#9ca3af] cursor-not-allowed'
                                 : 'text-white shadow-sm hover:shadow-md focus:outline-none focus:ring-2 focus:ring-[#f59e0b]/40'}
@@ -305,12 +372,20 @@ export default function ManageUsersPage() {
                         return deactivateButton;
                       })()}
                       <button
+                        onClick={() => resetPassword(u.id)}
+                        className="px-3 py-2 rounded-lg text-sm font-medium text-white shadow-sm hover:shadow-md focus:outline-none focus:ring-2 focus:ring-sky-500/40 transition-all"
+                        style={{ backgroundImage: 'linear-gradient(to right, #06b6d4, #3b82f6)' }}
+                      >
+                        Reset Password
+                      </button>
+                      <button
                         onClick={() => remove(u.id)}
-                        className="px-3 py-1.5 rounded-lg text-sm font-medium text-white shadow-sm hover:shadow-md focus:outline-none focus:ring-2 focus:ring-[#ef4444]/40 transition-all"
+                        className="px-3 py-2 rounded-lg text-sm font-medium text-white shadow-sm hover:shadow-md focus:outline-none focus:ring-2 focus:ring-[#ef4444]/40 transition-all"
                         style={{ backgroundImage: 'linear-gradient(to right, #ef4444, #b91c1c)' }}
                       >
                         Delete
                       </button>
+                      </div>
                     </td>
                   </tr>
                 ))}
