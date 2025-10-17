@@ -11,6 +11,7 @@ import { exportLicensesToCSV } from '../../../lib/export';
 import { importLicenses, parseLicensesFile } from '../../../lib/import';
 import { toast } from 'sonner@2.0.3';
 import { usePrefs } from '../layout/PrefsContext';
+import { getMe, type ClientMe } from '../../../lib/auth/client';
 
 interface LicensesPageProps {
   onNavigate?: (page: string, licenseId?: string) => void;
@@ -27,9 +28,11 @@ export function LicensesPage({ onNavigate, onSearch }: LicensesPageProps) {
   const [searchQuery, setSearchQuery] = useState('');
   const [licenses, setLicenses] = useState<License[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const [me, setMe] = useState<ClientMe>(null);
 
   useEffect(() => {
     let cancelled = false;
+    getMe().then(setMe).catch(() => setMe(null));
     fetchLicenses()
       .then((rows) => { if (!cancelled) { setLicenses(rows); setError(null); } })
       .catch((e) => { if (!cancelled) setError(e.message || 'Failed to load licenses'); });
@@ -49,6 +52,7 @@ export function LicensesPage({ onNavigate, onSearch }: LicensesPageProps) {
   }), [licenses, selectedType, selectedCompliance, searchQuery]);
 
   const licenseTypes: LicenseTypeFilter[] = ['All', 'Software', 'SaaS', 'Cloud'];
+  const canWriteLicenses = !!me?.permissions?.includes('licenses_write') || me?.role === 'admin';
 
   // Count licenses by type
   const getTypeCount = (type: LicenseTypeFilter) => {
@@ -131,13 +135,15 @@ export function LicensesPage({ onNavigate, onSearch }: LicensesPageProps) {
             <Download className="h-4 w-4" />
             Export
           </button>
-          <button 
-            onClick={() => onNavigate?.('licenses-add')}
-            className="flex items-center gap-2 px-4 py-2 rounded-lg bg-gradient-to-r from-[#6366f1] to-[#8b5cf6] text-white hover:shadow-lg hover:shadow-[#6366f1]/30 transition-all duration-200"
-          >
-            <Plus className="h-4 w-4" />
-            Add License
-          </button>
+          {canWriteLicenses && (
+            <button 
+              onClick={() => onNavigate?.('licenses-add')}
+              className="flex items-center gap-2 px-4 py-2 rounded-lg bg-gradient-to-r from-[#6366f1] to-[#8b5cf6] text-white hover:shadow-lg hover:shadow-[#6366f1]/30 transition-all duration-200"
+            >
+              <Plus className="h-4 w-4" />
+              Add License
+            </button>
+          )}
         </motion.div>
       </div>
 
@@ -301,7 +307,7 @@ export function LicensesPage({ onNavigate, onSearch }: LicensesPageProps) {
       </motion.div>
 
   {/* Licenses Table */}
-  <LicensesTable licenses={filteredLicenses} onNavigate={onNavigate} onDelete={handleDelete} />
+  <LicensesTable licenses={filteredLicenses} onNavigate={onNavigate} onDelete={canWriteLicenses ? handleDelete : undefined} />
     </AssetFlowLayout>
   );
 }

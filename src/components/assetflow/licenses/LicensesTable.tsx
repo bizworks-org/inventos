@@ -8,6 +8,7 @@ interface LicensesTableProps {
   licenses: License[];
   onNavigate?: (page: string, licenseId?: string) => void;
   onDelete?: (id: string, name: string) => void;
+  canWrite?: boolean;
 }
 
 function getComplianceColor(compliance: License['compliance']) {
@@ -78,7 +79,7 @@ function getSeatUtilizationColor(utilization: number): string {
   return 'text-[#10b981]';
 }
 
-export function LicensesTable({ licenses, onNavigate, onDelete }: LicensesTableProps) {
+export function LicensesTable({ licenses, onNavigate, onDelete, canWrite = true }: LicensesTableProps) {
   const [hoveredRow, setHoveredRow] = useState<string | null>(null);
   const formatCurrency = useCurrencyFormatter();
   const { density } = usePrefs();
@@ -265,20 +266,24 @@ export function LicensesTable({ licenses, onNavigate, onDelete }: LicensesTableP
                   {/* Actions */}
                   <td className={`${cellPad}`}>
                     <div className={`flex items-center ${density==='ultra-compact' ? 'gap-1.5' : 'gap-2'}`}>
-                      <button
-                        onClick={() => handleEdit(license.id)}
-                        className={`rounded-lg hover:bg-[#6366f1]/10 text-[#6366f1] transition-all duration-200 group ${density==='ultra-compact' ? 'p-1.5' : 'p-2'}`}
-                        title="Edit license"
-                      >
-                        <Edit2 className={`${density==='ultra-compact' ? 'h-3.5 w-3.5' : 'h-4 w-4'} group-hover:scale-110 transition-transform`} />
-                      </button>
-                      <button
-                        onClick={() => handleDelete(license.id, license.name)}
-                        className={`rounded-lg hover:bg-[#ef4444]/10 text-[#ef4444] transition-all duration-200 group ${density==='ultra-compact' ? 'p-1.5' : 'p-2'}`}
-                        title="Delete license"
-                      >
-                        <Trash2 className={`${density==='ultra-compact' ? 'h-3.5 w-3.5' : 'h-4 w-4'} group-hover:scale-110 transition-transform`} />
-                      </button>
+                      {canWrite && (
+                        <>
+                          <button
+                            onClick={() => handleEdit(license.id)}
+                            className={`rounded-lg hover:bg-[#6366f1]/10 text-[#6366f1] transition-all duration-200 group ${density==='ultra-compact' ? 'p-1.5' : 'p-2'}`}
+                            title="Edit license"
+                          >
+                            <Edit2 className={`${density==='ultra-compact' ? 'h-3.5 w-3.5' : 'h-4 w-4'} group-hover:scale-110 transition-transform`} />
+                          </button>
+                          <button
+                            onClick={() => handleDelete(license.id, license.name)}
+                            className={`rounded-lg hover:bg-[#ef4444]/10 text-[#ef4444] transition-all duration-200 group ${density==='ultra-compact' ? 'p-1.5' : 'p-2'}`}
+                            title="Delete license"
+                          >
+                            <Trash2 className={`${density==='ultra-compact' ? 'h-3.5 w-3.5' : 'h-4 w-4'} group-hover:scale-110 transition-transform`} />
+                          </button>
+                        </>
+                      )}
                     </div>
                   </td>
                 </motion.tr>

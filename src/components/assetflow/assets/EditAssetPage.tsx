@@ -3,10 +3,10 @@
 import { useEffect, useMemo, useState } from 'react';
 import { usePrefs } from '../layout/PrefsContext';
 import { motion } from 'motion/react';
-import { ArrowLeft, Save, X } from 'lucide-react';
+import { ArrowLeft, Save, X, Mail } from 'lucide-react';
 import { AssetFlowLayout } from '../layout/AssetFlowLayout';
 import { Asset, AssetFieldDef } from '../../../lib/data';
-import { fetchAssetById, updateAsset } from '../../../lib/api';
+import { fetchAssetById, updateAsset, sendAssetConsent } from '../../../lib/api';
 import { logAssetUpdated } from '../../../lib/events';
 import { toast } from 'sonner@2.0.3';
 
@@ -57,6 +57,8 @@ export function EditAssetPage({ assetId, onNavigate, onSearch }: EditAssetPagePr
   const [fieldDefs, setFieldDefs] = useState<AssetFieldDef[]>([]);
   const [customFieldValues, setCustomFieldValues] = useState<Record<string, string>>({});
   const [extraFields, setExtraFields] = useState<Array<{ key: string; value: string }>>([]);
+  const [assignedEmail, setAssignedEmail] = useState<string>('');
+  const [consentStatus, setConsentStatus] = useState<Asset['consentStatus']>('none');
   useEffect(() => {
     try {
       const s = localStorage.getItem('assetflow:settings');
@@ -86,6 +88,8 @@ export function EditAssetPage({ assetId, onNavigate, onSearch }: EditAssetPagePr
       storage: asset.specifications?.storage ?? '',
       os: asset.specifications?.os ?? ''
     });
+    setAssignedEmail((asset as any).assignedEmail || '');
+    setConsentStatus((asset as any).consentStatus || 'none');
     const cf = asset.specifications?.customFields || {};
     const values: Record<string, string> = {};
     const extras: Array<{ key: string; value: string }> = [];
@@ -117,6 +121,9 @@ export function EditAssetPage({ assetId, onNavigate, onSearch }: EditAssetPagePr
       type: assetType,
       serialNumber: formData.serialNumber,
       assignedTo: formData.assignedTo,
+      // @ts-ignore enrich with optional fields
+      assignedEmail: assignedEmail || undefined,
+      consentStatus: consentStatus,
       department: formData.department,
       status: formData.status,
       purchaseDate: formData.purchaseDate,
@@ -550,6 +557,47 @@ export function EditAssetPage({ assetId, onNavigate, onSearch }: EditAssetPagePr
               </div>
 
               <div className="space-y-3">
+                    {/* Consent & Email */}
+                    <div className="bg-white/10 rounded-lg p-3">
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="text-sm text-white/90 font-medium">Assignment Consent</span>
+                        <span className={`text-xs px-2 py-0.5 rounded-full border ${
+                          consentStatus === 'accepted' ? 'bg-white/20 text-white' :
+                          consentStatus === 'pending' ? 'bg-yellow-400/20 text-yellow-100 border-yellow-300/30' :
+                          consentStatus === 'rejected' ? 'bg-red-400/20 text-red-100 border-red-300/30' :
+                          'bg-white/10 text-white/70 border-white/20'
+                        }`}>
+                          {consentStatus ? consentStatus.toUpperCase() : 'NONE'}
+                        </span>
+                      </div>
+                      <label className="block text-xs text-white/70 mb-1">Assigned Email</label>
+                      <input
+                        type="email"
+                        value={assignedEmail}
+                        onChange={(e) => setAssignedEmail(e.target.value)}
+                        placeholder="user@example.com"
+                        className="w-full px-3 py-2 rounded-md bg-white text-[#1a1d2e] border border-white/20 focus:outline-none"
+                      />
+                      <button
+                        type="button"
+                        onClick={async () => {
+                          try {
+                            if (!asset) return;
+                            if (!assignedEmail) { toast.error('Enter an email first'); return; }
+                            const doing = toast.loading('Sending consent email…');
+                            await sendAssetConsent({ assetId: asset.id, email: assignedEmail, assetName: asset.name });
+                            setConsentStatus('pending');
+                            toast.dismiss(doing);
+                            toast.success('Consent email sent');
+                          } catch (e: any) {
+                            toast.error(e?.message || 'Failed to send consent');
+                          }
+                        }}
+                        className="mt-3 w-full flex items-center justify-center gap-2 px-3 py-2 bg-white/20 text-white rounded-md hover:bg-white/30 transition"
+                      >
+                        <Mail className="h-4 w-4" /> Resend Consent
+                      </button>
+                    </div>
                 <button
                   type="submit"
                   disabled={saving}

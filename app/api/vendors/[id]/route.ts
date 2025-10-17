@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { query } from '@/lib/db';
+import { requirePermission } from '@/lib/auth/permissions';
 
 async function resolveParams(ctx: any): Promise<{ id?: string }> {
   const p = ctx?.params;
@@ -10,6 +11,8 @@ async function resolveParams(ctx: any): Promise<{ id?: string }> {
 }
 
 export async function GET(_req: NextRequest, ctx: any) {
+  const guard = await requirePermission('vendors_read');
+  if (!('ok' in guard) || !guard.ok) return NextResponse.json({ error: 'Forbidden' }, { status: (guard as any).status ?? 403 });
   const { id } = await resolveParams(ctx);
   const rows = await query('SELECT * FROM vendors WHERE id = :id', { id });
   if (!rows.length) return NextResponse.json({ error: 'Not found' }, { status: 404 });
@@ -17,6 +20,8 @@ export async function GET(_req: NextRequest, ctx: any) {
 }
 
 export async function PUT(req: NextRequest, ctx: any) {
+  const guard = await requirePermission('vendors_write');
+  if (!('ok' in guard) || !guard.ok) return NextResponse.json({ error: 'Forbidden' }, { status: (guard as any).status ?? 403 });
   const { id } = await resolveParams(ctx);
   const body = await req.json();
   const sql = `UPDATE vendors SET name=:name, type=:type, contact_person=:contact_person, email=:email, phone=:phone, status=:status,
@@ -26,6 +31,8 @@ export async function PUT(req: NextRequest, ctx: any) {
 }
 
 export async function DELETE(_req: NextRequest, ctx: any) {
+  const guard = await requirePermission('vendors_write');
+  if (!('ok' in guard) || !guard.ok) return NextResponse.json({ error: 'Forbidden' }, { status: (guard as any).status ?? 403 });
   const { id } = await resolveParams(ctx);
   await query('DELETE FROM vendors WHERE id = :id', { id });
   return NextResponse.json({ ok: true });

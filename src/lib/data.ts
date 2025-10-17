@@ -6,6 +6,10 @@ export interface Asset {
   type: 'Laptop' | 'Desktop' | 'Server' | 'Monitor' | 'Printer' | 'Phone';
   serialNumber: string;
   assignedTo: string;
+  // Optional email used for consent workflow
+  assignedEmail?: string;
+  // Optional consent status for assignment confirmations
+  consentStatus?: 'pending' | 'accepted' | 'rejected' | 'none';
   department: string;
   status: 'Active' | 'In Repair' | 'Retired' | 'In Storage';
   purchaseDate: string;

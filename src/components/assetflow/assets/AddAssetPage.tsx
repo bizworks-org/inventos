@@ -6,7 +6,7 @@ import { motion } from 'motion/react';
 import { ArrowLeft, Save, X } from 'lucide-react';
 import { AssetFlowLayout } from '../layout/AssetFlowLayout';
 import { Asset, AssetFieldDef } from '../../../lib/data';
-import { createAsset } from '../../../lib/api';
+import { createAsset, sendAssetConsent } from '../../../lib/api';
 import { logAssetCreated } from '../../../lib/events';
 
 interface AddAssetPageProps {
@@ -24,6 +24,7 @@ export function AddAssetPage({ onNavigate, onSearch }: AddAssetPageProps) {
     name: '',
     serialNumber: '',
     assignedTo: '',
+    assignedEmail: '',
     department: '',
     status: 'Active' as Asset['status'],
     purchaseDate: '',
@@ -90,7 +91,18 @@ export function AddAssetPage({ onNavigate, onSearch }: AddAssetPageProps) {
     });
 
     try {
+      // @ts-ignore include optional consent fields
+      (newAsset as any).assignedEmail = formData.assignedEmail?.trim() || undefined;
+      if ((newAsset as any).assignedEmail) {
+        (newAsset as any).consentStatus = 'pending';
+      }
       await createAsset(newAsset);
+      // Trigger consent email (best-effort)
+      if ((newAsset as any).assignedEmail) {
+        try {
+          await sendAssetConsent({ assetId: newAsset.id, email: (newAsset as any).assignedEmail, assetName: newAsset.name, assignedBy: 'AssetFlow' });
+        } catch {}
+      }
     } catch (err) {
       console.error('Failed to create asset', err);
     }
@@ -226,6 +238,21 @@ export function AddAssetPage({ onNavigate, onSearch }: AddAssetPageProps) {
                     placeholder="e.g., John Doe"
                     className="w-full px-4 py-2.5 rounded-lg bg-[#f8f9ff] border border-[rgba(0,0,0,0.05)] text-[#1a1d2e] placeholder:text-[#a0a4b8] focus:outline-none focus:ring-2 focus:ring-[#6366f1]/20 focus:border-[#6366f1] transition-all duration-200"
                   />
+                </div>
+
+                {/* Assigned To Email (optional) */}
+                <div>
+                  <label className="block text-sm font-medium text-[#1a1d2e] mb-2">
+                    Assigned To Email (optional)
+                  </label>
+                  <input
+                    type="email"
+                    value={formData.assignedEmail}
+                    onChange={(e) => handleInputChange('assignedEmail', e.target.value)}
+                    placeholder="e.g., john.doe@example.com"
+                    className="w-full px-4 py-2.5 rounded-lg bg-[#f8f9ff] border border-[rgba(0,0,0,0.05)] text-[#1a1d2e] placeholder:text-[#a0a4b8] focus:outline-none focus:ring-2 focus:ring-[#6366f1]/20 focus:border-[#6366f1] transition-all duration-200"
+                  />
+                  <p className="text-xs text-[#94a3b8] mt-1">If provided, we'll email this person to accept or reject the assignment.</p>
                 </div>
 
                 {/* Department */}

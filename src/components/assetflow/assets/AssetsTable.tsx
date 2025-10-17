@@ -1,13 +1,16 @@
 import { motion } from 'motion/react';
-import { Edit2, Trash2, ExternalLink } from 'lucide-react';
+import { Edit2, Trash2, ExternalLink, Mail } from 'lucide-react';
 import { Asset } from '../../../lib/data';
 import { useState } from 'react';
 import { usePrefs } from '../layout/PrefsContext';
+import { sendAssetConsent } from '../../../lib/api';
+import { toast } from 'sonner@2.0.3';
 
 interface AssetsTableProps {
   assets: Asset[];
   onNavigate?: (page: string, assetId?: string) => void;
   onDelete?: (id: string, name: string) => void;
+  canWrite?: boolean;
 }
 
 function getStatusColor(status: Asset['status']) {
@@ -18,6 +21,22 @@ function getStatusColor(status: Asset['status']) {
     'In Storage': 'bg-[#3b82f6]/10 text-[#3b82f6] border-[#3b82f6]/20'
   };
   return colors[status] || colors['Active'];
+}
+
+function consentBadge(asset: Asset) {
+  const status = asset.consentStatus || 'none';
+  const map: Record<string, string> = {
+    pending: 'bg-[#f59e0b]/10 text-[#f59e0b] border-[#f59e0b]/20',
+    accepted: 'bg-[#10b981]/10 text-[#10b981] border-[#10b981]/20',
+    rejected: 'bg-[#ef4444]/10 text-[#ef4444] border-[#ef4444]/20',
+    none: 'bg-[#e5e7eb] text-[#6b7280] border-[#e5e7eb]'
+  };
+  const label = status === 'none' ? 'No consent' : status.charAt(0).toUpperCase() + status.slice(1);
+  return (
+    <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium border ${map[status]}`}>
+      {label}
+    </span>
+  );
 }
 
 function useCurrencyFormatter() {
@@ -40,7 +59,7 @@ function isWarrantyExpiring(dateString: string): boolean {
   return daysUntilExpiry <= 90 && daysUntilExpiry >= 0;
 }
 
-export function AssetsTable({ assets, onNavigate, onDelete }: AssetsTableProps) {
+export function AssetsTable({ assets, onNavigate, onDelete, canWrite = true }: AssetsTableProps) {
   const [hoveredRow, setHoveredRow] = useState<string | null>(null);
   const formatCurrency = useCurrencyFormatter();
   const { density } = usePrefs();
@@ -112,6 +131,9 @@ export function AssetsTable({ assets, onNavigate, onDelete }: AssetsTableProps) 
                 Department
               </th>
               <th className={`${headPad} text-left text-xs font-semibold text-[#64748b] uppercase tracking-wider`}>
+                Consent
+              </th>
+              <th className={`${headPad} text-left text-xs font-semibold text-[#64748b] uppercase tracking-wider`}>
                 Status
               </th>
               <th className={`${headPad} text-left text-xs font-semibold text-[#64748b] uppercase tracking-wider`}>
@@ -175,6 +197,16 @@ export function AssetsTable({ assets, onNavigate, onDelete }: AssetsTableProps) 
                   <p className={`text-sm text-[#64748b] ${density==='ultra-compact' ? 'text-[12px]' : ''}`}>{asset.department}</p>
                 </td>
 
+                {/* Consent */}
+                <td className={`${cellPad}`}>
+                  <div className="flex items-center gap-2">
+                    {consentBadge(asset)}
+                    {asset.assignedEmail && (
+                      <span className={`text-xs text-[#6b7280] ${density==='ultra-compact' ? 'hidden' : ''}`}>{asset.assignedEmail}</span>
+                    )}
+                  </div>
+                </td>
+
                 {/* Status */}
                 <td className={`${cellPad}`}>
                   <span className={`
@@ -205,20 +237,44 @@ export function AssetsTable({ assets, onNavigate, onDelete }: AssetsTableProps) 
                 {/* Actions */}
                 <td className={`${cellPad}`}>
                   <div className={`flex items-center ${density==='ultra-compact' ? 'gap-1.5' : 'gap-2'}`}>
-                    <button
-                      onClick={() => handleEdit(asset.id)}
-                      className={`rounded-lg text-[#6366f1] transition-all duration-200 group ${density==='ultra-compact' ? 'p-1.5' : 'p-2'} hover:bg-[#6366f1]/10`}
-                      title="Edit asset"
-                    >
-                      <Edit2 className={`${density==='ultra-compact' ? 'h-3.5 w-3.5' : 'h-4 w-4'} group-hover:scale-110 transition-transform`} />
-                    </button>
-                    <button
-                      onClick={() => handleDelete(asset.id, asset.name)}
-                      className={`rounded-lg text-[#ef4444] transition-all duration-200 group ${density==='ultra-compact' ? 'p-1.5' : 'p-2'} hover:bg-[#ef4444]/10`}
-                      title="Delete asset"
-                    >
-                      <Trash2 className={`${density==='ultra-compact' ? 'h-3.5 w-3.5' : 'h-4 w-4'} group-hover:scale-110 transition-transform`} />
-                    </button>
+                    {canWrite && (
+                      <>
+                        <button
+                          onClick={async () => {
+                            try {
+                              if (!asset.assignedEmail) {
+                                toast.error('No assigned email set for this asset');
+                                return;
+                              }
+                              const doing = toast.loading('Sending consent email…');
+                              await sendAssetConsent({ assetId: asset.id, email: asset.assignedEmail, assetName: asset.name });
+                              toast.dismiss(doing);
+                              toast.success('Consent email sent');
+                            } catch (e: any) {
+                              toast.error(e?.message || 'Failed to send consent');
+                            }
+                          }}
+                          className={`rounded-lg text-[#2563eb] transition-all duration-200 group ${density==='ultra-compact' ? 'p-1.5' : 'p-2'} hover:bg-[#2563eb]/10`}
+                          title="Resend consent"
+                        >
+                          <Mail className={`${density==='ultra-compact' ? 'h-3.5 w-3.5' : 'h-4 w-4'} group-hover:scale-110 transition-transform`} />
+                        </button>
+                        <button
+                          onClick={() => handleEdit(asset.id)}
+                          className={`rounded-lg text-[#6366f1] transition-all duration-200 group ${density==='ultra-compact' ? 'p-1.5' : 'p-2'} hover:bg-[#6366f1]/10`}
+                          title="Edit asset"
+                        >
+                          <Edit2 className={`${density==='ultra-compact' ? 'h-3.5 w-3.5' : 'h-4 w-4'} group-hover:scale-110 transition-transform`} />
+                        </button>
+                        <button
+                          onClick={() => handleDelete(asset.id, asset.name)}
+                          className={`rounded-lg text-[#ef4444] transition-all duration-200 group ${density==='ultra-compact' ? 'p-1.5' : 'p-2'} hover:bg-[#ef4444]/10`}
+                          title="Delete asset"
+                        >
+                          <Trash2 className={`${density==='ultra-compact' ? 'h-3.5 w-3.5' : 'h-4 w-4'} group-hover:scale-110 transition-transform`} />
+                        </button>
+                      </>
+                    )}
                   </div>
                 </td>
               </motion.tr>

@@ -169,3 +169,18 @@ export async function dbSetRolePermissions(role: Role, permissions: string[]): P
     }
   }
 }
+
+// Aggregate permissions for a user via roles
+export async function dbGetUserPermissions(userId: string): Promise<string[]> {
+  const rows = await query<{ name: string }>(
+    `SELECT DISTINCT p.name
+       FROM user_roles ur
+       JOIN roles r ON r.id = ur.role_id
+       JOIN role_permissions rp ON rp.role_id = r.id
+       JOIN permissions p ON p.id = rp.permission_id
+      WHERE ur.user_id = :userId
+      ORDER BY p.name ASC`,
+    { userId }
+  );
+  return rows.map(r => r.name);
+}

@@ -27,6 +27,10 @@ async function runMigrations(conn: any) {
       type VARCHAR(50) NOT NULL,
       serial_number VARCHAR(255),
       assigned_to VARCHAR(255),
+      assigned_email VARCHAR(255),
+      consent_status VARCHAR(20),
+      consent_token VARCHAR(64),
+      consent_expires_at DATETIME,
       department VARCHAR(255),
       status VARCHAR(50) NOT NULL,
       purchase_date DATE,
@@ -37,6 +41,12 @@ async function runMigrations(conn: any) {
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
   `);
+
+  // Backfill columns in case table pre-existed
+  try { await conn.query(`ALTER TABLE assets ADD COLUMN assigned_email VARCHAR(255)`); } catch {}
+  try { await conn.query(`ALTER TABLE assets ADD COLUMN consent_status VARCHAR(20)`); } catch {}
+  try { await conn.query(`ALTER TABLE assets ADD COLUMN consent_token VARCHAR(64)`); } catch {}
+  try { await conn.query(`ALTER TABLE assets ADD COLUMN consent_expires_at DATETIME`); } catch {}
 
   await conn.query(`
     CREATE TABLE IF NOT EXISTS licenses (
@@ -115,6 +125,20 @@ async function runMigrations(conn: any) {
   try {
     await conn.query('ALTER TABLE user_settings ADD COLUMN asset_fields LONGTEXT');
   } catch {}
+
+  await conn.query(`
+    CREATE TABLE IF NOT EXISTS asset_consent_tokens (
+      token VARCHAR(64) PRIMARY KEY,
+      asset_id VARCHAR(64) NOT NULL,
+      email VARCHAR(255) NOT NULL,
+      action VARCHAR(10) NOT NULL,
+      expires_at DATETIME NOT NULL,
+      used_at DATETIME NULL,
+      created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      INDEX idx_asset_consent_asset (asset_id),
+      INDEX idx_asset_consent_email (email)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+  `);
 }
 
 export async function POST(req: NextRequest) {

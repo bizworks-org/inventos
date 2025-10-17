@@ -87,3 +87,6 @@ export function verifyPassword(password: string, hash: string) {
     return false;
   }
 }
+
+// Current-user helpers and permission guard
+// Permission helpers moved to permissions.ts to avoid circular imports.

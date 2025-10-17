@@ -11,6 +11,7 @@ import { usePrefs } from '../layout/PrefsContext';
 import { exportVendorsToCSV } from '../../../lib/export';
 import { importVendors, parseVendorsFile } from '../../../lib/import';
 import { toast } from 'sonner@2.0.3';
+import { getMe, type ClientMe } from '../../../lib/auth/client';
 
 interface VendorsPageProps {
   onNavigate?: (page: string, vendorId?: string) => void;
@@ -27,9 +28,11 @@ export function VendorsPage({ onNavigate, onSearch }: VendorsPageProps) {
   const [searchQuery, setSearchQuery] = useState('');
   const [vendors, setVendors] = useState<Vendor[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const [me, setMe] = useState<ClientMe>(null);
 
   useEffect(() => {
     let cancelled = false;
+    getMe().then(setMe).catch(() => setMe(null));
     fetchVendors()
       .then((rows) => { if (!cancelled) { setVendors(rows); setError(null); } })
       .catch((e) => { if (!cancelled) setError(e.message || 'Failed to load vendors'); });
@@ -49,6 +52,7 @@ export function VendorsPage({ onNavigate, onSearch }: VendorsPageProps) {
   }), [vendors, selectedType, selectedStatus, searchQuery]);
 
   const vendorTypes: VendorTypeFilter[] = ['All', 'Hardware', 'Software', 'Services', 'Cloud'];
+  const canWriteVendors = !!me?.permissions?.includes('vendors_write') || me?.role === 'admin';
 
   // Count vendors by type
   const getTypeCount = (type: VendorTypeFilter) => {
@@ -130,13 +134,15 @@ export function VendorsPage({ onNavigate, onSearch }: VendorsPageProps) {
             <Download className="h-4 w-4" />
             Export
           </button>
-          <button 
-            onClick={() => onNavigate?.('vendors-add')}
-            className="flex items-center gap-2 px-4 py-2 rounded-lg bg-gradient-to-r from-[#6366f1] to-[#8b5cf6] text-white hover:shadow-lg hover:shadow-[#6366f1]/30 transition-all duration-200"
-          >
-            <Plus className="h-4 w-4" />
-            Add Vendor
-          </button>
+          {canWriteVendors && (
+            <button 
+              onClick={() => onNavigate?.('vendors-add')}
+              className="flex items-center gap-2 px-4 py-2 rounded-lg bg-gradient-to-r from-[#6366f1] to-[#8b5cf6] text-white hover:shadow-lg hover:shadow-[#6366f1]/30 transition-all duration-200"
+            >
+              <Plus className="h-4 w-4" />
+              Add Vendor
+            </button>
+          )}
         </motion.div>
       </div>
 
@@ -308,7 +314,7 @@ export function VendorsPage({ onNavigate, onSearch }: VendorsPageProps) {
       </motion.div>
 
   {/* Vendors Table */}
-  <VendorsTable vendors={filteredVendors} onNavigate={onNavigate} onDelete={(id, _name) => handleDelete(id)} />
+  <VendorsTable vendors={filteredVendors} onNavigate={onNavigate} onDelete={canWriteVendors ? (id, _name) => handleDelete(id) : undefined} />
     </AssetFlowLayout>
   );
 }

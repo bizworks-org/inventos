@@ -29,6 +29,8 @@ type DbAsset = {
   type: Asset['type'];
   serial_number: string;
   assigned_to: string;
+  assigned_email?: string | null;
+  consent_status?: 'pending' | 'accepted' | 'rejected' | 'none';
   department: string;
   status: Asset['status'];
   purchase_date: string; // ISO or YYYY-MM-DD
@@ -78,6 +80,9 @@ function mapDbAsset(a: DbAsset): Asset {
     type: a.type,
     serialNumber: a.serial_number,
     assignedTo: a.assigned_to,
+    // @ts-ignore augment type at runtime
+    assignedEmail: (a as any).assigned_email ?? undefined,
+    consentStatus: (a as any).consent_status ?? undefined,
     department: a.department,
     status: a.status,
     purchaseDate: normalizeDate(a.purchase_date),
@@ -95,6 +100,9 @@ function mapUiAssetToDb(a: Asset): DbAsset {
     type: a.type,
     serial_number: a.serialNumber,
     assigned_to: a.assignedTo,
+    // @ts-ignore include optional fields if present
+    assigned_email: (a as any).assignedEmail ?? null,
+    consent_status: (a as any).consentStatus ?? undefined,
     department: a.department,
     status: a.status,
     purchase_date: a.purchaseDate,
@@ -125,6 +133,10 @@ export async function updateAsset(id: string, asset: Asset): Promise<void> {
 
 export async function deleteAsset(id: string): Promise<void> {
   await http(`/api/assets/${encodeURIComponent(id)}`, { method: 'DELETE' });
+}
+
+export async function sendAssetConsent(input: { assetId: string; email: string; assetName?: string; assignedBy?: string }): Promise<{ ok: true; expiresAt: string }>{
+  return http('/api/assets/consent', { method: 'POST', body: JSON.stringify(input) });
 }
 
 // Licenses

@@ -11,6 +11,7 @@ import { importAssets, parseAssetsFile } from '../../../lib/import';
 import { toast } from 'sonner@2.0.3';
 import { AssetsTable } from './AssetsTable';
 import { Tabs } from '../../ui/tabs';
+import { getMe, type ClientMe } from '../../../lib/auth/client';
 
 interface AssetsPageProps {
   onNavigate?: (page: string) => void;
@@ -27,9 +28,12 @@ export function AssetsPage({ onNavigate, onSearch }: AssetsPageProps) {
   const [assets, setAssets] = useState<Asset[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [me, setMe] = useState<ClientMe>(null);
 
   useEffect(() => {
     let cancelled = false;
+    // Fetch current user for UI gating
+    getMe().then(setMe).catch(() => setMe(null));
     setLoading(true);
     fetchAssets()
       .then((rows) => { if (!cancelled) { setAssets(rows); setError(null); } })
@@ -62,6 +66,7 @@ export function AssetsPage({ onNavigate, onSearch }: AssetsPageProps) {
   }, [assets, selectedType, selectedStatus, searchQuery]);
 
   const assetTypes: AssetType[] = ['All', 'Laptop', 'Desktop', 'Server', 'Monitor', 'Printer', 'Phone'];
+  const canWriteAssets = !!me?.permissions?.includes('assets_write') || me?.role === 'admin';
 
   const getTypeCount = (type: AssetType) => {
     if (type === 'All') return assets.length;
@@ -132,13 +137,15 @@ export function AssetsPage({ onNavigate, onSearch }: AssetsPageProps) {
             <Download className="h-4 w-4" />
             Export
           </button>
-          <button 
-            onClick={() => onNavigate?.('assets-add')}
-            className="flex items-center gap-2 px-4 py-2 rounded-lg bg-gradient-to-r from-[#6366f1] to-[#8b5cf6] text-white hover:shadow-lg hover:shadow-[#6366f1]/30 transition-all duration-200"
-          >
-            <Plus className="h-4 w-4" />
-            Add Asset
-          </button>
+          {canWriteAssets && (
+            <button 
+              onClick={() => onNavigate?.('assets-add')}
+              className="flex items-center gap-2 px-4 py-2 rounded-lg bg-gradient-to-r from-[#6366f1] to-[#8b5cf6] text-white hover:shadow-lg hover:shadow-[#6366f1]/30 transition-all duration-200"
+            >
+              <Plus className="h-4 w-4" />
+              Add Asset
+            </button>
+          )}
         </motion.div>
       </div>
 
@@ -236,7 +243,7 @@ export function AssetsPage({ onNavigate, onSearch }: AssetsPageProps) {
       {error && (
         <div className="mb-4 text-sm text-red-600">{error}</div>
       )}
-  <AssetsTable assets={filteredAssets} onNavigate={onNavigate} onDelete={handleDelete} />
+  <AssetsTable assets={filteredAssets} onNavigate={onNavigate} onDelete={canWriteAssets ? handleDelete : undefined} canWrite={canWriteAssets} />
     </AssetFlowLayout>
   );
 }

@@ -8,6 +8,7 @@ interface VendorsTableProps {
   vendors: Vendor[];
   onNavigate?: (page: string, vendorId?: string) => void;
   onDelete?: (id: string, name: string) => void;
+  canWrite?: boolean;
 }
 
 function getStatusColor(status: Vendor['status']) {
@@ -76,7 +77,7 @@ function StarRating({ rating }: { rating: number }) {
   );
 }
 
-export function VendorsTable({ vendors, onNavigate, onDelete }: VendorsTableProps) {
+export function VendorsTable({ vendors, onNavigate, onDelete, canWrite = true }: VendorsTableProps) {
   const [hoveredRow, setHoveredRow] = useState<string | null>(null);
   const formatCurrency = useCurrencyFormatter();
   const { density } = usePrefs();
@@ -264,20 +265,24 @@ export function VendorsTable({ vendors, onNavigate, onDelete }: VendorsTableProp
                   {/* Actions */}
                   <td className={`${cellPad}`}>
                     <div className={`flex items-center ${density==='ultra-compact' ? 'gap-1.5' : 'gap-2'}`}>
-                      <button
-                        onClick={() => handleEdit(vendor.id)}
-                        className={`rounded-lg hover:bg-[#6366f1]/10 text-[#6366f1] transition-all duration-200 group ${density==='ultra-compact' ? 'p-1.5' : 'p-2'}`}
-                        title="Edit vendor"
-                      >
-                        <Edit2 className={`${density==='ultra-compact' ? 'h-3.5 w-3.5' : 'h-4 w-4'} group-hover:scale-110 transition-transform`} />
-                      </button>
-                      <button
-                        onClick={() => handleDelete(vendor.id, vendor.name)}
-                        className={`rounded-lg hover:bg-[#ef4444]/10 text-[#ef4444] transition-all duration-200 group ${density==='ultra-compact' ? 'p-1.5' : 'p-2'}`}
-                        title="Delete vendor"
-                      >
-                        <Trash2 className={`${density==='ultra-compact' ? 'h-3.5 w-3.5' : 'h-4 w-4'} group-hover:scale-110 transition-transform`} />
-                      </button>
+                      {canWrite && (
+                        <>
+                          <button
+                            onClick={() => handleEdit(vendor.id)}
+                            className={`rounded-lg hover:bg-[#6366f1]/10 text-[#6366f1] transition-all duration-200 group ${density==='ultra-compact' ? 'p-1.5' : 'p-2'}`}
+                            title="Edit vendor"
+                          >
+                            <Edit2 className={`${density==='ultra-compact' ? 'h-3.5 w-3.5' : 'h-4 w-4'} group-hover:scale-110 transition-transform`} />
+                          </button>
+                          <button
+                            onClick={() => handleDelete(vendor.id, vendor.name)}
+                            className={`rounded-lg hover:bg-[#ef4444]/10 text-[#ef4444] transition-all duration-200 group ${density==='ultra-compact' ? 'p-1.5' : 'p-2'}`}
+                            title="Delete vendor"
+                          >
+                            <Trash2 className={`${density==='ultra-compact' ? 'h-3.5 w-3.5' : 'h-4 w-4'} group-hover:scale-110 transition-transform`} />
+                          </button>
+                        </>
+                      )}
                     </div>
                   </td>
                 </motion.tr>
