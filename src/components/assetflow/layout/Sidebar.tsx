@@ -80,7 +80,7 @@ export function Sidebar({ currentPage = 'dashboard' }: SidebarProps) {
         ...navItems,
         { name: 'Admin', id: 'admin', icon: Shield, colorClass: 'text-red-400' } as NavItem,
         { name: 'Users', id: 'admin_users', icon: Users, colorClass: 'text-red-300' } as NavItem,
-        { name: 'Roles / Permissions', id: 'admin_roles', icon: Shield, colorClass: 'text-red-300' } as NavItem,
+        { name: 'Roles', id: 'admin_roles', icon: Shield, colorClass: 'text-red-300' } as NavItem,
       ];
     }
     return navItems;
