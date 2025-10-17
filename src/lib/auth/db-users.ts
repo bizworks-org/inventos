@@ -90,7 +90,7 @@ export async function dbCreateUser(input: { name: string; email: string; passwor
   return user;
 }
 
-export async function dbUpdateUser(id: string, patch: Partial<{ name: string; email: string; active: boolean; role: Role }>): Promise<DbUser | null> {
+export async function dbUpdateUser(id: string, patch: Partial<{ name: string; email: string; active: boolean; role: Role; roles: Role[] }>): Promise<DbUser | null> {
   if (patch.name !== undefined || patch.email !== undefined || patch.active !== undefined) {
     const sets: string[] = [];
     const params: any = { id };
@@ -99,12 +99,11 @@ export async function dbUpdateUser(id: string, patch: Partial<{ name: string; em
     if (patch.active !== undefined) { sets.push('active = :active'); params.active = patch.active ? 1 : 0; }
     if (sets.length) await query(`UPDATE users SET ${sets.join(', ')} WHERE id = :id`, params);
   }
-  if (patch.role) {
-    const roleId = await getRoleIdByName(patch.role);
-    if (roleId) {
-      await query(`DELETE FROM user_roles WHERE user_id = :id`, { id });
-      await query(`INSERT INTO user_roles (user_id, role_id) VALUES (:id, :roleId)`, { id, roleId });
-    }
+  if (patch.roles && Array.isArray(patch.roles)) {
+    await dbSetUserRoles(id, patch.roles);
+  } else if (patch.role) {
+    // backward compat: single role update
+    await dbSetUserRoles(id, [patch.role]);
   }
   return dbFindUserById(id);
 }
@@ -114,4 +113,55 @@ export async function dbDeleteUser(id: string): Promise<boolean> {
   const res = await query<any>(`DELETE FROM users WHERE id = :id`, { id });
   // mysql2 returns OkPacket in different way; treat as success if no error and attempt completed
   return true;
+}
+
+// RBAC helpers
+export async function dbListRoles(): Promise<Role[]> {
+  const rows = await query<{ name: string }>(`SELECT name FROM roles ORDER BY id ASC`);
+  return rows.map(r => r.name as Role);
+}
+
+export async function dbSetUserRoles(userId: string, roles: Role[]): Promise<void> {
+  await query(`DELETE FROM user_roles WHERE user_id = :userId`, { userId });
+  if (!roles.length) return;
+  // insert each role mapping
+  for (const role of roles) {
+    const roleId = await getRoleIdByName(role);
+    if (roleId) {
+      await query(`INSERT INTO user_roles (user_id, role_id) VALUES (:userId, :roleId)`, { userId, roleId });
+    }
+  }
+}
+
+export async function dbListPermissions(): Promise<string[]> {
+  const rows = await query<{ name: string }>(`SELECT name FROM permissions ORDER BY id ASC`);
+  return rows.map(r => r.name);
+}
+
+export async function dbGetRolePermissions(role: Role): Promise<string[]> {
+  const rows = await query<{ name: string }>(
+    `SELECT p.name
+       FROM role_permissions rp
+       JOIN roles r ON r.id = rp.role_id
+       JOIN permissions p ON p.id = rp.permission_id
+      WHERE r.name = :role
+      ORDER BY p.id ASC`,
+    { role }
+  );
+  return rows.map(r => r.name);
+}
+
+export async function dbSetRolePermissions(role: Role, permissions: string[]): Promise<void> {
+  const roleId = await getRoleIdByName(role);
+  if (!roleId) return;
+  await query(`DELETE FROM role_permissions WHERE role_id = :roleId`, { roleId });
+  if (!permissions.length) return;
+  // Insert new mappings
+  for (const perm of permissions) {
+    const rows = await query<{ id: number }>(`SELECT id FROM permissions WHERE name = :name LIMIT 1`, { name: perm });
+    const permId = rows[0]?.id;
+    if (permId) {
+      await query(`INSERT INTO role_permissions (role_id, permission_id) VALUES (:roleId, :permId)`, { roleId, permId });
+    }
+  }
 }

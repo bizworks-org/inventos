@@ -1,6 +1,9 @@
-import { Home, Package, FileText, Users, Activity, Settings } from 'lucide-react';
+import { Home, Package, FileText, Users, Activity, Settings, Shield } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { useEffect, useMemo, useState } from 'react';
+
+type Role = 'admin' | 'user';
 
 interface NavItem {
   name: string;
@@ -25,6 +28,7 @@ interface SidebarProps {
 
 export function Sidebar({ currentPage = 'dashboard' }: SidebarProps) {
   const pathname = usePathname();
+  const [me, setMe] = useState<{ id: string; email: string; role: Role; name?: string } | null>(null);
   const pathById: Record<string, string> = {
     dashboard: '/dashboard',
     assets: '/assets',
@@ -32,7 +36,41 @@ export function Sidebar({ currentPage = 'dashboard' }: SidebarProps) {
     vendors: '/vendors',
     events: '/events',
     settings: '/settings',
+    admin: '/admin/users',
   };
+
+  useEffect(() => {
+    let mounted = true;
+    (async () => {
+      try {
+        const { getMe } = await import('@/lib/auth/client');
+        const user = await getMe();
+        if (mounted) setMe(user);
+      } catch {
+        // ignore
+      }
+    })();
+    return () => { mounted = false; };
+  }, []);
+
+  const itemsToRender = useMemo(() => {
+    if (me?.role === 'admin') {
+      return [
+        ...navItems,
+        { name: 'Admin', id: 'admin', icon: Shield, colorClass: 'text-red-400' } as NavItem,
+      ];
+    }
+    return navItems;
+  }, [me]);
+
+  const initials = useMemo(() => {
+    const name = me?.name || '';
+    const parts = name.trim().split(/\s+/);
+    if (!parts.length) return 'US';
+    const first = parts[0]?.[0] || '';
+    const second = parts[1]?.[0] || '';
+    return (first + second).toUpperCase() || 'US';
+  }, [me]);
 
   return (
     <aside className="fixed left-0 top-0 z-40 h-screen w-64 bg-gradient-to-b from-[#1a1d2e] to-[#0f1218] border-r border-[rgba(255,255,255,0.1)]">
@@ -48,7 +86,7 @@ export function Sidebar({ currentPage = 'dashboard' }: SidebarProps) {
 
       {/* Navigation */}
       <nav className="flex flex-col gap-1 p-4">
-        {navItems.map((item) => {
+        {itemsToRender.map((item) => {
           const Icon = item.icon;
           const href = pathById[item.id];
           const isActive = pathname ? pathname.startsWith(href) : currentPage === item.id;
@@ -79,11 +117,11 @@ export function Sidebar({ currentPage = 'dashboard' }: SidebarProps) {
         <div className="bg-gradient-to-br from-[#6366f1]/10 to-[#8b5cf6]/10 border border-[#6366f1]/20 rounded-lg p-4">
           <div className="flex items-start gap-3">
             <div className="h-10 w-10 rounded-full bg-gradient-to-br from-[#6366f1] to-[#8b5cf6] flex items-center justify-center">
-              <span className="text-white font-semibold">JD</span>
+              <span className="text-white font-semibold">{initials}</span>
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium text-white truncate">John Doe</p>
-              <p className="text-xs text-[#a0a4b8] truncate">IT Administrator</p>
+              <p className="text-sm font-medium text-white truncate">{me?.name || me?.email || 'User'}</p>
+              <p className="text-xs text-[#a0a4b8] truncate">{me?.role === 'admin' ? 'Administrator' : 'User'}</p>
             </div>
             <button
               onClick={async (e) => { e.preventDefault(); (await import('@/lib/auth/client')).signOut(); }}

@@ -51,6 +51,10 @@ This project includes a simple, secure auth layer with scrypt password hashes an
 	- INSERT INTO users (id, email, name, password_hash, active) VALUES (UUID(), 'admin@inventos.io', 'Admin User', '<HASH_FROM_ABOVE>', 1);
 	- INSERT INTO user_roles (user_id, role_id) SELECT id, 1 FROM users WHERE email='admin@inventos.io' LIMIT 1;
 
+Alternative seeds
+- Dev endpoint: `POST /api/dev/seed-admin` (non-prod or with header `x-seed-secret: $SEED_SECRET`) uses env vars `ADMIN_EMAIL`, `ADMIN_NAME`, `ADMIN_PASSWORD` or `ADMIN_PASSWORD_HASH`.
+- SQL helper: see `db/migrations/seed_admin.sql` and replace placeholders; run once.
+
 4) Sign in and manage users
 - Visit `/login` and sign in with your admin email/password.
 - Go to `/admin/users` to create/disable/delete users and set roles.

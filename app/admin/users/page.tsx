@@ -3,13 +3,16 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 
 type Role = 'admin' | 'user';
-type User = { id: string; name: string; email: string; role: Role; active: boolean };
+type User = { id: string; name: string; email: string; roles: Role[]; active: boolean };
 
 export default function ManageUsersPage() {
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [form, setForm] = useState<{ name: string; email: string; role: Role; password: string }>({ name: '', email: '', role: 'user', password: '' });
+  const [allRoles, setAllRoles] = useState<Role[]>([]);
+  const [allPermissions, setAllPermissions] = useState<string[]>([]);
+  const [rolePerms, setRolePerms] = useState<Record<Role, Set<string>>>({ admin: new Set(), user: new Set() });
   const router = useRouter();
 
   const load = async () => {
@@ -22,11 +25,27 @@ export default function ManageUsersPage() {
     }
     const data = await res.json();
     if (!res.ok) setError(data?.error || 'Failed to load users');
-    else setUsers(data.users || []);
+    else setUsers((data.users || []).map((u: any) => ({ ...u, roles: u.roles || [] })));
     setLoading(false);
   };
 
-  useEffect(() => { load(); }, []);
+  useEffect(() => {
+    load();
+    // fetch roles and permissions in parallel
+    Promise.all([
+      fetch('/api/admin/rbac/roles').then(r => r.json()).catch(() => ({ roles: [] })),
+      fetch('/api/admin/rbac/permissions').then(r => r.json()).catch(() => ({ permissions: [] })),
+      fetch('/api/admin/rbac/role-permissions?role=admin').then(r => r.json()).catch(() => ({ role: 'admin', permissions: [] })),
+      fetch('/api/admin/rbac/role-permissions?role=user').then(r => r.json()).catch(() => ({ role: 'user', permissions: [] })),
+    ]).then(([r1, r2, rpA, rpU]) => {
+      setAllRoles(r1.roles || []);
+      setAllPermissions(r2.permissions || []);
+      setRolePerms({
+        admin: new Set(rpA.permissions || []),
+        user: new Set(rpU.permissions || []),
+      });
+    });
+  }, []);
 
   const addUser = async () => {
     const res = await fetch('/api/admin/users', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(form) });
@@ -36,8 +55,8 @@ export default function ManageUsersPage() {
     load();
   };
 
-  const updateRole = async (id: string, role: Role) => {
-    const res = await fetch('/api/admin/users', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id, role }) });
+  const updateUserRoles = async (id: string, roles: Role[]) => {
+    const res = await fetch('/api/admin/rbac/user-roles', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ userId: id, roles }) });
     if (!res.ok) return alert('Update failed');
     load();
   };
@@ -87,7 +106,7 @@ export default function ManageUsersPage() {
               <tr>
                 <th style={{ textAlign: 'left', padding: 8, borderBottom: '1px solid #e2e8f0' }}>Name</th>
                 <th style={{ textAlign: 'left', padding: 8, borderBottom: '1px solid #e2e8f0' }}>Email</th>
-                <th style={{ textAlign: 'left', padding: 8, borderBottom: '1px solid #e2e8f0' }}>Role</th>
+                <th style={{ textAlign: 'left', padding: 8, borderBottom: '1px solid #e2e8f0' }}>Roles</th>
                 <th style={{ textAlign: 'left', padding: 8, borderBottom: '1px solid #e2e8f0' }}>Active</th>
                 <th style={{ textAlign: 'left', padding: 8, borderBottom: '1px solid #e2e8f0' }}>Actions</th>
               </tr>
@@ -98,10 +117,25 @@ export default function ManageUsersPage() {
                   <td style={{ padding: 8 }}>{u.name}</td>
                   <td style={{ padding: 8 }}>{u.email}</td>
                   <td style={{ padding: 8 }}>
-                    <select value={u.role} onChange={(e) => updateRole(u.id, e.target.value as Role)}>
-                      <option value="user">User</option>
-                      <option value="admin">Admin</option>
-                    </select>
+                    <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                      {allRoles.map((r) => {
+                        const checked = u.roles?.includes(r);
+                        return (
+                          <label key={r} style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                            <input
+                              type="checkbox"
+                              checked={!!checked}
+                              onChange={(e) => {
+                                const next = new Set(u.roles || []);
+                                if (e.target.checked) next.add(r); else next.delete(r);
+                                updateUserRoles(u.id, Array.from(next));
+                              }}
+                            />
+                            <span>{r}</span>
+                          </label>
+                        );
+                      })}
+                    </div>
                   </td>
                   <td style={{ padding: 8 }}>{u.active ? 'Yes' : 'No'}</td>
                   <td style={{ padding: 8, display: 'flex', gap: 8 }}>
@@ -113,6 +147,42 @@ export default function ManageUsersPage() {
             </tbody>
           </table>
         )}
+      </section>
+
+      <section style={{ marginTop: 32 }}>
+        <h2 style={{ fontSize: 20, marginBottom: 10 }}>Role Permissions</h2>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 24, maxWidth: 900 }}>
+          {(['admin','user'] as Role[]).map((role) => (
+            <div key={role} style={{ border: '1px solid #e2e8f0', borderRadius: 8, padding: 12 }}>
+              <h3 style={{ marginTop: 0, marginBottom: 8, fontSize: 16 }}>{role}</h3>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+                {allPermissions.map((p) => {
+                  const checked = rolePerms[role]?.has(p);
+                  return (
+                    <label key={`${role}-${p}`} style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                      <input
+                        type="checkbox"
+                        checked={!!checked}
+                        onChange={async (e) => {
+                          const next = new Set(rolePerms[role] || []);
+                          if (e.target.checked) next.add(p); else next.delete(p);
+                          // optimistic update
+                          setRolePerms((cur) => ({ ...cur, [role]: next }));
+                          const res = await fetch('/api/admin/rbac/role-permissions', {
+                            method: 'POST', headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ role, permissions: Array.from(next) })
+                          });
+                          if (!res.ok) alert('Failed to update permissions');
+                        }}
+                      />
+                      <span>{p}</span>
+                    </label>
+                  );
+                })}
+              </div>
+            </div>
+          ))}
+        </div>
       </section>
     </main>
   );
