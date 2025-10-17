@@ -1,3 +1,4 @@
+
 'use client';
 
 import { Sidebar } from './Sidebar';
@@ -9,17 +10,19 @@ interface AssetFlowLayoutProps {
   breadcrumbs?: { label: string; href?: string }[];
   currentPage?: string;
   onSearch?: (query: string) => void;
+  me?: { id: string; email: string; role: 'admin' | 'user'; name?: string } | null;
 }
 
 export function AssetFlowLayout({ 
   children, 
   breadcrumbs, 
   currentPage,
-  onSearch
+  onSearch,
+  me
 }: AssetFlowLayoutProps) {
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#f8f9ff] to-[#f0f4ff]">
-      <Sidebar currentPage={currentPage} />
+      <Sidebar currentPage={currentPage} me={me ?? undefined} />
       <div className="ml-64">
         <Header breadcrumbs={breadcrumbs} onSearch={onSearch} />
         {/* Global toaster for success/error notifications */}

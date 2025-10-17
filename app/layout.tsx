@@ -4,6 +4,7 @@ import { ThemeProvider } from "../src/components/ui/theme-provider";
 import { PrefsProvider } from "../src/components/assetflow/layout/PrefsContext";
 import { cookies } from 'next/headers';
 import { verifyToken } from '@/lib/auth/server';
+import { dbFindUserById } from '@/lib/auth/db-users';
 export const metadata = {
   title: "Inventos - IT Asset Management",
 };
@@ -19,6 +20,7 @@ export default async function RootLayout({
 }) {
   // Server-derived hint to help client-side nav render Admin items immediately
   let isAdmin = false;
+  let me: { id: string; email: string; role: 'admin' | 'user'; name?: string } | null = null;
   try {
     const cookieStore = await cookies();
     const token = cookieStore.get('auth_token')?.value;
@@ -26,6 +28,13 @@ export default async function RootLayout({
     const roles = (payload as any)?.roles as string[] | undefined;
     const role = (payload as any)?.role as string | undefined;
     isAdmin = Array.isArray(roles) ? roles.includes('admin') : role === 'admin';
+    if (payload && (payload as any).id) {
+      const dbUser = await dbFindUserById((payload as any).id);
+      if (dbUser) {
+        const roleComputed: 'admin' | 'user' = (Array.isArray(dbUser.roles) && dbUser.roles.includes('admin')) ? 'admin' : 'user';
+        me = { id: dbUser.id, email: dbUser.email, role: roleComputed, name: dbUser.name };
+      }
+    }
   } catch {}
   return (
     <html lang="en" suppressHydrationWarning data-admin={isAdmin ? 'true' : 'false'}>

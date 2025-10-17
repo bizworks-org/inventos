@@ -28,10 +28,10 @@ interface SidebarProps {
   onNavigate?: (page: string) => void; // legacy; no longer used
 }
 
-export function Sidebar({ currentPage = 'dashboard' }: SidebarProps) {
+export function Sidebar({ currentPage = 'dashboard', me: meProp }: SidebarProps & { me?: { id: string; email: string; role: Role; name?: string } | null }) {
   const pathname = usePathname();
-  // undefined = loading, null = unauth, object = user
-  const [me, setMe] = useState<{ id: string; email: string; role: Role; name?: string } | null | undefined>(undefined);
+  // Use server-provided user to avoid client fetch; fall back to undefined for SSR
+  const [me, setMe] = useState<typeof meProp | undefined>(meProp === undefined ? undefined : meProp);
   // Persist admin visibility once detected in the client session
   const [everAdmin, setEverAdmin] = useState<boolean>(() => {
     if (typeof document === 'undefined') return false;
@@ -49,19 +49,7 @@ export function Sidebar({ currentPage = 'dashboard' }: SidebarProps) {
     admin_roles: '/admin/roles',
   };
 
-  useEffect(() => {
-    let mounted = true;
-    (async () => {
-      try {
-        const res = await fetch('/api/auth/me', { cache: 'no-store', credentials: 'same-origin' });
-        const data = await res.json().catch(() => ({ user: null }));
-        if (mounted) setMe(data?.user ?? null);
-      } catch {
-        if (mounted) setMe(null); // end loading even on failure
-      }
-    })();
-    return () => { mounted = false; };
-  }, []);
+  useEffect(() => { setMe(meProp === undefined ? me : meProp); }, [meProp]);
 
   // When we know we're on an admin path or me reveals admin, latch everAdmin=true for this session
   useEffect(() => {
@@ -95,7 +83,7 @@ export function Sidebar({ currentPage = 'dashboard' }: SidebarProps) {
     return (first + second).toUpperCase() || 'US';
   }, [me]);
 
-  const loading = me === undefined; // undefined while loading; null means unauth
+  const loading = me === undefined; // undefined during SSR only; no client fetch
 
   return (
     <aside className="fixed left-0 top-0 z-40 h-screen w-64 bg-gradient-to-b from-[#1a1d2e] to-[#0f1218] border-r border-[rgba(255,255,255,0.1)]">
@@ -140,15 +128,15 @@ export function Sidebar({ currentPage = 'dashboard' }: SidebarProps) {
               prefetch
               aria-current={isActive ? 'page' : undefined}
               className={`
-                flex items-center gap-3 ${item.id.startsWith('admin_') ? 'pl-10 pr-4' : 'px-4'} py-3 rounded-lg transition-all duration-200 text-left w-full cursor-pointer
+                flex items-center gap-3 ${item.id.startsWith('admin_') ? 'pl-10 pr-4' : 'px-4'} py-3 rounded-lg transition-colors duration-200 ease-out text-left w-full cursor-pointer
                 ${isActive
                   ? 'bg-gradient-to-r from-[#6366f1] to-[#8b5cf6] text-white shadow-lg shadow-[#6366f1]/20'
                   : 'text-[#a0a4b8] hover:bg-[rgba(255,255,255,0.05)] hover:text-white'
                 }
               `}
             >
-              <Icon className={`h-5 w-5 ${isActive ? 'text-white' : item.colorClass ?? ''}`} />
-              <span className="font-medium">{item.name}</span>
+              <Icon className={`h-5 w-5 transition-colors duration-200 ease-out ${isActive ? 'text-white' : item.colorClass ?? ''}`} />
+              <span className="font-medium transition-colors duration-200 ease-out">{item.name}</span>
             </Link>
           );
         })}
