@@ -1,7 +1,7 @@
 "use client";
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Shield, User as UserIcon, Check } from 'lucide-react';
+import { Shield, User as UserIcon, Check, Package, FileText, Building2, Activity } from 'lucide-react';
 
 type Role = 'admin' | 'user';
 type User = { id: string; name: string; email: string; roles: Role[]; active: boolean };
@@ -180,28 +180,49 @@ export default function ManageUsersPage() {
           {(['admin','user'] as Role[]).map((role) => (
             <div key={role} className="border border-[#e2e8f0] rounded-lg p-4">
               <h3 className="text-base font-semibold mb-2 capitalize">{role}</h3>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 {allPermissions.map((p) => {
-                  const checked = rolePerms[role]?.has(p);
+                  const selected = rolePerms[role]?.has(p);
+                  // Determine icon/gradient by resource
+                  let Icon: any = Shield; let gradient = 'from-[#6366f1] to-[#8b5cf6]';
+                  if (p.includes('assets')) { Icon = Package; gradient = 'from-[#f59e0b] to-[#f97316]'; }
+                  else if (p.includes('licenses')) { Icon = FileText; gradient = 'from-[#ec4899] to-[#f43f5e]'; }
+                  else if (p.includes('vendors')) { Icon = Building2; gradient = 'from-[#06b6d4] to-[#3b82f6]'; }
+                  else if (p.includes('events')) { Icon = Activity; gradient = 'from-[#22c55e] to-[#14b8a6]'; }
+
+                  const label = p.replace(/_/g, ' ').replace(/\b\w/g, (m) => m.toUpperCase());
                   return (
-                    <label key={`${role}-${p}`} className="inline-flex items-center gap-2 text-sm">
-                      <input
-                        type="checkbox"
-                        checked={!!checked}
-                        onChange={async (e) => {
-                          const next = new Set(rolePerms[role] || []);
-                          if (e.target.checked) next.add(p); else next.delete(p);
-                          // optimistic update
-                          setRolePerms((cur) => ({ ...cur, [role]: next }));
-                          const res = await fetch('/api/admin/rbac/role-permissions', {
-                            method: 'POST', headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ role, permissions: Array.from(next) })
-                          });
-                          if (!res.ok) alert('Failed to update permissions');
-                        }}
-                      />
-                      <span>{p}</span>
-                    </label>
+                    <button
+                      key={`${role}-${p}`}
+                      type="button"
+                      onClick={async () => {
+                        const next = new Set(rolePerms[role] || []);
+                        if (selected) next.delete(p); else next.add(p);
+                        // optimistic update
+                        setRolePerms((cur) => ({ ...cur, [role]: next }));
+                        const res = await fetch('/api/admin/rbac/role-permissions', {
+                          method: 'POST', headers: { 'Content-Type': 'application/json' },
+                          body: JSON.stringify({ role, permissions: Array.from(next) })
+                        });
+                        if (!res.ok) alert('Failed to update permissions');
+                      }}
+                      className={`relative group w-full text-left px-3 py-2.5 rounded-lg border transition-colors
+                        ${selected
+                          ? `bg-gradient-to-r ${gradient} text-white border-transparent`
+                          : 'bg-white text-[#1a1d2e] border-[#e2e8f0] hover:border-[#cbd5e1]'}`}
+                      aria-pressed={selected}
+                      aria-label={`Toggle ${label} permission for ${role}`}
+                    >
+                      <div className="flex items-center gap-2">
+                        <Icon className={`h-4 w-4 ${selected ? 'text-white' : 'text-[#64748b]'}`} />
+                        <span className="text-sm font-medium">{label}</span>
+                      </div>
+                      {selected && (
+                        <span className="absolute -top-1 -right-1 inline-flex h-5 w-5 items-center justify-center rounded-full bg-emerald-500 shadow">
+                          <Check className="h-3.5 w-3.5 text-white" />
+                        </span>
+                      )}
+                    </button>
                   );
                 })}
               </div>
