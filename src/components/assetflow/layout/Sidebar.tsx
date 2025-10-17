@@ -36,7 +36,8 @@ export function Sidebar({ currentPage = 'dashboard' }: SidebarProps) {
     vendors: '/vendors',
     events: '/events',
     settings: '/settings',
-    admin: '/admin/users',
+    admin: '/admin',
+    admin_users: '/admin/users',
   };
 
   useEffect(() => {
@@ -58,6 +59,7 @@ export function Sidebar({ currentPage = 'dashboard' }: SidebarProps) {
       return [
         ...navItems,
         { name: 'Admin', id: 'admin', icon: Shield, colorClass: 'text-red-400' } as NavItem,
+        { name: 'Users', id: 'admin_users', icon: Users, colorClass: 'text-red-300' } as NavItem,
       ];
     }
     return navItems;
@@ -89,7 +91,17 @@ export function Sidebar({ currentPage = 'dashboard' }: SidebarProps) {
         {itemsToRender.map((item) => {
           const Icon = item.icon;
           const href = pathById[item.id];
-          const isActive = pathname ? pathname.startsWith(href) : currentPage === item.id;
+          // Ensure Admin isn't highlighted when Users is active.
+          let isActive = false;
+          if (pathname) {
+            if (item.id === 'admin') {
+              isActive = pathname === href || pathname === `${href}/`;
+            } else {
+              isActive = pathname.startsWith(href);
+            }
+          } else {
+            isActive = currentPage === item.id;
+          }
 
           return (
             <Link
@@ -98,7 +110,7 @@ export function Sidebar({ currentPage = 'dashboard' }: SidebarProps) {
               prefetch
               aria-current={isActive ? 'page' : undefined}
               className={`
-                flex items-center gap-3 px-4 py-3 rounded-lg transition-all duration-200 text-left w-full cursor-pointer
+                flex items-center gap-3 ${item.id.startsWith('admin_') ? 'pl-10 pr-4' : 'px-4'} py-3 rounded-lg transition-all duration-200 text-left w-full cursor-pointer
                 ${isActive 
                   ? 'bg-gradient-to-r from-[#6366f1] to-[#8b5cf6] text-white shadow-lg shadow-[#6366f1]/20' 
                   : 'text-[#a0a4b8] hover:bg-[rgba(255,255,255,0.05)] hover:text-white'
