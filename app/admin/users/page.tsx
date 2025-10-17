@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { Shield, User as UserIcon, Check } from 'lucide-react';
 
 type Role = 'admin' | 'user';
 type User = { id: string; name: string; email: string; roles: Role[]; active: boolean };
@@ -126,20 +127,35 @@ export default function ManageUsersPage() {
                     <td className="py-3 pr-4">
                       <div className="flex gap-3 flex-wrap py-0.5">
                         {allRoles.map((r) => {
-                          const checked = u.roles?.includes(r);
+                          const selected = u.roles?.includes(r);
+                          const Icon = r === 'admin' ? Shield : UserIcon;
+                          const gradient = r === 'admin' ? 'from-[#f43f5e] to-[#ec4899]' : 'from-[#10b981] to-[#14b8a6]';
                           return (
-                            <label key={r} className="inline-flex items-center gap-2 text-sm">
-                              <input
-                                type="checkbox"
-                                checked={!!checked}
-                                onChange={(e) => {
-                                  const next = new Set(u.roles || []);
-                                  if (e.target.checked) next.add(r); else next.delete(r);
-                                  updateUserRoles(u.id, Array.from(next));
-                                }}
-                              />
-                              <span>{r}</span>
-                            </label>
+                            <button
+                              key={r}
+                              type="button"
+                              onClick={() => {
+                                const next = new Set(u.roles || []);
+                                if (selected) next.delete(r); else next.add(r);
+                                updateUserRoles(u.id, Array.from(next));
+                              }}
+                              className={`relative group px-3 py-2 rounded-lg border transition-colors
+                                ${selected
+                                  ? `bg-gradient-to-r ${gradient} text-white border-transparent`
+                                  : 'bg-white text-[#1a1d2e] border-[#e2e8f0] hover:border-[#cbd5e1]'}`}
+                              aria-pressed={selected}
+                              aria-label={`Toggle ${r} role`}
+                            >
+                              <div className="flex items-center gap-2">
+                                <Icon className={`h-4 w-4 ${selected ? 'text-white' : 'text-[#64748b]'}`} />
+                                <span className="text-sm font-medium capitalize">{r}</span>
+                              </div>
+                              {selected && (
+                                <span className="absolute -top-1 -right-1 inline-flex h-5 w-5 items-center justify-center rounded-full bg-emerald-500 shadow">
+                                  <Check className="h-3.5 w-3.5 text-white" />
+                                </span>
+                              )}
+                            </button>
                           );
                         })}
                       </div>
