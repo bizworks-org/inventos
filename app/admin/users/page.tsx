@@ -75,91 +75,100 @@ export default function ManageUsersPage() {
   };
 
   return (
-    <main style={{ padding: 24 }}>
-      <h1 style={{ fontSize: 28, marginBottom: 16 }}>Admin • Manage Users</h1>
+    <>
+      {/* Page Title */}
+      <div className="mb-6">
+        <h1 className="text-3xl font-bold text-[#1a1d2e]">Manage Users</h1>
+        <p className="text-[#64748b]">Create users, assign roles and permissions.</p>
+      </div>
 
-      <section style={{ display: 'grid', gap: 16, gridTemplateColumns: '1fr', marginBottom: 24, maxWidth: 700 }}>
-        <h2 style={{ fontSize: 20, margin: 0 }}>Add User</h2>
-        <div style={{ display: 'grid', gap: 10, gridTemplateColumns: '1fr 1fr 1fr 1fr' }}>
-          <input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="Full name" />
-          <input value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} placeholder="Email" />
-          <select value={form.role} onChange={(e) => setForm({ ...form, role: e.target.value as Role })}>
+      {/* Add User Card */}
+      <div className="bg-white border border-[#e2e8f0] rounded-xl p-4 mb-6 max-w-3xl">
+        <h2 className="text-lg font-semibold mb-3">Add User</h2>
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+          <input className="px-3 py-2 rounded-lg border border-[#e2e8f0] bg-white" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="Full name" />
+          <input className="px-3 py-2 rounded-lg border border-[#e2e8f0] bg-white" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} placeholder="Email" />
+          <select className="px-3 py-2 rounded-lg border border-[#e2e8f0] bg-white" value={form.role} onChange={(e) => setForm({ ...form, role: e.target.value as Role })}>
             <option value="user">User</option>
             <option value="admin">Admin</option>
           </select>
-          <input type="password" value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} placeholder="Password" />
+          <input className="px-3 py-2 rounded-lg border border-[#e2e8f0] bg-white" type="password" value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} placeholder="Password" />
         </div>
-        <div>
-          <button onClick={addUser} style={{ padding: '8px 12px', borderRadius: 8, border: '1px solid rgba(0,0,0,0.1)' }}>Create</button>
+        <div className="mt-3">
+          <button onClick={addUser} className="px-4 py-2 rounded-lg bg-[#1a1d2e] text-white hover:opacity-90">Create</button>
         </div>
-      </section>
+      </div>
 
-      <section>
-        <h2 style={{ fontSize: 20, marginBottom: 10 }}>Users</h2>
+      {/* Users Table */}
+      <div className="bg-white border border-[#e2e8f0] rounded-xl p-4 mb-6">
+        <h2 className="text-lg font-semibold mb-3">Users</h2>
         {loading ? (
           <p>Loading…</p>
         ) : error ? (
-          <p style={{ color: '#ef4444' }}>{error}</p>
+          <p className="text-[#ef4444]">{error}</p>
         ) : (
-          <table style={{ borderCollapse: 'collapse', width: '100%' }}>
-            <thead>
-              <tr>
-                <th style={{ textAlign: 'left', padding: 8, borderBottom: '1px solid #e2e8f0' }}>Name</th>
-                <th style={{ textAlign: 'left', padding: 8, borderBottom: '1px solid #e2e8f0' }}>Email</th>
-                <th style={{ textAlign: 'left', padding: 8, borderBottom: '1px solid #e2e8f0' }}>Roles</th>
-                <th style={{ textAlign: 'left', padding: 8, borderBottom: '1px solid #e2e8f0' }}>Active</th>
-                <th style={{ textAlign: 'left', padding: 8, borderBottom: '1px solid #e2e8f0' }}>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {users.map((u) => (
-                <tr key={u.id}>
-                  <td style={{ padding: 8 }}>{u.name}</td>
-                  <td style={{ padding: 8 }}>{u.email}</td>
-                  <td style={{ padding: 8 }}>
-                    <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                      {allRoles.map((r) => {
-                        const checked = u.roles?.includes(r);
-                        return (
-                          <label key={r} style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
-                            <input
-                              type="checkbox"
-                              checked={!!checked}
-                              onChange={(e) => {
-                                const next = new Set(u.roles || []);
-                                if (e.target.checked) next.add(r); else next.delete(r);
-                                updateUserRoles(u.id, Array.from(next));
-                              }}
-                            />
-                            <span>{r}</span>
-                          </label>
-                        );
-                      })}
-                    </div>
-                  </td>
-                  <td style={{ padding: 8 }}>{u.active ? 'Yes' : 'No'}</td>
-                  <td style={{ padding: 8, display: 'flex', gap: 8 }}>
-                    <button onClick={() => deactivate(u.id)} disabled={!u.active}>Deactivate</button>
-                    <button onClick={() => remove(u.id)} style={{ color: '#ef4444' }}>Delete</button>
-                  </td>
+          <div className="overflow-x-auto">
+            <table className="min-w-full text-left">
+              <thead>
+                <tr className="border-b border-[#e2e8f0] text-[#64748b]">
+                  <th className="py-2 pr-4">Name</th>
+                  <th className="py-2 pr-4">Email</th>
+                  <th className="py-2 pr-4">Roles</th>
+                  <th className="py-2 pr-4">Active</th>
+                  <th className="py-2 pr-4">Actions</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {users.map((u) => (
+                  <tr key={u.id} className="border-b border-[#f1f5f9]">
+                    <td className="py-2 pr-4">{u.name}</td>
+                    <td className="py-2 pr-4">{u.email}</td>
+                    <td className="py-2 pr-4">
+                      <div className="flex gap-3 flex-wrap">
+                        {allRoles.map((r) => {
+                          const checked = u.roles?.includes(r);
+                          return (
+                            <label key={r} className="inline-flex items-center gap-2 text-sm">
+                              <input
+                                type="checkbox"
+                                checked={!!checked}
+                                onChange={(e) => {
+                                  const next = new Set(u.roles || []);
+                                  if (e.target.checked) next.add(r); else next.delete(r);
+                                  updateUserRoles(u.id, Array.from(next));
+                                }}
+                              />
+                              <span>{r}</span>
+                            </label>
+                          );
+                        })}
+                      </div>
+                    </td>
+                    <td className="py-2 pr-4">{u.active ? 'Yes' : 'No'}</td>
+                    <td className="py-2 pr-4 flex gap-2">
+                      <button onClick={() => deactivate(u.id)} disabled={!u.active} className="px-3 py-1 rounded bg-[#f1f5f9] text-[#1a1d2e] disabled:opacity-50">Deactivate</button>
+                      <button onClick={() => remove(u.id)} className="px-3 py-1 rounded bg-[#fee2e2] text-[#b91c1c]">Delete</button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         )}
-      </section>
+      </div>
 
-      <section style={{ marginTop: 32 }}>
-        <h2 style={{ fontSize: 20, marginBottom: 10 }}>Role Permissions</h2>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 24, maxWidth: 900 }}>
+      {/* Role Permissions */}
+      <div className="bg-white border border-[#e2e8f0] rounded-xl p-4">
+        <h2 className="text-lg font-semibold mb-3">Role Permissions</h2>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-5xl">
           {(['admin','user'] as Role[]).map((role) => (
-            <div key={role} style={{ border: '1px solid #e2e8f0', borderRadius: 8, padding: 12 }}>
-              <h3 style={{ marginTop: 0, marginBottom: 8, fontSize: 16 }}>{role}</h3>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+            <div key={role} className="border border-[#e2e8f0] rounded-lg p-3">
+              <h3 className="text-base font-semibold mb-2 capitalize">{role}</h3>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                 {allPermissions.map((p) => {
                   const checked = rolePerms[role]?.has(p);
                   return (
-                    <label key={`${role}-${p}`} style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                    <label key={`${role}-${p}`} className="inline-flex items-center gap-2 text-sm">
                       <input
                         type="checkbox"
                         checked={!!checked}
@@ -183,7 +192,7 @@ export default function ManageUsersPage() {
             </div>
           ))}
         </div>
-      </section>
-    </main>
+      </div>
+    </>
   );
 }
