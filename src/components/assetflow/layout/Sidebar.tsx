@@ -1,6 +1,5 @@
 "use client";
 import { Home, Package, FileText, Users, Activity, Settings, Shield } from 'lucide-react';
-import { Skeleton } from '@/components/ui/skeleton';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useEffect, useMemo, useState } from 'react';
@@ -51,18 +50,17 @@ export function Sidebar({ currentPage = 'dashboard', me: meProp }: SidebarProps 
 
   useEffect(() => { setMe(meProp === undefined ? me : meProp); }, [meProp]);
 
-  // When we know we're on an admin path or me reveals admin, latch everAdmin=true for this session
+  // When we know the user is admin (from me or server hint), latch everAdmin=true for this session
   useEffect(() => {
-    const onAdminPath = pathname?.startsWith('/admin') || currentPage?.startsWith('admin') || false;
-    if (onAdminPath || me?.role === 'admin') setEverAdmin(true);
-  }, [pathname, currentPage, me]);
+    const serverIsAdmin = typeof document !== 'undefined' ? document.documentElement.getAttribute('data-admin') === 'true' : false;
+    if (serverIsAdmin || me?.role === 'admin') setEverAdmin(true);
+  }, [me]);
 
   const itemsToRender = useMemo(() => {
-    const onAdminPath = pathname?.startsWith('/admin') || currentPage?.startsWith('admin') || false;
-    // Prefer server hint if present to avoid waiting for client fetch
+  // Prefer server hint if present to avoid waiting for client fetch
     const serverIsAdmin = typeof document !== 'undefined' ? document.documentElement.getAttribute('data-admin') === 'true' : false;
-    // Show Admin if: currently on admin route, server hinted admin, we've ever detected admin this session, or loading state
-    const showAdmin = onAdminPath || serverIsAdmin || everAdmin || me === undefined || me?.role === 'admin';
+  // Show Admin if: server hinted admin, we've ever detected admin this session, or explicit me=admin
+  const showAdmin = serverIsAdmin || everAdmin || me?.role === 'admin';
     if (showAdmin) {
       return [
         ...navItems,
@@ -83,7 +81,8 @@ export function Sidebar({ currentPage = 'dashboard', me: meProp }: SidebarProps 
     return (first + second).toUpperCase() || 'US';
   }, [me]);
 
-  const loading = me === undefined; // undefined during SSR only; no client fetch
+  // Keep non-admin items static even if me is unknown; avoid indefinite loading states
+  const loadingProfile = false;
 
   return (
     <aside className="fixed left-0 top-0 z-40 h-screen w-64 bg-gradient-to-b from-[#1a1d2e] to-[#0f1218] border-r border-[rgba(255,255,255,0.1)]">
@@ -99,14 +98,7 @@ export function Sidebar({ currentPage = 'dashboard', me: meProp }: SidebarProps 
 
       {/* Navigation */}
       <nav className="flex flex-col gap-1 p-4">
-        {loading && (
-          <div className="flex flex-col gap-2">
-            <Skeleton className="h-10 w-full bg-white/10" />
-            <Skeleton className="h-10 w-full bg-white/10" />
-            <Skeleton className="h-10 w-full bg-white/10" />
-          </div>
-        )}
-        {!loading && itemsToRender.map((item) => {
+        {itemsToRender.map((item) => {
           const Icon = item.icon;
           const href = pathById[item.id];
           // Ensure Admin isn't highlighted when Users is active.
@@ -145,14 +137,14 @@ export function Sidebar({ currentPage = 'dashboard', me: meProp }: SidebarProps 
       {/* Bottom Section */}
       <div className="absolute bottom-4 left-4 right-4">
         <div className="bg-gradient-to-br from-[#6366f1]/10 to-[#8b5cf6]/10 border border-[#6366f1]/20 rounded-lg p-4">
-          {loading ? (
+          {loadingProfile ? (
             <div className="flex items-center gap-3">
-              <Skeleton className="h-10 w-10 rounded-full bg-white/10" />
+              <div className="h-10 w-10 rounded-full bg-white/10" />
               <div className="flex-1 min-w-0 space-y-2">
-                <Skeleton className="h-4 w-2/3 bg-white/10" />
-                <Skeleton className="h-3 w-1/3 bg-white/10" />
+                <div className="h-4 w-2/3 bg-white/10 rounded" />
+                <div className="h-3 w-1/3 bg-white/10 rounded" />
               </div>
-              <Skeleton className="h-6 w-16 rounded bg-white/10" />
+              <div className="h-6 w-16 rounded bg-white/10" />
             </div>
           ) : (
             <div className="flex items-start gap-3">
