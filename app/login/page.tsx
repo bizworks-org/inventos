@@ -5,7 +5,7 @@ import styles from './login.module.css';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('admin@inventos.io');
-  const [password, setPassword] = useState('Abcd@1234');
+  const [password, setPassword] = useState('Cl635EbUp8dN');
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
