@@ -1,0 +1,117 @@
+import { randomUUID } from 'crypto';
+import { query } from '@/lib/db';
+import type { Role } from './server';
+
+export type DbUser = {
+  id: string;
+  email: string;
+  name: string;
+  active: number;
+  roles: Role[];
+  password_hash?: string;
+};
+
+async function getRoleIdByName(name: Role): Promise<number | null> {
+  const rows = await query<{ id: number }>(
+    'SELECT id FROM roles WHERE name = :name LIMIT 1',
+    { name }
+  );
+  return rows[0]?.id ?? null;
+}
+
+export async function dbFindUserByEmail(email: string): Promise<DbUser | null> {
+  const rows = await query<any>(
+    `SELECT u.id, u.email, u.name, u.active, u.password_hash,
+            GROUP_CONCAT(r.name) AS role_names
+       FROM users u
+       LEFT JOIN user_roles ur ON ur.user_id = u.id
+       LEFT JOIN roles r ON r.id = ur.role_id
+      WHERE u.email = :email
+      GROUP BY u.id
+      LIMIT 1`,
+    { email }
+  );
+  if (!rows.length) return null;
+  const row = rows[0];
+  const roles: Role[] = (row.role_names ? String(row.role_names).split(',') : []) as Role[];
+  return { id: row.id, email: row.email, name: row.name, active: row.active, roles, password_hash: row.password_hash };
+}
+
+export async function dbFindUserById(id: string): Promise<DbUser | null> {
+  const rows = await query<any>(
+    `SELECT u.id, u.email, u.name, u.active,
+            GROUP_CONCAT(r.name) AS role_names
+       FROM users u
+       LEFT JOIN user_roles ur ON ur.user_id = u.id
+       LEFT JOIN roles r ON r.id = ur.role_id
+      WHERE u.id = :id
+      GROUP BY u.id
+      LIMIT 1`,
+    { id }
+  );
+  if (!rows.length) return null;
+  const row = rows[0];
+  const roles: Role[] = (row.role_names ? String(row.role_names).split(',') : []) as Role[];
+  return { id: row.id, email: row.email, name: row.name, active: row.active, roles };
+}
+
+export async function dbListUsers(): Promise<DbUser[]> {
+  const rows = await query<any>(
+    `SELECT u.id, u.email, u.name, u.active,
+            GROUP_CONCAT(r.name) AS role_names
+       FROM users u
+       LEFT JOIN user_roles ur ON ur.user_id = u.id
+       LEFT JOIN roles r ON r.id = ur.role_id
+      GROUP BY u.id
+      ORDER BY u.created_at DESC`
+  );
+  return rows.map((row: any) => ({
+    id: row.id,
+    email: row.email,
+    name: row.name,
+    active: row.active,
+    roles: (row.role_names ? String(row.role_names).split(',') : []) as Role[],
+  }));
+}
+
+export async function dbCreateUser(input: { name: string; email: string; password_hash: string; role: Role; active?: boolean }): Promise<DbUser> {
+  const id = randomUUID();
+  await query(
+    `INSERT INTO users (id, email, name, password_hash, active) 
+     VALUES (:id, :email, :name, :password_hash, :active)`,
+    { id, email: input.email, name: input.name, password_hash: input.password_hash, active: input.active ?? true }
+  );
+  const roleId = await getRoleIdByName(input.role);
+  if (roleId) {
+    await query(`INSERT INTO user_roles (user_id, role_id) VALUES (:id, :roleId)`, { id, roleId });
+  }
+  const user = await dbFindUserById(id);
+  if (!user) throw new Error('Failed to create user');
+  return user;
+}
+
+export async function dbUpdateUser(id: string, patch: Partial<{ name: string; email: string; active: boolean; role: Role }>): Promise<DbUser | null> {
+  if (patch.name !== undefined || patch.email !== undefined || patch.active !== undefined) {
+    const sets: string[] = [];
+    const params: any = { id };
+    if (patch.name !== undefined) { sets.push('name = :name'); params.name = patch.name; }
+    if (patch.email !== undefined) { sets.push('email = :email'); params.email = patch.email; }
+    if (patch.active !== undefined) { sets.push('active = :active'); params.active = patch.active ? 1 : 0; }
+    if (sets.length) await query(`UPDATE users SET ${sets.join(', ')} WHERE id = :id`, params);
+  }
+  if (patch.role) {
+    const roleId = await getRoleIdByName(patch.role);
+    if (roleId) {
+      await query(`DELETE FROM user_roles WHERE user_id = :id`, { id });
+      await query(`INSERT INTO user_roles (user_id, role_id) VALUES (:id, :roleId)`, { id, roleId });
+    }
+  }
+  return dbFindUserById(id);
+}
+
+export async function dbDeleteUser(id: string): Promise<boolean> {
+  await query(`DELETE FROM user_roles WHERE user_id = :id`, { id });
+  const res = await query<any>(`DELETE FROM users WHERE id = :id`, { id });
+  // mysql2 returns OkPacket in different way; treat as success if no error and attempt completed
+  return true;
+}

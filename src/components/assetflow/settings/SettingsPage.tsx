@@ -73,7 +73,7 @@ export function SettingsPage({ onNavigate, onSearch }: SettingsPageProps) {
 
   // Preferences
   const [prefs, setPrefs] = useState<Preferences>({ density: 'comfortable', dateFormat: 'YYYY-MM-DD', currency: 'USD', language: 'en' });
-  const allowedLanguages: Preferences['language'][] = ['en','hi','ta','te','bn','mr','gu','kn','ml','pa','or','as','sa','kok','ur','ar'];
+  const allowedLanguages: Preferences['language'][] = ['en', 'hi', 'ta', 'te', 'bn', 'mr', 'gu', 'kn', 'ml', 'pa', 'or', 'as', 'sa', 'kok', 'ur', 'ar'];
   const ensureAllowedLanguage = (lang: any): Preferences['language'] => (allowedLanguages as string[]).includes(lang) ? (lang as Preferences['language']) : 'en';
 
   // Notifications (channels + event groups)
@@ -122,7 +122,7 @@ export function SettingsPage({ onNavigate, onSearch }: SettingsPageProps) {
       const merged = { ...base, name, email, prefs: mergedPrefs };
       localStorage.setItem('assetflow:settings', JSON.stringify(merged));
       window.dispatchEvent(new Event('assetflow:prefs-updated'));
-    } catch {}
+    } catch { }
   };
 
   // Events
@@ -161,7 +161,7 @@ export function SettingsPage({ onNavigate, onSearch }: SettingsPageProps) {
         const parsed = JSON.parse(raw);
         if (parsed.name) setName(parsed.name);
         if (parsed.email) setEmail(parsed.email);
-  if (parsed.prefs) setPrefs((prev) => ({ ...prev, ...parsed.prefs, language: ensureAllowedLanguage(parsed.prefs.language) }));
+        if (parsed.prefs) setPrefs((prev) => ({ ...prev, ...parsed.prefs, language: ensureAllowedLanguage(parsed.prefs.language) }));
         if (parsed.notify) {
           setNotify(normalizeNotify(parsed.notify));
         }
@@ -185,7 +185,7 @@ export function SettingsPage({ onNavigate, onSearch }: SettingsPageProps) {
           webhookSecret: parsed.events.webhookSecret ?? ''
         });
       }
-    } catch {}
+    } catch { }
 
     // Load from server by user email
     (async () => {
@@ -235,7 +235,7 @@ export function SettingsPage({ onNavigate, onSearch }: SettingsPageProps) {
             setDbForm((v) => ({ ...v, host: data.host, port: String(data.port ?? 3306), user: data.user, database: data.database }));
           }
         }
-      } catch {}
+      } catch { }
     })();
   }, []);
 
@@ -357,44 +357,34 @@ export function SettingsPage({ onNavigate, onSearch }: SettingsPageProps) {
         transition={{ duration: 0.3 }}
         className="bg-white rounded-2xl border border-[rgba(0,0,0,0.08)] p-6 shadow-sm"
       >
-        <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <div className="grid grid-cols-1 md:grid-cols-5 gap-6">
-            {/* Left sidebar nav */}
-            <div className="md:col-span-1">
-              <div className="rounded-xl border border-[rgba(0,0,0,0.08)] bg-[#f8f9ff] p-2">
-                <TabsList className="flex flex-col gap-1 w-full">
-                  <TabsTrigger value="profile" className="justify-start w-full data-[state=active]:bg-white data-[state=active]:border data-[state=active]:border-[rgba(0,0,0,0.08)]">
-                    <User className="h-4 w-4 mr-2" /> Profile
-                  </TabsTrigger>
-                  <TabsTrigger value="preferences" className="justify-start w-full data-[state=active]:bg-white data-[state=active]:border data-[state=active]:border-[rgba(0,0,0,0.08)]">
-                    <SlidersHorizontal className="h-4 w-4 mr-2" /> Preferences
-                  </TabsTrigger>
-                  <TabsTrigger value="notifications" className="justify-start w-full data-[state=active]:bg-white data-[state=active]:border data-[state=active]:border-[rgba(0,0,0,0.08)]">
-                    <Bell className="h-4 w-4 mr-2" /> Notifications
-                  </TabsTrigger>
-                  <TabsTrigger value="appearance" className="justify-start w-full data-[state=active]:bg-white data-[state=active]:border data-[state=active]:border-[rgba(0,0,0,0.08)]">
-                    <Sun className="h-4 w-4 mr-2" /> Appearance
-                  </TabsTrigger>
-                  <TabsTrigger value="integrations" className="justify-start w-full data-[state=active]:bg-white data-[state=active]:border data-[state=active]:border-[rgba(0,0,0,0.08)]">
-                    <Server className="h-4 w-4 mr-2" /> Integrations
-                  </TabsTrigger>
-                  <TabsTrigger value="events" className="justify-start w-full data-[state=active]:bg-white data-[state=active]:border data-[state=active]:border-[rgba(0,0,0,0.08)]">
-                    <Rss className="h-4 w-4 mr-2" /> Events
-                  </TabsTrigger>
-                  <TabsTrigger value="database" className="justify-start w-full data-[state=active]:bg-white data-[state=active]:border data-[state=active]:border-[rgba(0,0,0,0.08)]">
-                    <Database className="h-4 w-4 mr-2" /> Database
-                  </TabsTrigger>
-                  <TabsTrigger value="assetFields" className="justify-start w-full data-[state=active]:bg-white data-[state=active]:border data-[state=active]:border-[rgba(0,0,0,0.08)]">
-                    <SlidersHorizontal className="h-4 w-4 mr-2" /> Asset Fields
-                  </TabsTrigger>
-                </TabsList>
-              </div>
-            </div>
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
+          <TabsList className="flex w-full flex-wrap gap-2 rounded-xl border border-[rgba(0,0,0,0.08)] bg-[#f8f9ff] p-2">
+            <TabsTrigger value="profile" className="flex items-center gap-2 px-3 py-2 data-[state=active]:bg-white data-[state=active]:border data-[state=active]:border-[rgba(0,0,0,0.08)]">
+              <User className="h-4 w-4 text-[#0ea5e9]" /> Profile
+            </TabsTrigger>
+            <TabsTrigger value="preferences" className="flex items-center gap-2 px-3 py-2 data-[state=active]:bg-white data-[state=active]:border data-[state=active]:border-[rgba(0,0,0,0.08)]">
+              <SlidersHorizontal className="h-4 w-4 text-[#22c55e]" /> Preferences
+            </TabsTrigger>
+            <TabsTrigger value="notifications" className="flex items-center gap-2 px-3 py-2 data-[state=active]:bg-white data-[state=active]:border data-[state=active]:border-[rgba(0,0,0,0.08)]">
+              <Bell className="h-4 w-4 text-[#f59e0b]" /> Notifications
+            </TabsTrigger>
+            <TabsTrigger value="integrations" className="flex items-center gap-2 px-3 py-2 data-[state=active]:bg-white data-[state=active]:border data-[state=active]:border-[rgba(0,0,0,0.08)]">
+              <Server className="h-4 w-4 text-[#6366f1]" /> Integrations
+            </TabsTrigger>
+            <TabsTrigger value="events" className="flex items-center gap-2 px-3 py-2 data-[state=active]:bg-white data-[state=active]:border data-[state=active]:border-[rgba(0,0,0,0.08)]">
+              <Rss className="h-4 w-4 text-[#f97316]" /> Events
+            </TabsTrigger>
+            <TabsTrigger value="database" className="flex items-center gap-2 px-3 py-2 data-[state=active]:bg-white data-[state=active]:border data-[state=active]:border-[rgba(0,0,0,0.08)]">
+              <Database className="h-4 w-4 text-[#10b981]" /> Database
+            </TabsTrigger>
+            <TabsTrigger value="assetFields" className="flex items-center gap-2 px-3 py-2 data-[state=active]:bg-white data-[state=active]:border data-[state=active]:border-[rgba(0,0,0,0.08)]">
+              <SlidersHorizontal className="h-4 w-4 text-[#8b5cf6]" /> Asset Fields
+            </TabsTrigger>
+          </TabsList>
 
-            {/* Right content */}
-            <div className="md:col-span-4">
           {/* Profile */}
           <TabsContent value="profile" className="mt-0">
+            {/* Profile */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
                 <label className="block text-sm font-medium text-[#1a1d2e] mb-2">Full Name</label>
@@ -416,8 +406,8 @@ export function SettingsPage({ onNavigate, onSearch }: SettingsPageProps) {
             </div>
           </TabsContent>
 
-          {/* Preferences */}
-          <TabsContent value="preferences" className="mt-0">
+          {/* Preferences + Appearance */}
+          <TabsContent value="preferences" className="mt-0 space-y-8">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
                 <label className="block text-sm font-medium text-[#1a1d2e] mb-2">Table Density</label>
@@ -425,85 +415,81 @@ export function SettingsPage({ onNavigate, onSearch }: SettingsPageProps) {
                   <button
                     type="button"
                     onClick={() => { setPrefs((p) => ({ ...p, density: 'ultra-compact' })); persistPrefs({ density: 'ultra-compact' }); }}
-                    className={`px-3 py-2 rounded-lg border ${
-                      prefs.density === 'ultra-compact' ? 'bg-[#e0e7ff] border-[#6366f1] text-[#1a1d2e]' : 'bg-[#f8f9ff] border-[rgba(0,0,0,0.08)] text-[#64748b]'
-                    }`}
+                    className={`px-3 py-2 rounded-lg border ${prefs.density === 'ultra-compact' ? 'bg-[#e0e7ff] border-[#6366f1] text-[#1a1d2e]' : 'bg-[#f8f9ff] border-[rgba(0,0,0,0.08)] text-[#64748b]'
+                      }`}
                   >
                     Ultra-compact
                   </button>
                   <button
                     type="button"
                     onClick={() => { setPrefs((p) => ({ ...p, density: 'compact' })); persistPrefs({ density: 'compact' }); }}
-                    className={`px-3 py-2 rounded-lg border ${
-                      prefs.density === 'compact' ? 'bg-[#e0e7ff] border-[#6366f1] text-[#1a1d2e]' : 'bg-[#f8f9ff] border-[rgba(0,0,0,0.08)] text-[#64748b]'
-                    }`}
+                    className={`px-3 py-2 rounded-lg border ${prefs.density === 'compact' ? 'bg-[#e0e7ff] border-[#6366f1] text-[#1a1d2e]' : 'bg-[#f8f9ff] border-[rgba(0,0,0,0.08)] text-[#64748b]'
+                      }`}
                   >
                     Compact
                   </button>
                   <button
                     type="button"
                     onClick={() => { setPrefs((p) => ({ ...p, density: 'comfortable' })); persistPrefs({ density: 'comfortable' }); }}
-                    className={`px-3 py-2 rounded-lg border ${
-                      prefs.density === 'comfortable' ? 'bg-[#e0e7ff] border-[#6366f1] text-[#1a1d2e]' : 'bg-[#f8f9ff] border-[rgba(0,0,0,0.08)] text-[#64748b]'
-                    }`}
+                    className={`px-3 py-2 rounded-lg border ${prefs.density === 'comfortable' ? 'bg-[#e0e7ff] border-[#6366f1] text-[#1a1d2e]' : 'bg-[#f8f9ff] border-[rgba(0,0,0,0.08)] text-[#64748b]'
+                      }`}
                   >
                     Comfortable
                   </button>
                 </div>
-                  <div>
-                    <label className="block text-sm font-medium text-[#1a1d2e] mb-2">Currency</label>
-                    <select
-                      className="w-full px-3 py-2 rounded-lg bg-[#f8f9ff] border border-[rgba(0,0,0,0.08)]"
-                      value={prefs.currency}
-                      onChange={(e) => setPrefs((p) => ({ ...p, currency: e.target.value as Preferences['currency'] }))}
-                    >
-                      {(['USD','EUR','GBP','INR','JPY','AUD','CAD','CNY','SGD'] as const).map((c) => (
-                        <option key={c} value={c}>{c}</option>
-                      ))}
-                    </select>
-                    <p className="text-xs text-[#94a3b8] mt-1">Used for cost and value displays.</p>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-[#1a1d2e] mb-2">Language</label>
-                    <select
-                      className="w-full px-3 py-2 rounded-lg bg-[#f8f9ff] border border-[rgba(0,0,0,0.08)]"
-                      value={prefs.language}
-                      onChange={(e) => setPrefs((p) => ({ ...p, language: e.target.value as Preferences['language'] }))}
-                    >
-                      {([
-                        { code: 'en', label: 'English' },
-                        { code: 'hi', label: 'हिंदी (Hindi)' },
-                        { code: 'ta', label: 'தமிழ் (Tamil)' },
-                        { code: 'te', label: 'తెలుగు (Telugu)' },
-                        { code: 'bn', label: 'বাংলা (Bengali)' },
-                        { code: 'mr', label: 'मराठी (Marathi)' },
-                        { code: 'gu', label: 'ગુજરાતી (Gujarati)' },
-                        { code: 'kn', label: 'ಕನ್ನಡ (Kannada)' },
-                        { code: 'ml', label: 'മലയാളം (Malayalam)' },
-                        { code: 'pa', label: 'ਪੰਜਾਬੀ (Punjabi)' },
-                        { code: 'or', label: 'ଓଡ଼ିଆ (Odia)' },
-                        { code: 'as', label: 'অসমীয়া (Assamese)' },
-                        { code: 'sa', label: 'संस्कृतम् (Sanskrit)' },
-                        { code: 'kok', label: 'कोंकणी (Konkani)' },
-                        { code: 'ur', label: 'اُردو (Urdu)' },
-                        { code: 'ar', label: 'العربية (Arabic)' },
-                      ] as const).map((lng) => (
-                        <option key={lng.code} value={lng.code}>{lng.label}</option>
-                      ))}
-                    </select>
-                    <p className="text-xs text-[#94a3b8] mt-1">Applies to UI text (requires translation files to fully localize).</p>
-                  </div>
+                <div>
+                  <label className="block text-sm font-medium text-[#1a1d2e] mb-2">Currency</label>
+                  <select
+                    className="w-full px-3 py-2 rounded-lg bg-[#f8f9ff] border border-[rgba(0,0,0,0.08)]"
+                    value={prefs.currency}
+                    onChange={(e) => setPrefs((p) => ({ ...p, currency: e.target.value as Preferences['currency'] }))}
+                  >
+                    {(['USD', 'EUR', 'GBP', 'INR', 'JPY', 'AUD', 'CAD', 'CNY', 'SGD'] as const).map((c) => (
+                      <option key={c} value={c}>{c}</option>
+                    ))}
+                  </select>
+                  <p className="text-xs text-[#94a3b8] mt-1">Used for cost and value displays.</p>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-[#1a1d2e] mb-2">Language</label>
+                  <select
+                    className="w-full px-3 py-2 rounded-lg bg-[#f8f9ff] border border-[rgba(0,0,0,0.08)]"
+                    value={prefs.language}
+                    onChange={(e) => setPrefs((p) => ({ ...p, language: e.target.value as Preferences['language'] }))}
+                  >
+                    {([
+                      { code: 'en', label: 'English' },
+                      { code: 'hi', label: 'हिंदी (Hindi)' },
+                      { code: 'ta', label: 'தமிழ் (Tamil)' },
+                      { code: 'te', label: 'తెలుగు (Telugu)' },
+                      { code: 'bn', label: 'বাংলা (Bengali)' },
+                      { code: 'mr', label: 'मराठी (Marathi)' },
+                      { code: 'gu', label: 'ગુજરાતી (Gujarati)' },
+                      { code: 'kn', label: 'ಕನ್ನಡ (Kannada)' },
+                      { code: 'ml', label: 'മലയാളം (Malayalam)' },
+                      { code: 'pa', label: 'ਪੰਜਾਬੀ (Punjabi)' },
+                      { code: 'or', label: 'ଓଡ଼ିଆ (Odia)' },
+                      { code: 'as', label: 'অসমীয়া (Assamese)' },
+                      { code: 'sa', label: 'संस्कृतम् (Sanskrit)' },
+                      { code: 'kok', label: 'कोंकणी (Konkani)' },
+                      { code: 'ur', label: 'اُردو (Urdu)' },
+                      { code: 'ar', label: 'العربية (Arabic)' },
+                    ] as const).map((lng) => (
+                      <option key={lng.code} value={lng.code}>{lng.label}</option>
+                    ))}
+                  </select>
+                  <p className="text-xs text-[#94a3b8] mt-1">Applies to UI text (requires translation files to fully localize).</p>
+                </div>
               </div>
               <div>
                 <label className="block text-sm font-medium text-[#1a1d2e] mb-2">Date Format</label>
                 <div className="flex flex-wrap gap-3">
-                  {(['YYYY-MM-DD','MM/DD/YYYY','DD/MM/YYYY'] as const).map((fmt) => (
+                  {(['YYYY-MM-DD', 'MM/DD/YYYY', 'DD/MM/YYYY'] as const).map((fmt) => (
                     <button
                       key={fmt}
                       onClick={() => setPrefs((p) => ({ ...p, dateFormat: fmt }))}
-                      className={`px-3 py-2 rounded-lg border ${
-                        prefs.dateFormat === fmt ? 'bg-[#e0e7ff] border-[#6366f1] text-[#1a1d2e]' : 'bg-[#f8f9ff] border-[rgba(0,0,0,0.08)] text-[#64748b]'
-                      }`}
+                      className={`px-3 py-2 rounded-lg border ${prefs.dateFormat === fmt ? 'bg-[#e0e7ff] border-[#6366f1] text-[#1a1d2e]' : 'bg-[#f8f9ff] border-[rgba(0,0,0,0.08)] text-[#64748b]'
+                        }`}
                     >
                       {fmt}
                     </button>
@@ -511,472 +497,506 @@ export function SettingsPage({ onNavigate, onSearch }: SettingsPageProps) {
                 </div>
               </div>
             </div>
+
+            <div>
+              <h3 className="text-lg font-semibold text-[#1a1d2e]">Theme</h3>
+              <p className="text-sm text-[#64748b] mb-4">Choose how AssetFlow should look on this device.</p>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <button
+                  onClick={() => setMode('light')}
+                  className={`p-6 rounded-xl border text-left transition ${mode === 'light' ? 'bg-[#e0e7ff] border-[#6366f1]' : 'bg-[#f8f9ff] border-[rgba(0,0,0,0.08)]'
+                    }`}
+                >
+                  <Sun className="h-5 w-5 mb-2" />
+                  <p className="font-medium text-[#1a1d2e]">Light</p>
+                  <p className="text-sm text-[#64748b]">Bright appearance</p>
+                </button>
+                <button
+                  onClick={() => setMode('dark')}
+                  className={`p-6 rounded-xl border text-left transition ${mode === 'dark' ? 'bg-[#e0e7ff] border-[#6366f1]' : 'bg-[#f8f9ff] border-[rgba(0,0,0,0.08)]'
+                    }`}
+                >
+                  <Moon className="h-5 w-5 mb-2" />
+                  <p className="font-medium text-[#1a1d2e]">Dark</p>
+                  <p className="text-sm text-[#64748b]">Reduced eye strain</p>
+                </button>
+                <button
+                  onClick={() => setMode('system')}
+                  className={`p-6 rounded-xl border text-left transition ${mode === 'system' ? 'bg-[#e0e7ff] border-[#6366f1]' : 'bg-[#f8f9ff] border-[rgba(0,0,0,0.08)]'
+                    }`}
+                >
+                  <Laptop className="h-5 w-5 mb-2" />
+                  <p className="font-medium text-[#1a1d2e]">System</p>
+                  <p className="text-sm text-[#64748b]">Follow OS setting</p>
+                </button>
+              </div>
+              <p className="text-sm text-[#94a3b8] mt-4">
+                Current theme: <span className="font-medium text-[#1a1d2e]">{(mode === 'system' ? systemTheme : mode) || 'system'}</span>
+              </p>
+            </div>
           </TabsContent>
 
-          {/* Notifications */}
+            {/* Notifications */}
           <TabsContent value="notifications" className="mt-0">
-            <form className="space-y-6" onSubmit={(e) => { e.preventDefault(); handleSave(); }}>
+              <form className="space-y-6" onSubmit={(e) => { e.preventDefault(); handleSave(); }}>
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Notification Channels</CardTitle>
+                    <CardDescription>Choose how you want to be notified.</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      <div className="flex items-center justify-between p-4 border rounded-xl bg-[#f8f9ff] border-[rgba(0,0,0,0.08)]">
+                        <div>
+                          <p className="font-medium text-[#1a1d2e]">Email</p>
+                          <p className="text-sm text-[#64748b]">Get notifications via email</p>
+                        </div>
+                        <Switch
+                          checked={notify.channels.email}
+                          onCheckedChange={(val) => setNotify((n) => ({ ...n, channels: { ...n.channels, email: !!val } }))}
+                          aria-label="Toggle email notifications"
+                        />
+                      </div>
+                      <div className="flex items-center justify-between p-4 border rounded-xl bg-[#f8f9ff] border-[rgba(0,0,0,0.08)] opacity-70">
+                        <div>
+                          <p className="font-medium text-[#1a1d2e]">Push Notifications</p>
+                          <p className="text-sm text-[#64748b]">Not available yet</p>
+                        </div>
+                        <Switch checked={false} disabled aria-label="Push notifications disabled" />
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Event Notifications</CardTitle>
+                    <CardDescription>Choose which events trigger notifications.</CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    {/* Assets */}
+                    <div className="border rounded-xl p-4">
+                      <p className="font-semibold text-[#1a1d2e] mb-3">Assets</p>
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                        <div className="flex items-center justify-between p-3 rounded-lg bg-[#f8f9ff]">
+                          <span className="text-sm">New Asset Added</span>
+                          <Switch checked={notify.events.assets.newAsset} onCheckedChange={(v) => setNotify((n) => ({ ...n, events: { ...n.events, assets: { ...n.events.assets, newAsset: !!v } } }))} />
+                        </div>
+                        <div className="flex items-center justify-between p-3 rounded-lg bg-[#f8f9ff]">
+                          <span className="text-sm">Asset Status Change</span>
+                          <Switch checked={notify.events.assets.statusChange} onCheckedChange={(v) => setNotify((n) => ({ ...n, events: { ...n.events, assets: { ...n.events.assets, statusChange: !!v } } }))} />
+                        </div>
+                        <div className="flex items-center justify-between p-3 rounded-lg bg-[#f8f9ff]">
+                          <span className="text-sm">Maintenance Due</span>
+                          <Switch checked={notify.events.assets.maintenanceDue} onCheckedChange={(v) => setNotify((n) => ({ ...n, events: { ...n.events, assets: { ...n.events.assets, maintenanceDue: !!v } } }))} />
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Licenses */}
+                    <div className="border rounded-xl p-4">
+                      <p className="font-semibold text-[#1a1d2e] mb-3">Licenses</p>
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                        <div className="flex items-center justify-between p-3 rounded-lg bg-[#f8f9ff]">
+                          <span className="text-sm">License Expiring Soon</span>
+                          <Switch checked={notify.events.licenses.expiringSoon} onCheckedChange={(v) => setNotify((n) => ({ ...n, events: { ...n.events, licenses: { ...n.events.licenses, expiringSoon: !!v } } }))} />
+                        </div>
+                        <div className="flex items-center justify-between p-3 rounded-lg bg-[#f8f9ff]">
+                          <span className="text-sm">License Expired</span>
+                          <Switch checked={notify.events.licenses.expired} onCheckedChange={(v) => setNotify((n) => ({ ...n, events: { ...n.events, licenses: { ...n.events.licenses, expired: !!v } } }))} />
+                        </div>
+                        <div className="flex items-center justify-between p-3 rounded-lg bg-[#f8f9ff]">
+                          <span className="text-sm">Compliance Status Change</span>
+                          <Switch checked={notify.events.licenses.complianceChange} onCheckedChange={(v) => setNotify((n) => ({ ...n, events: { ...n.events, licenses: { ...n.events.licenses, complianceChange: !!v } } }))} />
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Vendors */}
+                    <div className="border rounded-xl p-4">
+                      <p className="font-semibold text-[#1a1d2e] mb-3">Vendors</p>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        <div className="flex items-center justify-between p-3 rounded-lg bg-[#f8f9ff]">
+                          <span className="text-sm">Contract Nears Renewal</span>
+                          <Switch checked={notify.events.vendors.contractRenewal} onCheckedChange={(v) => setNotify((n) => ({ ...n, events: { ...n.events, vendors: { ...n.events.vendors, contractRenewal: !!v } } }))} />
+                        </div>
+                        <div className="flex items-center justify-between p-3 rounded-lg bg-[#f8f9ff]">
+                          <span className="text-sm">New Vendor Approved</span>
+                          <Switch checked={notify.events.vendors.newVendorApproved} onCheckedChange={(v) => setNotify((n) => ({ ...n, events: { ...n.events, vendors: { ...n.events.vendors, newVendorApproved: !!v } } }))} />
+                        </div>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                <div className="flex justify-end">
+                  <Button type="submit" className="bg-gradient-to-r from-[#6366f1] to-[#8b5cf6] text-white hover:shadow-lg hover:shadow-[#6366f1]/30">Save Preferences</Button>
+                </div>
+              </form>
+            </TabsContent>
+            {/* Integrations */}
+          <TabsContent value="integrations" className="mt-0">
               <Card>
                 <CardHeader>
-                  <CardTitle>Notification Channels</CardTitle>
-                  <CardDescription>Choose how you want to be notified.</CardDescription>
+                  <CardTitle>Automated Asset Discovery</CardTitle>
+                  <CardDescription>Connect to external systems to discover and track assets automatically.</CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div className="flex items-center justify-between p-4 border rounded-xl bg-[#f8f9ff] border-[rgba(0,0,0,0.08)]">
-                      <div>
-                        <p className="font-medium text-[#1a1d2e]">Email</p>
-                        <p className="text-sm text-[#64748b]">Get notifications via email</p>
-                      </div>
-                      <Switch
-                        checked={notify.channels.email}
-                        onCheckedChange={(val) => setNotify((n) => ({ ...n, channels: { ...n.channels, email: !!val } }))}
-                        aria-label="Toggle email notifications"
-                      />
-                    </div>
-                    <div className="flex items-center justify-between p-4 border rounded-xl bg-[#f8f9ff] border-[rgba(0,0,0,0.08)] opacity-70">
-                      <div>
-                        <p className="font-medium text-[#1a1d2e]">Push Notifications</p>
-                        <p className="text-sm text-[#64748b]">Not available yet</p>
-                      </div>
-                      <Switch checked={false} disabled aria-label="Push notifications disabled" />
-                    </div>
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                    {integrations.map((it) => {
+                      const Icon = it.icon;
+                      const isConnected = connected[it.id];
+                      return (
+                        <div key={it.id} className="flex items-center justify-between p-4 border rounded-xl bg-[#f8f9ff] border-[rgba(0,0,0,0.08)]">
+                          <div className="flex items-center gap-3">
+                            <div className="h-10 w-10 rounded-lg bg-white border border-[rgba(0,0,0,0.06)] flex items-center justify-center">
+                              <Icon className="h-5 w-5 text-[#6366f1]" />
+                            </div>
+                            <div>
+                              <p className="font-medium text-[#1a1d2e] flex items-center gap-2">
+                                {it.name}
+                                {isConnected && (
+                                  <Badge variant="secondary" className="bg-[#e0f2f1] text-[#065f46] border-[#10b981]/20">
+                                    <Check className="h-3 w-3" /> Connected
+                                  </Badge>
+                                )}
+                              </p>
+                              <p className="text-sm text-[#64748b]">{it.description}</p>
+                            </div>
+                          </div>
+
+                          {!isConnected ? (
+                            <Dialog open={dialogOpenFor === it.id} onOpenChange={(o) => setDialogOpenFor(o ? it.id : null)}>
+                              <DialogTrigger asChild>
+                                <Button className="bg-gradient-to-r from-[#6366f1] to-[#8b5cf6] text-white hover:shadow-lg hover:shadow-[#6366f1]/30">Connect</Button>
+                              </DialogTrigger>
+                              <DialogContent>
+                                <DialogHeader>
+                                  <DialogTitle>Connect {it.name}</DialogTitle>
+                                  <DialogDescription>Enter credentials to authorize this integration.</DialogDescription>
+                                </DialogHeader>
+                                <div className="space-y-4">
+                                  <div className="space-y-2">
+                                    <Label htmlFor="apiKey">API Key</Label>
+                                    <Input id="apiKey" type="password" value={apiKey} onChange={(e) => setApiKey(e.target.value)} placeholder="••••••••" />
+                                  </div>
+                                  <div className="space-y-2">
+                                    <Label htmlFor="endpoint">Endpoint URL (optional)</Label>
+                                    <Input id="endpoint" value={endpointUrl} onChange={(e) => setEndpointUrl(e.target.value)} placeholder="https://api.example.com" />
+                                  </div>
+                                </div>
+                                <DialogFooter className="mt-4">
+                                  <Button variant="outline" type="button" className="border-[#6366f1] text-[#6366f1] hover:bg-[#eef2ff]" onClick={() => setDialogOpenFor(null)}>Cancel</Button>
+                                  <Button type="button" className="bg-gradient-to-r from-[#6366f1] to-[#8b5cf6] text-white hover:shadow-lg hover:shadow-[#6366f1]/30" onClick={() => handleConnect(it.id)}>Connect</Button>
+                                </DialogFooter>
+                              </DialogContent>
+                            </Dialog>
+                          ) : (
+                            <Button variant="outline" className="border-[#ef4444] text-[#ef4444] hover:bg-[#fee2e2]" onClick={() => setConnected((c) => ({ ...c, [it.id]: false }))}>Disconnect</Button>
+                          )}
+                        </div>
+                      );
+                    })}
                   </div>
                 </CardContent>
               </Card>
+            </TabsContent>
 
-              <Card>
-                <CardHeader>
-                  <CardTitle>Event Notifications</CardTitle>
-                  <CardDescription>Choose which events trigger notifications.</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  {/* Assets */}
-                  <div className="border rounded-xl p-4">
-                    <p className="font-semibold text-[#1a1d2e] mb-3">Assets</p>
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                      <div className="flex items-center justify-between p-3 rounded-lg bg-[#f8f9ff]">
-                        <span className="text-sm">New Asset Added</span>
-                        <Switch checked={notify.events.assets.newAsset} onCheckedChange={(v) => setNotify((n) => ({ ...n, events: { ...n.events, assets: { ...n.events.assets, newAsset: !!v } } }))} />
-                      </div>
-                      <div className="flex items-center justify-between p-3 rounded-lg bg-[#f8f9ff]">
-                        <span className="text-sm">Asset Status Change</span>
-                        <Switch checked={notify.events.assets.statusChange} onCheckedChange={(v) => setNotify((n) => ({ ...n, events: { ...n.events, assets: { ...n.events.assets, statusChange: !!v } } }))} />
-                      </div>
-                      <div className="flex items-center justify-between p-3 rounded-lg bg-[#f8f9ff]">
-                        <span className="text-sm">Maintenance Due</span>
-                        <Switch checked={notify.events.assets.maintenanceDue} onCheckedChange={(v) => setNotify((n) => ({ ...n, events: { ...n.events, assets: { ...n.events.assets, maintenanceDue: !!v } } }))} />
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Licenses */}
-                  <div className="border rounded-xl p-4">
-                    <p className="font-semibold text-[#1a1d2e] mb-3">Licenses</p>
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                      <div className="flex items-center justify-between p-3 rounded-lg bg-[#f8f9ff]">
-                        <span className="text-sm">License Expiring Soon</span>
-                        <Switch checked={notify.events.licenses.expiringSoon} onCheckedChange={(v) => setNotify((n) => ({ ...n, events: { ...n.events, licenses: { ...n.events.licenses, expiringSoon: !!v } } }))} />
-                      </div>
-                      <div className="flex items-center justify-between p-3 rounded-lg bg-[#f8f9ff]">
-                        <span className="text-sm">License Expired</span>
-                        <Switch checked={notify.events.licenses.expired} onCheckedChange={(v) => setNotify((n) => ({ ...n, events: { ...n.events, licenses: { ...n.events.licenses, expired: !!v } } }))} />
-                      </div>
-                      <div className="flex items-center justify-between p-3 rounded-lg bg-[#f8f9ff]">
-                        <span className="text-sm">Compliance Status Change</span>
-                        <Switch checked={notify.events.licenses.complianceChange} onCheckedChange={(v) => setNotify((n) => ({ ...n, events: { ...n.events, licenses: { ...n.events.licenses, complianceChange: !!v } } }))} />
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Vendors */}
-                  <div className="border rounded-xl p-4">
-                    <p className="font-semibold text-[#1a1d2e] mb-3">Vendors</p>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                      <div className="flex items-center justify-between p-3 rounded-lg bg-[#f8f9ff]">
-                        <span className="text-sm">Contract Nears Renewal</span>
-                        <Switch checked={notify.events.vendors.contractRenewal} onCheckedChange={(v) => setNotify((n) => ({ ...n, events: { ...n.events, vendors: { ...n.events.vendors, contractRenewal: !!v } } }))} />
-                      </div>
-                      <div className="flex items-center justify-between p-3 rounded-lg bg-[#f8f9ff]">
-                        <span className="text-sm">New Vendor Approved</span>
-                        <Switch checked={notify.events.vendors.newVendorApproved} onCheckedChange={(v) => setNotify((n) => ({ ...n, events: { ...n.events, vendors: { ...n.events.vendors, newVendorApproved: !!v } } }))} />
-                      </div>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-
-              <div className="flex justify-end">
-                <Button type="submit">Save Preferences</Button>
+            {/* Appearance */}
+            <TabsContent value="appearance" className="mt-0">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <button
+                  onClick={() => setMode('light')}
+                  className={`p-6 rounded-xl border text-left transition ${mode === 'light' ? 'bg-[#e0e7ff] border-[#6366f1]' : 'bg-[#f8f9ff] border-[rgba(0,0,0,0.08)]'
+                    }`}
+                >
+                  <Sun className="h-5 w-5 mb-2" />
+                  <p className="font-medium text-[#1a1d2e]">Light</p>
+                  <p className="text-sm text-[#64748b]">Bright appearance</p>
+                </button>
+                <button
+                  onClick={() => setMode('dark')}
+                  className={`p-6 rounded-xl border text-left transition ${mode === 'dark' ? 'bg-[#e0e7ff] border-[#6366f1]' : 'bg-[#f8f9ff] border-[rgba(0,0,0,0.08)]'
+                    }`}
+                >
+                  <Moon className="h-5 w-5 mb-2" />
+                  <p className="font-medium text-[#1a1d2e]">Dark</p>
+                  <p className="text-sm text-[#64748b]">Reduced eye strain</p>
+                </button>
+                <button
+                  onClick={() => setMode('system')}
+                  className={`p-6 rounded-xl border text-left transition ${mode === 'system' ? 'bg-[#e0e7ff] border-[#6366f1]' : 'bg-[#f8f9ff] border-[rgba(0,0,0,0.08)]'
+                    }`}
+                >
+                  <Laptop className="h-5 w-5 mb-2" />
+                  <p className="font-medium text-[#1a1d2e]">System</p>
+                  <p className="text-sm text-[#64748b]">Follow OS setting</p>
+                </button>
               </div>
-            </form>
-          </TabsContent>
-          {/* Integrations */}
-          <TabsContent value="integrations" className="mt-0">
-            <Card>
-              <CardHeader>
-                <CardTitle>Automated Asset Discovery</CardTitle>
-                <CardDescription>Connect to external systems to discover and track assets automatically.</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                  {integrations.map((it) => {
-                    const Icon = it.icon;
-                    const isConnected = connected[it.id];
-                    return (
-                      <div key={it.id} className="flex items-center justify-between p-4 border rounded-xl bg-[#f8f9ff] border-[rgba(0,0,0,0.08)]">
-                        <div className="flex items-center gap-3">
-                          <div className="h-10 w-10 rounded-lg bg-white border border-[rgba(0,0,0,0.06)] flex items-center justify-center">
-                            <Icon className="h-5 w-5 text-[#6366f1]" />
+              <p className="text-sm text-[#94a3b8] mt-4">
+                Current theme: <span className="font-medium text-[#1a1d2e]">{(mode === 'system' ? systemTheme : mode) || 'system'}</span>
+              </p>
+            </TabsContent>
+
+            {/* Events */}
+          <TabsContent value="events" className="mt-0">
+              <div className="space-y-6">
+                {/* Enable */}
+                <div className="flex items-center justify-between p-4 border rounded-xl bg-[#f8f9ff] border-[rgba(0,0,0,0.08)]">
+                  <div>
+                    <p className="font-medium text-[#1a1d2e]">Enable Event Delivery</p>
+                    <p className="text-sm text-[#64748b]">Send AssetFlow events to your system</p>
+                  </div>
+                  <Switch checked={events.enabled} onCheckedChange={(v) => setEvents((e) => ({ ...e, enabled: !!v }))} />
+                </div>
+
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                  {/* REST Webhook Card */}
+                  <Card>
+                    <CardHeader>
+                      <div className="flex items-center gap-2">
+                        <Rss className="h-5 w-5 text-[#6366f1]" />
+                        <CardTitle>REST API Endpoint</CardTitle>
+                      </div>
+                      <CardDescription>Send events via HTTP POST/PUT to your endpoint.</CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      <div>
+                        <Label className="mb-1 block">Endpoint URL</Label>
+                        <Input placeholder="https://example.com/webhook" value={events.webhookUrl} onChange={(e) => setEvents((v) => ({ ...v, webhookUrl: e.target.value }))} />
+                      </div>
+                      <div>
+                        <Label className="mb-1 block">HTTP Method</Label>
+                        <select
+                          className="w-full px-3 py-2 rounded-lg bg-[#f8f9ff] border border-[rgba(0,0,0,0.08)]"
+                          value={events.webhookMethod}
+                          onChange={(e) => setEvents((v) => ({ ...v, webhookMethod: e.target.value as 'POST' | 'PUT' }))}
+                        >
+                          <option value="POST">POST</option>
+                          <option value="PUT">PUT</option>
+                        </select>
+                      </div>
+                      <div>
+                        <Label className="mb-1 block">Headers (JSON)</Label>
+                        <textarea
+                          rows={4}
+                          className={`w-full px-3 py-2 rounded-lg bg-[#f8f9ff] border ${headersError ? 'border-red-400' : 'border-[rgba(0,0,0,0.08)]'} focus:outline-none focus:ring-2 focus:ring-[#6366f1]/20`}
+                          value={events.webhookHeaders}
+                          onChange={(e) => {
+                            setEvents((v) => ({ ...v, webhookHeaders: e.target.value }));
+                            setHeadersError(null);
+                          }}
+                        />
+                        {headersError && <p className="text-sm text-red-500 mt-1">{headersError}</p>}
+                      </div>
+                      <div>
+                        <Label className="mb-1 block">Secret Token (optional)</Label>
+                        <Input type="password" placeholder="Used to sign requests (e.g., HMAC)" value={events.webhookSecret} onChange={(e) => setEvents((v) => ({ ...v, webhookSecret: e.target.value }))} />
+                      </div>
+                      <div className="flex justify-end">
+                        <Button type="button" className="bg-gradient-to-r from-[#6366f1] to-[#8b5cf6] text-white hover:shadow-lg hover:shadow-[#6366f1]/30" onClick={saveRestSettings}>Save REST Settings</Button>
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  {/* Kafka Card */}
+                  <Card>
+                    <CardHeader>
+                      <div className="flex items-center gap-2">
+                        <Send className="h-5 w-5 text-[#6366f1]" />
+                        <CardTitle>Apache Kafka</CardTitle>
+                      </div>
+                      <CardDescription>Publish events to a Kafka topic.</CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      <div>
+                        <Label className="mb-1 block">Bootstrap Servers</Label>
+                        <Input placeholder="broker1:9092,broker2:9092" value={events.kafkaBrokers} onChange={(e) => setEvents((v) => ({ ...v, kafkaBrokers: e.target.value }))} />
+                      </div>
+                      <div>
+                        <Label className="mb-1 block">Topic Name</Label>
+                        <Input placeholder="assetflow.events" value={events.kafkaTopic} onChange={(e) => setEvents((v) => ({ ...v, kafkaTopic: e.target.value }))} />
+                      </div>
+                      <div>
+                        <Label className="mb-1 block">Client ID</Label>
+                        <Input placeholder="assetflow-ui" value={events.kafkaClientId} onChange={(e) => setEvents((v) => ({ ...v, kafkaClientId: e.target.value }))} />
+                      </div>
+                      <div>
+                        <Label className="mb-1 block">SASL Mechanism</Label>
+                        <select
+                          className="w-full px-3 py-2 rounded-lg bg-[#f8f9ff] border border-[rgba(0,0,0,0.08)]"
+                          value={events.kafkaSaslMechanism}
+                          onChange={(e) => setEvents((v) => ({ ...v, kafkaSaslMechanism: e.target.value as EventsConfig['kafkaSaslMechanism'] }))}
+                        >
+                          <option value="none">None</option>
+                          <option value="plain">PLAIN</option>
+                          <option value="scram-sha-256">SCRAM-SHA-256</option>
+                          <option value="scram-sha-512">SCRAM-SHA-512</option>
+                        </select>
+                      </div>
+                      {events.kafkaSaslMechanism !== 'none' && (
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <div>
+                            <Label className="mb-1 block">Username</Label>
+                            <Input value={events.kafkaUsername} onChange={(e) => setEvents((v) => ({ ...v, kafkaUsername: e.target.value }))} />
                           </div>
                           <div>
-                            <p className="font-medium text-[#1a1d2e] flex items-center gap-2">
-                              {it.name}
-                              {isConnected && (
-                                <Badge variant="secondary" className="bg-[#e0f2f1] text-[#065f46] border-[#10b981]/20">
-                                  <Check className="h-3 w-3" /> Connected
-                                </Badge>
-                              )}
-                            </p>
-                            <p className="text-sm text-[#64748b]">{it.description}</p>
+                            <Label className="mb-1 block">Password</Label>
+                            <Input type="password" value={events.kafkaPassword} onChange={(e) => setEvents((v) => ({ ...v, kafkaPassword: e.target.value }))} />
                           </div>
                         </div>
-
-                        {!isConnected ? (
-                          <Dialog open={dialogOpenFor === it.id} onOpenChange={(o) => setDialogOpenFor(o ? it.id : null)}>
-                            <DialogTrigger asChild>
-                              <Button>Connect</Button>
-                            </DialogTrigger>
-                            <DialogContent>
-                              <DialogHeader>
-                                <DialogTitle>Connect {it.name}</DialogTitle>
-                                <DialogDescription>Enter credentials to authorize this integration.</DialogDescription>
-                              </DialogHeader>
-                              <div className="space-y-4">
-                                <div className="space-y-2">
-                                  <Label htmlFor="apiKey">API Key</Label>
-                                  <Input id="apiKey" type="password" value={apiKey} onChange={(e) => setApiKey(e.target.value)} placeholder="••••••••" />
-                                </div>
-                                <div className="space-y-2">
-                                  <Label htmlFor="endpoint">Endpoint URL (optional)</Label>
-                                  <Input id="endpoint" value={endpointUrl} onChange={(e) => setEndpointUrl(e.target.value)} placeholder="https://api.example.com" />
-                                </div>
-                              </div>
-                              <DialogFooter className="mt-4">
-                                <Button variant="outline" type="button" onClick={() => setDialogOpenFor(null)}>Cancel</Button>
-                                <Button type="button" onClick={() => handleConnect(it.id)}>Connect</Button>
-                              </DialogFooter>
-                            </DialogContent>
-                          </Dialog>
-                        ) : (
-                          <Button variant="outline" onClick={() => setConnected((c) => ({ ...c, [it.id]: false }))}>Disconnect</Button>
-                        )}
+                      )}
+                      <div className="flex justify-end">
+                        <Button type="button" className="bg-gradient-to-r from-[#6366f1] to-[#8b5cf6] text-white hover:shadow-lg hover:shadow-[#6366f1]/30" onClick={saveKafkaSettings}>Save Kafka Settings</Button>
                       </div>
-                    );
-                  })}
+                    </CardContent>
+                  </Card>
                 </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          {/* Appearance */}
-          <TabsContent value="appearance" className="mt-0">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              <button
-                onClick={() => setMode('light')}
-                className={`p-6 rounded-xl border text-left transition ${
-                  mode === 'light' ? 'bg-[#e0e7ff] border-[#6366f1]' : 'bg-[#f8f9ff] border-[rgba(0,0,0,0.08)]'
-                }`}
-              >
-                <Sun className="h-5 w-5 mb-2" />
-                <p className="font-medium text-[#1a1d2e]">Light</p>
-                <p className="text-sm text-[#64748b]">Bright appearance</p>
-              </button>
-              <button
-                onClick={() => setMode('dark')}
-                className={`p-6 rounded-xl border text-left transition ${
-                  mode === 'dark' ? 'bg-[#e0e7ff] border-[#6366f1]' : 'bg-[#f8f9ff] border-[rgba(0,0,0,0.08)]'
-                }`}
-              >
-                <Moon className="h-5 w-5 mb-2" />
-                <p className="font-medium text-[#1a1d2e]">Dark</p>
-                <p className="text-sm text-[#64748b]">Reduced eye strain</p>
-              </button>
-              <button
-                onClick={() => setMode('system')}
-                className={`p-6 rounded-xl border text-left transition ${
-                  mode === 'system' ? 'bg-[#e0e7ff] border-[#6366f1]' : 'bg-[#f8f9ff] border-[rgba(0,0,0,0.08)]'
-                }`}
-              >
-                <Laptop className="h-5 w-5 mb-2" />
-                <p className="font-medium text-[#1a1d2e]">System</p>
-                <p className="text-sm text-[#64748b]">Follow OS setting</p>
-              </button>
-            </div>
-            <p className="text-sm text-[#94a3b8] mt-4">
-              Current theme: <span className="font-medium text-[#1a1d2e]">{(mode === 'system' ? systemTheme : mode) || 'system'}</span>
-            </p>
-          </TabsContent>
-
-          {/* Events */}
-          <TabsContent value="events" className="mt-0">
-            <div className="space-y-6">
-              {/* Enable */}
-              <div className="flex items-center justify-between p-4 border rounded-xl bg-[#f8f9ff] border-[rgba(0,0,0,0.08)]">
-                <div>
-                  <p className="font-medium text-[#1a1d2e]">Enable Event Delivery</p>
-                  <p className="text-sm text-[#64748b]">Send AssetFlow events to your system</p>
-                </div>
-                <Switch checked={events.enabled} onCheckedChange={(v) => setEvents((e) => ({ ...e, enabled: !!v }))} />
               </div>
+            </TabsContent>
 
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                {/* REST Webhook Card */}
-                <Card>
-                  <CardHeader>
-                    <div className="flex items-center gap-2">
-                      <Rss className="h-5 w-5 text-[#6366f1]" />
-                      <CardTitle>REST API Endpoint</CardTitle>
-                    </div>
-                    <CardDescription>Send events via HTTP POST/PUT to your endpoint.</CardDescription>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    <div>
-                      <Label className="mb-1 block">Endpoint URL</Label>
-                      <Input placeholder="https://example.com/webhook" value={events.webhookUrl} onChange={(e) => setEvents((v) => ({ ...v, webhookUrl: e.target.value }))} />
-                    </div>
-                    <div>
-                      <Label className="mb-1 block">HTTP Method</Label>
-                      <select
-                        className="w-full px-3 py-2 rounded-lg bg-[#f8f9ff] border border-[rgba(0,0,0,0.08)]"
-                        value={events.webhookMethod}
-                        onChange={(e) => setEvents((v) => ({ ...v, webhookMethod: e.target.value as 'POST' | 'PUT' }))}
-                      >
-                        <option value="POST">POST</option>
-                        <option value="PUT">PUT</option>
-                      </select>
-                    </div>
-                    <div>
-                      <Label className="mb-1 block">Headers (JSON)</Label>
-                      <textarea
-                        rows={4}
-                        className={`w-full px-3 py-2 rounded-lg bg-[#f8f9ff] border ${headersError ? 'border-red-400' : 'border-[rgba(0,0,0,0.08)]'} focus:outline-none focus:ring-2 focus:ring-[#6366f1]/20`}
-                        value={events.webhookHeaders}
-                        onChange={(e) => {
-                          setEvents((v) => ({ ...v, webhookHeaders: e.target.value }));
-                          setHeadersError(null);
-                        }}
-                      />
-                      {headersError && <p className="text-sm text-red-500 mt-1">{headersError}</p>}
-                    </div>
-                    <div>
-                      <Label className="mb-1 block">Secret Token (optional)</Label>
-                      <Input type="password" placeholder="Used to sign requests (e.g., HMAC)" value={events.webhookSecret} onChange={(e) => setEvents((v) => ({ ...v, webhookSecret: e.target.value }))} />
-                    </div>
-                    <div className="flex justify-end">
-                      <Button type="button" onClick={saveRestSettings}>Save REST Settings</Button>
-                    </div>
-                  </CardContent>
-                </Card>
-
-                {/* Kafka Card */}
-                <Card>
-                  <CardHeader>
-                    <div className="flex items-center gap-2">
-                      <Send className="h-5 w-5 text-[#6366f1]" />
-                      <CardTitle>Apache Kafka</CardTitle>
-                    </div>
-                    <CardDescription>Publish events to a Kafka topic.</CardDescription>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    <div>
-                      <Label className="mb-1 block">Bootstrap Servers</Label>
-                      <Input placeholder="broker1:9092,broker2:9092" value={events.kafkaBrokers} onChange={(e) => setEvents((v) => ({ ...v, kafkaBrokers: e.target.value }))} />
-                    </div>
-                    <div>
-                      <Label className="mb-1 block">Topic Name</Label>
-                      <Input placeholder="assetflow.events" value={events.kafkaTopic} onChange={(e) => setEvents((v) => ({ ...v, kafkaTopic: e.target.value }))} />
-                    </div>
-                    <div>
-                      <Label className="mb-1 block">Client ID</Label>
-                      <Input placeholder="assetflow-ui" value={events.kafkaClientId} onChange={(e) => setEvents((v) => ({ ...v, kafkaClientId: e.target.value }))} />
-                    </div>
-                    <div>
-                      <Label className="mb-1 block">SASL Mechanism</Label>
-                      <select
-                        className="w-full px-3 py-2 rounded-lg bg-[#f8f9ff] border border-[rgba(0,0,0,0.08)]"
-                        value={events.kafkaSaslMechanism}
-                        onChange={(e) => setEvents((v) => ({ ...v, kafkaSaslMechanism: e.target.value as EventsConfig['kafkaSaslMechanism'] }))}
-                      >
-                        <option value="none">None</option>
-                        <option value="plain">PLAIN</option>
-                        <option value="scram-sha-256">SCRAM-SHA-256</option>
-                        <option value="scram-sha-512">SCRAM-SHA-512</option>
-                      </select>
-                    </div>
-                    {events.kafkaSaslMechanism !== 'none' && (
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div>
-                          <Label className="mb-1 block">Username</Label>
-                          <Input value={events.kafkaUsername} onChange={(e) => setEvents((v) => ({ ...v, kafkaUsername: e.target.value }))} />
-                        </div>
-                        <div>
-                          <Label className="mb-1 block">Password</Label>
-                          <Input type="password" value={events.kafkaPassword} onChange={(e) => setEvents((v) => ({ ...v, kafkaPassword: e.target.value }))} />
-                        </div>
-                      </div>
-                    )}
-                    <div className="flex justify-end">
-                      <Button type="button" onClick={saveKafkaSettings}>Save Kafka Settings</Button>
-                    </div>
-                  </CardContent>
-                </Card>
-              </div>
-            </div>
-          </TabsContent>
-
-          {/* Database */}
+            {/* Database */}
           <TabsContent value="database" className="mt-0">
-            <Card>
-              <CardHeader>
-                <CardTitle>Database Connection</CardTitle>
-                <CardDescription>Provide MySQL connection details to initialize required tables.</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <Label className="mb-1 block">Host</Label>
-                    <Input value={dbForm.host} onChange={(e) => setDbForm((v) => ({ ...v, host: e.target.value }))} placeholder="localhost" />
+              <Card>
+                <CardHeader>
+                  <CardTitle>Database Connection</CardTitle>
+                  <CardDescription>Provide MySQL connection details to initialize required tables.</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <Label className="mb-1 block">Host</Label>
+                      <Input value={dbForm.host} onChange={(e) => setDbForm((v) => ({ ...v, host: e.target.value }))} placeholder="localhost" />
+                    </div>
+                    <div>
+                      <Label className="mb-1 block">Port</Label>
+                      <Input value={dbForm.port} onChange={(e) => setDbForm((v) => ({ ...v, port: e.target.value }))} placeholder="3306" />
+                    </div>
+                    <div>
+                      <Label className="mb-1 block">User</Label>
+                      <Input value={dbForm.user} onChange={(e) => setDbForm((v) => ({ ...v, user: e.target.value }))} placeholder="root" />
+                    </div>
+                    <div>
+                      <Label className="mb-1 block">Password</Label>
+                      <Input type="password" value={dbForm.password} onChange={(e) => setDbForm((v) => ({ ...v, password: e.target.value }))} />
+                    </div>
+                    <div className="md:col-span-2">
+                      <Label className="mb-1 block">Database</Label>
+                      <Input value={dbForm.database} onChange={(e) => setDbForm((v) => ({ ...v, database: e.target.value }))} placeholder="inventos" />
+                    </div>
                   </div>
-                  <div>
-                    <Label className="mb-1 block">Port</Label>
-                    <Input value={dbForm.port} onChange={(e) => setDbForm((v) => ({ ...v, port: e.target.value }))} placeholder="3306" />
-                  </div>
-                  <div>
-                    <Label className="mb-1 block">User</Label>
-                    <Input value={dbForm.user} onChange={(e) => setDbForm((v) => ({ ...v, user: e.target.value }))} placeholder="root" />
-                  </div>
-                  <div>
-                    <Label className="mb-1 block">Password</Label>
-                    <Input type="password" value={dbForm.password} onChange={(e) => setDbForm((v) => ({ ...v, password: e.target.value }))} />
-                  </div>
-                  <div className="md:col-span-2">
-                    <Label className="mb-1 block">Database</Label>
-                    <Input value={dbForm.database} onChange={(e) => setDbForm((v) => ({ ...v, database: e.target.value }))} placeholder="inventos" />
-                  </div>
-                </div>
-                {dbMsg && <p className={`text-sm ${dbMsg.startsWith('OK') ? 'text-green-600' : 'text-red-600'}`}>{dbMsg}</p>}
-                <div className="flex justify-between gap-3 flex-wrap">
-                  <div className="flex items-center gap-2">
-                    <Button type="button" variant="outline" disabled={dbTestBusy} onClick={async () => {
-                      setDbTestBusy(true);
+                  {dbMsg && <p className={`text-sm ${dbMsg.startsWith('OK') ? 'text-green-600' : 'text-red-600'}`}>{dbMsg}</p>}
+                  <div className="flex justify-between gap-3 flex-wrap">
+                    <div className="flex items-center gap-2">
+                      <Button type="button" variant="outline" className="border-[#6366f1] text-[#6366f1] hover:bg-[#eef2ff]" disabled={dbTestBusy} onClick={async () => {
+                        setDbTestBusy(true);
+                        setDbMsg(null);
+                        try {
+                          const res = await fetch('/api/db/config', {
+                            method: 'PUT',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ host: dbForm.host, port: Number(dbForm.port) || 3306, user: dbForm.user, password: dbForm.password, database: dbForm.database }),
+                          });
+                          const data = await res.json();
+                          if (!res.ok) throw new Error(data?.error || 'Failed');
+                          setDbMsg('OK: Connection successful');
+                        } catch (e: any) {
+                          setDbMsg(`Error: ${e?.message || e}`);
+                        } finally {
+                          setDbTestBusy(false);
+                        }
+                      }}>
+                        {dbTestBusy ? 'Testing…' : 'Test Connection'}
+                      </Button>
+                      <Button type="button" className="bg-gradient-to-r from-[#06b6d4] to-[#3b82f6] text-white hover:shadow-lg hover:shadow-[#06b6d4]/20" onClick={async () => {
+                        try {
+                          const res = await fetch('/api/db/config', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ host: dbForm.host, port: Number(dbForm.port) || 3306, user: dbForm.user, password: dbForm.password, database: dbForm.database }),
+                          });
+                          const data = await res.json();
+                          if (!res.ok) throw new Error(data?.error || 'Failed');
+                          setDbMsg('OK: Configuration saved securely on server');
+                        } catch (e: any) {
+                          setDbMsg(`Error: ${e?.message || e}`);
+                        }
+                      }}>
+                        Save Config Securely
+                      </Button>
+                    </div>
+                    <Button type="button" disabled={dbBusy} className="bg-gradient-to-r from-[#10b981] to-[#22c55e] text-white hover:shadow-lg hover:shadow-[#22c55e]/20" onClick={async () => {
+                      setDbBusy(true);
                       setDbMsg(null);
                       try {
-                        const res = await fetch('/api/db/config', {
-                          method: 'PUT',
-                          headers: { 'Content-Type': 'application/json' },
-                          body: JSON.stringify({ host: dbForm.host, port: Number(dbForm.port) || 3306, user: dbForm.user, password: dbForm.password, database: dbForm.database }),
-                        });
-                        const data = await res.json();
-                        if (!res.ok) throw new Error(data?.error || 'Failed');
-                        setDbMsg('OK: Connection successful');
-                      } catch (e: any) {
-                        setDbMsg(`Error: ${e?.message || e}`);
-                      } finally {
-                        setDbTestBusy(false);
-                      }
-                    }}>
-                      {dbTestBusy ? 'Testing…' : 'Test Connection'}
-                    </Button>
-                    <Button type="button" variant="secondary" onClick={async () => {
-                      try {
-                        const res = await fetch('/api/db/config', {
+                        const res = await fetch('/api/db/init', {
                           method: 'POST',
                           headers: { 'Content-Type': 'application/json' },
                           body: JSON.stringify({ host: dbForm.host, port: Number(dbForm.port) || 3306, user: dbForm.user, password: dbForm.password, database: dbForm.database }),
                         });
                         const data = await res.json();
                         if (!res.ok) throw new Error(data?.error || 'Failed');
-                        setDbMsg('OK: Configuration saved securely on server');
+                        setDbMsg(`OK: Database initialized${data?.persisted ? ' and configuration saved securely' : ''}.`);
                       } catch (e: any) {
                         setDbMsg(`Error: ${e?.message || e}`);
+                      } finally {
+                        setDbBusy(false);
                       }
                     }}>
-                      Save Config Securely
+                      {dbBusy ? 'Initializing…' : 'Initialize Database'}
                     </Button>
                   </div>
-                  <Button type="button" disabled={dbBusy} onClick={async () => {
-                    setDbBusy(true);
-                    setDbMsg(null);
-                    try {
-                      const res = await fetch('/api/db/init', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ host: dbForm.host, port: Number(dbForm.port) || 3306, user: dbForm.user, password: dbForm.password, database: dbForm.database }),
-                      });
-                      const data = await res.json();
-                      if (!res.ok) throw new Error(data?.error || 'Failed');
-                      setDbMsg(`OK: Database initialized${data?.persisted ? ' and configuration saved securely' : ''}.`);
-                    } catch (e: any) {
-                      setDbMsg(`Error: ${e?.message || e}`);
-                    } finally {
-                      setDbBusy(false);
-                    }
-                  }}>
-                    {dbBusy ? 'Initializing…' : 'Initialize Database'}
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
+                </CardContent>
+              </Card>
+            </TabsContent>
 
-          {/* Asset Fields */}
+            {/* Asset Fields */}
           <TabsContent value="assetFields" className="mt-0">
-            <Card>
-              <CardHeader>
-                <CardTitle>Asset Custom Fields</CardTitle>
-                <CardDescription>Define the labels and inputs that appear on the Asset form. Values are stored under specifications.customFields by key.</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-3">
-                  {assetFields.length === 0 && (
-                    <p className="text-sm text-[#64748b]">No custom fields defined yet.</p>
-                  )}
-                  {assetFields.map((f, idx) => (
-                    <div key={idx} className="grid grid-cols-1 md:grid-cols-12 gap-3 items-start">
-                      <div className="md:col-span-3">
-                        <Label className="mb-1 block">Label</Label>
-                        <Input value={f.label} onChange={(e) => updateAssetField(idx, { label: e.target.value })} placeholder="e.g., Asset Tag" />
+              <Card>
+                <CardHeader>
+                  <CardTitle>Asset Custom Fields</CardTitle>
+                  <CardDescription>Define the labels and inputs that appear on the Asset form. Values are stored under specifications.customFields by key.</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-3">
+                    {assetFields.length === 0 && (
+                      <p className="text-sm text-[#64748b]">No custom fields defined yet.</p>
+                    )}
+                    {assetFields.map((f, idx) => (
+                      <div key={idx} className="space-y-3">
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-3 items-start">
+                          <div>
+                            <Label className="mb-1 block">Label</Label>
+                            <Input value={f.label} onChange={(e) => updateAssetField(idx, { label: e.target.value })} placeholder="e.g., Asset Tag" />
+                          </div>
+                          <div>
+                            <Label className="mb-1 block">Key</Label>
+                            <Input value={f.key} onChange={(e) => updateAssetField(idx, { key: e.target.value.trim() })} placeholder="e.g., assetTag" />
+                            <p className="text-xs text-[#94a3b8] mt-1">Used in export/import and API as specifications.customFields[key]</p>
+                          </div>
+                          <div>
+                            <Label className="mb-1 block">Placeholder</Label>
+                            <Input value={f.placeholder ?? ''} onChange={(e) => updateAssetField(idx, { placeholder: e.target.value })} placeholder="e.g., TAG-00123" />
+                          </div>
+                        </div>
+                        <div className="grid grid-cols-2 items-center">
+                          <label className="text-sm text-[#1a1d2e] flex items-center gap-2">
+                            <input type="checkbox" checked={!!f.required} onChange={(e) => updateAssetField(idx, { required: e.target.checked })} /> Required
+                          </label>
+                          <div className="flex justify-end">
+                            <Button type="button" variant="outline" className="border-[#ef4444] text-[#ef4444] hover:bg-[#fee2e2]" onClick={() => removeAssetField(idx)}>Remove</Button>
+                          </div>
+                        </div>
                       </div>
-                      <div className="md:col-span-3">
-                        <Label className="mb-1 block">Key</Label>
-                        <Input value={f.key} onChange={(e) => updateAssetField(idx, { key: e.target.value.trim() })} placeholder="e.g., assetTag" />
-                        <p className="text-xs text-[#94a3b8] mt-1">Used in export/import and API as specifications.customFields[key]</p>
-                      </div>
-                      <div className="md:col-span-4">
-                        <Label className="mb-1 block">Placeholder</Label>
-                        <Input value={f.placeholder ?? ''} onChange={(e) => updateAssetField(idx, { placeholder: e.target.value })} placeholder="e.g., TAG-00123" />
-                      </div>
-                      <div className="md:col-span-1 flex items-center gap-2">
-                        <label className="text-sm text-[#1a1d2e] flex items-center gap-2">
-                          <input type="checkbox" checked={!!f.required} onChange={(e) => updateAssetField(idx, { required: e.target.checked })} /> Required
-                        </label>
-                      </div>
-                      <div className="md:col-span-1 flex items-center">
-                        <Button type="button" variant="outline" onClick={() => removeAssetField(idx)}>Remove</Button>
-                      </div>
+                    ))}
+                    <div className="flex justify-between items-center mt-3">
+                      <Button type="button" variant="outline" className="border-[#6366f1] text-[#6366f1] hover:bg-[#eef2ff]" onClick={addAssetField}>Add Field</Button>
+                      <Button type="button" className="bg-gradient-to-r from-[#6366f1] to-[#8b5cf6] text-white hover:shadow-lg hover:shadow-[#6366f1]/30" onClick={handleSave}>Save Fields</Button>
                     </div>
-                  ))}
-                  <div className="flex justify-between mt-3">
-                    <Button type="button" variant="outline" onClick={addAssetField}>Add Field</Button>
-                    <Button type="button" onClick={handleSave}>Save Fields</Button>
                   </div>
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
-            </div>
-          </div>
+                </CardContent>
+              </Card>
+            </TabsContent>
         </Tabs>
       </motion.div>
     </AssetFlowLayout>

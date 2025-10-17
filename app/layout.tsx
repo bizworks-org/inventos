@@ -2,7 +2,7 @@ import type { ReactNode } from "react";
 import "./globals.css";
 import { ThemeProvider } from "../src/components/ui/theme-provider";
 export const metadata = {
-  title: "AssetFlow - IT Asset Management",
+  title: "Inventos - IT Asset Management",
 };
 export const viewport = {
   width: "device-width",

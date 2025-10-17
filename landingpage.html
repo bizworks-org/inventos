@@ -1,0 +1,610 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Luxi Automotive Care — Coimbatore | Paint Protection Film, Ceramic Coating, Sun Control Film, Car Wraps</title>
+  <meta name="description" content="Premium automotive detailing in Coimbatore. PPF, ceramic coating, sun control film, and custom car wraps. Book a free inspection today." />
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;800&family=Inter:wght@400;600&display=swap" rel="stylesheet"/>
+
+  <style>
+    :root {
+      --bg: #0B0E13;
+      --bg2: #0F1320;
+      --text: #E9EDF3;
+      --muted: #9aa7b5;
+      --accent: #00E3A6;
+      --accent2: #7CF5FF;
+      --warn: #FFC857;
+      --red: #FF6262;
+      --card: #121725;
+      --stroke: rgba(255,255,255,0.08);
+      --grad: linear-gradient(135deg, rgba(0,227,166,0.2), rgba(124,245,255,0.12));
+    }
+
+    * { box-sizing: border-box; }
+    html, body { margin: 0; background: var(--bg); color: var(--text); font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, "Helvetica Neue", Arial, "Noto Sans", "Apple Color Emoji", "Segoe UI Emoji"; }
+    a { color: inherit; text-decoration: none; }
+    img { max-width: 100%; display: block; }
+
+    /* Layout */
+    .container { width: 92%; max-width: 1200px; margin: 0 auto; }
+    header { position: fixed; top: 0; left: 0; right: 0; z-index: 50; backdrop-filter: saturate(140%) blur(10px); background: rgba(11,14,19,0.35); border-bottom: 1px solid var(--stroke); }
+    .nav { display: flex; align-items: center; justify-content: space-between; padding: 16px 0; }
+    .brand { display: flex; align-items: center; gap: 12px; }
+    .brand-logo {
+      width: 40px; height: 40px; border-radius: 10px;
+      background: radial-gradient(circle at 30% 30%, var(--accent), transparent 60%),
+                  radial-gradient(circle at 70% 70%, var(--accent2), transparent 60%),
+                  #0D1320;
+      box-shadow: 0 0 0 2px var(--stroke), 0 10px 20px rgba(0,0,0,0.35), inset 0 0 20px rgba(0,227,166,0.25);
+      animation: pulseGlow 4s ease-in-out infinite;
+    }
+    .brand-name { font-weight: 800; letter-spacing: 0.5px; }
+    .nav-links { display: none; gap: 24px; }
+    .cta { display: inline-flex; align-items: center; gap: 10px; padding: 10px 16px; background: var(--accent); color: #032B22; font-weight: 700; border-radius: 10px; box-shadow: 0 10px 25px rgba(0,227,166,0.25); transition: transform 120ms ease, box-shadow 120ms ease; }
+    .cta:hover { transform: translateY(-1px); box-shadow: 0 12px 30px rgba(0,227,166,0.35); }
+
+    /* Hero */
+    .hero { padding-top: 120px; position: relative; overflow: hidden; }
+    .hero-grid { display: grid; grid-template-columns: 1.2fr 0.8fr; gap: 28px; align-items: center; }
+    .eyebrow { color: var(--accent); font-weight: 700; letter-spacing: 2px; text-transform: uppercase; }
+    .title {
+      font-family: Montserrat, Inter, sans-serif; font-size: clamp(32px, 4vw, 54px);
+      line-height: 1.02; font-weight: 800; margin: 12px 0 10px;
+      background: linear-gradient(180deg, #fff, #bcd3d0); -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+      animation: floatIn 900ms cubic-bezier(.2,.65,.2,1) both;
+    }
+    .subtitle { color: var(--muted); font-size: clamp(14px, 1.7vw, 18px); max-width: 52ch; }
+    .hero-cta { display: flex; gap: 12px; margin-top: 22px; flex-wrap: wrap; }
+    .cta-secondary { padding: 10px 16px; border: 1px solid var(--stroke); border-radius: 10px; color: var(--text); background: rgba(255,255,255,0.03); }
+    .hero-card {
+      background: var(--card); border: 1px solid var(--stroke); border-radius: 16px; padding: 18px; position: relative;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.35), inset 0 0 0 1px rgba(255,255,255,0.02);
+      animation: liftIn 900ms 180ms cubic-bezier(.2,.65,.2,1) both;
+    }
+    .car-visual {
+      height: 260px; border-radius: 12px; background:
+        linear-gradient(135deg, rgba(0,227,166,0.15), rgba(124,245,255,0.08)),
+        url('https://images.unsplash.com/photo-1553440569-bcc63803a83d?q=80&w=1600&auto=format&fit=crop') center/cover no-repeat;
+      position: relative; overflow: hidden; border: 1px solid var(--stroke);
+    }
+    .shine {
+      position: absolute; top: -40%; left: -20%; width: 60%; height: 200%;
+      background: linear-gradient(105deg, rgba(255,255,255,0.0) 10%, rgba(255,255,255,0.12) 40%, rgba(255,255,255,0.0) 55%);
+      transform: rotate(12deg); animation: sweep 4.5s ease-in-out infinite;
+    }
+    .hero-badges { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-top: 16px; }
+    .badge {
+      background: rgba(255,255,255,0.03); border: 1px solid var(--stroke); border-radius: 10px; padding: 10px 12px; font-size: 13px;
+      display: flex; align-items: center; gap: 8px;
+    }
+    .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 0 2px rgba(0,227,166,0.15); }
+
+    /* Services */
+    section { padding: 80px 0; position: relative; }
+    .section-head { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 24px; }
+    .section-title { font-family: Montserrat; font-size: clamp(22px, 3vw, 32px); font-weight: 800; }
+    .section-sub { color: var(--muted); max-width: 60ch; }
+    .grid { display: grid; gap: 18px; }
+    .grid-3 { grid-template-columns: repeat(3, 1fr); }
+    .card { background: var(--card); border: 1px solid var(--stroke); border-radius: 16px; padding: 18px; position: relative; overflow: hidden; }
+    .card::before {
+      content: ""; position: absolute; inset: 0; background: var(--grad); opacity: 0; transition: opacity 220ms ease;
+    }
+    .card:hover::before { opacity: 1; }
+    .card-icon {
+      width: 44px; height: 44px; border-radius: 10px; display: grid; place-items: center;
+      background: radial-gradient(circle at 40% 40%, var(--accent), transparent 60%), #0D1320;
+      box-shadow: inset 0 0 20px rgba(0,227,166,0.2), 0 0 0 1px var(--stroke);
+    }
+    .card h3 { margin: 10px 0 8px; font-weight: 700; }
+    .card p { color: var(--muted); }
+    .pill { display: inline-flex; align-items: center; gap: 8px; padding: 6px 10px; border-radius: 999px; border: 1px solid var(--stroke); color: var(--text); background: rgba(255,255,255,0.03); font-size: 12px; margin-top: 12px; }
+
+    /* Process Steps */
+    .steps { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
+    .step { background: var(--card); border: 1px solid var(--stroke); border-radius: 14px; padding: 16px; position: relative; }
+    .step-num { font-weight: 800; color: var(--accent); font-size: 14px; letter-spacing: 1px; }
+    .step h4 { margin: 8px 0 6px; }
+    .step p { color: var(--muted); font-size: 14px; }
+
+    /* Portfolio */
+    .masonry { columns: 3 260px; column-gap: 16px; }
+    .shot { break-inside: avoid; margin-bottom: 16px; border-radius: 12px; overflow: hidden; border: 1px solid var(--stroke); position: relative; }
+    .shot img { width: 100%; height: auto; display: block; transform: scale(1.02); transition: transform 240ms ease; }
+    .shot:hover img { transform: scale(1.06); }
+    .shot .overlay { position: absolute; inset: 0; background: radial-gradient(circle at 80% 10%, rgba(0,227,166,0.18), transparent 40%); opacity: 0; transition: opacity 220ms ease; }
+    .shot:hover .overlay { opacity: 1; }
+
+    /* Stats */
+    .stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
+    .stat { background: var(--card); border: 1px solid var(--stroke); border-radius: 16px; padding: 18px; text-align: center; }
+    .stat .big { font-family: Montserrat; font-weight: 800; font-size: clamp(26px, 3vw, 32px); background: linear-gradient(180deg, #fff, #bcd3d0); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+    .stat p { color: var(--muted); margin-top: 6px; font-size: 14px; }
+
+    /* Testimonials */
+    .testimonials { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+    .quote { background: var(--card); border: 1px solid var(--stroke); border-radius: 16px; padding: 18px; position: relative; }
+    .quote::after { content: "“"; position: absolute; top: -30px; left: 10px; font-size: 100px; color: rgba(255,255,255,0.06); }
+    .quote p { color: var(--muted); font-size: 14px; }
+    .quote .who { margin-top: 12px; font-weight: 700; }
+
+    /* CTA Banner */
+    .cta-banner {
+      margin-top: 18px; padding: 18px; border-radius: 16px; background:
+        radial-gradient(circle at 20% 20%, rgba(0,227,166,0.22), transparent 40%),
+        radial-gradient(circle at 80% 80%, rgba(124,245,255,0.18), transparent 40%),
+        var(--card);
+      border: 1px solid var(--stroke);
+      display: grid; grid-template-columns: 1.3fr 0.7fr; gap: 16px; align-items: center;
+    }
+    .cta-banner h3 { font-family: Montserrat; font-weight: 800; margin: 6px 0; }
+    .cta-banner p { color: var(--muted); }
+    .cta-banner .actions { display: flex; gap: 12px; flex-wrap: wrap; }
+
+    /* Footer */
+    footer { border-top: 1px solid var(--stroke); background: var(--bg2); padding: 30px 0 50px; }
+    .foot { display: grid; grid-template-columns: 1.2fr 0.8fr; gap: 18px; }
+    .foot p { color: var(--muted); }
+    .foot .links { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; }
+    .small { color: var(--muted); font-size: 12px; margin-top: 12px; }
+
+    /* Responsive */
+    @media (max-width: 980px) {
+      .nav-links { display: none; }
+      .hero-grid { grid-template-columns: 1fr; }
+      .hero-badges { grid-template-columns: repeat(2, 1fr); }
+      .grid-3 { grid-template-columns: 1fr 1fr; }
+      .steps { grid-template-columns: 1fr 1fr; }
+      .stats { grid-template-columns: 1fr 1fr; }
+      .testimonials { grid-template-columns: 1fr 1fr; }
+      .cta-banner { grid-template-columns: 1fr; }
+      .foot { grid-template-columns: 1fr; }
+    }
+    @media (max-width: 640px) {
+      .grid-3 { grid-template-columns: 1fr; }
+      .steps { grid-template-columns: 1fr; }
+      .stats { grid-template-columns: 1fr; }
+      .testimonials { grid-template-columns: 1fr; }
+      .hero-badges { grid-template-columns: 1fr; }
+    }
+
+    /* Animations */
+    @keyframes pulseGlow {
+      0%, 100% { box-shadow: 0 0 0 2px var(--stroke), 0 10px 20px rgba(0,0,0,0.35), inset 0 0 20px rgba(0,227,166,0.25); transform: translateY(0); }
+      50% { box-shadow: 0 0 0 2px var(--stroke), 0 25px 40px rgba(0,0,0,0.45), inset 0 0 28px rgba(0,227,166,0.38); transform: translateY(-1px); }
+    }
+    @keyframes floatIn {
+      from { opacity: 0; transform: translateY(12px) scale(0.98); }
+      to   { opacity: 1; transform: translateY(0) scale(1); }
+    }
+    @keyframes liftIn {
+      from { opacity: 0; transform: translateY(14px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    @keyframes sweep {
+      0% { transform: translateX(-40%) rotate(12deg); opacity: 0.0; }
+      30% { opacity: 0.15; }
+      60% { transform: translateX(120%) rotate(12deg); opacity: 0.0; }
+      100% { transform: translateX(120%) rotate(12deg); opacity: 0.0; }
+    }
+
+    /* Reveal on scroll */
+    .reveal { opacity: 0; transform: translateY(16px); transition: opacity 600ms ease, transform 600ms cubic-bezier(.2,.65,.2,1); }
+    .reveal.in { opacity: 1; transform: translateY(0); }
+
+    /* Accent underline */
+    .underline {
+      position: relative;
+    }
+    .underline::after {
+      content: ""; position: absolute; left: 0; bottom: -6px; width: 140px; height: 4px;
+      background: linear-gradient(90deg, var(--accent), transparent);
+      border-radius: 999px; filter: blur(1px);
+      animation: underlineGrow 1.6s ease 450ms both;
+    }
+    @keyframes underlineGrow {
+      from { width: 0; opacity: 0; }
+      to   { width: 140px; opacity: 1; }
+    }
+
+    /* Iconography (simple) */
+    .i-shield, .i-sparkle, .i-sun, .i-wrap {
+      width: 20px; height: 20px; position: relative;
+    }
+    .i-shield::before { content: ""; position: absolute; inset: 2px; border: 2px solid var(--accent); border-top-left-radius: 10px; border-top-right-radius: 10px; border-bottom-left-radius: 6px; border-bottom-right-radius: 6px; }
+    .i-sparkle::before { content: "✦"; position: absolute; inset: 0; color: var(--accent2); font-size: 18px; line-height: 20px; text-align: center; }
+    .i-sun::before { content: "☼"; position: absolute; inset: 0; color: var(--warn); font-size: 18px; line-height: 20px; text-align: center; }
+    .i-wrap::before { content: "⬚"; position: absolute; inset: 0; color: var(--red); font-size: 18px; line-height: 20px; text-align: center; }
+
+    /* Floating accents */
+    .orb {
+      position: absolute; border-radius: 50%; filter: blur(30px); opacity: 0.35;
+      background: radial-gradient(circle at 50% 50%, rgba(0,227,166,0.35), rgba(0,227,166,0.0) 70%);
+      animation: orbFloat 9s ease-in-out infinite;
+    }
+    .orb.small { width: 120px; height: 120px; }
+    .orb.medium { width: 180px; height: 180px; }
+    .orb.large { width: 260px; height: 260px; }
+    @keyframes orbFloat {
+      0%, 100% { transform: translateY(0) translateX(0); }
+      50% { transform: translateY(-12px) translateX(12px); }
+    }
+  </style>
+</head>
+<body>
+  <!-- Header -->
+  <header>
+    <div class="container nav">
+      <div class="brand">
+        <div class="brand-logo" aria-hidden="true"></div>
+        <div class="brand-name">Luxi Automotive Care</div>
+      </div>
+      <nav class="nav-links" aria-label="primary">
+        <a href="#services">Services</a>
+        <a href="#process">Process</a>
+        <a href="#portfolio">Portfolio</a>
+        <a href="#testimonials">Reviews</a>
+        <a href="#contact">Contact</a>
+      </nav>
+      <a href="#contact" class="cta">Book free inspection</a>
+    </div>
+  </header>
+
+  <!-- Hero -->
+  <section class="hero">
+    <div class="orb medium" style="top: 10%; left: -80px;"></div>
+    <div class="orb small" style="top: 40%; right: -60px;"></div>
+
+    <div class="container hero-grid">
+      <div>
+        <div class="eyebrow">Coimbatore • Detailing Studio</div>
+        <h1 class="title underline">Protect. Perfect. Personalize.</h1>
+        <p class="subtitle">Premium Paint Protection Film, Ceramic Coating, Sun Control Film, and Bespoke Car Wraps—engineered for the city, crafted for your driving soul.</p>
+        <div class="hero-cta">
+          <a href="#contact" class="cta">Get a quote</a>
+          <a href="#portfolio" class="cta-secondary">See transformations</a>
+        </div>
+        <div class="hero-badges">
+          <div class="badge"><span class="dot"></span> 10-year PPF warranty</div>
+          <div class="badge"><span class="dot"></span> Hydrophobic nano ceramic</div>
+          <div class="badge"><span class="dot"></span> Heat & UV rejection films</div>
+        </div>
+      </div>
+
+      <div class="hero-card">
+        <div class="car-visual">
+          <div class="shine"></div>
+        </div>
+        <div style="display:flex; gap:12px; align-items:center; margin-top:12px;">
+          <div style="display:flex; align-items:center; gap:10px;">
+            <div class="i-shield"></div><span style="font-weight:700;">PPF</span>
+          </div>
+          <div style="display:flex; align-items:center; gap:10px;">
+            <div class="i-sparkle"></div><span style="font-weight:700;">Ceramic</span>
+          </div>
+          <div style="display:flex; align-items:center; gap:10px;">
+            <div class="i-sun"></div><span style="font-weight:700;">Sun Film</span>
+          </div>
+          <div style="display:flex; align-items:center; gap:10px;">
+            <div class="i-wrap"></div><span style="font-weight:700;">Wraps</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Services -->
+  <section id="services">
+    <div class="container">
+      <div class="section-head">
+        <h2 class="section-title">Signature services</h2>
+        <p class="section-sub">We combine lab-grade materials with studio precision to deliver durable protection, mirror-slick finishes, and temperature comfort.</p>
+      </div>
+
+      <div class="grid grid-3">
+        <div class="card reveal">
+          <div class="card-icon"><div class="i-shield"></div></div>
+          <h3>Paint Protection Film</h3>
+          <p>Self-healing TPU film guards against chips, swirl marks, and road rash while preserving factory paint and shine.</p>
+          <div class="pill">10-year warranty</div>
+          <div class="pill">Gloss & matte options</div>
+        </div>
+
+        <div class="card reveal">
+          <div class="card-icon"><div class="i-sparkle"></div></div>
+          <h3>Ceramic Coating</h3>
+          <p>Multi-layer nano ceramic delivers deep gloss, hydrophobic beading, and UV defense for easy wash maintenance.</p>
+          <div class="pill">9H hardness</div>
+          <div class="pill">Hydrophobic top-coat</div>
+        </div>
+
+        <div class="card reveal">
+          <div class="card-icon"><div class="i-sun"></div></div>
+          <h3>Sun Control Film</h3>
+          <p>IR/UV rejection films reduce cabin heat and glare, enhancing comfort and privacy without sacrificing visibility.</p>
+          <div class="pill">Legal VLT range</div>
+          <div class="pill">IR & UV blocking</div>
+        </div>
+
+        <div class="card reveal">
+          <div class="card-icon"><div class="i-wrap"></div></div>
+          <h3>Custom Car Wraps</h3>
+          <p>Premium vinyl with precision installs—color change, textures, and branding to make your car truly yours.</p>
+          <div class="pill">Gloss, satin, matte</div>
+          <div class="pill">Removable & paint-safe</div>
+        </div>
+
+        <div class="card reveal">
+          <div class="card-icon"><div class="i-sparkle"></div></div>
+          <h3>Detailing & Paint Correction</h3>
+          <p>Swirl removal and stage-wise polishing to restore clarity, depth, and the sharp reflections your paint deserves.</p>
+          <div class="pill">Stage 1–3 correction</div>
+          <div class="pill">Spot wet-sanding</div>
+        </div>
+
+        <div class="card reveal">
+          <div class="card-icon"><div class="i-shield"></div></div>
+          <h3>Headlight & Trim Protection</h3>
+          <p>Targeted films and coatings for high-wear zones—headlights, handles, sills, and pillars—keeping age at bay.</p>
+          <div class="pill">Anti-yellowing</div>
+          <div class="pill">Anti-scratch</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Process -->
+  <section id="process">
+    <div class="container">
+      <div class="section-head">
+        <h2 class="section-title">Studio-grade process</h2>
+        <p class="section-sub">Every car gets a meticulous, dust-controlled treatment sequence to ensure long-term adhesion, clarity, and finish.</p>
+      </div>
+
+      <div class="steps">
+        <div class="step reveal">
+          <div class="step-num">01 • Inspect</div>
+          <h4>Assessment & Scope</h4>
+          <p>Panel-by-panel inspection, paint thickness readings, and tailored protection plan.</p>
+        </div>
+        <div class="step reveal">
+          <div class="step-num">02 • Prep</div>
+          <h4>Decon & Correction</h4>
+          <p>Wash, iron & tar removal, clay, then stage polishing to refine surface.</p>
+        </div>
+        <div class="step reveal">
+          <div class="step-num">03 • Install</div>
+          <h4>Precision Application</h4>
+          <p>Template-cut PPF and measured coating layers in humidity-controlled bay.</p>
+        </div>
+        <div class="step reveal">
+          <div class="step-num">04 • Verify</div>
+          <h4>Cure & QA</h4>
+          <p>Edges sealed, cure checked, and finish validated under multi-spectrum lighting.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Portfolio -->
+  <section id="portfolio">
+    <div class="container">
+      <div class="section-head">
+        <h2 class="section-title">Recent transformations</h2>
+        <p class="section-sub">From subtle protection to bold personalities—every finish tells a story.</p>
+      </div>
+
+      <div class="masonry">
+        <div class="shot reveal">
+          <img src="https://images.unsplash.com/photo-1502877338535-766e1452684a?q=80&w=1600&auto=format&fit=crop" alt="Gloss PPF on a sports coupe">
+          <div class="overlay"></div>
+        </div>
+        <div class="shot reveal">
+          <img src="https://images.unsplash.com/photo-1494976388531-d1058494cdd8?q=80&w=1600&auto=format&fit=crop" alt="Matte wrap finish on sedan">
+          <div class="overlay"></div>
+        </div>
+        <div class="shot reveal">
+          <img src="https://images.unsplash.com/photo-1503376780353-7e6692767b70?q=80&w=1600&auto=format&fit=crop" alt="Ceramic-coated supercar">
+          <div class="overlay"></div>
+        </div>
+        <div class="shot reveal">
+          <img src="https://images.unsplash.com/photo-1517353248221-8085fbff0bf7?q=80&w=1600&auto=format&fit=crop" alt="Sun control film installed on SUV">
+          <div class="overlay"></div>
+        </div>
+        <div class="shot reveal">
+          <img src="https://images.unsplash.com/photo-1516035069371-29cf4e62de3f?q=80&w=1600&auto=format&fit=crop" alt="Detailing & paint correction gloss">
+          <div class="overlay"></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Stats -->
+  <section>
+    <div class="container">
+      <div class="stats">
+        <div class="stat reveal">
+          <div class="big">1,200+</div>
+          <p>Cars protected</p>
+        </div>
+        <div class="stat reveal">
+          <div class="big">10 yrs</div>
+          <p>PPF warranty</p>
+        </div>
+        <div class="stat reveal">
+          <div class="big">4.9★</div>
+          <p>Owner-rated experience</p>
+        </div>
+        <div class="stat reveal">
+          <div class="big">48 hrs</div>
+          <p>Average turnaround</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Testimonials -->
+  <section id="testimonials">
+    <div class="container">
+      <div class="section-head">
+        <h2 class="section-title">Owner reviews</h2>
+        <p class="section-sub">The finish you feel, the protection you see—even months later.</p>
+      </div>
+
+      <div class="testimonials">
+        <div class="quote reveal">
+          <p>PPF install is flawless. After two highway trips, zero chips and the gloss is unreal. Worth every rupee.</p>
+          <div class="who">Arun, Coimbatore</div>
+        </div>
+        <div class="quote reveal">
+          <p>Ceramic coating made washing a breeze—water just slides off. The depth of the paint is next level.</p>
+          <div class="who">Nisha, RS Puram</div>
+        </div>
+        <div class="quote reveal">
+          <p>Sun film keeps the cabin cool and classy. They matched legal VLT perfectly. Professional team!</p>
+          <div class="who">Rahul, Peelamedu</div>
+        </div>
+      </div>
+
+      <div class="cta-banner reveal">
+        <div>
+          <h3>Ready to protect and personalize your car?</h3>
+          <p>Book a free inspection. Get an exact quote with swatches, templates, and a finish preview.</p>
+        </div>
+        <div class="actions">
+          <a href="#contact" class="cta">Book now</a>
+          <a href="#services" class="cta-secondary">Compare packages</a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Contact -->
+  <section id="contact">
+    <div class="container">
+      <div class="section-head">
+        <h2 class="section-title">Visit our studio</h2>
+        <p class="section-sub">Coimbatore-based detailing studio. Share your car and goals—we’ll tailor the perfect protection plan.</p>
+      </div>
+
+      <div class="grid" style="grid-template-columns: 1.1fr 0.9fr; gap: 18px;">
+        <form class="card reveal" onsubmit="event.preventDefault(); alert('Thanks! We will reach out shortly.');">
+          <div style="display:grid; gap: 12px;">
+            <div style="display:grid; gap:6px;">
+              <label for="name">Name</label>
+              <input id="name" name="name" required placeholder="Your full name" style="padding:10px 12px; border-radius:10px; border:1px solid var(--stroke); background:rgba(255,255,255,0.03); color:var(--text);"/>
+            </div>
+            <div style="display:grid; gap:6px;">
+              <label for="phone">Phone</label>
+              <input id="phone" name="phone" required placeholder="WhatsApp or mobile number" style="padding:10px 12px; border-radius:10px; border:1px solid var(--stroke); background:rgba(255,255,255,0.03); color:var(--text);"/>
+            </div>
+            <div style="display:grid; gap:6px;">
+              <label for="car">Car & Year</label>
+              <input id="car" name="car" required placeholder="e.g., VW Virtus 2024" style="padding:10px 12px; border-radius:10px; border:1px solid var(--stroke); background:rgba(255,255,255,0.03); color:var(--text);"/>
+            </div>
+            <div style="display:grid; gap:6px;">
+              <label for="service">Service interested</label>
+              <select id="service" name="service" required style="padding:10px 12px; border-radius:10px; border:1px solid var(--stroke); background:rgba(255,255,255,0.03); color:var(--text);">
+                <option>Paint Protection Film</option>
+                <option>Ceramic Coating</option>
+                <option>Sun Control Film</option>
+                <option>Custom Wraps</option>
+                <option>Detailing & Correction</option>
+              </select>
+            </div>
+            <div style="display:grid; gap:6px;">
+              <label for="message">Notes</label>
+              <textarea id="message" name="message" rows="3" placeholder="Tell us about your goals or specific panels." style="padding:10px 12px; border-radius:10px; border:1px solid var(--stroke); background:rgba(255,255,255,0.03); color:var(--text);"></textarea>
+            </div>
+            <div style="display:flex; gap: 10px; align-items:center;">
+              <button type="submit" class="cta">Request callback</button>
+              <span style="color:var(--muted); font-size:12px;">Avg response: 30–60 mins</span>
+            </div>
+          </div>
+        </form>
+
+        <div class="card reveal">
+          <h3 style="margin:0 0 10px;">Studio details</h3>
+          <p style="color:var(--muted);">Coimbatore, Tamil Nadu • Monday–Saturday, 10:00–19:00</p>
+          <div style="height: 230px; border-radius: 12px; overflow: hidden; border: 1px solid var(--stroke); margin-top: 10px; background:
+           radial-gradient( circle at 30% 30%, rgba(0,227,166,0.18), transparent 40% ),
+           url('https://images.unsplash.com/photo-1542367597-4e1216c1acf1?q=80&w=1600&auto=format&fit=crop') center/cover no-repeat;"></div>
+
+          <div style="display:grid; gap: 12px; margin-top: 14px;">
+            <div class="badge"><span class="dot"></span> Dust-controlled install bay</div>
+            <div class="badge"><span class="dot"></span> OEM template cutting</div>
+            <div class="badge"><span class="dot"></span> Multi-spectrum inspection lights</div>
+          </div>
+
+          <div style="display:flex; gap: 10px; flex-wrap: wrap; margin-top: 14px;">
+            <a href="tel:+910000000000" class="cta-secondary">Call</a>
+            <a href="https://wa.me/910000000000" class="cta-secondary">WhatsApp</a>
+            <a href="#contact" class="cta">Book appointment</a>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer>
+    <div class="container foot">
+      <div>
+        <div class="brand" style="gap:10px;">
+          <div class="brand-logo" aria-hidden="true"></div>
+          <div class="brand-name">Luxi Automotive Care</div>
+        </div>
+        <p class="small">© 2025 Luxi Automotive Care. All rights reserved.</p>
+      </div>
+      <div class="links">
+        <a href="#services">Services</a>
+        <a href="#portfolio">Portfolio</a>
+        <a href="#process">Process</a>
+        <a href="#testimonials">Reviews</a>
+        <a href="#contact">Contact</a>
+        <a href="#">Privacy</a>
+      </div>
+    </div>
+  </footer>
+
+  <script>
+    // Reveal on scroll
+    const revealEls = document.querySelectorAll('.reveal');
+    const reveal = () => {
+      const viewportBottom = window.scrollY + window.innerHeight * 0.95;
+      revealEls.forEach(el => {
+        const top = el.getBoundingClientRect().top + window.scrollY;
+        if (viewportBottom >= top) el.classList.add('in');
+      });
+    };
+    window.addEventListener('scroll', reveal, { passive: true });
+    window.addEventListener('load', reveal);
+
+    // Smooth anchor
+    document.querySelectorAll('a[href^="#"]').forEach(a => {
+      a.addEventListener('click', e => {
+        const id = a.getAttribute('href').slice(1);
+        const target = document.getElementById(id);
+        if (target) {
+          e.preventDefault();
+          window.scrollTo({ top: target.offsetTop - 80, behavior: 'smooth' });
+        }
+      });
+    });
+
+    // Mobile nav (optional simple)
+    const navLinks = document.querySelector('.nav-links');
+    if (window.innerWidth > 980 && navLinks) navLinks.style.display = 'flex';
+    window.addEventListener('resize', () => {
+      if (!navLinks) return;
+      navLinks.style.display = window.innerWidth > 980 ? 'flex' : 'none';
+    });
+  </script>
+</body>
+</html>

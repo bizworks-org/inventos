@@ -42,7 +42,7 @@ export function Sidebar({ currentPage = 'dashboard' }: SidebarProps) {
           <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-[#6366f1] to-[#8b5cf6] flex items-center justify-center">
             <Package className="h-5 w-5 text-white" />
           </div>
-          <span className="font-bold text-xl text-white">AssetFlow</span>
+          <span className="font-bold text-xl text-white">Inventos</span>
         </Link>
       </div>
 
@@ -85,6 +85,12 @@ export function Sidebar({ currentPage = 'dashboard' }: SidebarProps) {
               <p className="text-sm font-medium text-white truncate">John Doe</p>
               <p className="text-xs text-[#a0a4b8] truncate">IT Administrator</p>
             </div>
+            <button
+              onClick={async (e) => { e.preventDefault(); (await import('@/lib/auth/client')).signOut(); }}
+              className="ml-auto text-xs px-2 py-1 rounded bg-white/10 text-white hover:bg-white/20"
+            >
+              Sign out
+            </button>
           </div>
         </div>
       </div>

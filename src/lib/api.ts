@@ -38,6 +38,31 @@ type DbAsset = {
   specifications: any | null;
 };
 
+// Normalize various DB date representations into 'YYYY-MM-DD' for date inputs
+function normalizeDate(input: unknown): string {
+  if (input === null || input === undefined) return '';
+  // If already a string like 'YYYY-MM-DD' or any string, try to slice first 10 chars safely
+  if (typeof input === 'string') {
+    // Many drivers serialize DATE as ISO with time 'YYYY-MM-DDTHH:mm:ss.sssZ'
+    if (input.length >= 10) return input.slice(0, 10);
+    // Fallback: attempt Date parse
+    const d = new Date(input);
+    if (!isNaN(d.getTime())) return d.toISOString().slice(0, 10);
+    return '';
+  }
+  // If Date object
+  if (input instanceof Date) {
+    if (!isNaN(input.getTime())) return input.toISOString().slice(0, 10);
+    return '';
+  }
+  // Unknown type -> try coercion
+  try {
+    const d = new Date(input as any);
+    if (!isNaN(d.getTime())) return d.toISOString().slice(0, 10);
+  } catch {}
+  return '';
+}
+
 function mapDbAsset(a: DbAsset): Asset {
   let specs: any | undefined = undefined;
   if (a.specifications !== null && a.specifications !== undefined) {
@@ -55,8 +80,8 @@ function mapDbAsset(a: DbAsset): Asset {
     assignedTo: a.assigned_to,
     department: a.department,
     status: a.status,
-    purchaseDate: typeof a.purchase_date === 'string' ? a.purchase_date : new Date(a.purchase_date as any).toISOString().slice(0, 10),
-    warrantyExpiry: typeof a.warranty_expiry === 'string' ? a.warranty_expiry : new Date(a.warranty_expiry as any).toISOString().slice(0, 10),
+    purchaseDate: normalizeDate(a.purchase_date),
+    warrantyExpiry: normalizeDate(a.warranty_expiry),
     cost: Number(a.cost),
     location: a.location,
     specifications: specs,
@@ -125,11 +150,11 @@ function mapDbLicense(l: DbLicense): License {
     type: l.type,
     seats: Number(l.seats),
     seatsUsed: Number(l.seats_used),
-    expirationDate: l.expiration_date,
+    expirationDate: normalizeDate(l.expiration_date as any),
     cost: Number(l.cost),
     owner: l.owner,
     compliance: l.compliance,
-    renewalDate: l.renewal_date,
+    renewalDate: normalizeDate(l.renewal_date as any),
   };
 }
 
@@ -195,7 +220,7 @@ function mapDbVendor(v: DbVendor): Vendor {
     phone: v.phone,
     status: v.status,
     contractValue: Number(v.contract_value),
-    contractExpiry: v.contract_expiry,
+    contractExpiry: normalizeDate(v.contract_expiry as any),
     rating: Number(v.rating),
   };
 }
