@@ -416,9 +416,11 @@ export function SettingsPage({ onNavigate, onSearch }: SettingsPageProps) {
             <TabsTrigger value="assetFields" className="flex items-center gap-2 px-3 py-2 data-[state=active]:bg-white data-[state=active]:border data-[state=active]:border-[rgba(0,0,0,0.08)]">
               <SlidersHorizontal className="h-4 w-4 text-[#8b5cf6]" /> Asset Fields
             </TabsTrigger>
-            <TabsTrigger value="mail" disabled={!canEditMail} className={`flex items-center gap-2 px-3 py-2 data-[state=active]:bg-white data-[state=active]:border data-[state=active]:border-[rgba(0,0,0,0.08)] ${!canEditMail ? 'opacity-50 cursor-not-allowed' : ''}`}>
-              <Mail className="h-4 w-4 text-[#3b82f6]" /> Mail Server
-            </TabsTrigger>
+            {canEditMail && (
+              <TabsTrigger value="mail" className={`flex items-center gap-2 px-3 py-2 data-[state=active]:bg-white data-[state=active]:border data-[state=active]:border-[rgba(0,0,0,0.08)]`}>
+                <Mail className="h-4 w-4 text-[#3b82f6]" /> Mail Server
+              </TabsTrigger>
+            )}
           </TabsList>
 
           {/* Profile */}
@@ -1038,51 +1040,49 @@ export function SettingsPage({ onNavigate, onSearch }: SettingsPageProps) {
             </TabsContent>
 
             {/* Mail Server */}
-          <TabsContent value="mail" className="mt-0">
+          {canEditMail && (
+            <TabsContent value="mail" className="mt-0">
               <Card>
                 <CardHeader>
                   <CardTitle>Mail Server (SMTP)</CardTitle>
                   <CardDescription>Configure SMTP to send assignment consent emails and notifications.</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  {!canEditMail && (
-                    <p className="text-sm text-[#ef4444]">You don't have permission to modify mail settings. Contact an administrator.</p>
-                  )}
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
                       <Label className="mb-1 block">Host<span className="text-red-500"> *</span></Label>
-                      <Input disabled={!canEditMail} value={mailForm.host} onChange={(e) => setMailForm((v) => ({ ...v, host: e.target.value }))} placeholder="smtp.example.com" />
+                      <Input value={mailForm.host} onChange={(e) => setMailForm((v) => ({ ...v, host: e.target.value }))} placeholder="smtp.example.com" />
                     </div>
                     <div>
                       <Label className="mb-1 block">Port<span className="text-red-500"> *</span></Label>
-                      <Input disabled={!canEditMail} value={mailForm.port} onChange={(e) => setMailForm((v) => ({ ...v, port: e.target.value }))} placeholder="587" />
+                      <Input value={mailForm.port} onChange={(e) => setMailForm((v) => ({ ...v, port: e.target.value }))} placeholder="587" />
                     </div>
                     <div className="flex items-center gap-2">
-                      <input id="smtp-secure" type="checkbox" disabled={!canEditMail} checked={!!mailForm.secure} onChange={(e) => setMailForm((v) => ({ ...v, secure: e.target.checked }))} />
+                      <input id="smtp-secure" type="checkbox" checked={!!mailForm.secure} onChange={(e) => setMailForm((v) => ({ ...v, secure: e.target.checked }))} />
                       <Label htmlFor="smtp-secure" className="mb-0">Use TLS (secure)</Label>
                     </div>
                     <div>
                       <Label className="mb-1 block">Username (optional)</Label>
-                      <Input disabled={!canEditMail} value={mailForm.user} onChange={(e) => setMailForm((v) => ({ ...v, user: e.target.value }))} placeholder="smtp user" />
+                      <Input value={mailForm.user} onChange={(e) => setMailForm((v) => ({ ...v, user: e.target.value }))} placeholder="smtp user" />
                     </div>
                     <div>
                       <Label className="mb-1 block">Password (optional)</Label>
-                      <Input type="password" disabled={!canEditMail} value={mailForm.password} onChange={(e) => setMailForm((v) => ({ ...v, password: e.target.value }))} placeholder="••••••••" />
+                      <Input type="password" value={mailForm.password} onChange={(e) => setMailForm((v) => ({ ...v, password: e.target.value }))} placeholder="••••••••" />
                       <p className="text-xs text-[#94a3b8] mt-1">Not returned on load for security; set only if you need to update it.</p>
                     </div>
                     <div>
                       <Label className="mb-1 block">From Name</Label>
-                      <Input disabled={!canEditMail} value={mailForm.fromName} onChange={(e) => setMailForm((v) => ({ ...v, fromName: e.target.value }))} placeholder="AssetFlow" />
+                      <Input value={mailForm.fromName} onChange={(e) => setMailForm((v) => ({ ...v, fromName: e.target.value }))} placeholder="AssetFlow" />
                     </div>
                     <div>
                       <Label className="mb-1 block">From Email<span className="text-red-500"> *</span></Label>
-                      <Input type="email" disabled={!canEditMail} value={mailForm.fromEmail} onChange={(e) => setMailForm((v) => ({ ...v, fromEmail: e.target.value }))} placeholder="no-reply@example.com" />
+                      <Input type="email" value={mailForm.fromEmail} onChange={(e) => setMailForm((v) => ({ ...v, fromEmail: e.target.value }))} placeholder="no-reply@example.com" />
                     </div>
                   </div>
                   {mailMsg && <p className={`text-sm ${mailMsg.startsWith('OK') ? 'text-green-600' : 'text-red-600'}`}>{mailMsg}</p>}
                   <div className="flex flex-wrap items-center justify-between gap-3">
                     <div className="flex items-center gap-2">
-                      <Button type="button" variant="outline" className="border-[#6366f1] text-[#6366f1] hover:bg-[#eef2ff]" disabled={mailTestBusy || !canEditMail} onClick={async () => {
+                      <Button type="button" variant="outline" className="border-[#6366f1] text-[#6366f1] hover:bg-[#eef2ff]" disabled={mailTestBusy} onClick={async () => {
                         setMailTestBusy(true);
                         setMailMsg(null);
                         try {
@@ -1107,7 +1107,7 @@ export function SettingsPage({ onNavigate, onSearch }: SettingsPageProps) {
                       }}>
                         {mailTestBusy ? 'Verifying…' : 'Verify SMTP'}
                       </Button>
-                      <Button type="button" disabled={!canEditMail} className="bg-gradient-to-r from-[#06b6d4] to-[#3b82f6] text-white hover:shadow-lg hover:shadow-[#06b6d4]/20" onClick={async () => {
+                      <Button type="button" className="bg-gradient-to-r from-[#06b6d4] to-[#3b82f6] text-white hover:shadow-lg hover:shadow-[#06b6d4]/20" onClick={async () => {
                         setMailBusy(true);
                         setMailMsg(null);
                         try {
@@ -1156,12 +1156,36 @@ export function SettingsPage({ onNavigate, onSearch }: SettingsPageProps) {
                       }}>
                         Send Test Email
                       </Button>
+                      <Button type="button" variant="outline" className="border-[#0ea5e9] text-[#0ea5e9] hover:bg-[#e0f2fe]" onClick={async () => {
+                        setMailMsg(null);
+                        try {
+                          const to = me?.email || '';
+                          if (!to || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(to)) {
+                            setMailMsg('Error: Your user email is not available');
+                            return;
+                          }
+                          setMailTestTo(to);
+                          const res = await fetch('/api/mail/test', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ to, subject: 'AssetFlow SMTP Test', text: 'This is a test email from AssetFlow.' }),
+                          });
+                          const data = await res.json();
+                          if (!res.ok) throw new Error(data?.error || 'Failed');
+                          setMailMsg('OK: Test email sent to your address');
+                        } catch (e: any) {
+                          setMailMsg(`Error: ${e?.message || e}`);
+                        }
+                      }}>
+                        Send to me
+                      </Button>
                     </div>
                   </div>
                   <p className="text-xs text-[#94a3b8]">Note: For security reasons, the SMTP password is not returned by the server when loading settings.</p>
                 </CardContent>
               </Card>
             </TabsContent>
+          )}
         </Tabs>
       </motion.div>
     </AssetFlowLayout>
