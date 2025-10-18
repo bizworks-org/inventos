@@ -70,7 +70,7 @@ export function Sidebar({ currentPage = 'dashboard', me: meProp }: SidebarProps 
       ];
     }
     return navItems;
-  }, [me, pathname, currentPage, everAdmin]);
+  }, [everAdmin, me?.role]);
 
   const initials = useMemo(() => {
     const name = me?.name || '';
@@ -153,7 +153,11 @@ export function Sidebar({ currentPage = 'dashboard', me: meProp }: SidebarProps 
               </div>
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-medium text-white truncate">{me?.name || me?.email || 'User'}</p>
-                <p className="text-xs text-[#a0a4b8] truncate">{me?.role === 'admin' ? 'Administrator' : 'User'}</p>
+                <p className="text-xs text-[#a0a4b8] truncate">{(() => {
+                  const serverIsAdmin = typeof document !== 'undefined' ? document.documentElement.getAttribute('data-admin') === 'true' : false;
+                  const role = (serverIsAdmin || everAdmin || me?.role === 'admin') ? 'Administrator' : 'User';
+                  return role;
+                })()}</p>
               </div>
               <button
                 onClick={async (e) => { e.preventDefault(); (await import('@/lib/auth/client')).signOut(); }}

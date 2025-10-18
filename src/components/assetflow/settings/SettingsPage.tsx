@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { motion } from 'motion/react';
 import { AssetFlowLayout } from '../layout/AssetFlowLayout';
+import { useMe } from '../layout/MeContext';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../../ui/tabs';
 import { useTheme } from 'next-themes';
 import { Sun, Moon, Laptop, Bell, User, SlidersHorizontal, Server, Webhook, Rss, Send, Check, Plug, Database, Mail, TestTube } from 'lucide-react';
@@ -64,15 +65,20 @@ type EventsConfig = {
 
 export function SettingsPage({ onNavigate, onSearch }: SettingsPageProps) {
   const { theme, setTheme, systemTheme } = useTheme();
+  const { me: ctxMe, setMe: setCtxMe } = useMe();
   const [activeTab, setActiveTab] = useState<string>('profile');
   const [saving, setSaving] = useState(false);
   const [serverError, setServerError] = useState<string | null>(null);
   const [me, setMe] = useState<ClientMe>(null);
   const canEditMail = !!(me?.role === 'admin' || me?.permissions?.includes('settings_write'));
 
-  // Profile (mock)
-  const [name, setName] = useState('John Doe');
-  const [email, setEmail] = useState('john.doe@company.com');
+  // Profile
+  const [name, setName] = useState('');
+  const [email, setEmail] = useState('');
+  const [pwdCurrent, setPwdCurrent] = useState('');
+  const [pwdNew, setPwdNew] = useState('');
+  const [pwdNew2, setPwdNew2] = useState('');
+  const [profileMsg, setProfileMsg] = useState<string | null>(null);
 
   // Preferences
   const [prefs, setPrefs] = useState<Preferences>({ density: 'comfortable', dateFormat: 'YYYY-MM-DD', currency: 'USD', language: 'en' });
@@ -165,8 +171,14 @@ export function SettingsPage({ onNavigate, onSearch }: SettingsPageProps) {
 
   // Load persisted settings from localStorage and then try server
   useEffect(() => {
-    // whoami for RBAC gating of Mail tab
-    getMe().then(setMe).catch(() => setMe(null));
+    // whoami for RBAC gating and profile prefill
+    getMe().then((m) => {
+      setMe(m);
+      if (m) {
+        setEmail(m.email || '');
+        if (m.name) setName(m.name);
+      }
+    }).catch(() => setMe(null));
     try {
       const raw = localStorage.getItem('assetflow:settings');
       if (raw) {
@@ -319,6 +331,40 @@ export function SettingsPage({ onNavigate, onSearch }: SettingsPageProps) {
     }
   };
 
+  const saveProfile = async () => {
+    setProfileMsg(null);
+    // Basic validations
+    if (!name && !pwdNew) {
+      setProfileMsg('Nothing to update');
+      return;
+    }
+    if (pwdNew) {
+      if (pwdNew !== pwdNew2) {
+        setProfileMsg('New passwords do not match');
+        return;
+      }
+      if (pwdNew.length < 8) {
+        setProfileMsg('New password must be at least 8 characters');
+        return;
+      }
+      if (!pwdCurrent) {
+        setProfileMsg('Current password is required to set a new password');
+        return;
+      }
+    }
+    try {
+      const res = await fetch('/api/auth/profile', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name, passwordCurrent: pwdCurrent || undefined, passwordNew: pwdNew || undefined }) });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data?.error || 'Failed to update profile');
+  setProfileMsg('OK: Profile updated');
+  // Reflect updated name in global MeContext so Sidebar/Profile chips update immediately
+  setCtxMe(ctxMe ? { ...ctxMe, name } : ctxMe);
+      setPwdCurrent(''); setPwdNew(''); setPwdNew2('');
+    } catch (e: any) {
+      setProfileMsg(`Error: ${e?.message || e}`);
+    }
+  };
+
   const saveRestSettings = () => {
     // basic JSON validation for headers
     try {
@@ -425,24 +471,56 @@ export function SettingsPage({ onNavigate, onSearch }: SettingsPageProps) {
 
           {/* Profile */}
           <TabsContent value="profile" className="mt-0">
-            {/* Profile */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="space-y-8">
               <div>
-                <label className="block text-sm font-medium text-[#1a1d2e] mb-2">Full Name</label>
-                <input
-                  className="w-full px-3 py-2 rounded-lg bg-[#f8f9ff] border border-[rgba(0,0,0,0.08)] focus:outline-none focus:ring-2 focus:ring-[#6366f1]/20"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                />
+                <h3 className="text-lg font-semibold text-[#1a1d2e] mb-3">Profile</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
+                    <label className="block text-sm font-medium text-[#1a1d2e] mb-2">Full Name</label>
+                    <input
+                      className="w-full px-3 py-2 rounded-lg bg-[#f8f9ff] border border-[rgba(0,0,0,0.08)] focus:outline-none focus:ring-2 focus:ring-[#6366f1]/20"
+                      value={name}
+                      onChange={(e) => setName(e.target.value)}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-[#1a1d2e] mb-2">Email</label>
+                    <input
+                      type="email"
+                      disabled
+                      className="w-full px-3 py-2 rounded-lg bg-[#f8f9ff] border border-[rgba(0,0,0,0.08)] text-[#6b7280]"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                    />
+                    <p className="text-xs text-[#94a3b8] mt-1">Email is managed by an administrator.</p>
+                  </div>
+                </div>
               </div>
+
               <div>
-                <label className="block text-sm font-medium text-[#1a1d2e] mb-2">Email</label>
-                <input
-                  type="email"
-                  className="w-full px-3 py-2 rounded-lg bg-[#f8f9ff] border border-[rgba(0,0,0,0.08)] focus:outline-none focus:ring-2 focus:ring-[#6366f1]/20"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                />
+                <h3 className="text-lg font-semibold text-[#1a1d2e] mb-3">Change Password</h3>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  <div>
+                    <label className="block text-sm font-medium text-[#1a1d2e] mb-2">Current Password</label>
+                    <input type="password" className="w-full px-3 py-2 rounded-lg bg-[#f8f9ff] border border-[rgba(0,0,0,0.08)]" value={pwdCurrent} onChange={(e) => setPwdCurrent(e.target.value)} />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-[#1a1d2e] mb-2">New Password</label>
+                    <input type="password" className="w-full px-3 py-2 rounded-lg bg-[#f8f9ff] border border-[rgba(0,0,0,0.08)]" value={pwdNew} onChange={(e) => setPwdNew(e.target.value)} />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-[#1a1d2e] mb-2">Confirm New Password</label>
+                    <input type="password" className="w-full px-3 py-2 rounded-lg bg-[#f8f9ff] border border-[rgba(0,0,0,0.08)]" value={pwdNew2} onChange={(e) => setPwdNew2(e.target.value)} />
+                  </div>
+                </div>
+              </div>
+
+              {profileMsg && (
+                <p className={`text-sm ${profileMsg.startsWith('OK') ? 'text-green-600' : 'text-red-600'}`}>{profileMsg}</p>
+              )}
+
+              <div className="flex justify-end">
+                <Button type="button" onClick={saveProfile} className="bg-gradient-to-r from-[#6366f1] to-[#8b5cf6] text-white hover:shadow-lg hover:shadow-[#6366f1]/30">Save Profile</Button>
               </div>
             </div>
           </TabsContent>

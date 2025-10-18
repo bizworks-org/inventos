@@ -2,7 +2,8 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { toast } from 'sonner@2.0.3';
 import { useRouter } from 'next/navigation';
-import { Shield, User as UserIcon, Package, FileText, Building2, Activity } from 'lucide-react';
+import { Shield, User as UserIcon, Package, FileText, Building2, Activity, Pencil } from 'lucide-react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogTrigger, DialogFooter, DialogClose } from '@/components/ui/dialog';
 import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
 import { AlertDialog, AlertDialogTrigger, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, AlertDialogAction, AlertDialogCancel } from '@/components/ui/alert-dialog';
 
@@ -19,6 +20,7 @@ export default function ManageUsersPage() {
   const [rolePerms, setRolePerms] = useState<Record<Role, Set<string>>>({ admin: new Set(), user: new Set() });
   const [me, setMe] = useState<{ id: string; email: string; role: Role } | null>(null);
   const [confirmRemoveAdminFor, setConfirmRemoveAdminFor] = useState<{ userId: string; userName: string } | null>(null);
+  const [editing, setEditing] = useState<{ id: string; name: string; email: string; active: boolean } | null>(null);
   const router = useRouter();
 
   // Helpers: choose stable, high-contrast gradient colors for chips
@@ -165,6 +167,20 @@ export default function ManageUsersPage() {
     if (!confirm('Delete this user?')) return;
     const res = await fetch(`/api/admin/users?id=${encodeURIComponent(id)}`, { method: 'DELETE' });
     if (!res.ok) return toast.error('Delete failed');
+    load();
+  };
+
+  const saveEdit = async () => {
+    if (!editing) return;
+    const res = await fetch('/api/admin/users', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: editing.id, name: editing.name, email: editing.email, active: editing.active }) });
+    if (!res.ok) {
+      let msg = 'Failed to update user';
+      try { const data = await res.json(); if (data?.error) msg = data.error; } catch {}
+      toast.error(msg);
+      return;
+    }
+    toast.success('User updated');
+    setEditing(null);
     load();
   };
 
@@ -334,6 +350,43 @@ export default function ManageUsersPage() {
                     <td className="py-3 pr-4 align-middle">{u.active ? 'Yes' : 'No'}</td>
                     <td className="py-3 pr-4 align-middle">
                       <div className="flex gap-2 items-center">
+                        <Dialog open={!!editing && editing.id === u.id} onOpenChange={(open) => { if (!open) setEditing(null); }}>
+                          <DialogTrigger asChild>
+                            <button
+                              onClick={() => setEditing({ id: u.id, name: u.name, email: u.email, active: u.active })}
+                              className="px-3 py-2 rounded-lg text-sm font-medium text-white shadow-sm hover:shadow-md focus:outline-none focus:ring-2 focus:ring-indigo-500/40 transition-all"
+                              style={{ backgroundImage: 'linear-gradient(to right, #6366f1, #8b5cf6)' }}
+                            >
+                              <span className="inline-flex items-center gap-1"><Pencil className="h-4 w-4" /> Edit</span>
+                            </button>
+                          </DialogTrigger>
+                          <DialogContent className="bg-white border border-[#e2e8f0]">
+                            <DialogHeader>
+                              <DialogTitle>Edit User</DialogTitle>
+                              <DialogDescription>Update basic user details. Roles can be adjusted via chips above.</DialogDescription>
+                            </DialogHeader>
+                            <div className="grid gap-3 py-2">
+                              <label className="grid gap-1 text-sm">
+                                <span className="text-[#64748b]">Name</span>
+                                <input className="px-3 py-2.5 rounded-lg border border-[#e2e8f0] bg-white" value={editing?.name || ''} onChange={(e) => setEditing((cur) => cur ? { ...cur, name: e.target.value } : cur)} />
+                              </label>
+                              <label className="grid gap-1 text-sm">
+                                <span className="text-[#64748b]">Email</span>
+                                <input className="px-3 py-2.5 rounded-lg border border-[#e2e8f0] bg-white" value={editing?.email || ''} onChange={(e) => setEditing((cur) => cur ? { ...cur, email: e.target.value } : cur)} />
+                              </label>
+                              <label className="inline-flex items-center gap-2 text-sm">
+                                <input type="checkbox" checked={!!editing?.active} onChange={(e) => setEditing((cur) => cur ? { ...cur, active: e.target.checked } : cur)} />
+                                <span>Active</span>
+                              </label>
+                            </div>
+                            <DialogFooter>
+                              <DialogClose asChild>
+                                <button className="px-3 py-2 rounded-lg bg-[#f3f4f6] text-[#111827]">Cancel</button>
+                              </DialogClose>
+                              <button onClick={saveEdit} className="px-3 py-2 rounded-lg text-sm font-medium text-white shadow-sm hover:shadow-md focus:outline-none focus:ring-2 focus:ring-indigo-500/40 transition-all" style={{ backgroundImage: 'linear-gradient(to right, #6366f1, #8b5cf6)' }}>Save</button>
+                            </DialogFooter>
+                          </DialogContent>
+                        </Dialog>
                         {!u.active ? (
                           <button
                             onClick={() => activate(u.id)}
