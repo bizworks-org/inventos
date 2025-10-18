@@ -5,7 +5,7 @@ import { motion } from 'motion/react';
 import { AssetFlowLayout } from '../layout/AssetFlowLayout';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../../ui/tabs';
 import { useTheme } from 'next-themes';
-import { Sun, Moon, Laptop, Bell, User, SlidersHorizontal, Server, Webhook, Rss, Send, Check, Plug, Database } from 'lucide-react';
+import { Sun, Moon, Laptop, Bell, User, SlidersHorizontal, Server, Webhook, Rss, Send, Check, Plug, Database, Mail, TestTube } from 'lucide-react';
 import { Switch } from '../../ui/switch';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../ui/card';
 import { Button } from '../../ui/button';
@@ -14,6 +14,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Label } from '../../ui/label';
 import { Input } from '../../ui/input';
 import { fetchSettings, saveSettings, type ServerSettings } from '../../../lib/api';
+import { getMe, type ClientMe } from '../../../lib/auth/client';
 import type { AssetFieldDef } from '../../../lib/data';
 
 interface SettingsPageProps {
@@ -66,6 +67,8 @@ export function SettingsPage({ onNavigate, onSearch }: SettingsPageProps) {
   const [activeTab, setActiveTab] = useState<string>('profile');
   const [saving, setSaving] = useState(false);
   const [serverError, setServerError] = useState<string | null>(null);
+  const [me, setMe] = useState<ClientMe>(null);
+  const canEditMail = !!(me?.role === 'admin' || me?.permissions?.includes('settings_write'));
 
   // Profile (mock)
   const [name, setName] = useState('John Doe');
@@ -147,6 +150,13 @@ export function SettingsPage({ onNavigate, onSearch }: SettingsPageProps) {
   const [dbMsg, setDbMsg] = useState<string | null>(null);
   const [dbTestBusy, setDbTestBusy] = useState(false);
 
+  // Mail Server (SMTP)
+  const [mailForm, setMailForm] = useState({ host: '', port: '587', secure: false, user: '', password: '', fromName: '', fromEmail: '' });
+  const [mailTestTo, setMailTestTo] = useState<string>('');
+  const [mailMsg, setMailMsg] = useState<string | null>(null);
+  const [mailBusy, setMailBusy] = useState(false);
+  const [mailTestBusy, setMailTestBusy] = useState(false);
+
   // Asset field definitions (global custom fields)
   const [assetFields, setAssetFields] = useState<AssetFieldDef[]>([]);
   const addAssetField = () => setAssetFields((arr) => [...arr, { key: '', label: '', required: false, placeholder: '' }]);
@@ -155,6 +165,8 @@ export function SettingsPage({ onNavigate, onSearch }: SettingsPageProps) {
 
   // Load persisted settings from localStorage and then try server
   useEffect(() => {
+    // whoami for RBAC gating of Mail tab
+    getMe().then(setMe).catch(() => setMe(null));
     try {
       const raw = localStorage.getItem('assetflow:settings');
       if (raw) {
@@ -233,6 +245,30 @@ export function SettingsPage({ onNavigate, onSearch }: SettingsPageProps) {
           const data = await res.json();
           if (data?.ok) {
             setDbForm((v) => ({ ...v, host: data.host, port: String(data.port ?? 3306), user: data.user, database: data.database }));
+          }
+        }
+      } catch { }
+    })();
+  }, []);
+
+  // Prefill Mail form from saved secure config if available
+  useEffect(() => {
+    (async () => {
+      try {
+        const res = await fetch('/api/mail/config', { method: 'GET' });
+        if (res.ok) {
+          const data = await res.json();
+          if (data?.ok) {
+            setMailForm((v) => ({
+              ...v,
+              host: data.host || '',
+              port: String(data.port ?? '587'),
+              secure: !!data.secure,
+              user: data.user || '',
+              // we don't get password back; user can set it if needed
+              fromName: data.fromName || '',
+              fromEmail: data.fromEmail || '',
+            }));
           }
         }
       } catch { }
@@ -379,6 +415,9 @@ export function SettingsPage({ onNavigate, onSearch }: SettingsPageProps) {
             </TabsTrigger>
             <TabsTrigger value="assetFields" className="flex items-center gap-2 px-3 py-2 data-[state=active]:bg-white data-[state=active]:border data-[state=active]:border-[rgba(0,0,0,0.08)]">
               <SlidersHorizontal className="h-4 w-4 text-[#8b5cf6]" /> Asset Fields
+            </TabsTrigger>
+            <TabsTrigger value="mail" disabled={!canEditMail} className={`flex items-center gap-2 px-3 py-2 data-[state=active]:bg-white data-[state=active]:border data-[state=active]:border-[rgba(0,0,0,0.08)] ${!canEditMail ? 'opacity-50 cursor-not-allowed' : ''}`}>
+              <Mail className="h-4 w-4 text-[#3b82f6]" /> Mail Server
             </TabsTrigger>
           </TabsList>
 
@@ -994,6 +1033,132 @@ export function SettingsPage({ onNavigate, onSearch }: SettingsPageProps) {
                       <Button type="button" className="bg-gradient-to-r from-[#6366f1] to-[#8b5cf6] text-white hover:shadow-lg hover:shadow-[#6366f1]/30" onClick={handleSave}>Save Fields</Button>
                     </div>
                   </div>
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            {/* Mail Server */}
+          <TabsContent value="mail" className="mt-0">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Mail Server (SMTP)</CardTitle>
+                  <CardDescription>Configure SMTP to send assignment consent emails and notifications.</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  {!canEditMail && (
+                    <p className="text-sm text-[#ef4444]">You don't have permission to modify mail settings. Contact an administrator.</p>
+                  )}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <Label className="mb-1 block">Host<span className="text-red-500"> *</span></Label>
+                      <Input disabled={!canEditMail} value={mailForm.host} onChange={(e) => setMailForm((v) => ({ ...v, host: e.target.value }))} placeholder="smtp.example.com" />
+                    </div>
+                    <div>
+                      <Label className="mb-1 block">Port<span className="text-red-500"> *</span></Label>
+                      <Input disabled={!canEditMail} value={mailForm.port} onChange={(e) => setMailForm((v) => ({ ...v, port: e.target.value }))} placeholder="587" />
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <input id="smtp-secure" type="checkbox" disabled={!canEditMail} checked={!!mailForm.secure} onChange={(e) => setMailForm((v) => ({ ...v, secure: e.target.checked }))} />
+                      <Label htmlFor="smtp-secure" className="mb-0">Use TLS (secure)</Label>
+                    </div>
+                    <div>
+                      <Label className="mb-1 block">Username (optional)</Label>
+                      <Input disabled={!canEditMail} value={mailForm.user} onChange={(e) => setMailForm((v) => ({ ...v, user: e.target.value }))} placeholder="smtp user" />
+                    </div>
+                    <div>
+                      <Label className="mb-1 block">Password (optional)</Label>
+                      <Input type="password" disabled={!canEditMail} value={mailForm.password} onChange={(e) => setMailForm((v) => ({ ...v, password: e.target.value }))} placeholder="••••••••" />
+                      <p className="text-xs text-[#94a3b8] mt-1">Not returned on load for security; set only if you need to update it.</p>
+                    </div>
+                    <div>
+                      <Label className="mb-1 block">From Name</Label>
+                      <Input disabled={!canEditMail} value={mailForm.fromName} onChange={(e) => setMailForm((v) => ({ ...v, fromName: e.target.value }))} placeholder="AssetFlow" />
+                    </div>
+                    <div>
+                      <Label className="mb-1 block">From Email<span className="text-red-500"> *</span></Label>
+                      <Input type="email" disabled={!canEditMail} value={mailForm.fromEmail} onChange={(e) => setMailForm((v) => ({ ...v, fromEmail: e.target.value }))} placeholder="no-reply@example.com" />
+                    </div>
+                  </div>
+                  {mailMsg && <p className={`text-sm ${mailMsg.startsWith('OK') ? 'text-green-600' : 'text-red-600'}`}>{mailMsg}</p>}
+                  <div className="flex flex-wrap items-center justify-between gap-3">
+                    <div className="flex items-center gap-2">
+                      <Button type="button" variant="outline" className="border-[#6366f1] text-[#6366f1] hover:bg-[#eef2ff]" disabled={mailTestBusy || !canEditMail} onClick={async () => {
+                        setMailTestBusy(true);
+                        setMailMsg(null);
+                        try {
+                          if (!mailForm.host || !mailForm.port || !mailForm.fromEmail) {
+                            setMailMsg('Error: Host, Port and From Email are required');
+                            setMailTestBusy(false);
+                            return;
+                          }
+                          const res = await fetch('/api/mail/config', {
+                            method: 'PUT',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ host: mailForm.host, port: Number(mailForm.port) || 587, secure: !!mailForm.secure, user: mailForm.user || undefined, password: mailForm.password || undefined, fromEmail: mailForm.fromEmail || '' }),
+                          });
+                          const data = await res.json();
+                          if (!res.ok) throw new Error(data?.error || 'Failed');
+                          setMailMsg('OK: SMTP verified');
+                        } catch (e: any) {
+                          setMailMsg(`Error: ${e?.message || e}`);
+                        } finally {
+                          setMailTestBusy(false);
+                        }
+                      }}>
+                        {mailTestBusy ? 'Verifying…' : 'Verify SMTP'}
+                      </Button>
+                      <Button type="button" disabled={!canEditMail} className="bg-gradient-to-r from-[#06b6d4] to-[#3b82f6] text-white hover:shadow-lg hover:shadow-[#06b6d4]/20" onClick={async () => {
+                        setMailBusy(true);
+                        setMailMsg(null);
+                        try {
+                          if (!mailForm.host || !mailForm.port || !mailForm.fromEmail) {
+                            setMailMsg('Error: Host, Port and From Email are required');
+                            setMailBusy(false);
+                            return;
+                          }
+                          const res = await fetch('/api/mail/config', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ host: mailForm.host, port: Number(mailForm.port) || 587, secure: !!mailForm.secure, user: mailForm.user || undefined, password: mailForm.password || undefined, fromName: mailForm.fromName || undefined, fromEmail: mailForm.fromEmail || '' }),
+                          });
+                          const data = await res.json();
+                          if (!res.ok) throw new Error(data?.error || 'Failed');
+                          setMailMsg('OK: Mail config saved securely on server');
+                        } catch (e: any) {
+                          setMailMsg(`Error: ${e?.message || e}`);
+                        } finally {
+                          setMailBusy(false);
+                        }
+                      }}>
+                        Save SMTP Config
+                      </Button>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Input placeholder="Send test to (email)" value={mailTestTo} onChange={(e) => setMailTestTo(e.target.value)} />
+                      <Button type="button" variant="outline" className="border-[#10b981] text-[#10b981] hover:bg-[#dcfce7]" onClick={async () => {
+                        setMailMsg(null);
+                        try {
+                          if (!mailTestTo || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(mailTestTo)) {
+                            setMailMsg('Error: Enter a valid recipient email');
+                            return;
+                          }
+                          const res = await fetch('/api/mail/test', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ to: mailTestTo, subject: 'AssetFlow SMTP Test', text: 'This is a test email from AssetFlow.' }),
+                          });
+                          const data = await res.json();
+                          if (!res.ok) throw new Error(data?.error || 'Failed');
+                          setMailMsg('OK: Test email sent');
+                        } catch (e: any) {
+                          setMailMsg(`Error: ${e?.message || e}`);
+                        }
+                      }}>
+                        Send Test Email
+                      </Button>
+                    </div>
+                  </div>
+                  <p className="text-xs text-[#94a3b8]">Note: For security reasons, the SMTP password is not returned by the server when loading settings.</p>
                 </CardContent>
               </Card>
             </TabsContent>
