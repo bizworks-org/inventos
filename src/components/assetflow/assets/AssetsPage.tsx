@@ -19,7 +19,7 @@ interface AssetsPageProps {
 }
 
 export type AssetType = 'All' | 'Laptop' | 'Desktop' | 'Server' | 'Monitor' | 'Printer' | 'Phone';
-export type AssetStatus = 'All' | 'Active' | 'In Repair' | 'Retired' | 'In Storage';
+export type AssetStatus = 'All' | Asset['status'];
 
 export function AssetsPage({ onNavigate, onSearch }: AssetsPageProps) {
   const [selectedType, setSelectedType] = useState<AssetType>('All');
@@ -222,10 +222,14 @@ export function AssetsPage({ onNavigate, onSearch }: AssetsPageProps) {
               "
             >
               <option value="All">All Status</option>
-              <option value="Active">Active</option>
-              <option value="In Repair">In Repair</option>
-              <option value="Retired">Retired</option>
-              <option value="In Storage">In Storage</option>
+              <option value="In Store (New)">In Store (New)</option>
+              <option value="In Store (Used)">In Store (Used)</option>
+              <option value="Allocated">Allocated</option>
+              <option value="In Repair (In Store)">In Repair (In Store)</option>
+              <option value="In Repair (Allocated)">In Repair (Allocated)</option>
+              <option value="Faulty – To Be Scrapped">Faulty – To Be Scrapped</option>
+              <option value="Scrapped / Disposed">Scrapped / Disposed</option>
+              <option value="Lost / Missing">Lost / Missing</option>
             </select>
           </div>
         </div>

@@ -11,7 +11,15 @@ export interface Asset {
   // Optional consent status for assignment confirmations
   consentStatus?: 'pending' | 'accepted' | 'rejected' | 'none';
   department: string;
-  status: 'Active' | 'In Repair' | 'Retired' | 'In Storage';
+  status:
+    | 'In Store (New)'
+    | 'In Store (Used)'
+    | 'Allocated'
+    | 'In Repair (In Store)'
+    | 'In Repair (Allocated)'
+    | 'Faulty – To Be Scrapped'
+    | 'Scrapped / Disposed'
+    | 'Lost / Missing';
   purchaseDate: string;
   warrantyExpiry: string;
   cost: number;
@@ -93,7 +101,7 @@ export const mockAssets: Asset[] = [
     serialNumber: 'MBP-2023-001',
     assignedTo: 'John Doe',
     department: 'Engineering',
-    status: 'Active',
+    status: 'Allocated',
     purchaseDate: '2023-01-15',
     warrantyExpiry: '2026-01-15',
     cost: 2499,
@@ -112,7 +120,7 @@ export const mockAssets: Asset[] = [
     serialNumber: 'DELL-2023-045',
     assignedTo: 'Sarah Johnson',
     department: 'Design',
-    status: 'Active',
+    status: 'Allocated',
     purchaseDate: '2023-03-20',
     warrantyExpiry: '2026-03-20',
     cost: 1899,
@@ -131,7 +139,7 @@ export const mockAssets: Asset[] = [
     serialNumber: 'HP-2022-189',
     assignedTo: 'Mike Chen',
     department: 'Finance',
-    status: 'Active',
+    status: 'Allocated',
     purchaseDate: '2022-06-10',
     warrantyExpiry: '2025-06-10',
     cost: 1299,
@@ -150,7 +158,7 @@ export const mockAssets: Asset[] = [
     serialNumber: 'AWS-PROD-001',
     assignedTo: 'IT Operations',
     department: 'IT',
-    status: 'Active',
+    status: 'Allocated',
     purchaseDate: '2023-01-01',
     warrantyExpiry: '2024-12-31',
     cost: 5000,
@@ -168,7 +176,7 @@ export const mockAssets: Asset[] = [
     serialNumber: 'LNV-2023-067',
     assignedTo: 'Emily Brown',
     department: 'Marketing',
-    status: 'In Repair',
+    status: 'In Repair (Allocated)',
     purchaseDate: '2023-02-14',
     warrantyExpiry: '2026-02-14',
     cost: 1599,
@@ -187,7 +195,7 @@ export const mockAssets: Asset[] = [
     serialNumber: 'MON-2023-234',
     assignedTo: 'Design Team',
     department: 'Design',
-    status: 'Active',
+    status: 'Allocated',
     purchaseDate: '2023-04-01',
     warrantyExpiry: '2026-04-01',
     cost: 599,
@@ -200,7 +208,7 @@ export const mockAssets: Asset[] = [
     serialNumber: 'APPL-2023-891',
     assignedTo: 'David Wilson',
     department: 'Sales',
-    status: 'Active',
+    status: 'Allocated',
     purchaseDate: '2023-09-22',
     warrantyExpiry: '2024-09-22',
     cost: 999,
@@ -213,7 +221,7 @@ export const mockAssets: Asset[] = [
     serialNumber: 'PRT-2022-456',
     assignedTo: 'Office Services',
     department: 'Operations',
-    status: 'Active',
+    status: 'Allocated',
     purchaseDate: '2022-08-15',
     warrantyExpiry: '2025-08-15',
     cost: 399,
@@ -527,7 +535,8 @@ export function getDashboardStats() {
   return {
     totalAssets: mockAssets.length,
     licensesExpiringSoon: getLicensesExpiringSoon().length,
-    assetsInRepair: getAssetsByStatus('In Repair').length,
+    assetsInRepair:
+      mockAssets.filter(a => a.status === 'In Repair (In Store)' || a.status === 'In Repair (Allocated)').length,
     totalVendors: mockVendors.length
   };
 }

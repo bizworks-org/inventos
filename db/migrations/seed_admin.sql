@@ -4,7 +4,7 @@
 -- Replace with your values
 SET @EMAIL = 'admin@inventos.io';
 SET @NAME = 'Admin User';
-SET @HASH = 'scrypt$16384$<salt>$<hash>'; -- generate via: npm run hash:pw -- "YourStrongPassword"
+SET @HASH = 'scrypt$16384$c7a5e4b57e345527526fe6e04e1506f8$93129ce75ea35d54678d6611a312ca6b00082cad8e51f73700244b6dff1ce60049a35be400f2e9173959953524ad018245fef4c473edc887ee5e98dcec7629ba'; -- generate via: npm run hash:pw -- "YourStrongPassword"
 
 -- Create user if not exists
 INSERT INTO users (id, email, name, password_hash, active)

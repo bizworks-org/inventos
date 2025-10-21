@@ -14,13 +14,17 @@ interface AssetsTableProps {
 }
 
 function getStatusColor(status: Asset['status']) {
-  const colors = {
-    'Active': 'bg-[#10b981]/10 text-[#10b981] border-[#10b981]/20',
-    'In Repair': 'bg-[#f59e0b]/10 text-[#f59e0b] border-[#f59e0b]/20',
-    'Retired': 'bg-[#64748b]/10 text-[#64748b] border-[#64748b]/20',
-    'In Storage': 'bg-[#3b82f6]/10 text-[#3b82f6] border-[#3b82f6]/20'
+  const colors: Record<Asset['status'], string> = {
+    'In Store (New)': 'bg-[#3b82f6]/10 text-[#2563eb] border-[#3b82f6]/20',
+    'In Store (Used)': 'bg-[#60a5fa]/10 text-[#3b82f6] border-[#60a5fa]/20',
+    'Allocated': 'bg-[#10b981]/10 text-[#10b981] border-[#10b981]/20',
+    'In Repair (In Store)': 'bg-[#f59e0b]/10 text-[#d97706] border-[#f59e0b]/20',
+    'In Repair (Allocated)': 'bg-[#f59e0b]/10 text-[#b45309] border-[#f59e0b]/20',
+    'Faulty – To Be Scrapped': 'bg-[#fb923c]/10 text-[#ea580c] border-[#fb923c]/20',
+    'Scrapped / Disposed': 'bg-[#94a3b8]/10 text-[#64748b] border-[#94a3b8]/20',
+    'Lost / Missing': 'bg-[#ef4444]/10 text-[#ef4444] border-[#ef4444]/20',
   };
-  return colors[status] || colors['Active'];
+  return colors[status] || 'bg-[#e5e7eb] text-[#6b7280] border-[#e5e7eb]';
 }
 
 function consentBadge(asset: Asset) {

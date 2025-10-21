@@ -39,7 +39,9 @@ export function AssetFlowDashboard({ onNavigate, onSearch }: AssetFlowDashboardP
 
   const stats = useMemo(() => {
     const totalAssets = assets.length;
-    const assetsInRepair = assets.filter(a => a.status === 'In Repair').length;
+    const assetsInRepair = assets.filter(
+      a => a.status === 'In Repair (In Store)' || a.status === 'In Repair (Allocated)'
+    ).length;
     const licensesExpiringSoon = licenses.filter(l => {
       const d = new Date(l.expirationDate);
       const now = new Date();

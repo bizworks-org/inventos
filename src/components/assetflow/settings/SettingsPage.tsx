@@ -8,7 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '../../ui/tabs';
 import { useTheme } from 'next-themes';
 import { Sun, Moon, Laptop, Bell, User, SlidersHorizontal, Server, Webhook, Rss, Send, Check, Plug, Database, Mail, TestTube } from 'lucide-react';
 import { Switch } from '../../ui/switch';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../ui/card';
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '../../ui/card';
 import { Button } from '../../ui/button';
 import { Badge } from '../../ui/badge';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '../../ui/dialog';
@@ -21,6 +21,7 @@ import type { AssetFieldDef } from '../../../lib/data';
 interface SettingsPageProps {
   onNavigate?: (page: string) => void;
   onSearch?: (query: string) => void;
+  view?: 'general' | 'technical';
 }
 
 type ThemeMode = 'light' | 'dark' | 'system';
@@ -63,10 +64,10 @@ type EventsConfig = {
   webhookSecret?: string; // optional shared secret for signing
 };
 
-export function SettingsPage({ onNavigate, onSearch }: SettingsPageProps) {
+export function SettingsPage({ onNavigate, onSearch, view = 'general' }: SettingsPageProps) {
   const { theme, setTheme, systemTheme } = useTheme();
   const { me: ctxMe, setMe: setCtxMe } = useMe();
-  const [activeTab, setActiveTab] = useState<string>('profile');
+  const [activeTab, setActiveTab] = useState<string>(view === 'technical' ? 'events' : 'profile');
   const [saving, setSaving] = useState(false);
   const [serverError, setServerError] = useState<string | null>(null);
   const [me, setMe] = useState<ClientMe>(null);
@@ -411,7 +412,8 @@ export function SettingsPage({ onNavigate, onSearch }: SettingsPageProps) {
     <AssetFlowLayout
       breadcrumbs={[
         { label: 'Home', href: '#' },
-        { label: 'Settings' },
+        { label: 'Settings', href: '/settings' },
+        ...(view === 'technical' ? [{ label: 'Technical' } as const] : [])
       ]}
       currentPage="settings"
       onSearch={onSearch}
@@ -420,7 +422,7 @@ export function SettingsPage({ onNavigate, onSearch }: SettingsPageProps) {
       <div className="flex items-center justify-between mb-8">
         <div>
           <h1 className="text-3xl font-bold text-[#1a1d2e] mb-2">Settings</h1>
-          <p className="text-[#64748b]">Manage your profile, preferences, and notifications</p>
+          <p className="text-[#64748b]">{view === 'technical' ? 'Manage integrations, events, and mail server' : 'Manage your profile, preferences, and notifications'}</p>
         </div>
         <button
           onClick={handleSave}
@@ -439,37 +441,47 @@ export function SettingsPage({ onNavigate, onSearch }: SettingsPageProps) {
         transition={{ duration: 0.3 }}
         className="bg-white rounded-2xl border border-[rgba(0,0,0,0.08)] p-6 shadow-sm"
       >
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
+  <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
           <TabsList className="flex w-full flex-wrap gap-2 rounded-xl border border-[rgba(0,0,0,0.08)] bg-[#f8f9ff] p-2">
-            <TabsTrigger value="profile" className="flex items-center gap-2 px-3 py-2 data-[state=active]:bg-white data-[state=active]:border data-[state=active]:border-[rgba(0,0,0,0.08)]">
-              <User className="h-4 w-4 text-[#0ea5e9]" /> Profile
-            </TabsTrigger>
-            <TabsTrigger value="preferences" className="flex items-center gap-2 px-3 py-2 data-[state=active]:bg-white data-[state=active]:border data-[state=active]:border-[rgba(0,0,0,0.08)]">
-              <SlidersHorizontal className="h-4 w-4 text-[#22c55e]" /> Preferences
-            </TabsTrigger>
-            <TabsTrigger value="notifications" className="flex items-center gap-2 px-3 py-2 data-[state=active]:bg-white data-[state=active]:border data-[state=active]:border-[rgba(0,0,0,0.08)]">
-              <Bell className="h-4 w-4 text-[#f59e0b]" /> Notifications
-            </TabsTrigger>
-            <TabsTrigger value="integrations" className="flex items-center gap-2 px-3 py-2 data-[state=active]:bg-white data-[state=active]:border data-[state=active]:border-[rgba(0,0,0,0.08)]">
-              <Server className="h-4 w-4 text-[#6366f1]" /> Integrations
-            </TabsTrigger>
-            <TabsTrigger value="events" className="flex items-center gap-2 px-3 py-2 data-[state=active]:bg-white data-[state=active]:border data-[state=active]:border-[rgba(0,0,0,0.08)]">
-              <Rss className="h-4 w-4 text-[#f97316]" /> Events
-            </TabsTrigger>
-            <TabsTrigger value="database" className="flex items-center gap-2 px-3 py-2 data-[state=active]:bg-white data-[state=active]:border data-[state=active]:border-[rgba(0,0,0,0.08)]">
-              <Database className="h-4 w-4 text-[#10b981]" /> Database
-            </TabsTrigger>
-            <TabsTrigger value="assetFields" className="flex items-center gap-2 px-3 py-2 data-[state=active]:bg-white data-[state=active]:border data-[state=active]:border-[rgba(0,0,0,0.08)]">
-              <SlidersHorizontal className="h-4 w-4 text-[#8b5cf6]" /> Asset Fields
-            </TabsTrigger>
-            {canEditMail && (
-              <TabsTrigger value="mail" className={`flex items-center gap-2 px-3 py-2 data-[state=active]:bg-white data-[state=active]:border data-[state=active]:border-[rgba(0,0,0,0.08)]`}>
-                <Mail className="h-4 w-4 text-[#3b82f6]" /> Mail Server
-              </TabsTrigger>
+            {view === 'general' && (
+              <>
+                <TabsTrigger value="profile" className="flex items-center gap-2 px-3 py-2 data-[state=active]:bg-white data-[state=active]:border data-[state=active]:border-[rgba(0,0,0,0.08)]">
+                  <User className="h-4 w-4 text-[#0ea5e9]" /> Profile
+                </TabsTrigger>
+                <TabsTrigger value="preferences" className="flex items-center gap-2 px-3 py-2 data-[state=active]:bg-white data-[state=active]:border data-[state=active]:border-[rgba(0,0,0,0.08)]">
+                  <SlidersHorizontal className="h-4 w-4 text-[#22c55e]" /> Preferences
+                </TabsTrigger>
+                <TabsTrigger value="notifications" className="flex items-center gap-2 px-3 py-2 data-[state=active]:bg-white data-[state=active]:border data-[state=active]:border-[rgba(0,0,0,0.08)]">
+                  <Bell className="h-4 w-4 text-[#f59e0b]" /> Notifications
+                </TabsTrigger>
+              </>
+            )}
+
+            {view === 'technical' && (
+              <>
+                <TabsTrigger value="integrations" className="flex items-center gap-2 px-3 py-2 data-[state=active]:bg-white data-[state=active]:border data-[state=active]:border-[rgba(0,0,0,0.08)]">
+                  <Server className="h-4 w-4 text-[#6366f1]" /> Integrations
+                </TabsTrigger>
+                <TabsTrigger value="events" className="flex items-center gap-2 px-3 py-2 data-[state=active]:bg-white data-[state=active]:border data-[state=active]:border-[rgba(0,0,0,0.08)]">
+                  <Rss className="h-4 w-4 text-[#f97316]" /> Events
+                </TabsTrigger>
+                <TabsTrigger value="database" className="flex items-center gap-2 px-3 py-2 data-[state=active]:bg-white data-[state=active]:border data-[state=active]:border-[rgba(0,0,0,0.08)]">
+                  <Database className="h-4 w-4 text-[#10b981]" /> Database
+                </TabsTrigger>
+                <TabsTrigger value="assetFields" className="flex items-center gap-2 px-3 py-2 data-[state=active]:bg-white data-[state=active]:border data-[state=active]:border-[rgba(0,0,0,0.08)]">
+                  <SlidersHorizontal className="h-4 w-4 text-[#8b5cf6]" /> Asset Fields
+                </TabsTrigger>
+                {canEditMail && (
+                  <TabsTrigger value="mail" className={`flex items-center gap-2 px-3 py-2 data-[state=active]:bg-white data-[state=active]:border data-[state=active]:border-[rgba(0,0,0,0.08)]`}>
+                    <Mail className="h-4 w-4 text-[#3b82f6]" /> Mail Server
+                  </TabsTrigger>
+                )}
+              </>
             )}
           </TabsList>
 
           {/* Profile */}
+          {view === 'general' && (
           <TabsContent value="profile" className="mt-0">
             <div className="space-y-8">
               <div>
@@ -524,8 +536,10 @@ export function SettingsPage({ onNavigate, onSearch }: SettingsPageProps) {
               </div>
             </div>
           </TabsContent>
+          )}
 
           {/* Preferences + Appearance */}
+          {view === 'general' && (
           <TabsContent value="preferences" className="mt-0 space-y-8">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
@@ -654,8 +668,10 @@ export function SettingsPage({ onNavigate, onSearch }: SettingsPageProps) {
               </p>
             </div>
           </TabsContent>
+          )}
 
             {/* Notifications */}
+          {view === 'general' && (
           <TabsContent value="notifications" className="mt-0">
               <form className="space-y-6" onSubmit={(e) => { e.preventDefault(); handleSave(); }}>
                 <Card>
@@ -753,7 +769,9 @@ export function SettingsPage({ onNavigate, onSearch }: SettingsPageProps) {
                 </div>
               </form>
             </TabsContent>
+            )}
             {/* Integrations */}
+          {view === 'technical' && (
           <TabsContent value="integrations" className="mt-0">
               <Card>
                 <CardHeader>
@@ -820,6 +838,7 @@ export function SettingsPage({ onNavigate, onSearch }: SettingsPageProps) {
                 </CardContent>
               </Card>
             </TabsContent>
+            )}
 
             {/* Appearance */}
             <TabsContent value="appearance" className="mt-0">
@@ -858,6 +877,7 @@ export function SettingsPage({ onNavigate, onSearch }: SettingsPageProps) {
             </TabsContent>
 
             {/* Events */}
+          {view === 'technical' && (
           <TabsContent value="events" className="mt-0">
               <div className="space-y-6">
                 {/* Enable */}
@@ -912,10 +932,10 @@ export function SettingsPage({ onNavigate, onSearch }: SettingsPageProps) {
                         <Label className="mb-1 block">Secret Token (optional)</Label>
                         <Input type="password" placeholder="Used to sign requests (e.g., HMAC)" value={events.webhookSecret} onChange={(e) => setEvents((v) => ({ ...v, webhookSecret: e.target.value }))} />
                       </div>
-                      <div className="flex justify-end">
-                        <Button type="button" className="bg-gradient-to-r from-[#6366f1] to-[#8b5cf6] text-white hover:shadow-lg hover:shadow-[#6366f1]/30" onClick={saveRestSettings}>Save REST Settings</Button>
-                      </div>
                     </CardContent>
+                    <CardFooter className="flex justify-end border-t">
+                      <Button type="button" className="bg-gradient-to-r from-[#6366f1] to-[#8b5cf6] text-white hover:shadow-lg hover:shadow-[#6366f1]/30" onClick={saveRestSettings}>Save REST Settings</Button>
+                    </CardFooter>
                   </Card>
 
                   {/* Kafka Card */}
@@ -965,16 +985,18 @@ export function SettingsPage({ onNavigate, onSearch }: SettingsPageProps) {
                           </div>
                         </div>
                       )}
-                      <div className="flex justify-end">
-                        <Button type="button" className="bg-gradient-to-r from-[#6366f1] to-[#8b5cf6] text-white hover:shadow-lg hover:shadow-[#6366f1]/30" onClick={saveKafkaSettings}>Save Kafka Settings</Button>
-                      </div>
                     </CardContent>
+                    <CardFooter className="flex justify-end border-t">
+                      <Button type="button" className="bg-gradient-to-r from-[#6366f1] to-[#8b5cf6] text-white hover:shadow-lg hover:shadow-[#6366f1]/30" onClick={saveKafkaSettings}>Save Kafka Settings</Button>
+                    </CardFooter>
                   </Card>
                 </div>
               </div>
             </TabsContent>
+            )}
 
             {/* Database */}
+          {view === 'technical' && (
           <TabsContent value="database" className="mt-0">
               <Card>
                 <CardHeader>
@@ -1005,9 +1027,10 @@ export function SettingsPage({ onNavigate, onSearch }: SettingsPageProps) {
                     </div>
                   </div>
                   {dbMsg && <p className={`text-sm ${dbMsg.startsWith('OK') ? 'text-green-600' : 'text-red-600'}`}>{dbMsg}</p>}
-                  <div className="flex justify-between gap-3 flex-wrap">
-                    <div className="flex items-center gap-2">
-                      <Button type="button" variant="outline" className="border-[#6366f1] text-[#6366f1] hover:bg-[#eef2ff]" disabled={dbTestBusy} onClick={async () => {
+                </CardContent>
+                <CardFooter className="flex justify-between gap-3 flex-wrap border-t">
+                  <div className="flex items-center gap-2">
+                    <Button type="button" variant="outline" className="border-[#6366f1] text-[#6366f1] hover:bg-[#eef2ff]" disabled={dbTestBusy} onClick={async () => {
                         setDbTestBusy(true);
                         setDbMsg(null);
                         try {
@@ -1025,9 +1048,9 @@ export function SettingsPage({ onNavigate, onSearch }: SettingsPageProps) {
                           setDbTestBusy(false);
                         }
                       }}>
-                        {dbTestBusy ? 'Testing…' : 'Test Connection'}
-                      </Button>
-                      <Button type="button" className="bg-gradient-to-r from-[#06b6d4] to-[#3b82f6] text-white hover:shadow-lg hover:shadow-[#06b6d4]/20" onClick={async () => {
+                      {dbTestBusy ? 'Testing…' : 'Test Connection'}
+                    </Button>
+                    <Button type="button" className="bg-gradient-to-r from-[#06b6d4] to-[#3b82f6] text-white hover:shadow-lg hover:shadow-[#06b6d4]/20" onClick={async () => {
                         try {
                           const res = await fetch('/api/db/config', {
                             method: 'POST',
@@ -1041,10 +1064,10 @@ export function SettingsPage({ onNavigate, onSearch }: SettingsPageProps) {
                           setDbMsg(`Error: ${e?.message || e}`);
                         }
                       }}>
-                        Save Config Securely
-                      </Button>
-                    </div>
-                    <Button type="button" disabled={dbBusy} className="bg-gradient-to-r from-[#10b981] to-[#22c55e] text-white hover:shadow-lg hover:shadow-[#22c55e]/20" onClick={async () => {
+                      Save Config Securely
+                    </Button>
+                  </div>
+                  <Button type="button" disabled={dbBusy} className="bg-gradient-to-r from-[#10b981] to-[#22c55e] text-white hover:shadow-lg hover:shadow-[#22c55e]/20" onClick={async () => {
                       setDbBusy(true);
                       setDbMsg(null);
                       try {
@@ -1062,14 +1085,15 @@ export function SettingsPage({ onNavigate, onSearch }: SettingsPageProps) {
                         setDbBusy(false);
                       }
                     }}>
-                      {dbBusy ? 'Initializing…' : 'Initialize Database'}
-                    </Button>
-                  </div>
-                </CardContent>
+                    {dbBusy ? 'Initializing…' : 'Initialize Database'}
+                  </Button>
+                </CardFooter>
               </Card>
             </TabsContent>
+            )}
 
             {/* Asset Fields */}
+          {view === 'technical' && (
           <TabsContent value="assetFields" className="mt-0">
               <Card>
                 <CardHeader>
@@ -1116,9 +1140,10 @@ export function SettingsPage({ onNavigate, onSearch }: SettingsPageProps) {
                 </CardContent>
               </Card>
             </TabsContent>
+            )}
 
             {/* Mail Server */}
-          {canEditMail && (
+          {view === 'technical' && canEditMail && (
             <TabsContent value="mail" className="mt-0">
               <Card>
                 <CardHeader>

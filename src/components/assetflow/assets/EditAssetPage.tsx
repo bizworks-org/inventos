@@ -17,7 +17,16 @@ interface EditAssetPageProps {
 }
 
 const assetTypes: Asset['type'][] = ['Laptop', 'Desktop', 'Server', 'Monitor', 'Printer', 'Phone'];
-const assetStatuses: Asset['status'][] = ['Active', 'In Repair', 'Retired', 'In Storage'];
+const assetStatuses: Asset['status'][] = [
+  'In Store (New)',
+  'In Store (Used)',
+  'Allocated',
+  'In Repair (In Store)',
+  'In Repair (Allocated)',
+  'Faulty – To Be Scrapped',
+  'Scrapped / Disposed',
+  'Lost / Missing',
+];
 
 export function EditAssetPage({ assetId, onNavigate, onSearch }: EditAssetPageProps) {
   const { currencySymbol, formatCurrency } = usePrefs();

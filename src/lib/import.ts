@@ -101,7 +101,9 @@ export function parseAssetsCSV(text: string): Asset[] {
       serialNumber: get(r, 'serial number') || '',
       assignedTo: get(r, 'assigned to') || '',
       department: get(r, 'department') || '',
-      status: (get(r, 'status') as Asset['status']) || 'Active',
+      status:
+        (get(r, 'status') as Asset['status']) ||
+        (((get(r, 'assigned to') || '').trim() ? 'Allocated' : 'In Store (New)') as Asset['status']),
       purchaseDate: get(r, 'purchase date') || '',
       warrantyExpiry: get(r, 'warranty expiry') || '',
       cost: isNaN(cost) ? 0 : cost,
@@ -247,7 +249,7 @@ export function parseAssetsFile(fileName: string, text: string): Asset[] {
       serialNumber: r.serialNumber ?? '',
       assignedTo: r.assignedTo ?? '',
       department: r.department ?? '',
-      status: r.status ?? 'Active',
+      status: r.status ?? ((r.assignedTo ? 'Allocated' : 'In Store (New)') as Asset['status']),
       purchaseDate: r.purchaseDate ?? '',
       warrantyExpiry: r.warrantyExpiry ?? '',
       cost: Number(r.cost ?? 0),

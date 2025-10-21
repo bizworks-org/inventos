@@ -46,6 +46,8 @@ export function Sidebar({ currentPage = 'dashboard', me: meProp }: SidebarProps 
     admin: '/admin',
     admin_users: '/admin/users',
     admin_roles: '/admin/roles',
+    settings_general: '/settings',
+    settings_configuration: '/settings/tech',
   };
 
   useEffect(() => { setMe(meProp === undefined ? me : meProp); }, [meProp]);
@@ -57,19 +59,31 @@ export function Sidebar({ currentPage = 'dashboard', me: meProp }: SidebarProps 
   }, [me]);
 
   const itemsToRender = useMemo(() => {
-  // Prefer server hint if present to avoid waiting for client fetch
+    // Prefer server hint if present to avoid waiting for client fetch
     const serverIsAdmin = typeof document !== 'undefined' ? document.documentElement.getAttribute('data-admin') === 'true' : false;
-  // Show Admin if: server hinted admin, we've ever detected admin this session, or explicit me=admin
-  const showAdmin = serverIsAdmin || everAdmin || me?.role === 'admin';
-    if (showAdmin) {
-      return [
-        ...navItems,
+    const isAdminLike = serverIsAdmin || everAdmin || me?.role === 'admin';
+
+    // Start with base items
+    const base: NavItem[] = [...navItems];
+    const idx = base.findIndex((i) => i.id === 'settings');
+    if (idx !== -1) {
+      const children: NavItem[] = [
+        { name: 'General', id: 'settings_general', icon: Settings, colorClass: 'text-violet-300' },
+      ];
+      if (isAdminLike) {
+        children.push({ name: 'Configuration', id: 'settings_configuration', icon: Settings, colorClass: 'text-violet-300' });
+      }
+      base.splice(idx + 1, 0, ...children);
+    }
+
+    if (isAdminLike) {
+      base.push(
         { name: 'Admin', id: 'admin', icon: Shield, colorClass: 'text-red-400' } as NavItem,
         { name: 'Users', id: 'admin_users', icon: Users, colorClass: 'text-red-300' } as NavItem,
         { name: 'Roles', id: 'admin_roles', icon: Shield, colorClass: 'text-red-300' } as NavItem,
-      ];
+      );
     }
-    return navItems;
+    return base;
   }, [everAdmin, me?.role]);
 
   const initials = useMemo(() => {
@@ -104,9 +118,14 @@ export function Sidebar({ currentPage = 'dashboard', me: meProp }: SidebarProps 
           // Ensure Admin isn't highlighted when Users is active.
           let isActive = false;
           if (pathname) {
-            if (item.id === 'admin') {
+            if (item.id === 'settings') {
+              // Do not highlight the parent Settings item; only highlight its children
+              isActive = false;
+            } else if (item.id.startsWith('settings_') || item.id === 'admin') {
+              // Exact match for Settings sub-items and Admin root
               isActive = pathname === href || pathname === `${href}/`;
             } else {
+              // Prefix match for all other sections (e.g., /assets, /licenses)
               isActive = pathname.startsWith(href);
             }
           } else {
@@ -120,7 +139,7 @@ export function Sidebar({ currentPage = 'dashboard', me: meProp }: SidebarProps 
               prefetch
               aria-current={isActive ? 'page' : undefined}
               className={`
-                flex items-center gap-3 ${item.id.startsWith('admin_') ? 'pl-10 pr-4' : 'px-4'} py-3 rounded-lg transition-colors duration-200 ease-out text-left w-full cursor-pointer
+                flex items-center gap-3 ${item.id.startsWith('admin_') || item.id.startsWith('settings_') ? 'pl-10 pr-4' : 'px-4'} py-3 rounded-lg transition-colors duration-200 ease-out text-left w-full cursor-pointer
                 ${isActive
                   ? 'bg-gradient-to-r from-[#6366f1] to-[#8b5cf6] text-white shadow-lg shadow-[#6366f1]/20'
                   : 'text-[#a0a4b8] hover:bg-[rgba(255,255,255,0.05)] hover:text-white'

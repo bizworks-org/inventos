@@ -15,7 +15,16 @@ interface AddAssetPageProps {
 }
 
 const assetTypes: Asset['type'][] = ['Laptop', 'Desktop', 'Server', 'Monitor', 'Printer', 'Phone'];
-const assetStatuses: Asset['status'][] = ['Active', 'In Repair', 'Retired', 'In Storage'];
+const assetStatuses: Asset['status'][] = [
+  'In Store (New)',
+  'In Store (Used)',
+  'Allocated',
+  'In Repair (In Store)',
+  'In Repair (Allocated)',
+  'Faulty – To Be Scrapped',
+  'Scrapped / Disposed',
+  'Lost / Missing',
+];
 
 export function AddAssetPage({ onNavigate, onSearch }: AddAssetPageProps) {
   const { currencySymbol, formatCurrency } = usePrefs();
@@ -26,7 +35,7 @@ export function AddAssetPage({ onNavigate, onSearch }: AddAssetPageProps) {
     assignedTo: '',
     assignedEmail: '',
     department: '',
-    status: 'Active' as Asset['status'],
+    status: 'In Store (New)' as Asset['status'],
     purchaseDate: '',
     warrantyExpiry: '',
     cost: '',
