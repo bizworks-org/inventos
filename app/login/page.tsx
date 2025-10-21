@@ -4,8 +4,8 @@ import { useRouter } from 'next/navigation';
 import styles from './login.module.css';
 
 export default function LoginPage() {
-  const [email, setEmail] = useState('admin@inventos.io');
-  const [password, setPassword] = useState('Cl635EbUp8dN');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
