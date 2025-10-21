@@ -18,11 +18,11 @@ interface AssetsPageProps {
   onSearch?: (query: string) => void;
 }
 
-export type AssetType = 'All' | 'Laptop' | 'Desktop' | 'Server' | 'Monitor' | 'Printer' | 'Phone';
 export type AssetStatus = 'All' | Asset['status'];
+export type AssetCategory = 'All' | 'Workstations' | 'Servers / Storage' | 'Networking' | 'Accessories' | 'Others';
 
 export function AssetsPage({ onNavigate, onSearch }: AssetsPageProps) {
-  const [selectedType, setSelectedType] = useState<AssetType>('All');
+  const [selectedCategory, setSelectedCategory] = useState<AssetCategory>('All');
   const [selectedStatus, setSelectedStatus] = useState<AssetStatus>('All');
   const [searchQuery, setSearchQuery] = useState('');
   const [assets, setAssets] = useState<Asset[]>([]);
@@ -42,10 +42,28 @@ export function AssetsPage({ onNavigate, onSearch }: AssetsPageProps) {
     return () => { cancelled = true; };
   }, []);
 
+  const mapTypeToCategory = (t: Asset['type']): Exclude<AssetCategory, 'All'> => {
+    switch (t) {
+      case 'Laptop':
+      case 'Desktop':
+        return 'Workstations';
+      case 'Server':
+        return 'Servers / Storage';
+      case 'Monitor':
+        return 'Accessories';
+      case 'Printer':
+        return 'Others';
+      case 'Phone':
+        return 'Others'; // Assumption: categorize phones under Others
+      default:
+        return 'Others';
+    }
+  };
+
   const filteredAssets = useMemo(() => {
     const q = searchQuery.toLowerCase();
     return assets.filter(asset => {
-      const matchesType = selectedType === 'All' || asset.type === selectedType;
+      const matchesCategory = selectedCategory === 'All' || mapTypeToCategory(asset.type) === selectedCategory;
       const matchesStatus = selectedStatus === 'All' || asset.status === selectedStatus;
       const matchesSearch = !q ||
         asset.name.toLowerCase().includes(q) ||
@@ -61,16 +79,16 @@ export function AssetsPage({ onNavigate, onSearch }: AssetsPageProps) {
           }
           return false;
         })();
-      return matchesType && matchesStatus && matchesSearch;
+      return matchesCategory && matchesStatus && matchesSearch;
     });
-  }, [assets, selectedType, selectedStatus, searchQuery]);
+  }, [assets, selectedCategory, selectedStatus, searchQuery]);
 
-  const assetTypes: AssetType[] = ['All', 'Laptop', 'Desktop', 'Server', 'Monitor', 'Printer', 'Phone'];
+  const assetCategories: AssetCategory[] = ['All', 'Workstations', 'Servers / Storage', 'Networking', 'Accessories', 'Others'];
   const canWriteAssets = !!me?.permissions?.includes('assets_write') || me?.role === 'admin';
 
-  const getTypeCount = (type: AssetType) => {
-    if (type === 'All') return assets.length;
-    return assets.filter(a => a.type === type).length;
+  const getCategoryCount = (cat: AssetCategory) => {
+    if (cat === 'All') return assets.length;
+    return assets.filter(a => mapTypeToCategory(a.type) === cat).length;
   };
 
   const handleDelete = async (id: string, _name?: string) => {
@@ -156,32 +174,32 @@ export function AssetsPage({ onNavigate, onSearch }: AssetsPageProps) {
         transition={{ duration: 0.4, delay: 0.1 }}
         className="bg-white rounded-2xl border border-[rgba(0,0,0,0.08)] p-6 mb-6 shadow-sm"
       >
-        {/* Type Tabs */}
+        {/* Category Tabs */}
         <div className="flex items-center gap-2 mb-4 overflow-x-auto pb-2">
-          {assetTypes.map((type, index) => (
+          {assetCategories.map((cat, index) => (
             <motion.button
-              key={type}
+              key={cat}
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.3, delay: 0.15 + index * 0.05 }}
-              onClick={() => setSelectedType(type)}
+              onClick={() => setSelectedCategory(cat)}
               className={`
                 flex items-center gap-2 px-4 py-2 rounded-lg whitespace-nowrap transition-all duration-200
-                ${selectedType === type
+                ${selectedCategory === cat
                   ? 'bg-gradient-to-r from-[#6366f1] to-[#8b5cf6] text-white shadow-md'
                   : 'bg-[#f8f9ff] text-[#64748b] hover:bg-[#e0e7ff] hover:text-[#6366f1]'
                 }
               `}
             >
-              <span className="font-medium">{type}</span>
+              <span className="font-medium">{cat}</span>
               <span className={`
                 px-2 py-0.5 rounded-full text-xs
-                ${selectedType === type
+                ${selectedCategory === cat
                   ? 'bg-white/20 text-white'
                   : 'bg-white text-[#64748b]'
                 }
               `}>
-                {getTypeCount(type)}
+                {getCategoryCount(cat)}
               </span>
             </motion.button>
           ))}

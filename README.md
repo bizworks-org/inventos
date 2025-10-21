@@ -81,6 +81,33 @@ APIs:
 - Events: `GET/POST /api/events`, `GET /api/events/[id]`
 - Settings: `GET /api/settings?email=...`, `PUT /api/settings`
 
+## Asset Status Taxonomy & Migration
+
+The Asset Status field has been standardized to the following values:
+
+- In Store (New)
+- In Store (Used)
+- Allocated
+- In Repair (In Store)
+- In Repair (Allocated)
+- Faulty – To Be Scrapped
+- Scrapped / Disposed
+- Lost / Missing
+
+If you are upgrading from a version that used the legacy statuses (Active, In Repair, Retired, In Storage), run the migration script to update the `assets.status` ENUM and map existing rows:
+
+- File: `db/migrations/003_update_asset_status.sql`
+- What it does:
+	- Temporarily expands the ENUM to include both old and new values
+	- Maps legacy values → new taxonomy:
+		- Active → Allocated
+		- In Repair → In Repair (Allocated)
+		- Retired → Scrapped / Disposed
+		- In Storage → In Store (New)
+	- Restricts the ENUM to only the new values
+
+Run the SQL in your MySQL environment after `001_init.sql`. Always back up your data before schema changes.
+
 ## Notes
 - Predictive Analytics has been removed from navigation and routing.
 - Images are served from real assets (no figma:asset imports).
