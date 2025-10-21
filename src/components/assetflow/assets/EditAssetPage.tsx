@@ -52,7 +52,7 @@ export function EditAssetPage({ assetId, onNavigate, onSearch }: EditAssetPagePr
     serialNumber: '',
     assignedTo: '',
     department: '',
-    status: 'Active' as Asset['status'],
+    status: 'In Store (New)' as Asset['status'],
     purchaseDate: '',
     warrantyExpiry: '',
     cost: '',
