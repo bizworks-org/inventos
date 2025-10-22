@@ -80,6 +80,10 @@ export function SettingsPage({ onNavigate, onSearch, view = 'general' }: Setting
   const [pwdNew, setPwdNew] = useState('');
   const [pwdNew2, setPwdNew2] = useState('');
   const [profileMsg, setProfileMsg] = useState<string | null>(null);
+  // Branding
+  const [brandName, setBrandName] = useState<string>('Inventos');
+  const [logoUrl, setLogoUrl] = useState<string | null>(null);
+  const [brandingMsg, setBrandingMsg] = useState<string | null>(null);
 
   // Preferences
   const [prefs, setPrefs] = useState<Preferences>({ density: 'comfortable', dateFormat: 'YYYY-MM-DD', currency: 'USD', language: 'en' });
@@ -246,6 +250,26 @@ export function SettingsPage({ onNavigate, onSearch, view = 'general' }: Setting
       } catch (e: any) {
         setServerError(e?.message || 'Failed to load server settings');
       }
+    })();
+  }, []);
+
+  // Load branding from server and SSR attribute
+  useEffect(() => {
+    try {
+      const ssrName = typeof document !== 'undefined' ? (document.documentElement.getAttribute('data-brand-name') || '') : '';
+      const ssrLogo = typeof document !== 'undefined' ? (document.documentElement.getAttribute('data-brand-logo') || '') : '';
+      if (ssrName) setBrandName(ssrName);
+      if (ssrLogo) setLogoUrl(ssrLogo);
+    } catch {}
+    (async () => {
+      try {
+        const res = await fetch('/api/branding', { cache: 'no-store' });
+        if (res.ok) {
+          const data = await res.json();
+          if (data?.brandName) setBrandName(data.brandName);
+          if (data?.logoUrl) setLogoUrl(data.logoUrl);
+        }
+      } catch {}
     })();
   }, []);
 
@@ -525,6 +549,76 @@ export function SettingsPage({ onNavigate, onSearch, view = 'general' }: Setting
                     <input type="password" className="w-full px-3 py-2 rounded-lg bg-[#f8f9ff] border border-[rgba(0,0,0,0.08)]" value={pwdNew2} onChange={(e) => setPwdNew2(e.target.value)} />
                   </div>
                 </div>
+              </div>
+
+              {/* Branding */}
+              <div>
+                <h3 className="text-lg font-semibold text-[#1a1d2e] mb-3">Branding</h3>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-end">
+                  <div>
+                    <label className="block text-sm font-medium text-[#1a1d2e] mb-2">Brand Name</label>
+                    <input
+                      className="w-full px-3 py-2 rounded-lg bg-[#f8f9ff] border border-[rgba(0,0,0,0.08)] focus:outline-none focus:ring-2 focus:ring-[#6366f1]/20"
+                      value={brandName}
+                      onChange={(e) => setBrandName(e.target.value)}
+                    />
+                    <p className="text-xs text-[#94a3b8] mt-1">Shown in the sidebar and titles.</p>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-[#1a1d2e] mb-2">Bank Logo</label>
+                    <div className="flex items-center gap-4">
+                      <div className="h-12 w-12 rounded-lg bg-[#f8f9ff] border border-[rgba(0,0,0,0.08)] flex items-center justify-center overflow-hidden">
+                        {logoUrl ? (
+                          <img src={logoUrl} alt="Logo" className="h-full w-full object-contain" />
+                        ) : (
+                          <span className="text-xs text-[#94a3b8]">No logo</span>
+                        )}
+                      </div>
+                      <input type="file" accept="image/*" id="brand-logo-input" className="hidden" onChange={async (e) => {
+                        setBrandingMsg(null);
+                        const f = e.target.files?.[0];
+                        if (!f) return;
+                        const fd = new FormData();
+                        fd.append('file', f);
+                        try {
+                          const res = await fetch('/api/branding/logo', { method: 'POST', body: fd });
+                          const data = await res.json();
+                          if (!res.ok) throw new Error(data?.error || 'Upload failed');
+                          setLogoUrl(data.logoUrl || null);
+                          setBrandingMsg('OK: Logo uploaded');
+                        } catch (e: any) {
+                          setBrandingMsg(`Error: ${e?.message || e}`);
+                        } finally {
+                          // reset input so same file can be reselected
+                          (e.target as HTMLInputElement).value = '';
+                        }
+                      }} />
+                      <button type="button" onClick={() => document.getElementById('brand-logo-input')?.click()} className="px-3 py-2 rounded-lg bg-[#f8f9ff] border border-[rgba(0,0,0,0.08)] hover:bg-white">
+                        Choose Logo…
+                      </button>
+                    </div>
+                    <p className="text-xs text-[#94a3b8] mt-1">PNG/SVG/JPG/WebP up to a few MB. Stored under /public/brand.</p>
+                  </div>
+                  <div className="flex justify-end md:justify-start">
+                    <Button type="button" onClick={async () => {
+                      setBrandingMsg(null);
+                      try {
+                        const res = await fetch('/api/branding', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ brandName, logoUrl }) });
+                        const data = await res.json();
+                        if (!res.ok) throw new Error(data?.error || 'Failed to save branding');
+                        setBrandingMsg('OK: Branding saved');
+                        // update SSR dataset for immediate reflection in client (best-effort)
+                        try {
+                          document.documentElement.setAttribute('data-brand-name', brandName || '');
+                          document.documentElement.setAttribute('data-brand-logo', logoUrl || '');
+                        } catch {}
+                      } catch (e: any) {
+                        setBrandingMsg(`Error: ${e?.message || e}`);
+                      }
+                    }} className="bg-gradient-to-r from-[#6366f1] to-[#8b5cf6] text-white hover:shadow-lg hover:shadow-[#6366f1]/30">Save Branding</Button>
+                  </div>
+                </div>
+                {brandingMsg && <p className={`text-sm mt-2 ${brandingMsg.startsWith('OK') ? 'text-green-600' : 'text-red-600'}`}>{brandingMsg}</p>}
               </div>
 
               {profileMsg && (

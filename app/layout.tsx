@@ -5,6 +5,7 @@ import { PrefsProvider } from "../src/components/assetflow/layout/PrefsContext";
 import { cookies } from 'next/headers';
 import { verifyToken } from '@/lib/auth/server';
 import { dbFindUserById } from '@/lib/auth/db-users';
+import { query } from '@/lib/db';
 import { MeProvider } from '@/components/assetflow/layout/MeContext';
 export const metadata = {
   title: "Inventos - IT Asset Management",
@@ -37,8 +38,18 @@ export default async function RootLayout({
       }
     }
   } catch {}
+  // Server-side branding fetch
+  let brandLogo: string | undefined = undefined;
+  let brandName: string | undefined = undefined;
+  try {
+    const rows = await query<any>('SELECT logo_url, brand_name FROM site_settings WHERE id = 1');
+    if (rows && rows[0]) {
+      brandLogo = rows[0].logo_url || undefined;
+      brandName = rows[0].brand_name || undefined;
+    }
+  } catch {}
   return (
-    <html lang="en" suppressHydrationWarning data-admin={isAdmin ? 'true' : 'false'} data-ssr-me={me ? encodeURIComponent(JSON.stringify(me)) : ''}>
+    <html lang="en" suppressHydrationWarning data-admin={isAdmin ? 'true' : 'false'} data-ssr-me={me ? encodeURIComponent(JSON.stringify(me)) : ''} data-brand-logo={brandLogo || ''} data-brand-name={brandName || ''}>
       <body>
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
           <PrefsProvider>

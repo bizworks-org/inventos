@@ -73,7 +73,8 @@ export function AddAssetPage({ onNavigate, onSearch }: AddAssetPageProps) {
     department: '',
     status: 'In Store (New)' as Asset['status'],
     purchaseDate: '',
-    warrantyExpiry: '',
+    eosDate: '',
+    eolDate: '',
     cost: '',
     location: '',
     // Specifications
@@ -114,7 +115,9 @@ export function AddAssetPage({ onNavigate, onSearch }: AddAssetPageProps) {
       department: formData.department,
       status: formData.status,
       purchaseDate: formData.purchaseDate,
-      warrantyExpiry: formData.warrantyExpiry,
+      // Lifecycle
+      eosDate: formData.eosDate || undefined,
+      eolDate: formData.eolDate || undefined,
       cost: parseFloat(formData.cost),
       location: formData.location,
       specifications: {
@@ -353,14 +356,14 @@ export function AddAssetPage({ onNavigate, onSearch }: AddAssetPageProps) {
               </div>
             </motion.div>
 
-            {/* Financial Information */}
+            {/* Financial & Lifecycle */}
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.4, delay: 0.1 }}
               className="bg-white rounded-2xl border border-[rgba(0,0,0,0.08)] p-6 shadow-sm"
             >
-              <h3 className="text-lg font-semibold text-[#1a1d2e] mb-4">Financial & Warranty</h3>
+              <h3 className="text-lg font-semibold text-[#1a1d2e] mb-4">Financial & Lifecycle</h3>
               
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 {/* Cost */}
@@ -397,16 +400,28 @@ export function AddAssetPage({ onNavigate, onSearch }: AddAssetPageProps) {
                   />
                 </div>
 
-                {/* Warranty Expiry */}
+                {/* End of Support */}
                 <div>
                   <label className="block text-sm font-medium text-[#1a1d2e] mb-2">
-                    Warranty Expiry *
+                    End of Support
                   </label>
                   <input
                     type="date"
-                    required
-                    value={formData.warrantyExpiry}
-                    onChange={(e) => handleInputChange('warrantyExpiry', e.target.value)}
+                    value={formData.eosDate}
+                    onChange={(e) => handleInputChange('eosDate', e.target.value)}
+                    className="w-full px-4 py-2.5 rounded-lg bg-[#f8f9ff] border border-[rgba(0,0,0,0.05)] text-[#1a1d2e] focus:outline-none focus:ring-2 focus:ring-[#6366f1]/20 focus:border-[#6366f1] transition-all duration-200"
+                  />
+                </div>
+
+                {/* End of Life */}
+                <div>
+                  <label className="block text-sm font-medium text-[#1a1d2e] mb-2">
+                    End of Life
+                  </label>
+                  <input
+                    type="date"
+                    value={formData.eolDate}
+                    onChange={(e) => handleInputChange('eolDate', e.target.value)}
                     className="w-full px-4 py-2.5 rounded-lg bg-[#f8f9ff] border border-[rgba(0,0,0,0.05)] text-[#1a1d2e] focus:outline-none focus:ring-2 focus:ring-[#6366f1]/20 focus:border-[#6366f1] transition-all duration-200"
                   />
                 </div>

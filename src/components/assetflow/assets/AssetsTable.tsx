@@ -56,7 +56,8 @@ function formatDate(dateString: string): string {
   });
 }
 
-function isWarrantyExpiring(dateString: string): boolean {
+function isDateExpiring(dateString: string): boolean {
+  if (!dateString) return false;
   const expiryDate = new Date(dateString);
   const now = new Date();
   const daysUntilExpiry = Math.floor((expiryDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
@@ -141,7 +142,10 @@ export function AssetsTable({ assets, onNavigate, onDelete, canWrite = true }: A
                 Status
               </th>
               <th className={`${headPad} text-left text-xs font-semibold text-[#64748b] uppercase tracking-wider`}>
-                Warranty
+                End of Support
+              </th>
+              <th className={`${headPad} text-left text-xs font-semibold text-[#64748b] uppercase tracking-wider`}>
+                End of Life
               </th>
               <th className={`${headPad} text-left text-xs font-semibold text-[#64748b] uppercase tracking-wider`}>
                 Cost
@@ -221,13 +225,25 @@ export function AssetsTable({ assets, onNavigate, onDelete, canWrite = true }: A
                   </span>
                 </td>
 
-                {/* Warranty */}
+                {/* End of Support */}
                 <td className={`${cellPad}`}>
                   <div>
-                    <p className={`text-sm font-medium ${isWarrantyExpiring(asset.warrantyExpiry) ? 'text-[#f59e0b]' : 'text-[#64748b]'} ${density==='ultra-compact' ? 'text-[12px]' : ''}`}>
-                      {formatDate(asset.warrantyExpiry)}
+                    <p className={`text-sm font-medium ${isDateExpiring((asset as any).eosDate || '') ? 'text-[#f59e0b]' : 'text-[#64748b]'} ${density==='ultra-compact' ? 'text-[12px]' : ''}`}>
+                      {(asset as any).eosDate ? formatDate((asset as any).eosDate) : '—'}
                     </p>
-                    {isWarrantyExpiring(asset.warrantyExpiry) && (
+                    {isDateExpiring((asset as any).eosDate || '') && (
+                      <p className={`${subText} text-[#f59e0b]`}>Expiring soon</p>
+                    )}
+                  </div>
+                </td>
+
+                {/* End of Life */}
+                <td className={`${cellPad}`}>
+                  <div>
+                    <p className={`text-sm font-medium ${isDateExpiring((asset as any).eolDate || '') ? 'text-[#f59e0b]' : 'text-[#64748b]'} ${density==='ultra-compact' ? 'text-[12px]' : ''}`}>
+                      {(asset as any).eolDate ? formatDate((asset as any).eolDate) : '—'}
+                    </p>
+                    {isDateExpiring((asset as any).eolDate || '') && (
                       <p className={`${subText} text-[#f59e0b]`}>Expiring soon</p>
                     )}
                   </div>

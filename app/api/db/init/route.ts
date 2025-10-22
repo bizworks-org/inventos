@@ -34,6 +34,8 @@ async function runMigrations(conn: any) {
       department VARCHAR(255),
       status VARCHAR(50) NOT NULL,
       purchase_date DATE,
+      end_of_support_date DATE,
+      end_of_life_date DATE,
       warranty_expiry DATE,
       cost DECIMAL(15,2) DEFAULT 0,
       location VARCHAR(255),
@@ -47,6 +49,9 @@ async function runMigrations(conn: any) {
   try { await conn.query(`ALTER TABLE assets ADD COLUMN consent_status VARCHAR(20)`); } catch {}
   try { await conn.query(`ALTER TABLE assets ADD COLUMN consent_token VARCHAR(64)`); } catch {}
   try { await conn.query(`ALTER TABLE assets ADD COLUMN consent_expires_at DATETIME`); } catch {}
+  // New lifecycle columns (idempotent)
+  try { await conn.query(`ALTER TABLE assets ADD COLUMN end_of_support_date DATE`); } catch {}
+  try { await conn.query(`ALTER TABLE assets ADD COLUMN end_of_life_date DATE`); } catch {}
 
   await conn.query(`
     CREATE TABLE IF NOT EXISTS licenses (
@@ -139,6 +144,16 @@ async function runMigrations(conn: any) {
       INDEX idx_asset_consent_email (email)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
   `);
+
+  // Global site settings (branding)
+  await conn.query(`
+    CREATE TABLE IF NOT EXISTS site_settings (
+      id TINYINT NOT NULL PRIMARY KEY,
+      logo_url VARCHAR(512) NULL,
+      brand_name VARCHAR(255) DEFAULT 'Inventos'
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+  `);
+  await conn.query(`INSERT INTO site_settings (id, brand_name) VALUES (1, 'Inventos') ON DUPLICATE KEY UPDATE id = id`);
 }
 
 export async function POST(req: NextRequest) {

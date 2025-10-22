@@ -28,6 +28,8 @@ export async function POST(req: NextRequest) {
         department VARCHAR(255),
         status VARCHAR(50) NOT NULL,
         purchase_date DATE,
+        end_of_support_date DATE,
+        end_of_life_date DATE,
         warranty_expiry DATE,
         cost DECIMAL(15,2) DEFAULT 0,
         location VARCHAR(255),
@@ -35,6 +37,9 @@ export async function POST(req: NextRequest) {
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
     `);
+    // Ensure lifecycle columns exist if table predated this change
+    try { await conn.query('ALTER TABLE assets ADD COLUMN end_of_support_date DATE'); } catch {}
+    try { await conn.query('ALTER TABLE assets ADD COLUMN end_of_life_date DATE'); } catch {}
 
     // licenses
     await conn.query(`
@@ -121,6 +126,17 @@ export async function POST(req: NextRequest) {
     } catch (e) {
       // ignore if column already exists
     }
+
+    // site settings for branding (logo, brand name)
+    await conn.query(`
+      CREATE TABLE IF NOT EXISTS site_settings (
+        id TINYINT NOT NULL PRIMARY KEY,
+        logo_url VARCHAR(512) NULL,
+        brand_name VARCHAR(255) DEFAULT 'Inventos'
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+    `);
+    // Ensure singleton row exists
+    await conn.query(`INSERT INTO site_settings (id, brand_name) VALUES (1, 'Inventos') ON DUPLICATE KEY UPDATE id = id`);
 
     return NextResponse.json({ ok: true });
   } catch (e: any) {

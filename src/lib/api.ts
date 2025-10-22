@@ -34,6 +34,8 @@ type DbAsset = {
   department: string;
   status: Asset['status'];
   purchase_date: string; // ISO or YYYY-MM-DD
+  end_of_support_date?: string | null;
+  end_of_life_date?: string | null;
   warranty_expiry: string;
   cost: number;
   location: string;
@@ -86,6 +88,9 @@ function mapDbAsset(a: DbAsset): Asset {
     department: a.department,
     status: a.status,
     purchaseDate: normalizeDate(a.purchase_date),
+    eosDate: normalizeDate((a as any).end_of_support_date ?? ''),
+    eolDate: normalizeDate((a as any).end_of_life_date ?? ''),
+    // Deprecated field kept to avoid breaking older views; not used going forward
     warrantyExpiry: normalizeDate(a.warranty_expiry),
     cost: Number(a.cost),
     location: a.location,
@@ -106,7 +111,10 @@ function mapUiAssetToDb(a: Asset): DbAsset {
     department: a.department,
     status: a.status,
     purchase_date: a.purchaseDate,
-    warranty_expiry: a.warrantyExpiry,
+    end_of_support_date: (a as any).eosDate ?? null,
+    end_of_life_date: (a as any).eolDate ?? null,
+    // Maintain legacy column write for back-compat if provided
+    warranty_expiry: (a as any).warrantyExpiry ?? null,
     cost: a.cost,
     location: a.location,
     specifications: a.specifications ?? null,

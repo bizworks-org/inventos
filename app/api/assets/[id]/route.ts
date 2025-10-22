@@ -34,7 +34,7 @@ export async function PUT(req: NextRequest, ctx: any) {
       body.specifications = JSON.stringify(body.specifications);
     }
     const sql = `UPDATE assets SET name=:name, type=:type, serial_number=:serial_number, assigned_to=:assigned_to, assigned_email=:assigned_email, consent_status=:consent_status, department=:department, status=:status,
-      purchase_date=:purchase_date, warranty_expiry=:warranty_expiry, cost=:cost, location=:location, specifications=:specifications
+      purchase_date=:purchase_date, end_of_support_date=:end_of_support_date, end_of_life_date=:end_of_life_date, warranty_expiry=:warranty_expiry, cost=:cost, location=:location, specifications=:specifications
       WHERE id=:id`;
     await query(sql, { ...body, id });
     return NextResponse.json({ ok: true });

@@ -105,7 +105,9 @@ export function parseAssetsCSV(text: string): Asset[] {
         (get(r, 'status') as Asset['status']) ||
         (((get(r, 'assigned to') || '').trim() ? 'Allocated' : 'In Store (New)') as Asset['status']),
       purchaseDate: get(r, 'purchase date') || '',
-      warrantyExpiry: get(r, 'warranty expiry') || '',
+      // Prefer new lifecycle columns; fallback to legacy warranty expiry if present
+      eosDate: get(r, 'end of support') || (get(r, 'warranty expiry') || ''),
+      eolDate: get(r, 'end of life') || '',
       cost: isNaN(cost) ? 0 : cost,
       location: get(r, 'location') || '',
       specifications: {
@@ -251,7 +253,8 @@ export function parseAssetsFile(fileName: string, text: string): Asset[] {
       department: r.department ?? '',
       status: r.status ?? ((r.assignedTo ? 'Allocated' : 'In Store (New)') as Asset['status']),
       purchaseDate: r.purchaseDate ?? '',
-      warrantyExpiry: r.warrantyExpiry ?? '',
+      eosDate: r.eosDate ?? r.warrantyExpiry ?? '',
+      eolDate: r.eolDate ?? '',
       cost: Number(r.cost ?? 0),
       location: r.location ?? '',
       specifications: r.specifications ?? {},

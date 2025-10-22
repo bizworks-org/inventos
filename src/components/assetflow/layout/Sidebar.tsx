@@ -31,6 +31,16 @@ export function Sidebar({ currentPage = 'dashboard', me: meProp }: SidebarProps 
   const pathname = usePathname();
   // Use server-provided user to avoid client fetch; fall back to undefined for SSR
   const [me, setMe] = useState<typeof meProp | undefined>(meProp === undefined ? undefined : meProp);
+  // Branding state (SSR-provided to avoid flicker)
+  const [brandLogo, setBrandLogo] = useState<string | null>(() => {
+    if (typeof document === 'undefined') return null;
+    const v = document.documentElement.getAttribute('data-brand-logo') || '';
+    return v || null;
+  });
+  const [brandName, setBrandName] = useState<string>(() => {
+    if (typeof document === 'undefined') return 'Inventos';
+    return document.documentElement.getAttribute('data-brand-name') || 'Inventos';
+  });
   // Persist admin visibility once detected in the client session
   const [everAdmin, setEverAdmin] = useState<boolean>(() => {
     if (typeof document === 'undefined') return false;
@@ -52,6 +62,21 @@ export function Sidebar({ currentPage = 'dashboard', me: meProp }: SidebarProps 
   };
 
   useEffect(() => { setMe(meProp === undefined ? me : meProp); }, [meProp]);
+
+  // Lazy-fetch branding if not provided by SSR
+  useEffect(() => {
+    if (brandLogo) return;
+    (async () => {
+      try {
+        const res = await fetch('/api/branding', { cache: 'no-store' });
+        if (res.ok) {
+          const data = await res.json();
+          if (data?.logoUrl) setBrandLogo(data.logoUrl);
+          if (data?.brandName) setBrandName(data.brandName);
+        }
+      } catch {}
+    })();
+  }, [brandLogo]);
 
   // When we know the user is admin (from me or server hint), latch everAdmin=true for this session
   useEffect(() => {
@@ -105,10 +130,14 @@ export function Sidebar({ currentPage = 'dashboard', me: meProp }: SidebarProps 
       {/* Logo */}
       <div className="flex h-16 items-center px-6 border-b border-[rgba(255,255,255,0.1)]">
         <Link href={pathById.dashboard} className="flex items-center gap-3 focus:outline-none focus:ring-2 focus:ring-[#6366f1]/40 rounded">
-          <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-[#6366f1] to-[#8b5cf6] flex items-center justify-center">
-            <Package className="h-5 w-5 text-white" />
-          </div>
-          <span className="font-bold text-xl text-white">Inventos</span>
+          {brandLogo ? (
+            <img src={brandLogo} alt={brandName || 'Logo'} className="h-8 w-8 rounded-lg object-contain bg-white" />
+          ) : (
+            <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-[#6366f1] to-[#8b5cf6] flex items-center justify-center">
+              <Package className="h-5 w-5 text-white" />
+            </div>
+          )}
+          <span className="font-bold text-xl text-white">{brandName || 'Inventos'}</span>
         </Link>
       </div>
 

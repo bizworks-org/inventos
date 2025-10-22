@@ -21,7 +21,11 @@ export interface Asset {
     | 'Scrapped / Disposed'
     | 'Lost / Missing';
   purchaseDate: string;
-  warrantyExpiry: string;
+  // Lifecycle dates
+  eosDate?: string; // End of Support (YYYY-MM-DD)
+  eolDate?: string; // End of Life (YYYY-MM-DD)
+  // Deprecated: kept temporarily for back-compat with older exports
+  warrantyExpiry?: string;
   cost: number;
   location: string;
   specifications?: {
@@ -103,7 +107,8 @@ export const mockAssets: Asset[] = [
     department: 'Engineering',
     status: 'Allocated',
     purchaseDate: '2023-01-15',
-    warrantyExpiry: '2026-01-15',
+    eosDate: '2025-01-15',
+    eolDate: '2028-01-15',
     cost: 2499,
     location: 'Building A - Floor 3',
     specifications: {
@@ -122,7 +127,8 @@ export const mockAssets: Asset[] = [
     department: 'Design',
     status: 'Allocated',
     purchaseDate: '2023-03-20',
-    warrantyExpiry: '2026-03-20',
+    eosDate: '2026-03-20',
+    eolDate: '2029-03-20',
     cost: 1899,
     location: 'Building B - Floor 2',
     specifications: {
@@ -141,7 +147,8 @@ export const mockAssets: Asset[] = [
     department: 'Finance',
     status: 'Allocated',
     purchaseDate: '2022-06-10',
-    warrantyExpiry: '2025-06-10',
+    eosDate: '2025-06-10',
+    eolDate: '2028-06-10',
     cost: 1299,
     location: 'Building A - Floor 2',
     specifications: {
@@ -160,7 +167,8 @@ export const mockAssets: Asset[] = [
     department: 'IT',
     status: 'Allocated',
     purchaseDate: '2023-01-01',
-    warrantyExpiry: '2024-12-31',
+    eosDate: '2024-12-31',
+    eolDate: '2027-12-31',
     cost: 5000,
     location: 'AWS us-east-1',
     specifications: {
@@ -178,7 +186,8 @@ export const mockAssets: Asset[] = [
     department: 'Marketing',
     status: 'In Repair (Allocated)',
     purchaseDate: '2023-02-14',
-    warrantyExpiry: '2026-02-14',
+    eosDate: '2026-02-14',
+    eolDate: '2029-02-14',
     cost: 1599,
     location: 'Repair Center',
     specifications: {
@@ -197,7 +206,8 @@ export const mockAssets: Asset[] = [
     department: 'Design',
     status: 'Allocated',
     purchaseDate: '2023-04-01',
-    warrantyExpiry: '2026-04-01',
+    eosDate: '2026-04-01',
+    eolDate: '2029-04-01',
     cost: 599,
     location: 'Building B - Floor 2'
   },
@@ -210,7 +220,8 @@ export const mockAssets: Asset[] = [
     department: 'Sales',
     status: 'Allocated',
     purchaseDate: '2023-09-22',
-    warrantyExpiry: '2024-09-22',
+    eosDate: '2024-09-22',
+    eolDate: '2027-09-22',
     cost: 999,
     location: 'Mobile - Sales Team'
   },
@@ -223,7 +234,8 @@ export const mockAssets: Asset[] = [
     department: 'Operations',
     status: 'Allocated',
     purchaseDate: '2022-08-15',
-    warrantyExpiry: '2025-08-15',
+    eosDate: '2025-08-15',
+    eolDate: '2028-08-15',
     cost: 399,
     location: 'Building A - Floor 1'
   }

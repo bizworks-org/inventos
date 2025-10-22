@@ -22,8 +22,8 @@ export async function POST(req: NextRequest) {
     if (body && typeof body.specifications === 'object') {
       body.specifications = JSON.stringify(body.specifications);
     }
-  const sql = `INSERT INTO assets (id, name, type, serial_number, assigned_to, assigned_email, consent_status, department, status, purchase_date, warranty_expiry, cost, location, specifications)
-         VALUES (:id, :name, :type, :serial_number, :assigned_to, :assigned_email, :consent_status, :department, :status, :purchase_date, :warranty_expiry, :cost, :location, :specifications)`;
+  const sql = `INSERT INTO assets (id, name, type, serial_number, assigned_to, assigned_email, consent_status, department, status, purchase_date, end_of_support_date, end_of_life_date, warranty_expiry, cost, location, specifications)
+         VALUES (:id, :name, :type, :serial_number, :assigned_to, :assigned_email, :consent_status, :department, :status, :purchase_date, :end_of_support_date, :end_of_life_date, :warranty_expiry, :cost, :location, :specifications)`;
     await query(sql, body);
     return NextResponse.json({ ok: true }, { status: 201 });
   } catch (e: any) {
