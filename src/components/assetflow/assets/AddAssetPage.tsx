@@ -14,7 +14,42 @@ interface AddAssetPageProps {
   onSearch?: (query: string) => void;
 }
 
+type AssetCategory = 'Workstations' | 'Servers / Storage' | 'Networking' | 'Accessories' | 'Electronic Devices' | 'Others';
 const assetTypes: Asset['type'][] = ['Laptop', 'Desktop', 'Server', 'Monitor', 'Printer', 'Phone'];
+const categoryList: AssetCategory[] = ['Workstations', 'Servers / Storage', 'Networking', 'Accessories', 'Electronic Devices', 'Others'];
+const categoryOfType = (t: Asset['type']): AssetCategory => {
+  switch (t) {
+    case 'Laptop':
+    case 'Desktop':
+      return 'Workstations';
+    case 'Server':
+      return 'Servers / Storage';
+    case 'Monitor':
+      return 'Accessories';
+    case 'Phone':
+      return 'Electronic Devices';
+    case 'Printer':
+    default:
+      return 'Others';
+  }
+};
+const typesByCategory = (cat: AssetCategory): Asset['type'][] => {
+  switch (cat) {
+    case 'Workstations':
+      return ['Laptop', 'Desktop'];
+    case 'Servers / Storage':
+      return ['Server'];
+    case 'Networking':
+      return [] as Asset['type'][]; // no built-in types yet
+    case 'Accessories':
+      return ['Monitor'];
+    case 'Electronic Devices':
+      return ['Phone'];
+    case 'Others':
+    default:
+      return ['Printer'];
+  }
+};
 const assetStatuses: Asset['status'][] = [
   'In Store (New)',
   'In Store (Used)',
@@ -29,6 +64,7 @@ const assetStatuses: Asset['status'][] = [
 export function AddAssetPage({ onNavigate, onSearch }: AddAssetPageProps) {
   const { currencySymbol, formatCurrency } = usePrefs();
   const [assetType, setAssetType] = useState<Asset['type']>('Laptop');
+  const [category, setCategory] = useState<AssetCategory>(categoryOfType('Laptop'));
   const [formData, setFormData] = useState({
     name: '',
     serialNumber: '',
@@ -162,29 +198,50 @@ export function AddAssetPage({ onNavigate, onSearch }: AddAssetPageProps) {
               <h3 className="text-lg font-semibold text-[#1a1d2e] mb-4">Basic Information</h3>
               
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {/* Asset Type */}
+                {/* Asset Category */}
                 <div className="md:col-span-2">
                   <label className="block text-sm font-medium text-[#1a1d2e] mb-2">
-                    Asset Type *
+                    Asset Category *
                   </label>
-                  <div className="grid grid-cols-3 md:grid-cols-6 gap-2">
-                    {assetTypes.map(type => (
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+                    {categoryList.map(cat => (
                       <button
-                        key={type}
+                        key={cat}
                         type="button"
-                        onClick={() => setAssetType(type)}
+                        onClick={() => {
+                          setCategory(cat);
+                          const options = typesByCategory(cat);
+                          if (options.length && !options.includes(assetType)) {
+                            setAssetType(options[0]);
+                          }
+                        }}
                         className={`
                           px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200
-                          ${assetType === type
+                          ${category === cat
                             ? 'bg-gradient-to-r from-[#6366f1] to-[#8b5cf6] text-white shadow-md'
                             : 'bg-[#f8f9ff] text-[#64748b] hover:bg-[#e0e7ff] hover:text-[#6366f1]'
                           }
                         `}
                       >
-                        {type}
+                        {cat}
                       </button>
                     ))}
                   </div>
+                </div>
+
+                {/* Asset Type (by Category) */}
+                <div>
+                    <label className="block text-sm font-medium text-[#1a1d2e] mb-2">Asset Type *</label>
+                  <select
+                    required
+                    value={assetType}
+                    onChange={(e) => setAssetType(e.target.value as Asset['type'])}
+                    className="w-full px-4 py-2.5 rounded-lg bg-[#f8f9ff] border border-[rgba(0,0,0,0.05)] text-[#1a1d2e] focus:outline-none focus:ring-2 focus:ring-[#6366f1]/20 focus:border-[#6366f1] transition-all duration-200 cursor-pointer"
+                  >
+                    {(typesByCategory(category).length ? typesByCategory(category) : assetTypes).map((t) => (
+                      <option key={t} value={t}>{t}</option>
+                    ))}
+                  </select>
                 </div>
 
                 {/* Asset Name */}

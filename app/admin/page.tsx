@@ -1,6 +1,6 @@
 "use client";
 import Link from 'next/link';
-import { Users as UsersIcon, Shield } from 'lucide-react';
+import { Users as UsersIcon, Shield, Package } from 'lucide-react';
 
 export default function AdminHomePage() {
   const cards = [
@@ -18,13 +18,20 @@ export default function AdminHomePage() {
       Icon: Shield,
       gradient: 'from-[#10b981] to-[#14b8a6]',
     },
+    {
+      title: 'Asset Catalog',
+      desc: 'Manage asset categories and types.',
+      href: '/admin/catalog',
+      Icon: Package,
+      gradient: 'from-[#f59e0b] to-[#f97316]',
+    },
   ];
 
   return (
     <>
       <div className="mb-6">
         <h1 className="text-3xl font-bold text-[#1a1d2e]">Admin</h1>
-        <p className="text-[#64748b]">Manage users, roles, and permissions.</p>
+  <p className="text-[#64748b]">Manage users, roles, permissions, and the asset catalog.</p>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">

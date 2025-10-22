@@ -4,7 +4,7 @@
 
 START TRANSACTION;
 
-USE inventos;
+USE u468634218_inventos;
 
 -- 1) Temporarily expand ENUM to include both old and new values
 ALTER TABLE assets MODIFY COLUMN status ENUM(

@@ -2,8 +2,8 @@
 -- Creates database and core tables to support assets, licenses, vendors, activities, events, and user settings.
 
 -- 1) Create database (idempotent)
-CREATE DATABASE IF NOT EXISTS inventos CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci;
-USE inventos;
+CREATE DATABASE IF NOT EXISTS u468634218_inventos CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci;
+USE u468634218_inventos;
 
 -- 2) Assets
 CREATE TABLE IF NOT EXISTS assets (

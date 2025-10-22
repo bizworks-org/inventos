@@ -19,7 +19,7 @@ interface AssetsPageProps {
 }
 
 export type AssetStatus = 'All' | Asset['status'];
-export type AssetCategory = 'All' | 'Workstations' | 'Servers / Storage' | 'Networking' | 'Accessories' | 'Others';
+export type AssetCategory = 'All' | 'Workstations' | 'Servers / Storage' | 'Networking' | 'Accessories' | 'Electronic Devices' | 'Others';
 
 export function AssetsPage({ onNavigate, onSearch }: AssetsPageProps) {
   const [selectedCategory, setSelectedCategory] = useState<AssetCategory>('All');
@@ -54,7 +54,7 @@ export function AssetsPage({ onNavigate, onSearch }: AssetsPageProps) {
       case 'Printer':
         return 'Others';
       case 'Phone':
-        return 'Others'; // Assumption: categorize phones under Others
+        return 'Electronic Devices';
       default:
         return 'Others';
     }
@@ -83,7 +83,7 @@ export function AssetsPage({ onNavigate, onSearch }: AssetsPageProps) {
     });
   }, [assets, selectedCategory, selectedStatus, searchQuery]);
 
-  const assetCategories: AssetCategory[] = ['All', 'Workstations', 'Servers / Storage', 'Networking', 'Accessories', 'Others'];
+  const assetCategories: AssetCategory[] = ['All', 'Workstations', 'Servers / Storage', 'Networking', 'Accessories', 'Electronic Devices', 'Others'];
   const canWriteAssets = !!me?.permissions?.includes('assets_write') || me?.role === 'admin';
 
   const getCategoryCount = (cat: AssetCategory) => {

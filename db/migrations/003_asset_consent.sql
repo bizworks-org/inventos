@@ -1,5 +1,5 @@
 -- Adds consent-by-email fields to assets and a table to track consent tokens
-USE inventos;
+USE u468634218_inventos;
 
 ALTER TABLE assets
   ADD COLUMN assigned_email VARCHAR(255) NULL AFTER assigned_to,

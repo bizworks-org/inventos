@@ -46,6 +46,7 @@ export function Sidebar({ currentPage = 'dashboard', me: meProp }: SidebarProps 
     admin: '/admin',
     admin_users: '/admin/users',
     admin_roles: '/admin/roles',
+    admin_catalog: '/admin/catalog',
     settings_general: '/settings',
     settings_configuration: '/settings/tech',
   };
@@ -81,6 +82,7 @@ export function Sidebar({ currentPage = 'dashboard', me: meProp }: SidebarProps 
         { name: 'Admin', id: 'admin', icon: Shield, colorClass: 'text-red-400' } as NavItem,
         { name: 'Users', id: 'admin_users', icon: Users, colorClass: 'text-red-300' } as NavItem,
         { name: 'Roles', id: 'admin_roles', icon: Shield, colorClass: 'text-red-300' } as NavItem,
+        { name: 'Catalog', id: 'admin_catalog', icon: Package, colorClass: 'text-red-300' } as NavItem,
       );
     }
     return base;
