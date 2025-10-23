@@ -1,7 +1,7 @@
 "use client";
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { toast } from 'sonner@2.0.3';
-import { Package, Plus, Laptop, Monitor, Server as ServerIcon, Printer as PrinterIcon, Smartphone, Box, Globe } from 'lucide-react';
+import { Package, Plus, Laptop, Monitor, Server as ServerIcon, Printer as PrinterIcon, Smartphone, Box, Globe, Pencil, Check, X } from 'lucide-react';
 
 export type UiCategory = { id: number; name: string; sort: number; types: Array<{ id: number; name: string; sort: number }> };
 
@@ -12,6 +12,16 @@ export default function CatalogAdminPage() {
     const [error, setError] = useState<string | null>(null);
     const [newCategory, setNewCategory] = useState('');
     const [newType, setNewType] = useState('');
+    // Inline category rename state
+    const [editingCategoryId, setEditingCategoryId] = useState<number | null>(null);
+    const [editingCategoryName, setEditingCategoryName] = useState('');
+    const isSavingCategory = useRef(false);
+    // JS hover fallback to ensure icon shows even if CSS group-hover fails in some envs
+    const [hoveredCategoryId, setHoveredCategoryId] = useState<number | null>(null);
+    const [renamingTypeId, setRenamingTypeId] = useState<number | null>(null);
+    const [renamingTypeName, setRenamingTypeName] = useState('');
+    const [renamingTypeCategoryId, setRenamingTypeCategoryId] = useState<number | null>(null);
+    const [hoveredTypeId, setHoveredTypeId] = useState<number | null>(null);
 
     const load = async () => {
         setLoading(true);
@@ -112,6 +122,76 @@ export default function CatalogAdminPage() {
         }
     };
 
+    const saveRenameCategory = async (categoryId: number, nameRaw: string) => {
+        if (isSavingCategory.current) return;
+        const name = nameRaw.trim();
+        const cat = categories.find((c) => c.id === categoryId);
+        if (!cat) return;
+        // If no change or empty, just exit edit mode without calling API
+        if (!name || name === cat.name) {
+            setEditingCategoryId(null);
+            setEditingCategoryName('');
+            return;
+        }
+        isSavingCategory.current = true;
+        const doing = toast.loading('Renaming category…');
+        try {
+            const res = await fetch('/api/admin/catalog', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ entity: 'category', id: categoryId, name }) });
+            const data = await res.json();
+            if (!res.ok) throw new Error(data?.error || 'Failed to rename category');
+            setEditingCategoryId(null);
+            setEditingCategoryName('');
+            await load();
+            toast.success('Category renamed');
+        } catch (e: any) {
+            toast.error(e?.message || 'Failed to rename category');
+        } finally {
+            toast.dismiss(doing);
+            isSavingCategory.current = false;
+        }
+    };
+
+    const startRenameType = (id: number, currentName: string, currentCategoryId: number) => {
+        setRenamingTypeId(id);
+        setRenamingTypeName(currentName);
+        setRenamingTypeCategoryId(currentCategoryId);
+    };
+    const cancelRenameType = () => { setRenamingTypeId(null); setRenamingTypeName(''); setRenamingTypeCategoryId(null); };
+    const submitRenameType = async () => {
+        if (renamingTypeId == null) return;
+        const name = renamingTypeName.trim();
+        if (!name) return;
+        const doing = toast.loading('Renaming type…');
+        try {
+            const body: any = { entity: 'type', id: renamingTypeId, name };
+            if (renamingTypeCategoryId != null) body.categoryId = renamingTypeCategoryId;
+            const res = await fetch('/api/admin/catalog', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+            const data = await res.json();
+            if (!res.ok) throw new Error(data?.error || 'Failed to rename type');
+            cancelRenameType();
+            await load();
+            toast.success('Type renamed');
+        } catch (e: any) {
+            toast.error(e?.message || 'Failed to rename type');
+        } finally {
+            toast.dismiss(doing);
+        }
+    };
+    const sortType = async (typeId: number, nextSort: number) => {
+        const doing = toast.loading('Updating sort…');
+        try {
+            const res = await fetch('/api/admin/catalog', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ entity: 'type', id: typeId, sort: nextSort }) });
+            const data = await res.json();
+            if (!res.ok) throw new Error(data?.error || 'Failed to update order');
+            await load();
+            toast.success('Order updated');
+        } catch (e: any) {
+            toast.error(e?.message || 'Failed to update order');
+        } finally {
+            toast.dismiss(doing);
+        }
+    };
+
     return (
         <>
             <div className="mb-6">
@@ -123,33 +203,88 @@ export default function CatalogAdminPage() {
                 {/* Categories */}
                 <div className="lg:col-span-1">
                     <div className="bg-white border border-[#e2e8f0] rounded-xl p-6">
-                        <h2 className="text-lg font-semibold mb-3">Categories</h2>
+                        <h2 className="text-lg font-semibold mb-1">Categories</h2>
+                        <p className="text-xs text-[#64748b] mb-3">Tip: hover a category to reveal the edit icon.</p>
                         {loading ? (
                             <p>Loading…</p>
                         ) : error ? (
                             <p className="text-[#ef4444]">{error}</p>
                         ) : (
                             <div className="space-y-2">
-                                                {categories.map((c) => {
-                                                    const CatIcon = iconForCategory(c.name);
-                                                    return (
-                                                        <button
-                                                            key={c.id}
-                                                            type="button"
-                                                            onClick={() => setSelectedId(c.id)}
-                                                            className={`w-full flex items-center justify-between px-4 py-2 rounded-lg border transition-colors ${selectedId === c.id ? 'text-white border-transparent' : 'bg-white text-[#1a1d2e] border-[#e2e8f0] hover:border-[#cbd5e1]'}`}
-                                                            style={selectedId === c.id ? { backgroundImage: gradientForCategory(c.name) } : undefined}
-                                                        >
-                                                            <span className="flex items-center gap-2 min-w-0">
-                                                                <span className="inline-flex h-7 w-7 items-center justify-center rounded-md text-white" style={{ backgroundImage: gradientForCategory(c.name) }}>
-                                                                    <CatIcon className="h-4 w-4" />
-                                                                </span>
-                                                                <span className="font-medium truncate">{c.name}</span>
-                                                            </span>
-                                                            <span className={`text-xs px-2 py-0.5 rounded-full ${selectedId === c.id ? 'bg-white/20 text-white' : 'bg-[#f1f5f9] text-[#64748b]'}`}>{c.types.length}</span>
-                                                        </button>
-                                                    );
-                                                })}
+                                {categories.map((c) => {
+                                    const CatIcon = iconForCategory(c.name);
+                                    const isSelected = selectedId === c.id;
+                                    const isEditing = editingCategoryId === c.id;
+                                    if (isEditing) {
+                                        return (
+                                            <div key={c.id} className="w-full flex items-center justify-between px-3 py-2 rounded-lg border bg-[#f8f9ff] border-[#e2e8f0]">
+                                                <div className="flex items-center gap-2 min-w-0 flex-1">
+                                                    <span className="inline-flex h-7 w-7 items-center justify-center rounded-md text-white" style={{ backgroundImage: gradientForCategory(c.name) }}>
+                                                        <CatIcon className="h-4 w-4" />
+                                                    </span>
+                                                    <input
+                                                        autoFocus
+                                                        value={editingCategoryName}
+                                                        onChange={(e) => setEditingCategoryName(e.target.value)}
+                                                        onKeyDown={(e) => {
+                                                            if (e.key === 'Enter') {
+                                                                e.preventDefault();
+                                                                saveRenameCategory(c.id, editingCategoryName);
+                                                            } else if (e.key === 'Escape') {
+                                                                setEditingCategoryId(null);
+                                                                setEditingCategoryName('');
+                                                            }
+                                                        }}
+                                                        onBlur={() => saveRenameCategory(c.id, editingCategoryName)}
+                                                        className="flex-1 px-3 py-1.5 rounded-md bg-white border border-[#e2e8f0] focus:outline-none focus:ring-2 focus:ring-[#6366f1]/20 focus:border-[#6366f1]"
+                                                    />
+                                                    <button
+                                                        type="button"
+                                                        onClick={(e) => { e.preventDefault(); e.stopPropagation(); saveRenameCategory(c.id, editingCategoryName); }}
+                                                        className="inline-flex items-center justify-center text-xs p-1.5 rounded bg-[#e2e8f0] text-[#475569] hover:bg-[#cbd5e1]"
+                                                        aria-label="Save category"
+                                                        title="Save"
+                                                    >
+                                                        <Check className="h-3 w-3" />
+                                                    </button>
+                                                </div>
+                                                <span className="ml-2 text-xs px-2 py-0.5 rounded-full bg-[#e2e8f0] text-[#64748b]">{c.types.length}</span>
+                                            </div>
+                                        );
+                                    }
+                                    return (
+                                        <div
+                                            key={c.id}
+                                            className={`group w-full flex items-center justify-between px-4 py-2 rounded-lg border transition-colors ${isSelected ? 'text-white border-transparent' : 'bg-white text-[#1a1d2e] border-[#e2e8f0] hover:border-[#cbd5e1]'}`}
+                                            style={isSelected ? { backgroundImage: gradientForCategory(c.name) } : undefined}
+                                            onMouseEnter={() => setHoveredCategoryId(c.id)}
+                                            onMouseLeave={() => setHoveredCategoryId((prev) => (prev === c.id ? null : prev))}
+                                        >
+                                            <button
+                                                type="button"
+                                                onClick={() => setSelectedId(c.id)}
+                                                className="flex items-center gap-2 min-w-0 flex-1 text-left"
+                                            >
+                                                <span className="inline-flex h-7 w-7 items-center justify-center rounded-md text-white" style={{ backgroundImage: gradientForCategory(c.name) }}>
+                                                    <CatIcon className="h-4 w-4" />
+                                                </span>
+                                                <span className="font-medium truncate">{c.name}</span>
+                                            </button>
+                                            <div className="flex items-center gap-2">
+                                                <button
+                                                    type="button"
+                                                    onClick={(e) => { e.preventDefault(); e.stopPropagation(); setEditingCategoryId(c.id); setEditingCategoryName(c.name); }}
+                                                    className={`${isSelected ? 'bg-white/20 text-white hover:bg-white/30' : 'bg-[#f1f5f9] text-[#475569] hover:bg-[#e2e8f0]'} inline-flex items-center text-xs p-1.5 rounded transition-opacity ${hoveredCategoryId === c.id ? 'opacity-100 visible' : 'opacity-0 invisible'} group-hover:opacity-100 group-hover:visible focus:opacity-100 focus:visible`}
+                                                    aria-label="Edit category"
+                                                    title="Edit category"
+                                                >
+                                                    <Pencil className="h-3 w-3" />
+                                                </button>
+                                                <span className={`text-xs px-2 py-0.5 rounded-full ${isSelected ? 'bg-white/20 text-white' : 'bg-[#f1f5f9] text-[#64748b]'}`}>{c.types.length}</span>
+                                            </div>
+                                        </div>
+                                    );
+                                })}
                             </div>
                         )}
                         <div className="mt-4 pt-4 border-t border-[#e2e8f0]">
@@ -165,6 +300,7 @@ export default function CatalogAdminPage() {
                                     <span className="inline-flex items-center gap-1"><Plus className="h-4 w-4" /> Add</span>
                                 </button>
                             </div>
+                            {/* Inline rename replaces the old "Rename Selected Category" UI */}
                         </div>
                     </div>
                 </div>
@@ -190,22 +326,51 @@ export default function CatalogAdminPage() {
                                     )}
                                     {selected.types.map((t) => {
                                         const Icon = iconForType(t.name);
+                                        const isEditing = renamingTypeId === t.id;
                                         return (
-                                            <button
-                                                key={t.id}
-                                                type="button"
-                                                className="w-full flex items-center justify-between px-4 py-2 rounded-lg border text-white shadow-sm"
-                                                style={{ backgroundImage: gradientForType(t.name) }}
-                                            >
-                                                <span className="flex items-center gap-2">
-                                                    <Icon className="h-4 w-4 opacity-90" />
-                                                    <span className="font-medium">{t.name}</span>
-                                                </span>
-                                                {/* optional: show ID or actions */}
-                                                <span className="text-xs bg-white/20 px-2 py-0.5 rounded-full">
-                                                    #{t.id}
-                                                </span>
-                                            </button>
+                                            <div key={t.id} className="w-full">
+                                                {!isEditing ? (
+                                                    <div
+                                                        className="group w-full flex items-center justify-between px-4 py-2 rounded-lg border text-white shadow-sm"
+                                                        style={{ backgroundImage: gradientForType(t.name) }}
+                                                        onMouseEnter={() => setHoveredTypeId(t.id)}
+                                                        onMouseLeave={() => setHoveredTypeId((prev) => (prev === t.id ? null : prev))}
+                                                    >
+                                                        <span className="flex items-center gap-2">
+                                                            <Icon className="h-4 w-4 opacity-90" />
+                                                            <span className="font-medium">{t.name}</span>
+                                                        </span>
+                                                        <span className="flex items-center gap-2">
+                                                            <button
+                                                                onClick={() => startRenameType(t.id, t.name, selected.id)}
+                                                                className={`text-xs bg-white/20 hover:bg-white/30 p-1.5 rounded inline-flex items-center transition-opacity ${hoveredTypeId === t.id ? 'opacity-100 visible' : 'opacity-0 invisible'} group-hover:opacity-100 group-hover:visible focus:opacity-100 focus:visible`}
+                                                                aria-label="Edit type"
+                                                                title="Edit type"
+                                                            >
+                                                                <Pencil className="h-3 w-3" />
+                                                            </button>
+                                                            <button onClick={() => sortType(t.id, Math.max(0, (t.sort || 0) - 5))} className="text-xs bg-white/20 hover:bg-white/30 px-2 py-0.5 rounded">↑</button>
+                                                            <button onClick={() => sortType(t.id, (t.sort || 0) + 5)} className="text-xs bg-white/20 hover:bg-white/30 px-2 py-0.5 rounded">↓</button>
+                                                            <span className="text-xs bg-white/20 px-2 py-0.5 rounded-full">#{t.id}</span>
+                                                        </span>
+                                                    </div>
+                                                ) : (
+                                                    <div className="w-full flex items-center gap-2 p-2 rounded-lg border bg-[#f8f9ff]">
+                                                        <input value={renamingTypeName} onChange={(e) => setRenamingTypeName(e.target.value)} className="flex-1 px-3 py-2 rounded-lg bg-white border border-[#e2e8f0]" />
+                                                        <select value={renamingTypeCategoryId ?? selected.id} onChange={(e) => setRenamingTypeCategoryId(Number(e.target.value))} className="px-3 py-2 rounded-lg bg-white border border-[#e2e8f0]">
+                                                            {categories.map((c) => (
+                                                                <option key={c.id} value={c.id}>{c.name}</option>
+                                                            ))}
+                                                        </select>
+                                                        <button onClick={submitRenameType} className="px-3 py-2 rounded-lg text-white" style={{ backgroundImage: 'linear-gradient(to right, #10b981, #22c55e)' }}>
+                                                            <span className="inline-flex items-center gap-1"><Check className="h-4 w-4" /> Save</span>
+                                                        </button>
+                                                        <button onClick={cancelRenameType} className="px-3 py-2 rounded-lg text-[#ef4444] border border-[#fecaca] bg-[#fff1f2]">
+                                                            <span className="inline-flex items-center gap-1"><X className="h-4 w-4" /> Cancel</span>
+                                                        </button>
+                                                    </div>
+                                                )}
+                                            </div>
                                         );
                                     })}
                                 </div>

@@ -46,6 +46,11 @@ export function Sidebar({ currentPage = 'dashboard', me: meProp }: SidebarProps 
     if (typeof document === 'undefined') return false;
     return document.documentElement.getAttribute('data-admin') === 'true';
   });
+  // Track server-provided admin hint and react to changes immediately (e.g., right after login)
+  const [serverAdminHint, setServerAdminHint] = useState<boolean>(() => {
+    if (typeof document === 'undefined') return false;
+    return document.documentElement.getAttribute('data-admin') === 'true';
+  });
   const pathById: Record<string, string> = {
     dashboard: '/dashboard',
     assets: '/assets',
@@ -81,13 +86,34 @@ export function Sidebar({ currentPage = 'dashboard', me: meProp }: SidebarProps 
   // When we know the user is admin (from me or server hint), latch everAdmin=true for this session
   useEffect(() => {
     const serverIsAdmin = typeof document !== 'undefined' ? document.documentElement.getAttribute('data-admin') === 'true' : false;
+    setServerAdminHint(serverIsAdmin);
     if (serverIsAdmin || me?.role === 'admin') setEverAdmin(true);
   }, [me]);
 
+  // Observe mutations to <html data-admin="…"> so admin links appear instantly after login without refresh
+  useEffect(() => {
+    if (typeof document === 'undefined') return;
+    const el = document.documentElement;
+    const update = () => {
+      const v = el.getAttribute('data-admin') === 'true';
+      setServerAdminHint(v);
+      if (v) setEverAdmin(true);
+    };
+    update();
+    const obs = new MutationObserver((mutations) => {
+      for (const m of mutations) {
+        if (m.type === 'attributes' && m.attributeName === 'data-admin') {
+          update();
+        }
+      }
+    });
+    obs.observe(el, { attributes: true, attributeFilter: ['data-admin'] });
+    return () => obs.disconnect();
+  }, []);
+
   const itemsToRender = useMemo(() => {
     // Prefer server hint if present to avoid waiting for client fetch
-    const serverIsAdmin = typeof document !== 'undefined' ? document.documentElement.getAttribute('data-admin') === 'true' : false;
-    const isAdminLike = serverIsAdmin || everAdmin || me?.role === 'admin';
+    const isAdminLike = serverAdminHint || everAdmin || me?.role === 'admin';
 
     // Start with base items
     const base: NavItem[] = [...navItems];
@@ -111,7 +137,7 @@ export function Sidebar({ currentPage = 'dashboard', me: meProp }: SidebarProps 
       );
     }
     return base;
-  }, [everAdmin, me?.role]);
+  }, [serverAdminHint, everAdmin, me?.role]);
 
   const initials = useMemo(() => {
     const name = me?.name || '';
@@ -204,8 +230,7 @@ export function Sidebar({ currentPage = 'dashboard', me: meProp }: SidebarProps 
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-medium text-white truncate">{me?.name || me?.email || 'User'}</p>
                 <p className="text-xs text-[#a0a4b8] truncate">{(() => {
-                  const serverIsAdmin = typeof document !== 'undefined' ? document.documentElement.getAttribute('data-admin') === 'true' : false;
-                  const role = (serverIsAdmin || everAdmin || me?.role === 'admin') ? 'Administrator' : 'User';
+                  const role = (serverAdminHint || everAdmin || me?.role === 'admin') ? 'Administrator' : 'User';
                   return role;
                 })()}</p>
               </div>

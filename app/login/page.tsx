@@ -2,14 +2,17 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import styles from './login.module.css';
+import { useMe } from '@/components/assetflow/layout/MeContext';
+import { getMe } from '@/lib/auth/client';
 
 export default function LoginPage() {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const [email, setEmail] = useState('admin@inventos.io');
+  const [password, setPassword] = useState('Cl635EbUp8dN');
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const router = useRouter();
+  const { setMe } = useMe();
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -23,6 +26,18 @@ export default function LoginPage() {
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data?.error || 'Sign in failed');
+      // Hydrate MeContext immediately so Sidebar can render admin links without a full refresh
+      try {
+        const me = await getMe();
+        if (me) {
+          setMe({ id: me.id, email: me.email, role: me.role || 'user', name: me.name });
+          // Update SSR hint attributes client-side (best-effort) to avoid any visual flicker
+          try {
+            document.documentElement.setAttribute('data-admin', me.role === 'admin' ? 'true' : 'false');
+            document.documentElement.setAttribute('data-ssr-me', encodeURIComponent(JSON.stringify(me)));
+          } catch {}
+        }
+      } catch {}
       router.replace('/dashboard');
     } catch (e: any) {
       setError(e.message || 'Sign in failed');
