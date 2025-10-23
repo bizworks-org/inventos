@@ -1,7 +1,7 @@
 import { motion } from 'motion/react';
 import { Edit2, Trash2, ExternalLink, Mail } from 'lucide-react';
 import { Asset } from '../../../lib/data';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { usePrefs } from '../layout/PrefsContext';
 import { sendAssetConsent } from '../../../lib/api';
 import { toast } from 'sonner@2.0.3';
@@ -66,8 +66,16 @@ function isDateExpiring(dateString: string): boolean {
 
 export function AssetsTable({ assets, onNavigate, onDelete, canWrite = true }: AssetsTableProps) {
   const [hoveredRow, setHoveredRow] = useState<string | null>(null);
+  const [consentRequired, setConsentRequired] = useState<boolean>(true);
   const formatCurrency = useCurrencyFormatter();
   const { density } = usePrefs();
+
+  useEffect(() => {
+    try {
+      const v = document?.documentElement?.getAttribute('data-consent-required');
+      if (v === 'false' || v === '0') setConsentRequired(false);
+    } catch {}
+  }, []);
 
   const cellPad = density === 'ultra-compact' ? 'px-3 py-1.5' : density === 'compact' ? 'px-4 py-2' : 'px-6 py-4';
   const headPad = density === 'ultra-compact' ? 'px-3 py-2' : density === 'compact' ? 'px-4 py-2.5' : 'px-6 py-4';
@@ -135,9 +143,11 @@ export function AssetsTable({ assets, onNavigate, onDelete, canWrite = true }: A
               <th className={`${headPad} text-left text-xs font-semibold text-[#64748b] uppercase tracking-wider`}>
                 Department
               </th>
-              <th className={`${headPad} text-left text-xs font-semibold text-[#64748b] uppercase tracking-wider`}>
-                Consent
-              </th>
+              {consentRequired && (
+                <th className={`${headPad} text-left text-xs font-semibold text-[#64748b] uppercase tracking-wider`}>
+                  Consent
+                </th>
+              )}
               <th className={`${headPad} text-left text-xs font-semibold text-[#64748b] uppercase tracking-wider`}>
                 Status
               </th>
@@ -206,14 +216,16 @@ export function AssetsTable({ assets, onNavigate, onDelete, canWrite = true }: A
                 </td>
 
                 {/* Consent */}
-                <td className={`${cellPad}`}>
-                  <div className="flex items-center gap-2">
-                    {consentBadge(asset)}
-                    {asset.assignedEmail && (
-                      <span className={`text-xs text-[#6b7280] ${density==='ultra-compact' ? 'hidden' : ''}`}>{asset.assignedEmail}</span>
-                    )}
-                  </div>
-                </td>
+                {consentRequired && (
+                  <td className={`${cellPad}`}>
+                    <div className="flex items-center gap-2">
+                      {consentBadge(asset)}
+                      {asset.assignedEmail && (
+                        <span className={`text-xs text-[#6b7280] ${density==='ultra-compact' ? 'hidden' : ''}`}>{asset.assignedEmail}</span>
+                      )}
+                    </div>
+                  </td>
+                )}
 
                 {/* Status */}
                 <td className={`${cellPad}`}>
@@ -259,7 +271,8 @@ export function AssetsTable({ assets, onNavigate, onDelete, canWrite = true }: A
                   <div className={`flex items-center ${density==='ultra-compact' ? 'gap-1.5' : 'gap-2'}`}>
                     {canWrite && (
                       <>
-                        <button
+                        {consentRequired && (
+                          <button
                           onClick={async () => {
                             try {
                               if (!asset.assignedEmail) {
@@ -276,9 +289,10 @@ export function AssetsTable({ assets, onNavigate, onDelete, canWrite = true }: A
                           }}
                           className={`rounded-lg text-[#2563eb] transition-all duration-200 group ${density==='ultra-compact' ? 'p-1.5' : 'p-2'} hover:bg-[#2563eb]/10`}
                           title="Resend consent"
-                        >
+                          >
                           <Mail className={`${density==='ultra-compact' ? 'h-3.5 w-3.5' : 'h-4 w-4'} group-hover:scale-110 transition-transform`} />
-                        </button>
+                          </button>
+                        )}
                         <button
                           onClick={() => handleEdit(asset.id)}
                           className={`rounded-lg text-[#6366f1] transition-all duration-200 group ${density==='ultra-compact' ? 'p-1.5' : 'p-2'} hover:bg-[#6366f1]/10`}

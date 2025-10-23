@@ -63,6 +63,7 @@ const assetStatuses: Asset['status'][] = [
 
 export function AddAssetPage({ onNavigate, onSearch }: AddAssetPageProps) {
   const { currencySymbol, formatCurrency } = usePrefs();
+  const [consentRequired, setConsentRequired] = useState<boolean>(true);
   const [assetType, setAssetType] = useState<Asset['type']>('Laptop');
   const [category, setCategory] = useState<AssetCategory>(categoryOfType('Laptop'));
   const [formData, setFormData] = useState({
@@ -95,6 +96,11 @@ export function AddAssetPage({ onNavigate, onSearch }: AddAssetPageProps) {
         const parsed = JSON.parse(s);
         if (Array.isArray(parsed.assetFields)) setFieldDefs(parsed.assetFields as AssetFieldDef[]);
       }
+    } catch {}
+    // Read SSR-provided consent flag
+    try {
+      const v = document?.documentElement?.getAttribute('data-consent-required');
+      if (v === 'false' || v === '0') setConsentRequired(false);
     } catch {}
   }, []);
 
@@ -142,11 +148,15 @@ export function AddAssetPage({ onNavigate, onSearch }: AddAssetPageProps) {
       // @ts-ignore include optional consent fields
       (newAsset as any).assignedEmail = formData.assignedEmail?.trim() || undefined;
       if ((newAsset as any).assignedEmail) {
-        (newAsset as any).consentStatus = 'pending';
+        (newAsset as any).consentStatus = consentRequired ? 'pending' : 'none';
+        // If consent is disabled but an email is provided, auto-mark as Allocated on first add
+        if (!consentRequired) {
+          newAsset.status = 'Allocated';
+        }
       }
       await createAsset(newAsset);
-      // Trigger consent email (best-effort)
-      if ((newAsset as any).assignedEmail) {
+      // Trigger consent email only if required (best-effort)
+      if (consentRequired && (newAsset as any).assignedEmail) {
         try {
           await sendAssetConsent({ assetId: newAsset.id, email: (newAsset as any).assignedEmail, assetName: newAsset.name, assignedBy: 'AssetFlow' });
         } catch {}
@@ -309,19 +319,22 @@ export function AddAssetPage({ onNavigate, onSearch }: AddAssetPageProps) {
                   />
                 </div>
 
-                {/* Assigned To Email (optional) */}
+                {/* Assigned To Email */}
                 <div>
                   <label className="block text-sm font-medium text-[#1a1d2e] mb-2">
-                    Assigned To Email (optional)
+                    Assigned To Email{formData.assignedTo.trim() ? ' *' : ' (optional)'}
                   </label>
                   <input
                     type="email"
+                    required={!!formData.assignedTo.trim()}
                     value={formData.assignedEmail}
                     onChange={(e) => handleInputChange('assignedEmail', e.target.value)}
                     placeholder="e.g., john.doe@example.com"
                     className="w-full px-4 py-2.5 rounded-lg bg-[#f8f9ff] border border-[rgba(0,0,0,0.05)] text-[#1a1d2e] placeholder:text-[#a0a4b8] focus:outline-none focus:ring-2 focus:ring-[#6366f1]/20 focus:border-[#6366f1] transition-all duration-200"
                   />
-                  <p className="text-xs text-[#94a3b8] mt-1">If provided, we'll email this person to accept or reject the assignment.</p>
+                  <p className="text-xs text-[#94a3b8] mt-1">
+                    {consentRequired ? "If provided, we'll email this person to accept or reject the assignment." : 'Stored with the asset; no consent email will be sent.'}
+                  </p>
                 </div>
 
                 {/* Department */}

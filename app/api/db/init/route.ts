@@ -192,9 +192,12 @@ async function runMigrations(conn: any) {
     CREATE TABLE IF NOT EXISTS site_settings (
       id TINYINT NOT NULL PRIMARY KEY,
       logo_url VARCHAR(512) NULL,
-      brand_name VARCHAR(255) DEFAULT 'Inventos'
+      brand_name VARCHAR(255) DEFAULT 'Inventos',
+      consent_required TINYINT(1) NOT NULL DEFAULT 1
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
   `);
+  // Ensure column exists if table predated this change
+  try { await conn.query(`ALTER TABLE site_settings ADD COLUMN consent_required TINYINT(1) NOT NULL DEFAULT 1`); } catch {}
   await conn.query(`INSERT INTO site_settings (id, brand_name) VALUES (1, 'Inventos') ON DUPLICATE KEY UPDATE id = id`);
 }
 

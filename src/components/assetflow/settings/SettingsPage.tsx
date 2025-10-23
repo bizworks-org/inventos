@@ -84,6 +84,7 @@ export function SettingsPage({ onNavigate, onSearch, view = 'general' }: Setting
   const [brandName, setBrandName] = useState<string>('Inventos');
   const [logoUrl, setLogoUrl] = useState<string | null>(null);
   const [brandingMsg, setBrandingMsg] = useState<string | null>(null);
+  const [consentRequired, setConsentRequired] = useState<boolean>(true);
 
   // Preferences
   const [prefs, setPrefs] = useState<Preferences>({ density: 'comfortable', dateFormat: 'YYYY-MM-DD', currency: 'USD', language: 'en' });
@@ -258,8 +259,10 @@ export function SettingsPage({ onNavigate, onSearch, view = 'general' }: Setting
     try {
       const ssrName = typeof document !== 'undefined' ? (document.documentElement.getAttribute('data-brand-name') || '') : '';
       const ssrLogo = typeof document !== 'undefined' ? (document.documentElement.getAttribute('data-brand-logo') || '') : '';
+  const ssrConsent = typeof document !== 'undefined' ? (document.documentElement.getAttribute('data-consent-required') || 'true') : 'true';
       if (ssrName) setBrandName(ssrName);
       if (ssrLogo) setLogoUrl(ssrLogo);
+      setConsentRequired(!(ssrConsent === 'false' || ssrConsent === '0'));
     } catch {}
     (async () => {
       try {
@@ -268,6 +271,7 @@ export function SettingsPage({ onNavigate, onSearch, view = 'general' }: Setting
           const data = await res.json();
           if (data?.brandName) setBrandName(data.brandName);
           if (data?.logoUrl) setLogoUrl(data.logoUrl);
+          if (typeof data?.consentRequired === 'boolean') setConsentRequired(!!data.consentRequired);
         }
       } catch {}
     })();
@@ -472,6 +476,9 @@ export function SettingsPage({ onNavigate, onSearch, view = 'general' }: Setting
                 <TabsTrigger value="profile" className="flex items-center gap-2 px-3 py-2 data-[state=active]:bg-white data-[state=active]:border data-[state=active]:border-[rgba(0,0,0,0.08)]">
                   <User className="h-4 w-4 text-[#0ea5e9]" /> Profile
                 </TabsTrigger>
+                <TabsTrigger value="branding" className="flex items-center gap-2 px-3 py-2 data-[state=active]:bg-white data-[state=active]:border data-[state=active]:border-[rgba(0,0,0,0.08)]">
+                  <Server className="h-4 w-4 text-[#6366f1]" /> Branding
+                </TabsTrigger>
                 <TabsTrigger value="preferences" className="flex items-center gap-2 px-3 py-2 data-[state=active]:bg-white data-[state=active]:border data-[state=active]:border-[rgba(0,0,0,0.08)]">
                   <SlidersHorizontal className="h-4 w-4 text-[#22c55e]" /> Preferences
                 </TabsTrigger>
@@ -551,7 +558,23 @@ export function SettingsPage({ onNavigate, onSearch, view = 'general' }: Setting
                 </div>
               </div>
 
-              {/* Branding */}
+              {/* Branding moved to its own tab */}
+
+              {profileMsg && (
+                <p className={`text-sm ${profileMsg.startsWith('OK') ? 'text-green-600' : 'text-red-600'}`}>{profileMsg}</p>
+              )}
+
+              <div className="flex justify-end">
+                <Button type="button" onClick={saveProfile} className="bg-gradient-to-r from-[#6366f1] to-[#8b5cf6] text-white hover:shadow-lg hover:shadow-[#6366f1]/30">Save Profile</Button>
+              </div>
+            </div>
+          </TabsContent>
+          )}
+
+          {/* Branding Tab */}
+          {view === 'general' && (
+          <TabsContent value="branding" className="mt-0">
+            <div className="space-y-6">
               <div>
                 <h3 className="text-lg font-semibold text-[#1a1d2e] mb-3">Branding</h3>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-end">
@@ -586,10 +609,13 @@ export function SettingsPage({ onNavigate, onSearch, view = 'general' }: Setting
                           if (!res.ok) throw new Error(data?.error || 'Upload failed');
                           setLogoUrl(data.logoUrl || null);
                           setBrandingMsg('OK: Logo uploaded');
+                          // Update SSR attribute for immediate sidebar update
+                          try {
+                            document.documentElement.setAttribute('data-brand-logo', data.logoUrl || '');
+                          } catch {}
                         } catch (e: any) {
                           setBrandingMsg(`Error: ${e?.message || e}`);
                         } finally {
-                          // reset input so same file can be reselected
                           (e.target as HTMLInputElement).value = '';
                         }
                       }} />
@@ -599,34 +625,25 @@ export function SettingsPage({ onNavigate, onSearch, view = 'general' }: Setting
                     </div>
                     <p className="text-xs text-[#94a3b8] mt-1">PNG/SVG/JPG/WebP up to a few MB. Stored under /public/brand.</p>
                   </div>
-                  <div className="flex justify-end md:justify-start">
-                    <Button type="button" onClick={async () => {
-                      setBrandingMsg(null);
+                </div>
+                <div className="flex justify-end mt-6">
+                  <Button type="button" onClick={async () => {
+                    setBrandingMsg(null);
+                    try {
+                      const res = await fetch('/api/branding', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ brandName, logoUrl }) });
+                      const data = await res.json();
+                      if (!res.ok) throw new Error(data?.error || 'Failed to save branding');
+                      setBrandingMsg('OK: Branding saved');
                       try {
-                        const res = await fetch('/api/branding', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ brandName, logoUrl }) });
-                        const data = await res.json();
-                        if (!res.ok) throw new Error(data?.error || 'Failed to save branding');
-                        setBrandingMsg('OK: Branding saved');
-                        // update SSR dataset for immediate reflection in client (best-effort)
-                        try {
-                          document.documentElement.setAttribute('data-brand-name', brandName || '');
-                          document.documentElement.setAttribute('data-brand-logo', logoUrl || '');
-                        } catch {}
-                      } catch (e: any) {
-                        setBrandingMsg(`Error: ${e?.message || e}`);
-                      }
-                    }} className="bg-gradient-to-r from-[#6366f1] to-[#8b5cf6] text-white hover:shadow-lg hover:shadow-[#6366f1]/30">Save Branding</Button>
-                  </div>
+                        document.documentElement.setAttribute('data-brand-name', brandName || '');
+                        document.documentElement.setAttribute('data-brand-logo', logoUrl || '');
+                      } catch {}
+                    } catch (e: any) {
+                      setBrandingMsg(`Error: ${e?.message || e}`);
+                    }
+                  }} className="bg-gradient-to-r from-[#6366f1] to-[#8b5cf6] text-white hover:shadow-lg hover:shadow-[#6366f1]/30">Save Branding</Button>
                 </div>
                 {brandingMsg && <p className={`text-sm mt-2 ${brandingMsg.startsWith('OK') ? 'text-green-600' : 'text-red-600'}`}>{brandingMsg}</p>}
-              </div>
-
-              {profileMsg && (
-                <p className={`text-sm ${profileMsg.startsWith('OK') ? 'text-green-600' : 'text-red-600'}`}>{profileMsg}</p>
-              )}
-
-              <div className="flex justify-end">
-                <Button type="button" onClick={saveProfile} className="bg-gradient-to-r from-[#6366f1] to-[#8b5cf6] text-white hover:shadow-lg hover:shadow-[#6366f1]/30">Save Profile</Button>
               </div>
             </div>
           </TabsContent>
@@ -760,6 +777,34 @@ export function SettingsPage({ onNavigate, onSearch, view = 'general' }: Setting
               <p className="text-sm text-[#94a3b8] mt-4">
                 Current theme: <span className="font-medium text-[#1a1d2e]">{(mode === 'system' ? systemTheme : mode) || 'system'}</span>
               </p>
+            </div>
+
+            <div>
+              <h3 className="text-lg font-semibold text-[#1a1d2e]">Asset Management</h3>
+              <p className="text-sm text-[#64748b] mb-4">Configure how assets are assigned and managed.</p>
+              <div className="flex items-center justify-between p-4 border rounded-xl bg-[#f8f9ff] border-[rgba(0,0,0,0.08)]">
+                <div>
+                  <p className="font-medium text-[#1a1d2e]">Require Consent for Asset Assignments</p>
+                  <p className="text-sm text-[#64748b]">When enabled, assigning assets to users requires email consent approval</p>
+                </div>
+                <Switch
+                  checked={consentRequired}
+                  onCheckedChange={async (val) => {
+                    setConsentRequired(!!val);
+                    try {
+                      const res = await fetch('/api/branding', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ consentRequired: !!val }) });
+                      const data = await res.json();
+                      if (!res.ok) throw new Error(data?.error || 'Failed to save consent setting');
+                      document.documentElement.setAttribute('data-consent-required', val ? 'true' : 'false');
+                    } catch (e: any) {
+                      console.error('Failed to save consent setting:', e);
+                      // Revert on error
+                      setConsentRequired(!val);
+                    }
+                  }}
+                  aria-label="Toggle consent requirement for asset assignments"
+                />
+              </div>
             </div>
           </TabsContent>
           )}

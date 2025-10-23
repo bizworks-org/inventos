@@ -132,11 +132,14 @@ export async function POST(req: NextRequest) {
       CREATE TABLE IF NOT EXISTS site_settings (
         id TINYINT NOT NULL PRIMARY KEY,
         logo_url VARCHAR(512) NULL,
-        brand_name VARCHAR(255) DEFAULT 'Inventos'
+        brand_name VARCHAR(255) DEFAULT 'Inventos',
+        consent_required TINYINT(1) NOT NULL DEFAULT 1
       ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
     `);
     // Ensure singleton row exists
     await conn.query(`INSERT INTO site_settings (id, brand_name) VALUES (1, 'Inventos') ON DUPLICATE KEY UPDATE id = id`);
+    // Ensure column exists on previously created tables
+    try { await conn.query('ALTER TABLE site_settings ADD COLUMN consent_required TINYINT(1) NOT NULL DEFAULT 1'); } catch {}
 
     // asset catalog tables (categories and types)
     await conn.query(`

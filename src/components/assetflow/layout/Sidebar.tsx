@@ -18,7 +18,6 @@ const navItems: NavItem[] = [
   { name: 'IT Assets', id: 'assets', icon: Package, colorClass: 'text-emerald-400' },
   { name: 'Licenses', id: 'licenses', icon: FileText, colorClass: 'text-pink-400' },
   { name: 'Vendors', id: 'vendors', icon: Users, colorClass: 'text-amber-400' },
-  { name: 'Events', id: 'events', icon: Activity, colorClass: 'text-sky-400' },
   { name: 'Settings', id: 'settings', icon: Settings, colorClass: 'text-violet-400' },
 ];
 
@@ -62,6 +61,8 @@ export function Sidebar({ currentPage = 'dashboard', me: meProp }: SidebarProps 
     admin_users: '/admin/users',
     admin_roles: '/admin/roles',
     admin_catalog: '/admin/catalog',
+    settings_events: '/events',
+    settings_catalog: '/admin/catalog',
     settings_general: '/settings',
     settings_configuration: '/settings/tech',
   };
@@ -95,19 +96,23 @@ export function Sidebar({ currentPage = 'dashboard', me: meProp }: SidebarProps 
     if (typeof document === 'undefined') return;
     const el = document.documentElement;
     const update = () => {
-      const v = el.getAttribute('data-admin') === 'true';
-      setServerAdminHint(v);
-      if (v) setEverAdmin(true);
+      const adminV = el.getAttribute('data-admin') === 'true';
+      setServerAdminHint(adminV);
+      if (adminV) setEverAdmin(true);
+      const logoV = el.getAttribute('data-brand-logo') || '';
+      setBrandLogo(logoV || null);
+      const nameV = el.getAttribute('data-brand-name') || 'Inventos';
+      setBrandName(nameV);
     };
     update();
     const obs = new MutationObserver((mutations) => {
       for (const m of mutations) {
-        if (m.type === 'attributes' && m.attributeName === 'data-admin') {
+        if (m.type === 'attributes') {
           update();
         }
       }
     });
-    obs.observe(el, { attributes: true, attributeFilter: ['data-admin'] });
+    obs.observe(el, { attributes: true, attributeFilter: ['data-admin', 'data-brand-logo', 'data-brand-name'] });
     return () => obs.disconnect();
   }, []);
 
@@ -121,9 +126,11 @@ export function Sidebar({ currentPage = 'dashboard', me: meProp }: SidebarProps 
     if (idx !== -1) {
       const children: NavItem[] = [
         { name: 'General', id: 'settings_general', icon: Settings, colorClass: 'text-violet-300' },
+        { name: 'Events', id: 'settings_events', icon: Activity, colorClass: 'text-sky-300' },
       ];
       if (isAdminLike) {
         children.push({ name: 'Configuration', id: 'settings_configuration', icon: Settings, colorClass: 'text-violet-300' });
+        children.push({ name: 'Catalog', id: 'settings_catalog', icon: Package, colorClass: 'text-red-300' });
       }
       base.splice(idx + 1, 0, ...children);
     }
@@ -133,7 +140,6 @@ export function Sidebar({ currentPage = 'dashboard', me: meProp }: SidebarProps 
         { name: 'Admin', id: 'admin', icon: Shield, colorClass: 'text-red-400' } as NavItem,
         { name: 'Users', id: 'admin_users', icon: Users, colorClass: 'text-red-300' } as NavItem,
         { name: 'Roles', id: 'admin_roles', icon: Shield, colorClass: 'text-red-300' } as NavItem,
-        { name: 'Catalog', id: 'admin_catalog', icon: Package, colorClass: 'text-red-300' } as NavItem,
       );
     }
     return base;

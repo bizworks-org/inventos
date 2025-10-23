@@ -18,6 +18,11 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
     const { assetId, email, assetName, assignedBy } = body || {};
     if (!assetId || !email) return NextResponse.json({ error: 'assetId and email are required' }, { status: 400 });
+    // Respect global setting: if consent is disabled, block/no-op
+    const srows = await query<any>('SELECT consent_required FROM site_settings WHERE id = 1');
+    if (srows && srows[0] && srows[0].consent_required === 0) {
+      return NextResponse.json({ error: 'Assignment consent is disabled' }, { status: 400 });
+    }
     // create token
     const token = crypto.randomBytes(24).toString('hex');
     const expires = new Date(Date.now() + 1000 * 60 * 60 * 24); // 24h

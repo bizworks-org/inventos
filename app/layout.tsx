@@ -38,18 +38,20 @@ export default async function RootLayout({
       }
     }
   } catch {}
-  // Server-side branding fetch
+  // Server-side branding fetch (also includes consent flag)
   let brandLogo: string | undefined = undefined;
   let brandName: string | undefined = undefined;
+  let consentRequired = true;
   try {
-    const rows = await query<any>('SELECT logo_url, brand_name FROM site_settings WHERE id = 1');
+    const rows = await query<any>('SELECT logo_url, brand_name, consent_required FROM site_settings WHERE id = 1');
     if (rows && rows[0]) {
       brandLogo = rows[0].logo_url || undefined;
       brandName = rows[0].brand_name || undefined;
+      consentRequired = rows[0].consent_required !== 0;
     }
   } catch {}
   return (
-    <html lang="en" suppressHydrationWarning data-admin={isAdmin ? 'true' : 'false'} data-ssr-me={me ? encodeURIComponent(JSON.stringify(me)) : ''} data-brand-logo={brandLogo || ''} data-brand-name={brandName || ''}>
+    <html lang="en" suppressHydrationWarning data-admin={isAdmin ? 'true' : 'false'} data-ssr-me={me ? encodeURIComponent(JSON.stringify(me)) : ''} data-brand-logo={brandLogo || ''} data-brand-name={brandName || ''} data-consent-required={consentRequired ? 'true' : 'false'}>
       <body>
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
           <PrefsProvider>
