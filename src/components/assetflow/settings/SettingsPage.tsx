@@ -16,7 +16,7 @@ import { Label } from '../../ui/label';
 import { Input } from '../../ui/input';
 import { fetchSettings, saveSettings, type ServerSettings } from '../../../lib/api';
 import { getMe, type ClientMe } from '../../../lib/auth/client';
-import type { AssetFieldDef } from '../../../lib/data';
+import type { AssetFieldDef, AssetFieldType } from '../../../lib/data';
 
 interface SettingsPageProps {
   onNavigate?: (page: string) => void;
@@ -171,7 +171,7 @@ export function SettingsPage({ onNavigate, onSearch, view = 'general' }: Setting
 
   // Asset field definitions (global custom fields)
   const [assetFields, setAssetFields] = useState<AssetFieldDef[]>([]);
-  const addAssetField = () => setAssetFields((arr) => [...arr, { key: '', label: '', required: false, placeholder: '' }]);
+  const addAssetField = () => setAssetFields((arr) => [...arr, { key: '', label: '', required: false, placeholder: '', type: 'text' as AssetFieldType }]);
   const removeAssetField = (idx: number) => setAssetFields((arr) => arr.filter((_, i) => i !== idx));
   const updateAssetField = (idx: number, patch: Partial<AssetFieldDef>) => setAssetFields((arr) => arr.map((f, i) => i === idx ? { ...f, ...patch } : f));
 
@@ -259,11 +259,11 @@ export function SettingsPage({ onNavigate, onSearch, view = 'general' }: Setting
     try {
       const ssrName = typeof document !== 'undefined' ? (document.documentElement.getAttribute('data-brand-name') || '') : '';
       const ssrLogo = typeof document !== 'undefined' ? (document.documentElement.getAttribute('data-brand-logo') || '') : '';
-  const ssrConsent = typeof document !== 'undefined' ? (document.documentElement.getAttribute('data-consent-required') || 'true') : 'true';
+      const ssrConsent = typeof document !== 'undefined' ? (document.documentElement.getAttribute('data-consent-required') || 'true') : 'true';
       if (ssrName) setBrandName(ssrName);
       if (ssrLogo) setLogoUrl(ssrLogo);
       setConsentRequired(!(ssrConsent === 'false' || ssrConsent === '0'));
-    } catch {}
+    } catch { }
     (async () => {
       try {
         const res = await fetch('/api/branding', { cache: 'no-store' });
@@ -273,7 +273,7 @@ export function SettingsPage({ onNavigate, onSearch, view = 'general' }: Setting
           if (data?.logoUrl) setLogoUrl(data.logoUrl);
           if (typeof data?.consentRequired === 'boolean') setConsentRequired(!!data.consentRequired);
         }
-      } catch {}
+      } catch { }
     })();
   }, []);
 
@@ -385,9 +385,9 @@ export function SettingsPage({ onNavigate, onSearch, view = 'general' }: Setting
       const res = await fetch('/api/auth/profile', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name, passwordCurrent: pwdCurrent || undefined, passwordNew: pwdNew || undefined }) });
       const data = await res.json();
       if (!res.ok) throw new Error(data?.error || 'Failed to update profile');
-  setProfileMsg('OK: Profile updated');
-  // Reflect updated name in global MeContext so Sidebar/Profile chips update immediately
-  setCtxMe(ctxMe ? { ...ctxMe, name } : ctxMe);
+      setProfileMsg('OK: Profile updated');
+      // Reflect updated name in global MeContext so Sidebar/Profile chips update immediately
+      setCtxMe(ctxMe ? { ...ctxMe, name } : ctxMe);
       setPwdCurrent(''); setPwdNew(''); setPwdNew2('');
     } catch (e: any) {
       setProfileMsg(`Error: ${e?.message || e}`);
@@ -436,6 +436,23 @@ export function SettingsPage({ onNavigate, onSearch, view = 'general' }: Setting
     setEndpointUrl('');
   };
 
+  // Extracted handler for consent toggle to keep render concise and allow reuse
+  const handleConsentToggle = async (val: boolean) => {
+    setConsentRequired(!!val);
+    try {
+      const res = await fetch('/api/branding', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ consentRequired: !!val }) });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data?.error || 'Failed to save consent setting');
+      try {
+        document.documentElement.setAttribute('data-consent-required', val ? 'true' : 'false');
+      } catch { }
+    } catch (e: any) {
+      console.error('Failed to save consent setting:', e);
+      // Revert on error
+      setConsentRequired(!val);
+    }
+  };
+
   return (
     <AssetFlowLayout
       breadcrumbs={[
@@ -469,7 +486,7 @@ export function SettingsPage({ onNavigate, onSearch, view = 'general' }: Setting
         transition={{ duration: 0.3 }}
         className="bg-white rounded-2xl border border-[rgba(0,0,0,0.08)] p-6 shadow-sm"
       >
-  <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
           <TabsList className="flex w-full flex-wrap gap-2 rounded-xl border border-[rgba(0,0,0,0.08)] bg-[#f8f9ff] p-2">
             {view === 'general' && (
               <>
@@ -513,305 +530,307 @@ export function SettingsPage({ onNavigate, onSearch, view = 'general' }: Setting
 
           {/* Profile */}
           {view === 'general' && (
-          <TabsContent value="profile" className="mt-0">
-            <div className="space-y-8">
-              <div>
-                <h3 className="text-lg font-semibold text-[#1a1d2e] mb-3">Profile</h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div>
-                    <label className="block text-sm font-medium text-[#1a1d2e] mb-2">Full Name</label>
-                    <input
-                      className="w-full px-3 py-2 rounded-lg bg-[#f8f9ff] border border-[rgba(0,0,0,0.08)] focus:outline-none focus:ring-2 focus:ring-[#6366f1]/20"
-                      value={name}
-                      onChange={(e) => setName(e.target.value)}
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-[#1a1d2e] mb-2">Email</label>
-                    <input
-                      type="email"
-                      disabled
-                      className="w-full px-3 py-2 rounded-lg bg-[#f8f9ff] border border-[rgba(0,0,0,0.08)] text-[#6b7280]"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                    />
-                    <p className="text-xs text-[#94a3b8] mt-1">Email is managed by an administrator.</p>
-                  </div>
-                </div>
-              </div>
-
-              <div>
-                <h3 className="text-lg font-semibold text-[#1a1d2e] mb-3">Change Password</h3>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                  <div>
-                    <label className="block text-sm font-medium text-[#1a1d2e] mb-2">Current Password</label>
-                    <input type="password" className="w-full px-3 py-2 rounded-lg bg-[#f8f9ff] border border-[rgba(0,0,0,0.08)]" value={pwdCurrent} onChange={(e) => setPwdCurrent(e.target.value)} />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-[#1a1d2e] mb-2">New Password</label>
-                    <input type="password" className="w-full px-3 py-2 rounded-lg bg-[#f8f9ff] border border-[rgba(0,0,0,0.08)]" value={pwdNew} onChange={(e) => setPwdNew(e.target.value)} />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-[#1a1d2e] mb-2">Confirm New Password</label>
-                    <input type="password" className="w-full px-3 py-2 rounded-lg bg-[#f8f9ff] border border-[rgba(0,0,0,0.08)]" value={pwdNew2} onChange={(e) => setPwdNew2(e.target.value)} />
+            <TabsContent value="profile" className="mt-0 space-y-8">
+              <div className="space-y-8">
+                <div>
+                  <h3 className="text-lg font-semibold text-[#1a1d2e] mb-3">Profile</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                      <label className="block text-sm font-medium text-[#1a1d2e] mb-2">Full Name</label>
+                      <input
+                        className="w-full px-3 py-2 rounded-lg bg-[#f8f9ff] border border-[rgba(0,0,0,0.08)] focus:outline-none focus:ring-2 focus:ring-[#6366f1]/20"
+                        value={name}
+                        onChange={(e) => setName(e.target.value)}
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-[#1a1d2e] mb-2">Email</label>
+                      <input
+                        type="email"
+                        disabled
+                        className="w-full px-3 py-2 rounded-lg bg-[#f8f9ff] border border-[rgba(0,0,0,0.08)] text-[#6b7280]"
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                      />
+                      <p className="text-xs text-[#94a3b8] mt-1">Email is managed by an administrator.</p>
+                    </div>
                   </div>
                 </div>
+
+                <div>
+                  <h3 className="text-lg font-semibold text-[#1a1d2e] mb-3">Change Password</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div>
+                      <label className="block text-sm font-medium text-[#1a1d2e] mb-2">Current Password</label>
+                      <input type="password" className="w-full px-3 py-2 rounded-lg bg-[#f8f9ff] border border-[rgba(0,0,0,0.08)]" value={pwdCurrent} onChange={(e) => setPwdCurrent(e.target.value)} />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-[#1a1d2e] mb-2">New Password</label>
+                      <input type="password" className="w-full px-3 py-2 rounded-lg bg-[#f8f9ff] border border-[rgba(0,0,0,0.08)]" value={pwdNew} onChange={(e) => setPwdNew(e.target.value)} />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-[#1a1d2e] mb-2">Confirm New Password</label>
+                      <input type="password" className="w-full px-3 py-2 rounded-lg bg-[#f8f9ff] border border-[rgba(0,0,0,0.08)]" value={pwdNew2} onChange={(e) => setPwdNew2(e.target.value)} />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Branding moved to its own tab */}
+
+                {profileMsg && (
+                  <p className={`text-sm ${profileMsg.startsWith('OK') ? 'text-green-600' : 'text-red-600'}`}>{profileMsg}</p>
+                )}
+
+                <div className="flex justify-end">
+                  <Button type="button" onClick={saveProfile} className="bg-gradient-to-r from-[#6366f1] to-[#8b5cf6] text-white hover:shadow-lg hover:shadow-[#6366f1]/30">Save Profile</Button>
+                </div>
               </div>
-
-              {/* Branding moved to its own tab */}
-
-              {profileMsg && (
-                <p className={`text-sm ${profileMsg.startsWith('OK') ? 'text-green-600' : 'text-red-600'}`}>{profileMsg}</p>
-              )}
-
-              <div className="flex justify-end">
-                <Button type="button" onClick={saveProfile} className="bg-gradient-to-r from-[#6366f1] to-[#8b5cf6] text-white hover:shadow-lg hover:shadow-[#6366f1]/30">Save Profile</Button>
-              </div>
-            </div>
-          </TabsContent>
+            </TabsContent>
           )}
 
           {/* Branding Tab */}
           {view === 'general' && (
-          <TabsContent value="branding" className="mt-0">
-            <div className="space-y-6">
-              <div>
-                <h3 className="text-lg font-semibold text-[#1a1d2e] mb-3">Branding</h3>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-end">
-                  <div>
-                    <label className="block text-sm font-medium text-[#1a1d2e] mb-2">Brand Name</label>
-                    <input
-                      className="w-full px-3 py-2 rounded-lg bg-[#f8f9ff] border border-[rgba(0,0,0,0.08)] focus:outline-none focus:ring-2 focus:ring-[#6366f1]/20"
-                      value={brandName}
-                      onChange={(e) => setBrandName(e.target.value)}
-                    />
-                    <p className="text-xs text-[#94a3b8] mt-1">Shown in the sidebar and titles.</p>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-[#1a1d2e] mb-2">Bank Logo</label>
-                    <div className="flex items-center gap-4">
-                      <div className="h-12 w-12 rounded-lg bg-[#f8f9ff] border border-[rgba(0,0,0,0.08)] flex items-center justify-center overflow-hidden">
-                        {logoUrl ? (
-                          <img src={logoUrl} alt="Logo" className="h-full w-full object-contain" />
-                        ) : (
-                          <span className="text-xs text-[#94a3b8]">No logo</span>
-                        )}
-                      </div>
-                      <input type="file" accept="image/*" id="brand-logo-input" className="hidden" onChange={async (e) => {
-                        setBrandingMsg(null);
-                        const f = e.target.files?.[0];
-                        if (!f) return;
-                        const fd = new FormData();
-                        fd.append('file', f);
-                        try {
-                          const res = await fetch('/api/branding/logo', { method: 'POST', body: fd });
-                          const data = await res.json();
-                          if (!res.ok) throw new Error(data?.error || 'Upload failed');
-                          setLogoUrl(data.logoUrl || null);
-                          setBrandingMsg('OK: Logo uploaded');
-                          // Update SSR attribute for immediate sidebar update
-                          try {
-                            document.documentElement.setAttribute('data-brand-logo', data.logoUrl || '');
-                          } catch {}
-                        } catch (e: any) {
-                          setBrandingMsg(`Error: ${e?.message || e}`);
-                        } finally {
-                          (e.target as HTMLInputElement).value = '';
-                        }
-                      }} />
-                      <button type="button" onClick={() => document.getElementById('brand-logo-input')?.click()} className="px-3 py-2 rounded-lg bg-[#f8f9ff] border border-[rgba(0,0,0,0.08)] hover:bg-white">
-                        Choose Logo…
-                      </button>
+            <TabsContent value="branding" className="mt-0 space-y-8">
+              <div className="space-y-6">
+                <div>
+                  <h3 className="text-lg font-semibold text-[#1a1d2e] mb-3">Branding</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-end">
+                    <div>
+                      <label className="block text-sm font-medium text-[#1a1d2e] mb-2">Brand Name</label>
+                      <input
+                        className="w-full px-3 py-2 rounded-lg bg-[#f8f9ff] border border-[rgba(0,0,0,0.08)] focus:outline-none focus:ring-2 focus:ring-[#6366f1]/20"
+                        value={brandName}
+                        onChange={(e) => setBrandName(e.target.value)}
+                      />
+                      <p className="text-xs text-[#94a3b8] mt-1">Shown in the sidebar and titles.</p>
                     </div>
-                    <p className="text-xs text-[#94a3b8] mt-1">PNG/SVG/JPG/WebP up to a few MB. Stored under /public/brand.</p>
+                    <div>
+                      <label className="block text-sm font-medium text-[#1a1d2e] mb-2">Bank Logo</label>
+                      <div className="flex items-center gap-4">
+                        <div className="h-12 w-12 rounded-lg bg-[#f8f9ff] border border-[rgba(0,0,0,0.08)] flex items-center justify-center overflow-hidden">
+                          {logoUrl ? (
+                            <img src={logoUrl} alt="Logo" className="h-full w-full object-contain" />
+                          ) : (
+                            <span className="text-xs text-[#94a3b8]">No logo</span>
+                          )}
+                        </div>
+                        <input type="file" accept="image/*" id="brand-logo-input" className="hidden" onChange={async (e) => {
+                          setBrandingMsg(null);
+                          const f = e.target.files?.[0];
+                          if (!f) return;
+                          const fd = new FormData();
+                          fd.append('file', f);
+                          try {
+                            const res = await fetch('/api/branding/logo', { method: 'POST', body: fd });
+                            const data = await res.json();
+                            if (!res.ok) throw new Error(data?.error || 'Upload failed');
+                            setLogoUrl(data.logoUrl || null);
+                            setBrandingMsg('OK: Logo uploaded');
+                            // Update SSR attribute for immediate sidebar update
+                            try {
+                              document.documentElement.setAttribute('data-brand-logo', data.logoUrl || '');
+                            } catch { }
+                          } catch (e: any) {
+                            setBrandingMsg(`Error: ${e?.message || e}`);
+                          } finally {
+                            (e.target as HTMLInputElement).value = '';
+                          }
+                        }} />
+                        <button type="button" onClick={() => document.getElementById('brand-logo-input')?.click()} className="px-3 py-2 rounded-lg bg-[#f8f9ff] border border-[rgba(0,0,0,0.08)] hover:bg-white">
+                          Choose Logo…
+                        </button>
+                      </div>
+                      <p className="text-xs text-[#94a3b8] mt-1">PNG/SVG/JPG/WebP up to a few MB. Stored under /public/brand.</p>
+                    </div>
                   </div>
-                </div>
-                <div className="flex justify-end mt-6">
-                  <Button type="button" onClick={async () => {
-                    setBrandingMsg(null);
-                    try {
-                      const res = await fetch('/api/branding', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ brandName, logoUrl }) });
-                      const data = await res.json();
-                      if (!res.ok) throw new Error(data?.error || 'Failed to save branding');
-                      setBrandingMsg('OK: Branding saved');
+                  <div className="flex justify-end mt-6">
+                    <Button type="button" onClick={async () => {
+                      setBrandingMsg(null);
                       try {
-                        document.documentElement.setAttribute('data-brand-name', brandName || '');
-                        document.documentElement.setAttribute('data-brand-logo', logoUrl || '');
-                      } catch {}
-                    } catch (e: any) {
-                      setBrandingMsg(`Error: ${e?.message || e}`);
-                    }
-                  }} className="bg-gradient-to-r from-[#6366f1] to-[#8b5cf6] text-white hover:shadow-lg hover:shadow-[#6366f1]/30">Save Branding</Button>
+                        const res = await fetch('/api/branding', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ brandName, logoUrl }) });
+                        const data = await res.json();
+                        if (!res.ok) throw new Error(data?.error || 'Failed to save branding');
+                        setBrandingMsg('OK: Branding saved');
+                        try {
+                          document.documentElement.setAttribute('data-brand-name', brandName || '');
+                          document.documentElement.setAttribute('data-brand-logo', logoUrl || '');
+                        } catch { }
+                      } catch (e: any) {
+                        setBrandingMsg(`Error: ${e?.message || e}`);
+                      }
+                    }} className="bg-gradient-to-r from-[#6366f1] to-[#8b5cf6] text-white hover:shadow-lg hover:shadow-[#6366f1]/30">Save Branding</Button>
+                  </div>
+                  {brandingMsg && <p className={`text-sm mt-2 ${brandingMsg.startsWith('OK') ? 'text-green-600' : 'text-red-600'}`}>{brandingMsg}</p>}
                 </div>
-                {brandingMsg && <p className={`text-sm mt-2 ${brandingMsg.startsWith('OK') ? 'text-green-600' : 'text-red-600'}`}>{brandingMsg}</p>}
               </div>
-            </div>
-          </TabsContent>
+            </TabsContent>
           )}
 
           {/* Preferences + Appearance */}
           {view === 'general' && (
-          <TabsContent value="preferences" className="mt-0 space-y-8">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div>
-                <label className="block text-sm font-medium text-[#1a1d2e] mb-2">Table Density</label>
-                <div className="flex gap-3">
-                  <button
-                    type="button"
-                    onClick={() => { setPrefs((p) => ({ ...p, density: 'ultra-compact' })); persistPrefs({ density: 'ultra-compact' }); }}
-                    className={`px-3 py-2 rounded-lg border ${prefs.density === 'ultra-compact' ? 'bg-[#e0e7ff] border-[#6366f1] text-[#1a1d2e]' : 'bg-[#f8f9ff] border-[rgba(0,0,0,0.08)] text-[#64748b]'
-                      }`}
-                  >
-                    Ultra-compact
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => { setPrefs((p) => ({ ...p, density: 'compact' })); persistPrefs({ density: 'compact' }); }}
-                    className={`px-3 py-2 rounded-lg border ${prefs.density === 'compact' ? 'bg-[#e0e7ff] border-[#6366f1] text-[#1a1d2e]' : 'bg-[#f8f9ff] border-[rgba(0,0,0,0.08)] text-[#64748b]'
-                      }`}
-                  >
-                    Compact
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => { setPrefs((p) => ({ ...p, density: 'comfortable' })); persistPrefs({ density: 'comfortable' }); }}
-                    className={`px-3 py-2 rounded-lg border ${prefs.density === 'comfortable' ? 'bg-[#e0e7ff] border-[#6366f1] text-[#1a1d2e]' : 'bg-[#f8f9ff] border-[rgba(0,0,0,0.08)] text-[#64748b]'
-                      }`}
-                  >
-                    Comfortable
-                  </button>
-                </div>
+            <TabsContent value="preferences" className="mt-0 space-y-8">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
-                  <label className="block text-sm font-medium text-[#1a1d2e] mb-2">Currency</label>
-                  <select
-                    className="w-full px-3 py-2 rounded-lg bg-[#f8f9ff] border border-[rgba(0,0,0,0.08)]"
-                    value={prefs.currency}
-                    onChange={(e) => setPrefs((p) => ({ ...p, currency: e.target.value as Preferences['currency'] }))}
-                  >
-                    {(['USD', 'EUR', 'GBP', 'INR', 'JPY', 'AUD', 'CAD', 'CNY', 'SGD'] as const).map((c) => (
-                      <option key={c} value={c}>{c}</option>
-                    ))}
-                  </select>
-                  <p className="text-xs text-[#94a3b8] mt-1">Used for cost and value displays.</p>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-[#1a1d2e] mb-2">Language</label>
-                  <select
-                    className="w-full px-3 py-2 rounded-lg bg-[#f8f9ff] border border-[rgba(0,0,0,0.08)]"
-                    value={prefs.language}
-                    onChange={(e) => setPrefs((p) => ({ ...p, language: e.target.value as Preferences['language'] }))}
-                  >
-                    {([
-                      { code: 'en', label: 'English' },
-                      { code: 'hi', label: 'हिंदी (Hindi)' },
-                      { code: 'ta', label: 'தமிழ் (Tamil)' },
-                      { code: 'te', label: 'తెలుగు (Telugu)' },
-                      { code: 'bn', label: 'বাংলা (Bengali)' },
-                      { code: 'mr', label: 'मराठी (Marathi)' },
-                      { code: 'gu', label: 'ગુજરાતી (Gujarati)' },
-                      { code: 'kn', label: 'ಕನ್ನಡ (Kannada)' },
-                      { code: 'ml', label: 'മലയാളം (Malayalam)' },
-                      { code: 'pa', label: 'ਪੰਜਾਬੀ (Punjabi)' },
-                      { code: 'or', label: 'ଓଡ଼ିଆ (Odia)' },
-                      { code: 'as', label: 'অসমীয়া (Assamese)' },
-                      { code: 'sa', label: 'संस्कृतम् (Sanskrit)' },
-                      { code: 'kok', label: 'कोंकणी (Konkani)' },
-                      { code: 'ur', label: 'اُردو (Urdu)' },
-                      { code: 'ar', label: 'العربية (Arabic)' },
-                    ] as const).map((lng) => (
-                      <option key={lng.code} value={lng.code}>{lng.label}</option>
-                    ))}
-                  </select>
-                  <p className="text-xs text-[#94a3b8] mt-1">Applies to UI text (requires translation files to fully localize).</p>
-                </div>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-[#1a1d2e] mb-2">Date Format</label>
-                <div className="flex flex-wrap gap-3">
-                  {(['YYYY-MM-DD', 'MM/DD/YYYY', 'DD/MM/YYYY'] as const).map((fmt) => (
+                  <label className="block text-sm font-medium text-[#1a1d2e] mb-2">Table Density</label>
+                  <div className="flex gap-3">
                     <button
-                      key={fmt}
-                      onClick={() => setPrefs((p) => ({ ...p, dateFormat: fmt }))}
-                      className={`px-3 py-2 rounded-lg border ${prefs.dateFormat === fmt ? 'bg-[#e0e7ff] border-[#6366f1] text-[#1a1d2e]' : 'bg-[#f8f9ff] border-[rgba(0,0,0,0.08)] text-[#64748b]'
+                      type="button"
+                      onClick={() => { setPrefs((p) => ({ ...p, density: 'ultra-compact' })); persistPrefs({ density: 'ultra-compact' }); }}
+                      className={`px-3 py-2 rounded-lg border ${prefs.density === 'ultra-compact' ? 'bg-[#e0e7ff] border-[#6366f1] text-[#1a1d2e]' : 'bg-[#f8f9ff] border-[rgba(0,0,0,0.08)] text-[#64748b]'
                         }`}
                     >
-                      {fmt}
+                      Ultra-compact
                     </button>
-                  ))}
+                    <button
+                      type="button"
+                      onClick={() => { setPrefs((p) => ({ ...p, density: 'compact' })); persistPrefs({ density: 'compact' }); }}
+                      className={`px-3 py-2 rounded-lg border ${prefs.density === 'compact' ? 'bg-[#e0e7ff] border-[#6366f1] text-[#1a1d2e]' : 'bg-[#f8f9ff] border-[rgba(0,0,0,0.08)] text-[#64748b]'
+                        }`}
+                    >
+                      Compact
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => { setPrefs((p) => ({ ...p, density: 'comfortable' })); persistPrefs({ density: 'comfortable' }); }}
+                      className={`px-3 py-2 rounded-lg border ${prefs.density === 'comfortable' ? 'bg-[#e0e7ff] border-[#6366f1] text-[#1a1d2e]' : 'bg-[#f8f9ff] border-[rgba(0,0,0,0.08)] text-[#64748b]'
+                        }`}
+                    >
+                      Comfortable
+                    </button>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-[#1a1d2e] mb-2">Currency</label>
+                    <select
+                      className="w-full px-3 py-2 rounded-lg bg-[#f8f9ff] border border-[rgba(0,0,0,0.08)]"
+                      value={prefs.currency}
+                      onChange={(e) => setPrefs((p) => ({ ...p, currency: e.target.value as Preferences['currency'] }))}
+                    >
+                      {(['USD', 'EUR', 'GBP', 'INR', 'JPY', 'AUD', 'CAD', 'CNY', 'SGD'] as const).map((c) => (
+                        <option key={c} value={c}>{c}</option>
+                      ))}
+                    </select>
+                    <p className="text-xs text-[#94a3b8] mt-1">Used for cost and value displays.</p>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-[#1a1d2e] mb-2">Language</label>
+                    <select
+                      className="w-full px-3 py-2 rounded-lg bg-[#f8f9ff] border border-[rgba(0,0,0,0.08)]"
+                      value={prefs.language}
+                      onChange={(e) => setPrefs((p) => ({ ...p, language: e.target.value as Preferences['language'] }))}
+                    >
+                      {([
+                        { code: 'en', label: 'English' },
+                        { code: 'hi', label: 'हिंदी (Hindi)' },
+                        { code: 'ta', label: 'தமிழ் (Tamil)' },
+                        { code: 'te', label: 'తెలుగు (Telugu)' },
+                        { code: 'bn', label: 'বাংলা (Bengali)' },
+                        { code: 'mr', label: 'मराठी (Marathi)' },
+                        { code: 'gu', label: 'ગુજરાતી (Gujarati)' },
+                        { code: 'kn', label: 'ಕನ್ನಡ (Kannada)' },
+                        { code: 'ml', label: 'മലയാളം (Malayalam)' },
+                        { code: 'pa', label: 'ਪੰਜਾਬੀ (Punjabi)' },
+                        { code: 'or', label: 'ଓଡ଼ିଆ (Odia)' },
+                        { code: 'as', label: 'অসমীয়া (Assamese)' },
+                        { code: 'sa', label: 'संस्कृतम् (Sanskrit)' },
+                        { code: 'kok', label: 'कोंकणी (Konkani)' },
+                        { code: 'ur', label: 'اُردو (Urdu)' },
+                        { code: 'ar', label: 'العربية (Arabic)' },
+                      ] as const).map((lng) => (
+                        <option key={lng.code} value={lng.code}>{lng.label}</option>
+                      ))}
+                    </select>
+                    <p className="text-xs text-[#94a3b8] mt-1">Applies to UI text (requires translation files to fully localize).</p>
+                  </div>
                 </div>
-              </div>
-            </div>
-
-            <div>
-              <h3 className="text-lg font-semibold text-[#1a1d2e]">Theme</h3>
-              <p className="text-sm text-[#64748b] mb-4">Choose how AssetFlow should look on this device.</p>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <button
-                  onClick={() => setMode('light')}
-                  className={`p-6 rounded-xl border text-left transition ${mode === 'light' ? 'bg-[#e0e7ff] border-[#6366f1]' : 'bg-[#f8f9ff] border-[rgba(0,0,0,0.08)]'
-                    }`}
-                >
-                  <Sun className="h-5 w-5 mb-2" />
-                  <p className="font-medium text-[#1a1d2e]">Light</p>
-                  <p className="text-sm text-[#64748b]">Bright appearance</p>
-                </button>
-                <button
-                  onClick={() => setMode('dark')}
-                  className={`p-6 rounded-xl border text-left transition ${mode === 'dark' ? 'bg-[#e0e7ff] border-[#6366f1]' : 'bg-[#f8f9ff] border-[rgba(0,0,0,0.08)]'
-                    }`}
-                >
-                  <Moon className="h-5 w-5 mb-2" />
-                  <p className="font-medium text-[#1a1d2e]">Dark</p>
-                  <p className="text-sm text-[#64748b]">Reduced eye strain</p>
-                </button>
-                <button
-                  onClick={() => setMode('system')}
-                  className={`p-6 rounded-xl border text-left transition ${mode === 'system' ? 'bg-[#e0e7ff] border-[#6366f1]' : 'bg-[#f8f9ff] border-[rgba(0,0,0,0.08)]'
-                    }`}
-                >
-                  <Laptop className="h-5 w-5 mb-2" />
-                  <p className="font-medium text-[#1a1d2e]">System</p>
-                  <p className="text-sm text-[#64748b]">Follow OS setting</p>
-                </button>
-              </div>
-              <p className="text-sm text-[#94a3b8] mt-4">
-                Current theme: <span className="font-medium text-[#1a1d2e]">{(mode === 'system' ? systemTheme : mode) || 'system'}</span>
-              </p>
-            </div>
-
-            <div>
-              <h3 className="text-lg font-semibold text-[#1a1d2e]">Asset Management</h3>
-              <p className="text-sm text-[#64748b] mb-4">Configure how assets are assigned and managed.</p>
-              <div className="flex items-center justify-between p-4 border rounded-xl bg-[#f8f9ff] border-[rgba(0,0,0,0.08)]">
                 <div>
-                  <p className="font-medium text-[#1a1d2e]">Require Consent for Asset Assignments</p>
-                  <p className="text-sm text-[#64748b]">When enabled, assigning assets to users requires email consent approval</p>
+                  <label className="block text-sm font-medium text-[#1a1d2e] mb-2">Date Format</label>
+                  <div className="flex flex-wrap gap-3">
+                    {(['YYYY-MM-DD', 'MM/DD/YYYY', 'DD/MM/YYYY'] as const).map((fmt) => (
+                      <button
+                        key={fmt}
+                        onClick={() => setPrefs((p) => ({ ...p, dateFormat: fmt }))}
+                        className={`px-3 py-2 rounded-lg border ${prefs.dateFormat === fmt ? 'bg-[#e0e7ff] border-[#6366f1] text-[#1a1d2e]' : 'bg-[#f8f9ff] border-[rgba(0,0,0,0.08)] text-[#64748b]'
+                          }`}
+                      >
+                        {fmt}
+                      </button>
+                    ))}
+                  </div>
                 </div>
-                <Switch
-                  checked={consentRequired}
-                  onCheckedChange={async (val) => {
-                    setConsentRequired(!!val);
-                    try {
-                      const res = await fetch('/api/branding', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ consentRequired: !!val }) });
-                      const data = await res.json();
-                      if (!res.ok) throw new Error(data?.error || 'Failed to save consent setting');
-                      document.documentElement.setAttribute('data-consent-required', val ? 'true' : 'false');
-                    } catch (e: any) {
-                      console.error('Failed to save consent setting:', e);
-                      // Revert on error
-                      setConsentRequired(!val);
-                    }
-                  }}
-                  aria-label="Toggle consent requirement for asset assignments"
-                />
               </div>
-            </div>
-          </TabsContent>
+
+              <div>
+                <h3 className="text-lg font-semibold text-[#1a1d2e]">Theme</h3>
+                <p className="text-sm text-[#64748b] mb-4">Choose how AssetFlow should look on this device.</p>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  <button
+                    onClick={() => setMode('light')}
+                    className={`p-6 rounded-xl border text-left transition ${mode === 'light' ? 'bg-[#e0e7ff] border-[#6366f1]' : 'bg-[#f8f9ff] border-[rgba(0,0,0,0.08)]'
+                      }`}
+                  >
+                    <Sun className="h-5 w-5 mb-2" />
+                    <p className="font-medium text-[#1a1d2e]">Light</p>
+                    <p className="text-sm text-[#64748b]">Bright appearance</p>
+                  </button>
+                  <button
+                    onClick={() => setMode('dark')}
+                    className={`p-6 rounded-xl border text-left transition ${mode === 'dark' ? 'bg-[#e0e7ff] border-[#6366f1]' : 'bg-[#f8f9ff] border-[rgba(0,0,0,0.08)]'
+                      }`}
+                  >
+                    <Moon className="h-5 w-5 mb-2" />
+                    <p className="font-medium text-[#1a1d2e]">Dark</p>
+                    <p className="text-sm text-[#64748b]">Reduced eye strain</p>
+                  </button>
+                  <button
+                    onClick={() => setMode('system')}
+                    className={`p-6 rounded-xl border text-left transition ${mode === 'system' ? 'bg-[#e0e7ff] border-[#6366f1]' : 'bg-[#f8f9ff] border-[rgba(0,0,0,0.08)]'
+                      }`}
+                  >
+                    <Laptop className="h-5 w-5 mb-2" />
+                    <p className="font-medium text-[#1a1d2e]">System</p>
+                    <p className="text-sm text-[#64748b]">Follow OS setting</p>
+                  </button>
+                </div>
+                <p className="text-sm text-[#94a3b8] mt-4">
+                  Current theme: <span className="font-medium text-[#1a1d2e]">{(mode === 'system' ? systemTheme : mode) || 'system'}</span>
+                </p>
+              </div>
+
+              <div>
+                <h3 className="text-lg font-semibold text-[#1a1d2e]">Asset Management</h3>
+                <p className="text-sm text-[#64748b] mb-4">Configure how assets are assigned and managed.</p>
+                <div className="flex items-center justify-between p-4 border rounded-xl bg-[#f8f9ff] border-[rgba(0,0,0,0.08)]">
+                  <div>
+                    <p className="font-medium text-[#1a1d2e]">Require Consent for Asset Assignments</p>
+                    <p className="text-sm text-[#64748b]">When enabled, assigning assets to users requires email consent approval</p>
+                  </div>
+                  <Switch
+                    checked={consentRequired}
+                    onCheckedChange={handleConsentToggle}
+                    aria-label="Toggle consent requirement for asset assignments"
+                    /* === Styling for iOS look === */
+                    className={`relative inline-flex h-6 w-12 items-center rounded-full transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-opacity-50
+    ${consentRequired ? 'bg-[#4ade80]' : 'bg-gray-300'}`}
+                  >
+                    {/* screen-reader text */}
+                    <span className="sr-only">Require consent</span>
+
+                    {/* Thumb */}
+                    <span
+                      aria-hidden="true"
+                      className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-md transition-transform duration-200
+      ${consentRequired ? 'translate-x-5' : 'translate-x-1'}`}
+                    />
+                  </Switch>
+
+                </div>
+              </div>
+            </TabsContent>
           )}
 
-            {/* Notifications */}
+          {/* Notifications */}
           {view === 'general' && (
-          <TabsContent value="notifications" className="mt-0">
+            <TabsContent value="notifications" className="mt-0 space-y-8">
               <form className="space-y-6" onSubmit={(e) => { e.preventDefault(); handleSave(); }}>
                 <Card>
                   <CardHeader>
@@ -908,10 +927,10 @@ export function SettingsPage({ onNavigate, onSearch, view = 'general' }: Setting
                 </div>
               </form>
             </TabsContent>
-            )}
-            {/* Integrations */}
+          )}
+          {/* Integrations */}
           {view === 'technical' && (
-          <TabsContent value="integrations" className="mt-0">
+            <TabsContent value="integrations" className="mt-0 space-y-8">
               <Card>
                 <CardHeader>
                   <CardTitle>Automated Asset Discovery</CardTitle>
@@ -977,47 +996,47 @@ export function SettingsPage({ onNavigate, onSearch, view = 'general' }: Setting
                 </CardContent>
               </Card>
             </TabsContent>
-            )}
+          )}
 
-            {/* Appearance */}
-            <TabsContent value="appearance" className="mt-0">
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <button
-                  onClick={() => setMode('light')}
-                  className={`p-6 rounded-xl border text-left transition ${mode === 'light' ? 'bg-[#e0e7ff] border-[#6366f1]' : 'bg-[#f8f9ff] border-[rgba(0,0,0,0.08)]'
-                    }`}
-                >
-                  <Sun className="h-5 w-5 mb-2" />
-                  <p className="font-medium text-[#1a1d2e]">Light</p>
-                  <p className="text-sm text-[#64748b]">Bright appearance</p>
-                </button>
-                <button
-                  onClick={() => setMode('dark')}
-                  className={`p-6 rounded-xl border text-left transition ${mode === 'dark' ? 'bg-[#e0e7ff] border-[#6366f1]' : 'bg-[#f8f9ff] border-[rgba(0,0,0,0.08)]'
-                    }`}
-                >
-                  <Moon className="h-5 w-5 mb-2" />
-                  <p className="font-medium text-[#1a1d2e]">Dark</p>
-                  <p className="text-sm text-[#64748b]">Reduced eye strain</p>
-                </button>
-                <button
-                  onClick={() => setMode('system')}
-                  className={`p-6 rounded-xl border text-left transition ${mode === 'system' ? 'bg-[#e0e7ff] border-[#6366f1]' : 'bg-[#f8f9ff] border-[rgba(0,0,0,0.08)]'
-                    }`}
-                >
-                  <Laptop className="h-5 w-5 mb-2" />
-                  <p className="font-medium text-[#1a1d2e]">System</p>
-                  <p className="text-sm text-[#64748b]">Follow OS setting</p>
-                </button>
-              </div>
-              <p className="text-sm text-[#94a3b8] mt-4">
-                Current theme: <span className="font-medium text-[#1a1d2e]">{(mode === 'system' ? systemTheme : mode) || 'system'}</span>
-              </p>
-            </TabsContent>
+          {/* Appearance */}
+          <TabsContent value="appearance" className="mt-0 space-y-8">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <button
+                onClick={() => setMode('light')}
+                className={`p-6 rounded-xl border text-left transition ${mode === 'light' ? 'bg-[#e0e7ff] border-[#6366f1]' : 'bg-[#f8f9ff] border-[rgba(0,0,0,0.08)]'
+                  }`}
+              >
+                <Sun className="h-5 w-5 mb-2" />
+                <p className="font-medium text-[#1a1d2e]">Light</p>
+                <p className="text-sm text-[#64748b]">Bright appearance</p>
+              </button>
+              <button
+                onClick={() => setMode('dark')}
+                className={`p-6 rounded-xl border text-left transition ${mode === 'dark' ? 'bg-[#e0e7ff] border-[#6366f1]' : 'bg-[#f8f9ff] border-[rgba(0,0,0,0.08)]'
+                  }`}
+              >
+                <Moon className="h-5 w-5 mb-2" />
+                <p className="font-medium text-[#1a1d2e]">Dark</p>
+                <p className="text-sm text-[#64748b]">Reduced eye strain</p>
+              </button>
+              <button
+                onClick={() => setMode('system')}
+                className={`p-6 rounded-xl border text-left transition ${mode === 'system' ? 'bg-[#e0e7ff] border-[#6366f1]' : 'bg-[#f8f9ff] border-[rgba(0,0,0,0.08)]'
+                  }`}
+              >
+                <Laptop className="h-5 w-5 mb-2" />
+                <p className="font-medium text-[#1a1d2e]">System</p>
+                <p className="text-sm text-[#64748b]">Follow OS setting</p>
+              </button>
+            </div>
+            <p className="text-sm text-[#94a3b8] mt-4">
+              Current theme: <span className="font-medium text-[#1a1d2e]">{(mode === 'system' ? systemTheme : mode) || 'system'}</span>
+            </p>
+          </TabsContent>
 
-            {/* Events */}
+          {/* Events */}
           {view === 'technical' && (
-          <TabsContent value="events" className="mt-0">
+            <TabsContent value="events" className="mt-0 space-y-8">
               <div className="space-y-6">
                 {/* Enable */}
                 <div className="flex items-center justify-between p-4 border rounded-xl bg-[#f8f9ff] border-[rgba(0,0,0,0.08)]">
@@ -1132,11 +1151,11 @@ export function SettingsPage({ onNavigate, onSearch, view = 'general' }: Setting
                 </div>
               </div>
             </TabsContent>
-            )}
+          )}
 
-            {/* Database */}
+          {/* Database */}
           {view === 'technical' && (
-          <TabsContent value="database" className="mt-0">
+            <TabsContent value="database" className="mt-0 space-y-8">
               <Card>
                 <CardHeader>
                   <CardTitle>Database Connection</CardTitle>
@@ -1170,70 +1189,70 @@ export function SettingsPage({ onNavigate, onSearch, view = 'general' }: Setting
                 <CardFooter className="flex justify-between gap-3 flex-wrap border-t">
                   <div className="flex items-center gap-2">
                     <Button type="button" variant="outline" className="border-[#6366f1] text-[#6366f1] hover:bg-[#eef2ff]" disabled={dbTestBusy} onClick={async () => {
-                        setDbTestBusy(true);
-                        setDbMsg(null);
-                        try {
-                          const res = await fetch('/api/db/config', {
-                            method: 'PUT',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ host: dbForm.host, port: Number(dbForm.port) || 3306, user: dbForm.user, password: dbForm.password, database: dbForm.database }),
-                          });
-                          const data = await res.json();
-                          if (!res.ok) throw new Error(data?.error || 'Failed');
-                          setDbMsg('OK: Connection successful');
-                        } catch (e: any) {
-                          setDbMsg(`Error: ${e?.message || e}`);
-                        } finally {
-                          setDbTestBusy(false);
-                        }
-                      }}>
+                      setDbTestBusy(true);
+                      setDbMsg(null);
+                      try {
+                        const res = await fetch('/api/db/config', {
+                          method: 'PUT',
+                          headers: { 'Content-Type': 'application/json' },
+                          body: JSON.stringify({ host: dbForm.host, port: Number(dbForm.port) || 3306, user: dbForm.user, password: dbForm.password, database: dbForm.database }),
+                        });
+                        const data = await res.json();
+                        if (!res.ok) throw new Error(data?.error || 'Failed');
+                        setDbMsg('OK: Connection successful');
+                      } catch (e: any) {
+                        setDbMsg(`Error: ${e?.message || e}`);
+                      } finally {
+                        setDbTestBusy(false);
+                      }
+                    }}>
                       {dbTestBusy ? 'Testing…' : 'Test Connection'}
                     </Button>
                     <Button type="button" className="bg-gradient-to-r from-[#06b6d4] to-[#3b82f6] text-white hover:shadow-lg hover:shadow-[#06b6d4]/20" onClick={async () => {
-                        try {
-                          const res = await fetch('/api/db/config', {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ host: dbForm.host, port: Number(dbForm.port) || 3306, user: dbForm.user, password: dbForm.password, database: dbForm.database }),
-                          });
-                          const data = await res.json();
-                          if (!res.ok) throw new Error(data?.error || 'Failed');
-                          setDbMsg('OK: Configuration saved securely on server');
-                        } catch (e: any) {
-                          setDbMsg(`Error: ${e?.message || e}`);
-                        }
-                      }}>
-                      Save Config Securely
-                    </Button>
-                  </div>
-                  <Button type="button" disabled={dbBusy} className="bg-gradient-to-r from-[#10b981] to-[#22c55e] text-white hover:shadow-lg hover:shadow-[#22c55e]/20" onClick={async () => {
-                      setDbBusy(true);
-                      setDbMsg(null);
                       try {
-                        const res = await fetch('/api/db/init', {
+                        const res = await fetch('/api/db/config', {
                           method: 'POST',
                           headers: { 'Content-Type': 'application/json' },
                           body: JSON.stringify({ host: dbForm.host, port: Number(dbForm.port) || 3306, user: dbForm.user, password: dbForm.password, database: dbForm.database }),
                         });
                         const data = await res.json();
                         if (!res.ok) throw new Error(data?.error || 'Failed');
-                        setDbMsg(`OK: Database initialized${data?.persisted ? ' and configuration saved securely' : ''}.`);
+                        setDbMsg('OK: Configuration saved securely on server');
                       } catch (e: any) {
                         setDbMsg(`Error: ${e?.message || e}`);
-                      } finally {
-                        setDbBusy(false);
                       }
                     }}>
+                      Save Config Securely
+                    </Button>
+                  </div>
+                  <Button type="button" disabled={dbBusy} className="bg-gradient-to-r from-[#10b981] to-[#22c55e] text-white hover:shadow-lg hover:shadow-[#22c55e]/20" onClick={async () => {
+                    setDbBusy(true);
+                    setDbMsg(null);
+                    try {
+                      const res = await fetch('/api/db/init', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ host: dbForm.host, port: Number(dbForm.port) || 3306, user: dbForm.user, password: dbForm.password, database: dbForm.database }),
+                      });
+                      const data = await res.json();
+                      if (!res.ok) throw new Error(data?.error || 'Failed');
+                      setDbMsg(`OK: Database initialized${data?.persisted ? ' and configuration saved securely' : ''}.`);
+                    } catch (e: any) {
+                      setDbMsg(`Error: ${e?.message || e}`);
+                    } finally {
+                      setDbBusy(false);
+                    }
+                  }}>
                     {dbBusy ? 'Initializing…' : 'Initialize Database'}
                   </Button>
                 </CardFooter>
               </Card>
             </TabsContent>
-            )}
+          )}
 
-            {/* Asset Fields */}
+          {/* Asset Fields */}
           {view === 'technical' && (
-          <TabsContent value="assetFields" className="mt-0">
+            <TabsContent value="assetFields" className="mt-0 space-y-8">
               <Card>
                 <CardHeader>
                   <CardTitle>Asset Custom Fields</CardTitle>
@@ -1246,7 +1265,7 @@ export function SettingsPage({ onNavigate, onSearch, view = 'general' }: Setting
                     )}
                     {assetFields.map((f, idx) => (
                       <div key={idx} className="space-y-3">
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-3 items-start">
+                        <div className="grid grid-cols-1 md:grid-cols-4 gap-3 items-start">
                           <div>
                             <Label className="mb-1 block">Label</Label>
                             <Input value={f.label} onChange={(e) => updateAssetField(idx, { label: e.target.value })} placeholder="e.g., Asset Tag" />
@@ -1260,7 +1279,35 @@ export function SettingsPage({ onNavigate, onSearch, view = 'general' }: Setting
                             <Label className="mb-1 block">Placeholder</Label>
                             <Input value={f.placeholder ?? ''} onChange={(e) => updateAssetField(idx, { placeholder: e.target.value })} placeholder="e.g., TAG-00123" />
                           </div>
+                          <div>
+                            <Label className="mb-1 block">Type</Label>
+                            <select
+                              className="w-full px-3 py-2 rounded-lg bg-[#f8f9ff] border border-[rgba(0,0,0,0.08)]"
+                              value={f.type ?? 'text'}
+                              onChange={(e) => updateAssetField(idx, { type: e.target.value as AssetFieldType })}
+                            >
+                              {([
+                                'text', 'textarea', 'number', 'date', 'datetime', 'phone', 'email', 'url', 'select', 'multiselect', 'boolean', 'currency', 'star', 'cia_rating'
+                              ] as AssetFieldType[]).map((t) => (
+                                <option key={t} value={t}>{t === 'cia_rating' ? 'CIA Rating (Confidentiality/Integrity/Availability)' : (t === 'star' ? 'Star Rating' : t.charAt(0).toUpperCase() + t.slice(1))}</option>
+                              ))}
+                            </select>
+                          </div>
                         </div>
+
+                        {/* Options input for select/multiselect */}
+                        {(f.type === 'select' || f.type === 'multiselect') && (
+                          <div>
+                            <Label className="mb-1 block">Options (comma separated)</Label>
+                            <Input
+                              value={(f.options || []).join(', ')}
+                              onChange={(e) => updateAssetField(idx, { options: e.target.value.split(',').map(s => s.trim()).filter(Boolean) })}
+                              placeholder="Option1, Option2, Option3"
+                            />
+                            <p className="text-xs text-[#94a3b8] mt-1">Provide choices for select or multiselect fields.</p>
+                          </div>
+                        )}
+
                         <div className="grid grid-cols-2 items-center">
                           <label className="text-sm text-[#1a1d2e] flex items-center gap-2">
                             <input type="checkbox" checked={!!f.required} onChange={(e) => updateAssetField(idx, { required: e.target.checked })} /> Required
@@ -1279,11 +1326,11 @@ export function SettingsPage({ onNavigate, onSearch, view = 'general' }: Setting
                 </CardContent>
               </Card>
             </TabsContent>
-            )}
+          )}
 
-            {/* Mail Server */}
+          {/* Mail Server */}
           {view === 'technical' && canEditMail && (
-            <TabsContent value="mail" className="mt-0">
+            <TabsContent value="mail" className="mt-0 space-y-8">
               <Card>
                 <CardHeader>
                   <CardTitle>Mail Server (SMTP)</CardTitle>

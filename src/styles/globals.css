@@ -151,3 +151,34 @@ html {
 }
 
 /* cursor-pointer rules moved to app/globals.css to avoid PostCSS plugin mismatches */
+
+/* Dark-mode overrides for common Tailwind "white" utilities so text remains readable
+   when the app is rendered with the .dark class. These do not change element sizes.
+   They only remap commonly-used utility classes like `bg-white` and `bg-white/10` to
+   dark-friendly backgrounds and adjust a few border/text opacities. Keep these
+   selectors minimal and highly-specific to avoid unintended side-effects.
+*/
+.dark .bg-white {
+  background-color: var(--card) !important;
+}
+.dark .bg-white\/10 {
+  background-color: rgba(255,255,255,0.06) !important;
+}
+.dark .bg-white\/20 {
+  background-color: rgba(255,255,255,0.12) !important;
+}
+.dark .bg-white\/30 {
+  background-color: rgba(255,255,255,0.18) !important;
+}
+.dark .text-white\/80 {
+  color: rgba(255,255,255,0.8) !important;
+}
+.dark .text-white\/70 {
+  color: rgba(255,255,255,0.7) !important;
+}
+.dark .border-white\/20 {
+  border-color: rgba(255,255,255,0.2) !important;
+}
+.dark .hover\:bg-white\/20:hover {
+  background-color: rgba(255,255,255,0.2) !important;
+}

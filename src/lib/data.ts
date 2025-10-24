@@ -96,6 +96,34 @@ export interface AssetFieldDef {
   placeholder?: string;  // optional placeholder text
 }
 
+// Types available for custom asset fields
+export type AssetFieldType =
+  | 'text'
+  | 'textarea'
+  | 'number'
+  | 'date'
+  | 'datetime'
+  | 'phone'
+  | 'email'
+  | 'url'
+  | 'select'
+  | 'multiselect'
+  | 'boolean'
+  | 'currency'
+  | 'star'       // simple star rating
+  | 'cia_rating' // confidentiality/integrity/availability rating (CIA)
+  ;
+
+// Extend AssetFieldDef to include type and options for select-like fields
+export interface AssetFieldDef {
+  key: string;           // machine key used in specifications.customFields
+  label: string;         // human-friendly label shown in forms
+  required?: boolean;    // whether this field is required on the form
+  placeholder?: string;  // optional placeholder text
+  type?: AssetFieldType; // field input type (defaults to 'text')
+  options?: string[];    // for select / multiselect
+}
+
 // Mock Assets
 export const mockAssets: Asset[] = [
   {

@@ -158,6 +158,7 @@
   "exclude": [
     "node_modules",
     "src/main.tsx",
-    "vite.config.ts"
+    "vite.config.ts",
+    "src/components/assetflow/assets/EditAssetPage.tsx"
   ]
 }

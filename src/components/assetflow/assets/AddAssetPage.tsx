@@ -5,9 +5,10 @@ import { usePrefs } from '../layout/PrefsContext';
 import { motion } from 'motion/react';
 import { ArrowLeft, Save, X } from 'lucide-react';
 import { AssetFlowLayout } from '../layout/AssetFlowLayout';
-import { Asset, AssetFieldDef } from '../../../lib/data';
+import { Asset, AssetFieldDef, AssetFieldType } from '../../../lib/data';
 import { createAsset, sendAssetConsent } from '../../../lib/api';
 import { logAssetCreated } from '../../../lib/events';
+import FieldRenderer from './FieldRenderer';
 
 interface AddAssetPageProps {
   onNavigate?: (page: string) => void;
@@ -528,21 +529,18 @@ export function AddAssetPage({ onNavigate, onSearch }: AddAssetPageProps) {
                 {fieldDefs.length === 0 && (
                   <p className="text-sm text-[#94a3b8] md:col-span-2">No custom fields configured. Add them in Settings → Asset Fields.</p>
                 )}
-                {fieldDefs.map((def) => (
-                  <div key={def.key}>
-                    <label className="block text-sm font-medium text-[#1a1d2e] mb-2">
-                      {def.label}{def.required ? ' *' : ''}
-                    </label>
-                    <input
-                      type="text"
-                      required={!!def.required}
-                      value={customFieldValues[def.key] ?? ''}
-                      onChange={(e) => setCustomFieldValues((v) => ({ ...v, [def.key]: e.target.value }))}
-                      placeholder={def.placeholder || ''}
-                      className="w-full px-3 py-2 rounded-lg bg-[#f8f9ff] border border-[rgba(0,0,0,0.08)]"
-                    />
-                  </div>
-                ))}
+                {fieldDefs.map((def) => {
+                  const val = customFieldValues[def.key] ?? '';
+                  const onChange = (newVal: string) => setCustomFieldValues((v) => ({ ...v, [def.key]: newVal }));
+                  return (
+                    <div key={def.key}>
+                      <label className="block text-sm font-medium text-[#1a1d2e] mb-2">
+                        {def.label}{def.required ? ' *' : ''}
+                      </label>
+                      <FieldRenderer def={def} value={val} onChange={onChange} />
+                    </div>
+                  );
+                })}
               </div>
 
               {/* Backward-compat additional fields (optional) */}
