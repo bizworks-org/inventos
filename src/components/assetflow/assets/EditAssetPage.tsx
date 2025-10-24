@@ -244,16 +244,16 @@ export function EditAssetPage({ assetId, onNavigate, onSearch }: EditAssetPagePr
       )}
       {/* Header */}
       <div className="flex items-center justify-between mb-8">
-        <div className="flex items-center gap-4">
+          <div className="flex items-center gap-4">
           <button
             onClick={() => onNavigate?.('assets')}
             className="p-2 rounded-lg hover:bg-white border border-transparent hover:border-[rgba(0,0,0,0.1)] transition-all duration-200"
           >
-            <ArrowLeft className="h-5 w-5 text-[#64748b]" />
+            <ArrowLeft className="h-5 w-5 text-muted" />
           </button>
           <div>
-            <h1 className="text-3xl font-bold text-[#1a1d2e] mb-2">Edit Asset</h1>
-            <p className="text-[#64748b]">Update details for {asset?.name ?? 'selected asset'}</p>
+            <h1 className="text-3xl font-bold text-foreground mb-2">Edit Asset</h1>
+            <p className="text-muted">Update details for {asset?.name ?? 'selected asset'}</p>
           </div>
         </div>
       </div>
@@ -269,12 +269,12 @@ export function EditAssetPage({ assetId, onNavigate, onSearch }: EditAssetPagePr
               transition={{ duration: 0.4 }}
               className="bg-white rounded-2xl border border-[rgba(0,0,0,0.08)] p-6 shadow-sm"
             >
-              <h3 className="text-lg font-semibold text-[#1a1d2e] mb-4">Basic Information</h3>
+              <h3 className="text-lg font-semibold text-foreground mb-4">Basic Information</h3>
               
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {/* Asset Category */}
                 <div className="md:col-span-2">
-                  <label className="block text-sm font-medium text-[#1a1d2e] mb-2">Asset Category *</label>
+                  <label className="block text-sm font-medium text-foreground mb-2">Asset Category *</label>
                   <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
                     {categoryList.map((cat) => (
                       <button
@@ -290,7 +290,7 @@ export function EditAssetPage({ assetId, onNavigate, onSearch }: EditAssetPagePr
                         className={`px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
                           category === cat
                             ? 'bg-gradient-to-r from-[#6366f1] to-[#8b5cf6] text-white shadow-md'
-                            : 'bg-[#f8f9ff] text-[#64748b] hover:bg-[#e0e7ff] hover:text-[#6366f1]'
+                            : 'bg-card text-muted hover:bg-card/95 hover:text-primary'
                         }`}
                       >
                         {cat}
@@ -301,12 +301,12 @@ export function EditAssetPage({ assetId, onNavigate, onSearch }: EditAssetPagePr
 
                 {/* Asset Type (by Category) */}
                 <div>
-                  <label className="block text-sm font-medium text-[#1a1d2e] mb-2">Asset Type *</label>
+                  <label className="block text-sm font-medium text-foreground mb-2">Asset Type *</label>
                   <select
                     required
                     value={assetType}
                     onChange={(e) => setAssetType(e.target.value as Asset['type'])}
-                    className="w-full px-4 py-2.5 rounded-lg bg-[#f8f9ff] border border-[rgba(0,0,0,0.05)] text-[#1a1d2e] focus:outline-none focus:ring-2 focus:ring-[#6366f1]/20 focus:border-[#6366f1] transition-all duration-200 cursor-pointer"
+                    className="w-full px-4 py-2.5 rounded-lg bg-card border border-soft text-foreground focus:outline-none focus:ring-2 focus:ring-[#6366f1]/20 focus:border-[#6366f1] transition-all duration-200 cursor-pointer"
                   >
                     {(typesByCategory(category).length ? typesByCategory(category) : assetTypes).map((t) => (
                       <option key={t} value={t}>{t}</option>
@@ -316,7 +316,7 @@ export function EditAssetPage({ assetId, onNavigate, onSearch }: EditAssetPagePr
 
                 {/* Asset Name */}
                 <div className="md:col-span-2">
-                  <label className="block text-sm font-medium text-[#1a1d2e] mb-2">
+                  <label className="block text-sm font-medium text-foreground mb-2">
                     Asset Name *
                   </label>
                   <input
@@ -325,13 +325,13 @@ export function EditAssetPage({ assetId, onNavigate, onSearch }: EditAssetPagePr
                     value={formData.name}
                     onChange={(e) => handleInputChange('name', e.target.value)}
                     placeholder="e.g., MacBook Pro 16&quot;"
-                    className="w-full px-4 py-2.5 rounded-lg bg-[#f8f9ff] border border-[rgba(0,0,0,0.05)] text-[#1a1d2e] placeholder:text-[#a0a4b8] focus:outline-none focus:ring-2 focus:ring-[#6366f1]/20 focus:border-[#6366f1] transition-all duration-200"
+                    className="w-full px-4 py-2.5 rounded-lg bg-card border border-soft text-foreground placeholder-muted focus:outline-none focus:ring-2 focus:ring-[#6366f1]/20 focus:border-[#6366f1] transition-all duration-200"
                   />
                 </div>
 
                 {/* Serial Number */}
                 <div>
-                  <label className="block text-sm font-medium text-[#1a1d2e] mb-2">
+                  <label className="block text-sm font-medium text-foreground mb-2">
                     Serial Number *
                   </label>
                   <input
@@ -340,20 +340,20 @@ export function EditAssetPage({ assetId, onNavigate, onSearch }: EditAssetPagePr
                     value={formData.serialNumber}
                     onChange={(e) => handleInputChange('serialNumber', e.target.value)}
                     placeholder="e.g., MBP-2024-001"
-                    className="w-full px-4 py-2.5 rounded-lg bg-[#f8f9ff] border border-[rgba(0,0,0,0.05)] text-[#1a1d2e] placeholder:text-[#a0a4b8] focus:outline-none focus:ring-2 focus:ring-[#6366f1]/20 focus:border-[#6366f1] transition-all duration-200"
+                    className="w-full px-4 py-2.5 rounded-lg bg-card border border-soft text-foreground placeholder-muted focus:outline-none focus:ring-2 focus:ring-[#6366f1]/20 focus:border-[#6366f1] transition-all duration-200"
                   />
                 </div>
 
                 {/* Status */}
                 <div>
-                  <label className="block text-sm font-medium text-[#1a1d2e] mb-2">
+                  <label className="block text-sm font-medium text-foreground mb-2">
                     Status *
                   </label>
                   <select
                     required
                     value={formData.status}
                     onChange={(e) => handleInputChange('status', e.target.value)}
-                    className="w-full px-4 py-2.5 rounded-lg bg-[#f8f9ff] border border-[rgba(0,0,0,0.05)] text-[#1a1d2e] focus:outline-none focus:ring-2 focus:ring-[#6366f1]/20 focus:border-[#6366f1] transition-all duration-200 cursor-pointer"
+                    className="w-full px-4 py-2.5 rounded-lg bg-card border border-soft text-foreground focus:outline-none focus:ring-2 focus:ring-[#6366f1]/20 focus:border-[#6366f1] transition-all duration-200 cursor-pointer"
                   >
                     {assetStatuses.map(status => (
                       <option key={status} value={status}>{status}</option>
@@ -363,7 +363,7 @@ export function EditAssetPage({ assetId, onNavigate, onSearch }: EditAssetPagePr
 
                 {/* Assigned To */}
                 <div>
-                  <label className="block text-sm font-medium text-[#1a1d2e] mb-2">
+                  <label className="block text-sm font-medium text-foreground mb-2">
                     Assigned To *
                   </label>
                   <input
@@ -372,13 +372,13 @@ export function EditAssetPage({ assetId, onNavigate, onSearch }: EditAssetPagePr
                     value={formData.assignedTo}
                     onChange={(e) => handleInputChange('assignedTo', e.target.value)}
                     placeholder="e.g., John Doe"
-                    className="w-full px-4 py-2.5 rounded-lg bg-[#f8f9ff] border border-[rgba(0,0,0,0.05)] text-[#1a1d2e] placeholder:text-[#a0a4b8] focus:outline-none focus:ring-2 focus:ring-[#6366f1]/20 focus:border-[#6366f1] transition-all duration-200"
+                    className="w-full px-4 py-2.5 rounded-lg bg-card border border-soft text-foreground placeholder-muted focus:outline-none focus:ring-2 focus:ring-[#6366f1]/20 focus:border-[#6366f1] transition-all duration-200"
                   />
                 </div>
 
                 {/* Assigned To Email */}
                 <div>
-                  <label className="block text-sm font-medium text-[#1a1d2e] mb-2">
+                  <label className="block text-sm font-medium text-foreground mb-2">
                     Assigned To Email{formData.assignedTo.trim() ? ' *' : ' (optional)'}
                   </label>
                   <input
@@ -387,14 +387,14 @@ export function EditAssetPage({ assetId, onNavigate, onSearch }: EditAssetPagePr
                     value={assignedEmail}
                     onChange={(e) => setAssignedEmail(e.target.value)}
                     placeholder="user@example.com"
-                    className="w-full px-4 py-2.5 rounded-lg bg-[#f8f9ff] border border-[rgba(0,0,0,0.05)] text-[#1a1d2e] placeholder:text-[#a0a4b8] focus:outline-none focus:ring-2 focus:ring-[#6366f1]/20 focus:border-[#6366f1] transition-all duration-200"
+                    className="w-full px-4 py-2.5 rounded-lg bg-card border border-soft text-foreground placeholder-muted focus:outline-none focus:ring-2 focus:ring-[#6366f1]/20 focus:border-[#6366f1] transition-all duration-200"
                   />
-                  <p className="text-xs text-[#94a3b8] mt-1">{consentRequired ? "If provided, we'll email this person to accept/reject." : 'Stored with the asset; no consent email will be sent.'}</p>
+                  <p className="text-xs text-muted mt-1">{consentRequired ? "If provided, we'll email this person to accept/reject." : 'Stored with the asset; no consent email will be sent.'}</p>
                 </div>
 
                 {/* Department */}
                 <div>
-                  <label className="block text-sm font-medium text-[#1a1d2e] mb-2">
+                  <label className="block text-sm font-medium text-foreground mb-2">
                     Department *
                   </label>
                   <input
@@ -403,13 +403,13 @@ export function EditAssetPage({ assetId, onNavigate, onSearch }: EditAssetPagePr
                     value={formData.department}
                     onChange={(e) => handleInputChange('department', e.target.value)}
                     placeholder="e.g., Engineering"
-                    className="w-full px-4 py-2.5 rounded-lg bg-[#f8f9ff] border border-[rgba(0,0,0,0.05)] text-[#1a1d2e] placeholder:text-[#a0a4b8] focus:outline-none focus:ring-2 focus:ring-[#6366f1]/20 focus:border-[#6366f1] transition-all duration-200"
+                    className="w-full px-4 py-2.5 rounded-lg bg-card border border-soft text-foreground placeholder-muted focus:outline-none focus:ring-2 focus:ring-[#6366f1]/20 focus:border-[#6366f1] transition-all duration-200"
                   />
                 </div>
 
                 {/* Location */}
                 <div className="md:col-span-2">
-                  <label className="block text-sm font-medium text-[#1a1d2e] mb-2">
+                  <label className="block text-sm font-medium text-foreground mb-2">
                     Location *
                   </label>
                   <input
@@ -418,7 +418,7 @@ export function EditAssetPage({ assetId, onNavigate, onSearch }: EditAssetPagePr
                     value={formData.location}
                     onChange={(e) => handleInputChange('location', e.target.value)}
                     placeholder="e.g., Building A - Floor 3"
-                    className="w-full px-4 py-2.5 rounded-lg bg-[#f8f9ff] border border-[rgba(0,0,0,0.05)] text-[#1a1d2e] placeholder:text-[#a0a4b8] focus:outline-none focus:ring-2 focus:ring-[#6366f1]/20 focus:border-[#6366f1] transition-all duration-200"
+                    className="w-full px-4 py-2.5 rounded-lg bg-card border border-soft text-foreground placeholder-muted focus:outline-none focus:ring-2 focus:ring-[#6366f1]/20 focus:border-[#6366f1] transition-all duration-200"
                   />
                 </div>
               </div>
@@ -429,18 +429,18 @@ export function EditAssetPage({ assetId, onNavigate, onSearch }: EditAssetPagePr
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.4, delay: 0.1 }}
-              className="bg-white rounded-2xl border border-[rgba(0,0,0,0.08)] p-6 shadow-sm"
+              className="bg-card rounded-2xl border border-soft p-6 shadow-sm"
             >
-              <h3 className="text-lg font-semibold text-[#1a1d2e] mb-4">Financial & Lifecycle</h3>
+              <h3 className="text-lg font-semibold text-foreground mb-4">Financial & Lifecycle</h3>
               
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 {/* Cost */}
                 <div>
-                  <label className="block text-sm font-medium text-[#1a1d2e] mb-2">
+                  <label className="block text-sm font-medium text-foreground mb-2">
                     Purchase Cost *
                   </label>
                   <div className="relative">
-                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[#64748b]">{currencySymbol}</span>
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted">{currencySymbol}</span>
                     <input
                       type="number"
                       required
@@ -449,14 +449,14 @@ export function EditAssetPage({ assetId, onNavigate, onSearch }: EditAssetPagePr
                       value={formData.cost}
                       onChange={(e) => handleInputChange('cost', e.target.value)}
                       placeholder="0.00"
-                      className="w-full pl-8 pr-4 py-2.5 rounded-lg bg-[#f8f9ff] border border-[rgba(0,0,0,0.05)] text-[#1a1d2e] placeholder:text-[#a0a4b8] focus:outline-none focus:ring-2 focus:ring-[#6366f1]/20 focus:border-[#6366f1] transition-all duration-200"
+                      className="w-full pl-8 pr-4 py-2.5 rounded-lg bg-card border border-soft text-foreground placeholder-muted focus:outline-none focus:ring-2 focus:ring-[#6366f1]/20 focus:border-[#6366f1] transition-all duration-200"
                     />
                   </div>
                 </div>
 
                 {/* Purchase Date */}
                 <div>
-                  <label className="block text-sm font-medium text-[#1a1d2e] mb-2">
+                  <label className="block text-sm font-medium text-foreground mb-2">
                     Purchase Date *
                   </label>
                   <input
@@ -464,33 +464,33 @@ export function EditAssetPage({ assetId, onNavigate, onSearch }: EditAssetPagePr
                     required
                     value={formData.purchaseDate}
                     onChange={(e) => handleInputChange('purchaseDate', e.target.value)}
-                    className="w-full px-4 py-2.5 rounded-lg bg-[#f8f9ff] border border-[rgba(0,0,0,0.05)] text-[#1a1d2e] focus:outline-none focus:ring-2 focus:ring-[#6366f1]/20 focus:border-[#6366f1] transition-all duration-200"
+                    className="w-full px-4 py-2.5 rounded-lg bg-card border border-soft text-foreground focus:outline-none focus:ring-2 focus:ring-[#6366f1]/20 focus:border-[#6366f1] transition-all duration-200"
                   />
                 </div>
 
                 {/* End of Support */}
                 <div>
-                  <label className="block text-sm font-medium text-[#1a1d2e] mb-2">
+                  <label className="block text-sm font-medium text-foreground mb-2">
                     End of Support
                   </label>
                   <input
                     type="date"
                     value={formData.eosDate}
                     onChange={(e) => handleInputChange('eosDate', e.target.value)}
-                    className="w-full px-4 py-2.5 rounded-lg bg-[#f8f9ff] border border-[rgba(0,0,0,0.05)] text-[#1a1d2e] focus:outline-none focus:ring-2 focus:ring-[#6366f1]/20 focus:border-[#6366f1] transition-all duration-200"
+                    className="w-full px-4 py-2.5 rounded-lg bg-card border border-soft text-foreground focus:outline-none focus:ring-2 focus:ring-[#6366f1]/20 focus:border-[#6366f1] transition-all duration-200"
                   />
                 </div>
 
                 {/* End of Life */}
                 <div>
-                  <label className="block text-sm font-medium text-[#1a1d2e] mb-2">
+                  <label className="block text-sm font-medium text-foreground mb-2">
                     End of Life
                   </label>
                   <input
                     type="date"
                     value={formData.eolDate}
                     onChange={(e) => handleInputChange('eolDate', e.target.value)}
-                    className="w-full px-4 py-2.5 rounded-lg bg-[#f8f9ff] border border-[rgba(0,0,0,0.05)] text-[#1a1d2e] focus:outline-none focus:ring-2 focus:ring-[#6366f1]/20 focus:border-[#6366f1] transition-all duration-200"
+                    className="w-full px-4 py-2.5 rounded-lg bg-card border border-soft text-foreground focus:outline-none focus:ring-2 focus:ring-[#6366f1]/20 focus:border-[#6366f1] transition-all duration-200"
                   />
                 </div>
               </div>
@@ -502,16 +502,16 @@ export function EditAssetPage({ assetId, onNavigate, onSearch }: EditAssetPagePr
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.4, delay: 0.2 }}
-                className="bg-white rounded-2xl border border-[rgba(0,0,0,0.08)] p-6 shadow-sm"
+                className="bg-card rounded-2xl border border-soft p-6 shadow-sm"
               >
-                <h3 className="text-lg font-semibold text-[#1a1d2e] mb-4">
+                <h3 className="text-lg font-semibold text-foreground mb-4">
                   Technical Specifications
                 </h3>
                 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {/* Processor */}
                   <div>
-                    <label className="block text-sm font-medium text-[#1a1d2e] mb-2">
+                    <label className="block text-sm font-medium text-foreground mb-2">
                       Processor
                     </label>
                     <input
@@ -519,13 +519,13 @@ export function EditAssetPage({ assetId, onNavigate, onSearch }: EditAssetPagePr
                       value={formData.processor}
                       onChange={(e) => handleInputChange('processor', e.target.value)}
                       placeholder="e.g., M2 Pro, Intel Core i7"
-                      className="w-full px-4 py-2.5 rounded-lg bg-[#f8f9ff] border border-[rgba(0,0,0,0.05)] text-[#1a1d2e] placeholder:text-[#a0a4b8] focus:outline-none focus:ring-2 focus:ring-[#6366f1]/20 focus:border-[#6366f1] transition-all duration-200"
+                      className="w-full px-4 py-2.5 rounded-lg bg-card border border-soft text-foreground placeholder-muted focus:outline-none focus:ring-2 focus:ring-[#6366f1]/20 focus:border-[#6366f1] transition-all duration-200"
                     />
                   </div>
 
                   {/* RAM */}
                   <div>
-                    <label className="block text-sm font-medium text-[#1a1d2e] mb-2">
+                    <label className="block text-sm font-medium text-foreground mb-2">
                       RAM
                     </label>
                     <input
@@ -533,13 +533,13 @@ export function EditAssetPage({ assetId, onNavigate, onSearch }: EditAssetPagePr
                       value={formData.ram}
                       onChange={(e) => handleInputChange('ram', e.target.value)}
                       placeholder="e.g., 16GB, 32GB"
-                      className="w-full px-4 py-2.5 rounded-lg bg-[#f8f9ff] border border-[rgba(0,0,0,0.05)] text-[#1a1d2e] placeholder:text-[#a0a4b8] focus:outline-none focus:ring-2 focus:ring-[#6366f1]/20 focus:border-[#6366f1] transition-all duration-200"
+                      className="w-full px-4 py-2.5 rounded-lg bg-card border border-soft text-foreground placeholder-muted focus:outline-none focus:ring-2 focus:ring-[#6366f1]/20 focus:border-[#6366f1] transition-all duration-200"
                     />
                   </div>
 
                   {/* Storage */}
                   <div>
-                    <label className="block text-sm font-medium text-[#1a1d2e] mb-2">
+                    <label className="block text-sm font-medium text-foreground mb-2">
                       Storage
                     </label>
                     <input
@@ -547,13 +547,13 @@ export function EditAssetPage({ assetId, onNavigate, onSearch }: EditAssetPagePr
                       value={formData.storage}
                       onChange={(e) => handleInputChange('storage', e.target.value)}
                       placeholder="e.g., 512GB SSD, 1TB SSD"
-                      className="w-full px-4 py-2.5 rounded-lg bg-[#f8f9ff] border border-[rgba(0,0,0,0.05)] text-[#1a1d2e] placeholder:text-[#a0a4b8] focus:outline-none focus:ring-2 focus:ring-[#6366f1]/20 focus:border-[#6366f1] transition-all duration-200"
+                      className="w-full px-4 py-2.5 rounded-lg bg-card border border-soft text-foreground placeholder-muted focus:outline-none focus:ring-2 focus:ring-[#6366f1]/20 focus:border-[#6366f1] transition-all duration-200"
                     />
                   </div>
 
                   {/* Operating System */}
                   <div>
-                    <label className="block text-sm font-medium text-[#1a1d2e] mb-2">
+                    <label className="block text-sm font-medium text-foreground mb-2">
                       Operating System
                     </label>
                     <input
@@ -561,7 +561,7 @@ export function EditAssetPage({ assetId, onNavigate, onSearch }: EditAssetPagePr
                       value={formData.os}
                       onChange={(e) => handleInputChange('os', e.target.value)}
                       placeholder="e.g., macOS Sonoma, Windows 11"
-                      className="w-full px-4 py-2.5 rounded-lg bg-[#f8f9ff] border border-[rgba(0,0,0,0.05)] text-[#1a1d2e] placeholder:text-[#a0a4b8] focus:outline-none focus:ring-2 focus:ring-[#6366f1]/20 focus:border-[#6366f1] transition-all duration-200"
+                      className="w-full px-4 py-2.5 rounded-lg bg-card border border-soft text-foreground placeholder-muted focus:outline-none focus:ring-2 focus:ring-[#6366f1]/20 focus:border-[#6366f1] transition-all duration-200"
                     />
                   </div>
                 </div>
@@ -573,29 +573,29 @@ export function EditAssetPage({ assetId, onNavigate, onSearch }: EditAssetPagePr
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.4, delay: 0.25 }}
-              className="bg-white rounded-2xl border border-[rgba(0,0,0,0.08)] p-6 shadow-sm"
+                className="bg-card rounded-2xl border border-soft p-6 shadow-sm"
             >
               <div className="flex items-center justify-between mb-4">
-                <h3 className="text-lg font-semibold text-[#1a1d2e]">Custom Fields</h3>
+                  <h3 className="text-lg font-semibold text-foreground">Custom Fields</h3>
               </div>
-              <p className="text-sm text-[#64748b] mb-3">These fields are defined globally in Settings.</p>
+                <p className="text-sm text-muted mb-3">These fields are defined globally in Settings.</p>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {fieldDefs.length === 0 && (
-                  <p className="text-sm text-[#94a3b8] md:col-span-2">No custom fields configured. Add them in Settings → Asset Fields.</p>
+                    <p className="text-sm text-muted md:col-span-2">No custom fields configured. Add them in Settings → Asset Fields.</p>
                 )}
                 {fieldDefs.map((def) => (
                   <div key={def.key}>
-                    <label className="block text-sm font-medium text-[#1a1d2e] mb-2">
-                      {def.label}{def.required ? ' *' : ''}
-                    </label>
-                    <input
-                      type="text"
-                      required={!!def.required}
-                      value={customFieldValues[def.key] ?? ''}
-                      onChange={(e) => setCustomFieldValues((v) => ({ ...v, [def.key]: e.target.value }))}
-                      placeholder={def.placeholder || ''}
-                      className="w-full px-3 py-2 rounded-lg bg-[#f8f9ff] border border-[rgba(0,0,0,0.08)]"
-                    />
+                      <label className="block text-sm font-medium text-foreground mb-2">
+                        {def.label}{def.required ? ' *' : ''}
+                      </label>
+                      <input
+                        type="text"
+                        required={!!def.required}
+                        value={customFieldValues[def.key] ?? ''}
+                        onChange={(e) => setCustomFieldValues((v) => ({ ...v, [def.key]: e.target.value }))}
+                        placeholder={def.placeholder || ''}
+                        className="w-full px-3 py-2 rounded-lg bg-card border border-soft text-foreground placeholder-muted"
+                      />
                   </div>
                 ))}
               </div>
@@ -603,7 +603,7 @@ export function EditAssetPage({ assetId, onNavigate, onSearch }: EditAssetPagePr
               {/* Backward-compat additional fields (unknown keys) */}
               {extraFields.length > 0 && (
                 <div className="mt-6">
-                  <h4 className="text-sm font-semibold text-[#1a1d2e] mb-2">Additional Fields</h4>
+                  <h4 className="text-sm font-semibold text-foreground mb-2">Additional Fields</h4>
                   <div className="space-y-3">
                     {extraFields.map((cf, idx) => (
                       <div key={idx} className="grid grid-cols-1 md:grid-cols-12 gap-3 items-center">
@@ -611,15 +611,15 @@ export function EditAssetPage({ assetId, onNavigate, onSearch }: EditAssetPagePr
                           placeholder="Key"
                           value={cf.key}
                           onChange={(e) => setExtraFields((arr) => arr.map((it, i) => i === idx ? { ...it, key: e.target.value } : it))}
-                          className="md:col-span-5 w-full px-3 py-2 rounded-lg bg-[#f8f9ff] border border-[rgba(0,0,0,0.08)]"
+                          className="md:col-span-5 w-full px-3 py-2 rounded-lg bg-card border border-soft text-foreground placeholder-muted"
                         />
                         <input
                           placeholder="Value"
                           value={cf.value}
                           onChange={(e) => setExtraFields((arr) => arr.map((it, i) => i === idx ? { ...it, value: e.target.value } : it))}
-                          className="md:col-span-6 w-full px-3 py-2 rounded-lg bg-[#f8f9ff] border border-[rgba(0,0,0,0.08)]"
+                          className="md:col-span-6 w-full px-3 py-2 rounded-lg bg-card border border-soft text-foreground placeholder-muted"
                         />
-                        <button type="button" onClick={() => setExtraFields((arr) => arr.filter((_, i) => i !== idx))} className="md:col-span-1 px-3 py-2 rounded-lg bg-white border border-[rgba(0,0,0,0.08)] hover:bg-[#fee2e2] text-[#ef4444]">Remove</button>
+                        <button type="button" onClick={() => setExtraFields((arr) => arr.filter((_, i) => i !== idx))} className="md:col-span-1 px-3 py-2 rounded-lg bg-white border border-soft hover:bg-red-50 text-red-600">Remove</button>
                       </div>
                     ))}
                   </div>
@@ -659,7 +659,7 @@ export function EditAssetPage({ assetId, onNavigate, onSearch }: EditAssetPagePr
                 <button
                   type="submit"
                   disabled={saving}
-                  className={`w-full flex items-center justify-center gap-2 px-4 py-3 rounded-lg font-semibold transition-all duration-200 ${saving ? 'bg-white/70 text-[#6366f1]/60 cursor-not-allowed' : 'bg-white text-[#6366f1] hover:shadow-lg'}`}
+                  className={`w-full flex items-center justify-center gap-2 px-4 py-3 rounded-lg font-semibold transition-all duration-200 ${saving ? 'bg-white/70 text-muted cursor-not-allowed' : 'bg-white text-foreground hover:shadow-lg'}`}
                 >
                   <Save className="h-4 w-4" />
                   {saving ? 'Saving…' : 'Save Changes'}
