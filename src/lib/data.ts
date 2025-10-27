@@ -50,6 +50,8 @@ export interface License {
   owner: string;
   compliance: 'Compliant' | 'Warning' | 'Non-Compliant';
   renewalDate: string;
+  // Optional arbitrary custom fields defined in Settings -> License Fields
+  customFields?: Record<string, string>;
 }
 
 export interface Vendor {
@@ -63,6 +65,41 @@ export interface Vendor {
   contractValue: number;
   contractExpiry: string;
   rating: number;
+  // Extended vendor information
+  legalName?: string;
+  tradingName?: string;
+  registrationNumber?: string; // Company Registration / GSTIN
+  incorporationDate?: string; // YYYY-MM-DD
+  incorporationCountry?: string;
+  registeredOfficeAddress?: string;
+  corporateOfficeAddress?: string;
+  natureOfBusiness?: string;
+  businessCategory?: string;
+  serviceCoverageArea?: string;
+  // Financial & Banking Information
+  panTaxId?: string; // PAN / Tax Identification Number
+  bankName?: string;
+  accountNumber?: string;
+  ifscSwiftCode?: string;
+  paymentTerms?: 'Net 30' | 'Net 45' | 'Net 60';
+  preferredCurrency?: string; // ISO currency code
+  vendorCreditLimit?: number; // numeric credit limit
+  gstCertificateName?: string; // original filename when stored as blob
+  // gstCertificateBlob intentionally omitted from UI type (handled via upload endpoint)
+  // Up to 5 contacts for vendor (optional)
+  contacts?: VendorContact[];
+  // Optional arbitrary custom fields defined in Settings -> Vendor Fields
+  customFields?: Record<string, string>;
+}
+
+export interface VendorContact {
+  contactType?: string; // e.g., Sales, Technical, Billing
+  name?: string; // primary point of contact name
+  designation?: string; // designation/title
+  phone?: string; // contact number
+  email?: string; // official email
+  technicalDetails?: string; // optional technical support contact details (free text)
+  billingDetails?: string; // optional billing/finance contact details (free text)
 }
 
 export interface Activity {
@@ -94,6 +131,7 @@ export interface AssetFieldDef {
   label: string;         // human-friendly label shown in forms
   required?: boolean;    // whether this field is required on the form
   placeholder?: string;  // optional placeholder text
+  max?: number;          // optional maximum for star rating fields (1..10)
 }
 
 // Types available for custom asset fields
@@ -111,7 +149,6 @@ export type AssetFieldType =
   | 'boolean'
   | 'currency'
   | 'star'       // simple star rating
-  | 'cia_rating' // confidentiality/integrity/availability rating (CIA)
   ;
 
 // Extend AssetFieldDef to include type and options for select-like fields
@@ -122,6 +159,7 @@ export interface AssetFieldDef {
   placeholder?: string;  // optional placeholder text
   type?: AssetFieldType; // field input type (defaults to 'text')
   options?: string[];    // for select / multiselect
+  max?: number;          // optional maximum for star rating fields (1..10)
 }
 
 // Mock Assets

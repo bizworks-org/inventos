@@ -1,5 +1,5 @@
 import { motion } from 'motion/react';
-import { Edit2, Trash2, AlertCircle, CheckCircle, AlertTriangle, Users } from 'lucide-react';
+import { Edit2, Trash2, AlertCircle, CheckCircle, AlertTriangle } from 'lucide-react';
 import { License } from '../../../lib/data';
 import { useState } from 'react';
 import { usePrefs } from '../layout/PrefsContext';
@@ -69,15 +69,7 @@ function isExpired(dateString: string): boolean {
   return days < 0;
 }
 
-function getSeatUtilization(seats: number, seatsUsed: number): number {
-  return Math.round((seatsUsed / seats) * 100);
-}
-
-function getSeatUtilizationColor(utilization: number): string {
-  if (utilization >= 95) return 'text-[#ef4444]';
-  if (utilization >= 80) return 'text-[#f59e0b]';
-  return 'text-[#10b981]';
-}
+// Seat UI removed from table; helper functions removed
 
 export function LicensesTable({ licenses, onNavigate, onDelete, canWrite = true }: LicensesTableProps) {
   const [hoveredRow, setHoveredRow] = useState<string | null>(null);
@@ -144,9 +136,7 @@ export function LicensesTable({ licenses, onNavigate, onDelete, canWrite = true 
               <th className={`${headPad} text-left text-xs font-semibold text-[#64748b] uppercase tracking-wider`}>
                 Owner
               </th>
-              <th className={`${headPad} text-left text-xs font-semibold text-[#64748b] uppercase tracking-wider`}>
-                Seats
-              </th>
+              {/* Seats column removed */}
               <th className={`${headPad} text-left text-xs font-semibold text-[#64748b] uppercase tracking-wider`}>
                 Expiration
               </th>
@@ -163,10 +153,10 @@ export function LicensesTable({ licenses, onNavigate, onDelete, canWrite = true 
           </thead>
           <tbody>
             {licenses.map((license, index) => {
-              const utilization = getSeatUtilization(license.seats, license.seatsUsed);
               const daysUntilExpiry = getDaysUntilExpiry(license.expirationDate);
               const expired = isExpired(license.expirationDate);
               const expiringSoon = isExpiringSoon(license.expirationDate);
+              
 
               return (
                 <motion.tr
@@ -201,29 +191,7 @@ export function LicensesTable({ licenses, onNavigate, onDelete, canWrite = true 
                     <p className={`text-sm text-[#1a1d2e] font-medium ${density==='ultra-compact' ? 'text-[12px]' : ''}`}>{license.owner}</p>
                   </td>
 
-                  {/* Seats */}
-                  <td className={`${cellPad}`}>
-                    <div>
-                      <div className="flex items-center gap-2 mb-1">
-                        <Users className="h-4 w-4 text-[#64748b]" />
-                        <span className={`text-sm font-semibold ${getSeatUtilizationColor(utilization)}`}>
-                          {license.seatsUsed}/{license.seats}
-                        </span>
-                      </div>
-                      {/* Progress bar */}
-                      <div className="w-24 h-1.5 bg-[#f3f4f6] rounded-full overflow-hidden">
-                        <div 
-                          className={`h-full transition-all duration-300 ${
-                            utilization >= 95 ? 'bg-[#ef4444]' : 
-                            utilization >= 80 ? 'bg-[#f59e0b]' : 
-                            'bg-[#10b981]'
-                          }`}
-                          style={{ width: `${utilization}%` }}
-                        />
-                      </div>
-                      <p className={`${subText} text-[#94a3b8] mt-0.5`}>{utilization}% used</p>
-                    </div>
-                  </td>
+                  {/* Seats column removed from table */}
 
                   {/* Expiration */}
                   <td className={`${cellPad}`}>

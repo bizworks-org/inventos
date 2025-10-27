@@ -6,6 +6,7 @@ import { motion } from 'motion/react';
 import { ArrowLeft, Save, X } from 'lucide-react';
 import { AssetFlowLayout } from '../layout/AssetFlowLayout';
 import { Asset, AssetFieldDef } from '../../../lib/data';
+import FieldRenderer from './FieldRenderer';
 import { fetchAssetById, updateAsset, sendAssetConsent } from '../../../lib/api';
 import { logAssetUpdated } from '../../../lib/events';
 import { toast } from 'sonner@2.0.3';
@@ -588,13 +589,10 @@ export function EditAssetPage({ assetId, onNavigate, onSearch }: EditAssetPagePr
                       <label className="block text-sm font-medium text-foreground mb-2">
                         {def.label}{def.required ? ' *' : ''}
                       </label>
-                      <input
-                        type="text"
-                        required={!!def.required}
+                      <FieldRenderer
+                        def={def}
                         value={customFieldValues[def.key] ?? ''}
-                        onChange={(e) => setCustomFieldValues((v) => ({ ...v, [def.key]: e.target.value }))}
-                        placeholder={def.placeholder || ''}
-                        className="w-full px-3 py-2 rounded-lg bg-card border border-soft text-foreground placeholder-muted"
+                        onChange={(v) => setCustomFieldValues((vals) => ({ ...vals, [def.key]: v }))}
                       />
                   </div>
                 ))}

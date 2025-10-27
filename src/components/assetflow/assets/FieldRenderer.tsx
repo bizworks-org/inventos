@@ -1,5 +1,5 @@
 "use client";
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { AssetFieldDef, AssetFieldType } from '../../../lib/data';
 
 type Props = {
@@ -10,7 +10,7 @@ type Props = {
 
 export default function FieldRenderer({ def, value, onChange }: Props) {
   const val = value ?? '';
-
+  console.log('def.type', def.type, def, value);
   if (def.type === 'textarea') {
     return <textarea required={!!def.required} value={val} onChange={(e) => onChange(e.target.value)} placeholder={def.placeholder || ''} className="w-full px-3 py-2 rounded-lg bg-[#f8f9ff] border border-[rgba(0,0,0,0.08)]" />;
   }
@@ -58,52 +58,38 @@ export default function FieldRenderer({ def, value, onChange }: Props) {
     );
   }
 
+
+  // Support both legacy 'cia_rating' type (old data) and the current 'star' type here.
+  const t = def.type as string;
   if (def.type === 'star') {
+    // Render star rating as a dropdown driven by def.max (0 = No rating)
+    const [internal, setInternal] = useState<number>(Number(val || '0'));
+
+    useEffect(() => {
+      setInternal(Number(val || '0'));
+    }, [val]);
+
+    const max = Math.max(1, Math.min(10, (def.max ?? 5)));
+    const current = Number(val || '0');
+    const displayMax = Math.max(max, current || 0);
+    
     return (
-      <select value={val || '0'} onChange={(e) => onChange(e.target.value)} className="w-full px-3 py-2 rounded-lg bg-[#f8f9ff] border border-[rgba(0,0,0,0.08)]">
-        <option value="0">No rating</option>
-        {[1,2,3,4,5].map(n => <option key={n} value={String(n)}>{'★'.repeat(n)}</option>)}
-      </select>
-    );
-  }
-
-  if (def.type === 'cia_rating') {
-    // value stored as JSON string {c: number, i: number, a: number}
-    let obj = { c: 0, i: 0, a: 0 };
-    try { if (val) obj = JSON.parse(val); } catch { }
-
-    const partKeys: { key: 'c' | 'i' | 'a'; label: string }[] = [
-      { key: 'c', label: 'Confidentiality' },
-      { key: 'i', label: 'Integrity' },
-      { key: 'a', label: 'Availability' },
-    ];
-
-    const renderRow = (k: 'c' | 'i' | 'a') => {
-      const current = k === 'c' ? obj.c : k === 'i' ? obj.i : obj.a;
-      return (
-        <div className="flex flex-col items-center" role="group" aria-label={k}>
-          <div className="flex gap-1">
-            {[1,2,3,4,5].map((n) => (
-              <button key={n} type="button" onClick={() => {
-                const next = { ...obj, [k]: n };
-                onChange(JSON.stringify(next));
-              }} aria-pressed={current === n} className={`w-6 h-6 rounded-full border ${current >= n ? 'bg-[#111827] text-white' : 'bg-white'}`}>
-                <span className="sr-only">{String(n)}</span>
-              </button>
-            ))}
-          </div>
-        </div>
-      );
-    };
-
-    return (
-      <div className="grid grid-cols-3 gap-3">
-        {partKeys.map((p) => (
-          <div key={p.key} className="flex flex-col items-start">
-            <label className="text-xs font-medium text-[#1a1d2e] mb-1">{p.label}</label>
-            {renderRow(p.key)}
-          </div>
-        ))}
+      <div role="group" aria-label={def.label || 'Star rating'} className="flex flex-col">
+        <select
+          value={String(internal)}
+          onChange={(e) => {
+            const n = Number(e.target.value || '0');
+            setInternal(n);
+            onChange(String(n));
+          }}
+          className="w-full px-3 py-2 rounded-lg bg-[#f8f9ff] border border-[rgba(0,0,0,0.08)]"
+        >
+          <option value="0">No rating</option>
+          {Array.from({ length: displayMax }, (_, i) => i + 1).map((n) => (
+            <option key={n} value={String(n)}>{'★'.repeat(n)}</option>
+          ))}
+        </select>
+        <div className="text-xs text-[rgba(0,0,0,0.5)] mt-1">0 = No rating</div>
       </div>
     );
   }

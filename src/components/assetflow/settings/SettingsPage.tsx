@@ -135,7 +135,6 @@ export function SettingsPage({ onNavigate, onSearch, view = 'general' }: Setting
       const base = raw ? JSON.parse(raw) : {};
       const mergedPrefs = { ...(base.prefs || {}), ...prefs, ...next };
       const merged = { ...base, name, email, prefs: mergedPrefs };
-      localStorage.setItem('assetflow:settings', JSON.stringify(merged));
       window.dispatchEvent(new Event('assetflow:prefs-updated'));
     } catch { }
   };
@@ -169,11 +168,28 @@ export function SettingsPage({ onNavigate, onSearch, view = 'general' }: Setting
   const [mailBusy, setMailBusy] = useState(false);
   const [mailTestBusy, setMailTestBusy] = useState(false);
 
-  // Asset field definitions (global custom fields)
+  // Custom field definitions (global custom fields) for multiple pages
   const [assetFields, setAssetFields] = useState<AssetFieldDef[]>([]);
-  const addAssetField = () => setAssetFields((arr) => [...arr, { key: '', label: '', required: false, placeholder: '', type: 'text' as AssetFieldType }]);
-  const removeAssetField = (idx: number) => setAssetFields((arr) => arr.filter((_, i) => i !== idx));
-  const updateAssetField = (idx: number, patch: Partial<AssetFieldDef>) => setAssetFields((arr) => arr.map((f, i) => i === idx ? { ...f, ...patch } : f));
+  const [vendorFields, setVendorFields] = useState<AssetFieldDef[]>([]);
+  const [licenseFields, setLicenseFields] = useState<AssetFieldDef[]>([]);
+  const [customTarget, setCustomTarget] = useState<'asset' | 'vendor' | 'license'>('asset');
+
+  const addCurrentField = () => {
+    const def: AssetFieldDef = { key: '', label: '', required: false, placeholder: '', type: 'text' };
+    if (customTarget === 'asset') setAssetFields((arr) => [...arr, def]);
+    if (customTarget === 'vendor') setVendorFields((arr) => [...arr, def]);
+    if (customTarget === 'license') setLicenseFields((arr) => [...arr, def]);
+  };
+  const removeCurrentField = (idx: number) => {
+    if (customTarget === 'asset') setAssetFields((arr) => arr.filter((_, i) => i !== idx));
+    if (customTarget === 'vendor') setVendorFields((arr) => arr.filter((_, i) => i !== idx));
+    if (customTarget === 'license') setLicenseFields((arr) => arr.filter((_, i) => i !== idx));
+  };
+  const updateCurrentField = (idx: number, patch: Partial<AssetFieldDef>) => {
+    if (customTarget === 'asset') setAssetFields((arr) => arr.map((f, i) => i === idx ? { ...f, ...patch } : f));
+    if (customTarget === 'vendor') setVendorFields((arr) => arr.map((f, i) => i === idx ? { ...f, ...patch } : f));
+    if (customTarget === 'license') setLicenseFields((arr) => arr.map((f, i) => i === idx ? { ...f, ...patch } : f));
+  };
 
   // Load persisted settings from localStorage and then try server
   useEffect(() => {
@@ -199,7 +215,9 @@ export function SettingsPage({ onNavigate, onSearch, view = 'general' }: Setting
         if (parsed.integrations) {
           setConnected((prev) => ({ ...prev, ...parsed.integrations }));
         }
-        if (Array.isArray(parsed.assetFields)) setAssetFields(parsed.assetFields as AssetFieldDef[]);
+  if (Array.isArray(parsed.assetFields)) setAssetFields(parsed.assetFields as AssetFieldDef[]);
+  if (Array.isArray(parsed.vendorFields)) setVendorFields(parsed.vendorFields as AssetFieldDef[]);
+  if (Array.isArray(parsed.licenseFields)) setLicenseFields(parsed.licenseFields as AssetFieldDef[]);
         if (parsed.events) setEvents({
           enabled: !!parsed.events.enabled,
           method: parsed.events.method === 'kafka' ? 'kafka' : 'webhook',
@@ -246,6 +264,8 @@ export function SettingsPage({ onNavigate, onSearch, view = 'general' }: Setting
             setConnected((prev) => ({ ...prev, ...(data.integrations as Record<string, boolean>) }));
           }
           if (Array.isArray((data as any).assetFields)) setAssetFields(((data as any).assetFields) as AssetFieldDef[]);
+          if (Array.isArray((data as any).vendorFields)) setVendorFields(((data as any).vendorFields) as AssetFieldDef[]);
+          if (Array.isArray((data as any).licenseFields)) setLicenseFields(((data as any).licenseFields) as AssetFieldDef[]);
         }
         setServerError(null);
       } catch (e: any) {
@@ -344,12 +364,14 @@ export function SettingsPage({ onNavigate, onSearch, view = 'general' }: Setting
       events,
       integrations: connected,
       assetFields,
+      vendorFields,
+      licenseFields,
     } as any;
 
     try {
       setSaving(true);
       await saveSettings(payload);
-      localStorage.setItem('assetflow:settings', JSON.stringify({ name, email, prefs, notify, mode, events, integrations: connected, assetFields }));
+  localStorage.setItem('assetflow:settings', JSON.stringify({ name, email, prefs, notify, mode, events, integrations: connected, assetFields, vendorFields, licenseFields }));
       // Notify PrefsProvider listeners (density/language/currency can update live)
       window.dispatchEvent(new Event('assetflow:prefs-updated'));
       setServerError(null);
@@ -452,7 +474,7 @@ export function SettingsPage({ onNavigate, onSearch, view = 'general' }: Setting
       setConsentRequired(!val);
     }
   };
-
+  console.log('consentRequired', consentRequired);
   return (
     <AssetFlowLayout
       breadcrumbs={[
@@ -490,16 +512,16 @@ export function SettingsPage({ onNavigate, onSearch, view = 'general' }: Setting
           <TabsList className="flex w-full flex-wrap gap-2 rounded-xl border border-[rgba(0,0,0,0.08)] bg-[#f8f9ff] p-2">
             {view === 'general' && (
               <>
-                <TabsTrigger value="profile" className="flex items-center gap-2 px-3 py-2 data-[state=active]:bg-white data-[state=active]:border data-[state=active]:border-[rgba(0,0,0,0.08)]">
+                <TabsTrigger value="profile" className={`${activeTab === 'profile' ? 'bg-white border border-[rgba(0,0,0,0.12)] shadow-md text-[#1a1d2e] font-semibold' : ''} flex items-center gap-2 px-3 py-2 rounded-xl`}>
                   <User className="h-4 w-4 text-[#0ea5e9]" /> Profile
                 </TabsTrigger>
-                <TabsTrigger value="branding" className="flex items-center gap-2 px-3 py-2 data-[state=active]:bg-white data-[state=active]:border data-[state=active]:border-[rgba(0,0,0,0.08)]">
+                <TabsTrigger value="branding" className={`${activeTab === 'branding' ? 'bg-white border border-[rgba(0,0,0,0.12)] shadow-md text-[#1a1d2e] font-semibold' : ''} flex items-center gap-2 px-3 py-2 rounded-xl`}>
                   <Server className="h-4 w-4 text-[#6366f1]" /> Branding
                 </TabsTrigger>
-                <TabsTrigger value="preferences" className="flex items-center gap-2 px-3 py-2 data-[state=active]:bg-white data-[state=active]:border data-[state=active]:border-[rgba(0,0,0,0.08)]">
+                <TabsTrigger value="preferences" className={`${activeTab === 'preferences' ? 'bg-white border border-[rgba(0,0,0,0.12)] shadow-md text-[#1a1d2e] font-semibold' : ''} flex items-center gap-2 px-3 py-2 rounded-xl`}>
                   <SlidersHorizontal className="h-4 w-4 text-[#22c55e]" /> Preferences
                 </TabsTrigger>
-                <TabsTrigger value="notifications" className="flex items-center gap-2 px-3 py-2 data-[state=active]:bg-white data-[state=active]:border data-[state=active]:border-[rgba(0,0,0,0.08)]">
+                <TabsTrigger value="notifications" className={`${activeTab === 'notifications' ? 'bg-white border border-[rgba(0,0,0,0.12)] shadow-md text-[#1a1d2e] font-semibold' : ''} flex items-center gap-2 px-3 py-2 rounded-xl`}>
                   <Bell className="h-4 w-4 text-[#f59e0b]" /> Notifications
                 </TabsTrigger>
               </>
@@ -507,20 +529,20 @@ export function SettingsPage({ onNavigate, onSearch, view = 'general' }: Setting
 
             {view === 'technical' && (
               <>
-                <TabsTrigger value="integrations" className="flex items-center gap-2 px-3 py-2 data-[state=active]:bg-white data-[state=active]:border data-[state=active]:border-[rgba(0,0,0,0.08)]">
+                <TabsTrigger value="integrations" className={`${activeTab === 'integrations' ? 'bg-white border border-[rgba(0,0,0,0.12)] shadow-md text-[#1a1d2e] font-semibold' : ''} flex items-center gap-2 px-3 py-2 rounded-xl`}>
                   <Server className="h-4 w-4 text-[#6366f1]" /> Integrations
                 </TabsTrigger>
-                <TabsTrigger value="events" className="flex items-center gap-2 px-3 py-2 data-[state=active]:bg-white data-[state=active]:border data-[state=active]:border-[rgba(0,0,0,0.08)]">
+                <TabsTrigger value="events" className={`${activeTab === 'events' ? 'bg-white border border-[rgba(0,0,0,0.12)] shadow-md text-[#1a1d2e] font-semibold' : ''} flex items-center gap-2 px-3 py-2 rounded-xl`}>
                   <Rss className="h-4 w-4 text-[#f97316]" /> Events
                 </TabsTrigger>
-                <TabsTrigger value="database" className="flex items-center gap-2 px-3 py-2 data-[state=active]:bg-white data-[state=active]:border data-[state=active]:border-[rgba(0,0,0,0.08)]">
+                <TabsTrigger value="database" className={`${activeTab === 'database' ? 'bg-white border border-[rgba(0,0,0,0.12)] shadow-md text-[#1a1d2e] font-semibold' : ''} flex items-center gap-2 px-3 py-2 rounded-xl`}>
                   <Database className="h-4 w-4 text-[#10b981]" /> Database
                 </TabsTrigger>
-                <TabsTrigger value="assetFields" className="flex items-center gap-2 px-3 py-2 data-[state=active]:bg-white data-[state=active]:border data-[state=active]:border-[rgba(0,0,0,0.08)]">
+                <TabsTrigger value="assetFields" className={`${activeTab === 'assetFields' ? 'bg-white border border-[rgba(0,0,0,0.12)] shadow-md text-[#1a1d2e] font-semibold' : ''} flex items-center gap-2 px-3 py-2 rounded-xl`}>
                   <SlidersHorizontal className="h-4 w-4 text-[#8b5cf6]" /> Asset Fields
                 </TabsTrigger>
                 {canEditMail && (
-                  <TabsTrigger value="mail" className={`flex items-center gap-2 px-3 py-2 data-[state=active]:bg-white data-[state=active]:border data-[state=active]:border-[rgba(0,0,0,0.08)]`}>
+                  <TabsTrigger value="mail" className={`flex items-center gap-2 px-3 py-2 rounded-xl ${activeTab === 'mail' ? 'bg-white border border-[rgba(0,0,0,0.12)] shadow-md text-[#1a1d2e] font-semibold' : ''}`}>
                     <Mail className="h-4 w-4 text-[#3b82f6]" /> Mail Server
                   </TabsTrigger>
                 )}
@@ -804,24 +826,27 @@ export function SettingsPage({ onNavigate, onSearch, view = 'general' }: Setting
                     <p className="font-medium text-[#1a1d2e]">Require Consent for Asset Assignments</p>
                     <p className="text-sm text-[#64748b]">When enabled, assigning assets to users requires email consent approval</p>
                   </div>
-                  <Switch
-                    checked={consentRequired}
-                    onCheckedChange={handleConsentToggle}
-                    aria-label="Toggle consent requirement for asset assignments"
-                    /* === Styling for iOS look === */
-                    className={`relative inline-flex h-6 w-12 items-center rounded-full transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-opacity-50
-    ${consentRequired ? 'bg-[#4ade80]' : 'bg-gray-300'}`}
-                  >
-                    {/* screen-reader text */}
-                    <span className="sr-only">Require consent</span>
-
-                    {/* Thumb */}
-                    <span
-                      aria-hidden="true"
-                      className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-md transition-transform duration-200
-      ${consentRequired ? 'translate-x-5' : 'translate-x-1'}`}
+                  <div className="flex items-center gap-2">
+                    <input
+                      id="require-consent-checkbox"
+                      type="checkbox"
+                      checked={!!consentRequired}
+                      onChange={(e) => handleConsentToggle(e.target.checked)}
+                      aria-label="Require consent for asset assignments"
+                      className="peer h-6 w-6 cursor-pointer rounded border border-gray-300 
+               text-green-500 focus:ring-2 focus:ring-green-400/50 
+               checked:bg-green-500 checked:border-green-500 
+               transition-all duration-200 ease-in-out"
                     />
-                  </Switch>
+                    <label
+                      htmlFor="require-consent-checkbox"
+                      className="cursor-pointer text-sm text-[#64748b] 
+               peer-hover:text-[#475569] peer-checked:text-green-600 
+               transition-colors duration-200"
+                    >
+                      Yes
+                    </label>
+                  </div>
 
                 </div>
               </div>
@@ -1250,76 +1275,110 @@ export function SettingsPage({ onNavigate, onSearch, view = 'general' }: Setting
             </TabsContent>
           )}
 
-          {/* Asset Fields */}
+          {/* Custom Fields for Assets / Vendors / Licenses */}
           {view === 'technical' && (
             <TabsContent value="assetFields" className="mt-0 space-y-8">
               <Card>
                 <CardHeader>
-                  <CardTitle>Asset Custom Fields</CardTitle>
-                  <CardDescription>Define the labels and inputs that appear on the Asset form. Values are stored under specifications.customFields by key.</CardDescription>
+                  <CardTitle>Custom Fields</CardTitle>
+                  <CardDescription>Define custom fields that appear on Add/Edit pages. Choose which page the field applies to: Assets, Vendors or Licenses. Values are stored under specifications.customFields by key on the respective object.</CardDescription>
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-3">
-                    {assetFields.length === 0 && (
-                      <p className="text-sm text-[#64748b]">No custom fields defined yet.</p>
-                    )}
-                    {assetFields.map((f, idx) => (
-                      <div key={idx} className="space-y-3">
-                        <div className="grid grid-cols-1 md:grid-cols-4 gap-3 items-start">
-                          <div>
-                            <Label className="mb-1 block">Label</Label>
-                            <Input value={f.label} onChange={(e) => updateAssetField(idx, { label: e.target.value })} placeholder="e.g., Asset Tag" />
+                    <div className="flex items-center gap-4 mb-3">
+                      <label className={`px-3 py-2 rounded-lg cursor-pointer ${customTarget === 'asset' ? 'bg-white border border-[rgba(0,0,0,0.08)] shadow-sm' : 'bg-[#f8f9ff]'}`}>
+                        <input type="radio" name="customTarget" value="asset" checked={customTarget === 'asset'} onChange={() => setCustomTarget('asset')} className="mr-2" /> Assets
+                      </label>
+                      <label className={`px-3 py-2 rounded-lg cursor-pointer ${customTarget === 'vendor' ? 'bg-white border border-[rgba(0,0,0,0.08)] shadow-sm' : 'bg-[#f8f9ff]'}`}>
+                        <input type="radio" name="customTarget" value="vendor" checked={customTarget === 'vendor'} onChange={() => setCustomTarget('vendor')} className="mr-2" /> Vendors
+                      </label>
+                      <label className={`px-3 py-2 rounded-lg cursor-pointer ${customTarget === 'license' ? 'bg-white border border-[rgba(0,0,0,0.08)] shadow-sm' : 'bg-[#f8f9ff]'}`}>
+                        <input type="radio" name="customTarget" value="license" checked={customTarget === 'license'} onChange={() => setCustomTarget('license')} className="mr-2" /> Licenses
+                      </label>
+                    </div>
+
+                    {(() => {
+                      const fields = customTarget === 'asset' ? assetFields : customTarget === 'vendor' ? vendorFields : licenseFields;
+                      if (!fields || fields.length === 0) {
+                        return <p className="text-sm text-[#64748b]">No custom fields defined for {customTarget === 'asset' ? 'Assets' : customTarget === 'vendor' ? 'Vendors' : 'Licenses'} yet.</p>;
+                      }
+                      return fields.map((f, idx) => (
+                        <div key={idx} className="space-y-3">
+                          <div className="grid grid-cols-1 md:grid-cols-4 gap-3 items-start">
+                            <div>
+                              <Label className="mb-1 block">Label</Label>
+                              <Input value={f.label} onChange={(e) => updateCurrentField(idx, { label: e.target.value })} placeholder="e.g., Asset Tag" />
+                            </div>
+                            <div>
+                              <Label className="mb-1 block">Key</Label>
+                              <Input value={f.key} onChange={(e) => updateCurrentField(idx, { key: e.target.value.trim() })} placeholder="e.g., assetTag" />
+                              <p className="text-xs text-[#94a3b8] mt-1">Used in export/import and API as specifications.customFields[key]</p>
+                            </div>
+                            <div>
+                              <Label className="mb-1 block">Placeholder</Label>
+                              <Input value={f.placeholder ?? ''} onChange={(e) => updateCurrentField(idx, { placeholder: e.target.value })} placeholder="e.g., TAG-00123" />
+                            </div>
+                            <div>
+                              <Label className="mb-1 block">Type</Label>
+                              <select
+                                className="w-full px-3 py-2 rounded-lg bg-[#f8f9ff] border border-[rgba(0,0,0,0.08)]"
+                                value={f.type ?? 'text'}
+                                onChange={(e) => updateCurrentField(idx, { type: e.target.value as AssetFieldType })}
+                              >
+                                {([
+                                  'text', 'textarea', 'number', 'date', 'datetime', 'phone', 'email', 'url', 'select', 'multiselect', 'boolean', 'currency', 'star'
+                                ] as AssetFieldType[]).map((t) => (
+                                  <option key={t} value={t}>{t === 'star' ? 'Star Rating' : t.charAt(0).toUpperCase() + t.slice(1)}</option>
+                                ))}
+                              </select>
+                            </div>
                           </div>
-                          <div>
-                            <Label className="mb-1 block">Key</Label>
-                            <Input value={f.key} onChange={(e) => updateAssetField(idx, { key: e.target.value.trim() })} placeholder="e.g., assetTag" />
-                            <p className="text-xs text-[#94a3b8] mt-1">Used in export/import and API as specifications.customFields[key]</p>
-                          </div>
-                          <div>
-                            <Label className="mb-1 block">Placeholder</Label>
-                            <Input value={f.placeholder ?? ''} onChange={(e) => updateAssetField(idx, { placeholder: e.target.value })} placeholder="e.g., TAG-00123" />
-                          </div>
-                          <div>
-                            <Label className="mb-1 block">Type</Label>
-                            <select
-                              className="w-full px-3 py-2 rounded-lg bg-[#f8f9ff] border border-[rgba(0,0,0,0.08)]"
-                              value={f.type ?? 'text'}
-                              onChange={(e) => updateAssetField(idx, { type: e.target.value as AssetFieldType })}
-                            >
-                              {([
-                                'text', 'textarea', 'number', 'date', 'datetime', 'phone', 'email', 'url', 'select', 'multiselect', 'boolean', 'currency', 'star', 'cia_rating'
-                              ] as AssetFieldType[]).map((t) => (
-                                <option key={t} value={t}>{t === 'cia_rating' ? 'CIA Rating (Confidentiality/Integrity/Availability)' : (t === 'star' ? 'Star Rating' : t.charAt(0).toUpperCase() + t.slice(1))}</option>
-                              ))}
-                            </select>
+
+                          {(f.type === 'select' || f.type === 'multiselect') && (
+                            <div>
+                              <Label className="mb-1 block">Options (comma separated)</Label>
+                              <Input
+                                value={(f.options || []).join(', ')}
+                                onChange={(e) => updateCurrentField(idx, { options: e.target.value.split(',').map(s => s.trim()).filter(Boolean) })}
+                                placeholder="Option1, Option2, Option3"
+                              />
+                              <p className="text-xs text-[#94a3b8] mt-1">Provide choices for select or multiselect fields.</p>
+                            </div>
+                          )}
+
+                          {f.type === 'star' && (
+                            <div>
+                              <Label className="mb-1 block">Max value</Label>
+                              <Input
+                                type="number"
+                                min={1}
+                                max={10}
+                                value={typeof f.max === 'number' ? String(f.max) : ''}
+                                onChange={(e) => {
+                                  const v = e.target.value;
+                                  const n = v === '' ? undefined : Math.max(1, Math.min(10, Number(v) || 1));
+                                  updateCurrentField(idx, { max: n });
+                                }}
+                                placeholder="5"
+                              />
+                              <p className="text-xs text-[#94a3b8] mt-1">Max rating (1-10). Default 5.</p>
+                            </div>
+                          )}
+
+                          <div className="grid grid-cols-2 items-center">
+                            <label className="text-sm text-[#1a1d2e] flex items-center gap-2">
+                              <input type="checkbox" checked={!!f.required} onChange={(e) => updateCurrentField(idx, { required: e.target.checked })} /> Required
+                            </label>
+                            <div className="flex justify-end">
+                              <Button type="button" variant="outline" className="border-[#ef4444] text-[#ef4444] hover:bg-[#fee2e2]" onClick={() => removeCurrentField(idx)}>Remove</Button>
+                            </div>
                           </div>
                         </div>
+                      ));
+                    })()}
 
-                        {/* Options input for select/multiselect */}
-                        {(f.type === 'select' || f.type === 'multiselect') && (
-                          <div>
-                            <Label className="mb-1 block">Options (comma separated)</Label>
-                            <Input
-                              value={(f.options || []).join(', ')}
-                              onChange={(e) => updateAssetField(idx, { options: e.target.value.split(',').map(s => s.trim()).filter(Boolean) })}
-                              placeholder="Option1, Option2, Option3"
-                            />
-                            <p className="text-xs text-[#94a3b8] mt-1">Provide choices for select or multiselect fields.</p>
-                          </div>
-                        )}
-
-                        <div className="grid grid-cols-2 items-center">
-                          <label className="text-sm text-[#1a1d2e] flex items-center gap-2">
-                            <input type="checkbox" checked={!!f.required} onChange={(e) => updateAssetField(idx, { required: e.target.checked })} /> Required
-                          </label>
-                          <div className="flex justify-end">
-                            <Button type="button" variant="outline" className="border-[#ef4444] text-[#ef4444] hover:bg-[#fee2e2]" onClick={() => removeAssetField(idx)}>Remove</Button>
-                          </div>
-                        </div>
-                      </div>
-                    ))}
                     <div className="flex justify-between items-center mt-3">
-                      <Button type="button" variant="outline" className="border-[#6366f1] text-[#6366f1] hover:bg-[#eef2ff]" onClick={addAssetField}>Add Field</Button>
+                      <Button type="button" variant="outline" className="border-[#6366f1] text-[#6366f1] hover:bg-[#eef2ff]" onClick={addCurrentField}>Add Field</Button>
                       <Button type="button" className="bg-gradient-to-r from-[#6366f1] to-[#8b5cf6] text-white hover:shadow-lg hover:shadow-[#6366f1]/30" onClick={handleSave}>Save Fields</Button>
                     </div>
                   </div>

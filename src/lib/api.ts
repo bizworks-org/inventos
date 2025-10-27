@@ -228,6 +228,27 @@ type DbVendor = {
   contract_value: number;
   contract_expiry: string;
   rating: number;
+  // extended fields in snake_case
+  legal_name?: string | null;
+  trading_name?: string | null;
+  registration_number?: string | null;
+  incorporation_date?: string | null;
+  incorporation_country?: string | null;
+  registered_office_address?: string | null;
+  corporate_office_address?: string | null;
+  nature_of_business?: string | null;
+  business_category?: string | null;
+  service_coverage_area?: string | null;
+  pan_tax_id?: string | null;
+  bank_name?: string | null;
+  account_number?: string | null;
+  ifsc_swift_code?: string | null;
+  payment_terms?: string | null;
+  preferred_currency?: string | null;
+  vendor_credit_limit?: number | null;
+  // GST certificate is now stored in vendor_documents table; remove blob fields from vendor row
+  // contacts stored as JSON in DB
+  contacts?: any | null;
 };
 
 function mapDbVendor(v: DbVendor): Vendor {
@@ -242,6 +263,35 @@ function mapDbVendor(v: DbVendor): Vendor {
     contractValue: Number(v.contract_value),
     contractExpiry: normalizeDate(v.contract_expiry as any),
     rating: Number(v.rating),
+    // map extended fields
+    legalName: (v as any).legal_name ?? undefined,
+    tradingName: (v as any).trading_name ?? undefined,
+    registrationNumber: (v as any).registration_number ?? undefined,
+    incorporationDate: normalizeDate((v as any).incorporation_date ?? ''),
+    incorporationCountry: (v as any).incorporation_country ?? undefined,
+    registeredOfficeAddress: (v as any).registered_office_address ?? undefined,
+    corporateOfficeAddress: (v as any).corporate_office_address ?? undefined,
+    natureOfBusiness: (v as any).nature_of_business ?? undefined,
+    businessCategory: (v as any).business_category ?? undefined,
+    serviceCoverageArea: (v as any).service_coverage_area ?? undefined,
+  // financial fields
+  panTaxId: (v as any).pan_tax_id ?? undefined,
+  bankName: (v as any).bank_name ?? undefined,
+  accountNumber: (v as any).account_number ?? undefined,
+  ifscSwiftCode: (v as any).ifsc_swift_code ?? undefined,
+  paymentTerms: (v as any).payment_terms ?? undefined,
+  preferredCurrency: (v as any).preferred_currency ?? undefined,
+  vendorCreditLimit: (v as any).vendor_credit_limit ? Number((v as any).vendor_credit_limit) : undefined,
+  // gstCertificateName removed — GST files are stored in vendor_documents
+    // parse contacts JSON if present
+    contacts: (() => {
+      const c = (v as any).contacts;
+      if (!c) return undefined;
+      if (typeof c === 'string') {
+        try { return JSON.parse(c); } catch { return undefined; }
+      }
+      return c;
+    })(),
   };
 }
 
@@ -257,6 +307,26 @@ function mapUiVendorToDb(v: Vendor): DbVendor {
     contract_value: v.contractValue,
     contract_expiry: v.contractExpiry,
     rating: v.rating,
+    legal_name: (v as any).legalName ?? null,
+    trading_name: (v as any).tradingName ?? null,
+    registration_number: (v as any).registrationNumber ?? null,
+    incorporation_date: (v as any).incorporationDate ?? null,
+    incorporation_country: (v as any).incorporationCountry ?? null,
+    registered_office_address: (v as any).registeredOfficeAddress ?? null,
+    corporate_office_address: (v as any).corporateOfficeAddress ?? null,
+    nature_of_business: (v as any).natureOfBusiness ?? null,
+    business_category: (v as any).businessCategory ?? null,
+    service_coverage_area: (v as any).serviceCoverageArea ?? null,
+  pan_tax_id: (v as any).panTaxId ?? null,
+  bank_name: (v as any).bankName ?? null,
+  account_number: (v as any).accountNumber ?? null,
+  ifsc_swift_code: (v as any).ifscSwiftCode ?? null,
+  payment_terms: (v as any).paymentTerms ?? null,
+  preferred_currency: (v as any).preferredCurrency ?? null,
+  vendor_credit_limit: (v as any).vendorCreditLimit ?? null,
+  // gst_certificate columns removed from vendors table
+    // contacts serialized as object; HTTP client will stringify further where needed
+    contacts: (v as any).contacts ?? null,
   };
 }
 
@@ -277,7 +347,6 @@ export async function fetchVendorById(id: string): Promise<Vendor> {
   const row = await http<DbVendor>(`/api/vendors/${encodeURIComponent(id)}`);
   return mapDbVendor(row);
 }
-
 export async function updateVendor(id: string, vendor: Vendor): Promise<void> {
   await http(`/api/vendors/${encodeURIComponent(id)}`, { method: 'PUT', body: JSON.stringify(mapUiVendorToDb(vendor)) });
 }
@@ -368,6 +437,9 @@ export type ServerSettings = {
   events: any;
   integrations: any;
   assetFields?: AssetFieldDef[]; // global asset custom fields definitions
+  // vendorFields and licenseFields may be present in client settings (stored locally); server may ignore/save them depending on backend support
+  vendorFields?: AssetFieldDef[];
+  licenseFields?: AssetFieldDef[];
 };
 
 export async function fetchSettings(email: string): Promise<ServerSettings | null> {

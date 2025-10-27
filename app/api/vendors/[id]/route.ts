@@ -24,9 +24,40 @@ export async function PUT(req: NextRequest, ctx: any) {
   if (!('ok' in guard) || !guard.ok) return NextResponse.json({ error: 'Forbidden' }, { status: (guard as any).status ?? 403 });
   const { id } = await resolveParams(ctx);
   const body = await req.json();
-  const sql = `UPDATE vendors SET name=:name, type=:type, contact_person=:contact_person, email=:email, phone=:phone, status=:status,
-    contract_value=:contract_value, contract_expiry=:contract_expiry, rating=:rating WHERE id=:id`;
-  await query(sql, { ...body, id });
+  const sql = `UPDATE vendors SET
+    name=:name,
+    type=:type,
+    contact_person=:contact_person,
+    email=:email,
+    phone=:phone,
+    status=:status,
+    contract_value=:contract_value,
+    contract_expiry=:contract_expiry,
+    rating=:rating,
+    legal_name=:legal_name,
+    trading_name=:trading_name,
+    registration_number=:registration_number,
+    incorporation_date=:incorporation_date,
+    incorporation_country=:incorporation_country,
+    registered_office_address=:registered_office_address,
+    corporate_office_address=:corporate_office_address,
+    nature_of_business=:nature_of_business,
+    business_category=:business_category,
+    service_coverage_area=:service_coverage_area
+    ,pan_tax_id=:pan_tax_id
+    ,bank_name=:bank_name
+    ,account_number=:account_number
+    ,ifsc_swift_code=:ifsc_swift_code
+    ,payment_terms=:payment_terms
+    ,preferred_currency=:preferred_currency
+    ,vendor_credit_limit=:vendor_credit_limit
+    ,gst_certificate_name=:gst_certificate_name
+    ,gst_certificate_blob=:gst_certificate_blob
+    WHERE id=:id`;
+  // If contacts provided, serialize to JSON for DB storage
+  const params = { ...body, id, contacts: (body as any).contacts ? JSON.stringify((body as any).contacts) : null };
+  const sqlWithContacts = sql.replace('\n    WHERE id=:id', ',\n    contacts=:contacts\n    WHERE id=:id');
+  await query(sqlWithContacts, params);
   return NextResponse.json({ ok: true });
 }
 

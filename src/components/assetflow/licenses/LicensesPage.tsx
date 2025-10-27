@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import { motion } from 'motion/react';
-import { Plus, Download, Upload, Search, AlertTriangle } from 'lucide-react';
+import { Plus, Download, Upload, Search, AlertTriangle, DollarSign } from 'lucide-react';
 import { AssetFlowLayout } from '../layout/AssetFlowLayout';
 import { License } from '../../../lib/data';
 import { fetchLicenses, deleteLicense } from '../../../lib/api';
@@ -73,10 +73,10 @@ export function LicensesPage({ onNavigate, onSearch }: LicensesPageProps) {
   // Calculate total license value
   const totalValue = useMemo(() => licenses.reduce((sum, license) => sum + license.cost, 0), [licenses]);
 
-  // Calculate total seats
-  const totalSeats = useMemo(() => licenses.reduce((sum, license) => sum + license.seats, 0), [licenses]);
-  const seatsUsed = useMemo(() => licenses.reduce((sum, license) => sum + license.seatsUsed, 0), [licenses]);
-  const utilizationRate = Math.round((seatsUsed / totalSeats) * 100);
+  // Total monthly spend (sum of cost/12)
+  const totalMonthlySpend = useMemo(() => licenses.reduce((sum, license) => sum + (license.cost || 0) / 12, 0), [licenses]);
+
+  // Seat UI removed; keep backend values intact but don't display aggregated seat stats
 
   const handleDelete = async (id: string) => {
     const keep = licenses.filter(l => l.id !== id);
@@ -181,6 +181,7 @@ export function LicensesPage({ onNavigate, onSearch }: LicensesPageProps) {
           <p className="text-xs text-[#94a3b8] mt-1">Within 90 days</p>
         </motion.div>
 
+        {/* Total Monthly Spend */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -188,16 +189,16 @@ export function LicensesPage({ onNavigate, onSearch }: LicensesPageProps) {
           className="bg-white rounded-xl border border-[rgba(0,0,0,0.08)] p-6 shadow-sm"
         >
           <div className="flex items-center justify-between mb-2">
-            <p className="text-sm text-[#64748b]">Seat Utilization</p>
-            <div className="h-10 w-10 rounded-lg bg-gradient-to-br from-[#10b981] to-[#14b8a6] flex items-center justify-center">
-              <span className="text-white text-xs font-bold">{utilizationRate}%</span>
+            <p className="text-sm text-[#64748b]">Total Monthly Spend</p>
+            <div className="h-10 w-10 rounded-lg bg-gradient-to-br from-[#6366f1] to-[#8b5cf6] flex items-center justify-center">
+              <DollarSign className="h-4 w-4 text-white" />
             </div>
           </div>
-          <p className="text-2xl font-bold text-[#1a1d2e]">
-            {seatsUsed}/{totalSeats}
-          </p>
-          <p className="text-xs text-[#94a3b8] mt-1">Seats in use</p>
+          <p className="text-2xl font-bold text-[#1a1d2e]">{formatCurrency(totalMonthlySpend)}</p>
+          <p className="text-xs text-[#94a3b8] mt-1">Monthly spend across licenses</p>
         </motion.div>
+
+        {/* Seat utilization tile removed from UI */}
 
         <motion.div
           initial={{ opacity: 0, y: 20 }}

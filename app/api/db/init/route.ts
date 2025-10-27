@@ -124,12 +124,16 @@ async function runMigrations(conn: any) {
       mode VARCHAR(10),
       events LONGTEXT,
       integrations LONGTEXT,
-      asset_fields LONGTEXT
+      asset_fields LONGTEXT,
+      vendor_fields LONGTEXT,
+      license_fields LONGTEXT
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
   `);
   try {
     await conn.query('ALTER TABLE user_settings ADD COLUMN asset_fields LONGTEXT');
   } catch {}
+  try { await conn.query('ALTER TABLE user_settings ADD COLUMN vendor_fields LONGTEXT'); } catch {}
+  try { await conn.query('ALTER TABLE user_settings ADD COLUMN license_fields LONGTEXT'); } catch {}
 
   await conn.query(`
     CREATE TABLE IF NOT EXISTS asset_consent_tokens (

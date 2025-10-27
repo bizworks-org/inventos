@@ -117,7 +117,9 @@ export async function POST(req: NextRequest) {
         mode VARCHAR(10),
         events LONGTEXT,
         integrations LONGTEXT,
-        asset_fields LONGTEXT
+        asset_fields LONGTEXT,
+        vendor_fields LONGTEXT,
+        license_fields LONGTEXT
       ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
     `);
     // Also ensure column exists on previously created tables
@@ -126,6 +128,8 @@ export async function POST(req: NextRequest) {
     } catch (e) {
       // ignore if column already exists
     }
+    try { await conn.query('ALTER TABLE user_settings ADD COLUMN vendor_fields LONGTEXT'); } catch {}
+    try { await conn.query('ALTER TABLE user_settings ADD COLUMN license_fields LONGTEXT'); } catch {}
 
     // site settings for branding (logo, brand name)
     await conn.query(`

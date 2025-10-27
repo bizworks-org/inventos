@@ -1,12 +1,13 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { motion } from 'motion/react';
 import { ArrowLeft, Save, X, Building2, Star, Calendar } from 'lucide-react';
 import { AssetFlowLayout } from '../layout/AssetFlowLayout';
-import { Vendor } from '../../../lib/data';
+import { Vendor, AssetFieldDef } from '../../../lib/data';
 import { createVendor } from '../../../lib/api';
 import { logVendorCreated } from '../../../lib/events';
+import FieldRenderer from '../assets/FieldRenderer';
 
 interface AddVendorPageProps {
   onNavigate?: (page: string) => void;
@@ -28,10 +29,44 @@ export function AddVendorPage({ onNavigate, onSearch }: AddVendorPageProps) {
     contractExpiry: '',
     rating: '4.0',
     // Additional fields
-    address: '',
     website: '',
-    notes: ''
+    notes: '',
+    // Vendor Information additions
+    legalName: '',
+  tradingName: '',
+  gstCertificateFile: null, // Added field for GST certificate file
+  registrationNumber: '',
+    incorporationDate: '',
+    incorporationCountry: '',
+    registeredOfficeAddress: '',
+    corporateOfficeAddress: '',
+    natureOfBusiness: '',
+    businessCategory: '',
+    serviceCoverageArea: ''
+    ,contacts: [] as Array<{
+      contactType?: string;
+      name?: string;
+      designation?: string;
+      phone?: string;
+      email?: string;
+      technicalDetails?: string;
+      billingDetails?: string;
+    }>
   });
+
+  // Custom field defs for Vendors (from Settings)
+  const [fieldDefs, setFieldDefs] = useState<AssetFieldDef[]>([]);
+  const [customFieldValues, setCustomFieldValues] = useState<Record<string, string>>({});
+
+  useEffect(() => {
+    try {
+      const s = localStorage.getItem('assetflow:settings');
+      if (s) {
+        const parsed = JSON.parse(s);
+        if (Array.isArray(parsed.vendorFields)) setFieldDefs(parsed.vendorFields as AssetFieldDef[]);
+      }
+    } catch { }
+  }, []);
 
   const handleInputChange = (field: string, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }));
@@ -54,6 +89,27 @@ export function AddVendorPage({ onNavigate, onSearch }: AddVendorPageProps) {
       rating: parseFloat(formData.rating)
     };
 
+    // attach extended fields
+    (newVendor as any).legalName = formData.legalName || undefined;
+    (newVendor as any).tradingName = formData.tradingName || undefined;
+    (newVendor as any).registrationNumber = formData.registrationNumber || undefined;
+    (newVendor as any).incorporationDate = formData.incorporationDate || undefined;
+    (newVendor as any).incorporationCountry = formData.incorporationCountry || undefined;
+    (newVendor as any).registeredOfficeAddress = formData.registeredOfficeAddress || undefined;
+    (newVendor as any).corporateOfficeAddress = formData.corporateOfficeAddress || undefined;
+    (newVendor as any).natureOfBusiness = formData.natureOfBusiness || undefined;
+    (newVendor as any).businessCategory = formData.businessCategory || undefined;
+    (newVendor as any).serviceCoverageArea = formData.serviceCoverageArea || undefined;
+    // attach contacts (up to 5)
+    if ((formData as any).contacts && Array.isArray((formData as any).contacts)) {
+      (newVendor as any).contacts = (formData as any).contacts.slice(0, 5).map((c: any) => ({ ...c }));
+    }
+
+    // Attach custom fields (from Settings)
+    if (fieldDefs.length > 0) {
+      (newVendor as any).customFields = Object.fromEntries(fieldDefs.map(def => [def.key, customFieldValues[def.key] ?? '']));
+    }
+
     // Log event
     logVendorCreated(newVendor.id, newVendor.name, 'admin@company.com', {
       type: newVendor.type,
@@ -62,6 +118,17 @@ export function AddVendorPage({ onNavigate, onSearch }: AddVendorPageProps) {
 
     try {
       await createVendor(newVendor);
+      // If GST certificate file provided, upload it to the vendor blob endpoint
+      const file: any = (formData as any).gstCertificateFile;
+      if (file && file instanceof File) {
+        try {
+          const fd = new FormData();
+          fd.append('file', file);
+          await fetch(`/api/vendors/${encodeURIComponent(newVendor.id)}/gst-certificate`, { method: 'POST', body: fd });
+        } catch (e) {
+          console.warn('Failed to upload GST certificate:', e);
+        }
+      }
       onNavigate?.('vendors');
     } catch (err) {
       console.error('Failed to create vendor', err);
@@ -129,6 +196,44 @@ export function AddVendorPage({ onNavigate, onSearch }: AddVendorPageProps) {
                   />
                 </div>
 
+                {/* Vendor Legal Name */}
+                <div className="md:col-span-2">
+                  <label className="block text-sm font-medium text-[#1a1d2e] mb-2">
+                    Vendor Legal Name
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.legalName}
+                    onChange={(e) => handleInputChange('legalName', e.target.value)}
+                    placeholder="Legal entity name (if different)"
+                    className="w-full px-4 py-2.5 rounded-lg bg-[#f8f9ff] border border-[rgba(0,0,0,0.05)] text-[#1a1d2e] placeholder:text-[#a0a4b8] focus:outline-none focus:ring-2 focus:ring-[#6366f1]/20 focus:border-[#6366f1] transition-all duration-200"
+                  />
+                </div>
+
+                {/* Trading / Brand Name */}
+                <div className="md:col-span-2">
+                  <label className="block text-sm font-medium text-[#1a1d2e] mb-2">Trading / Brand Name</label>
+                  <input type="text" value={formData.tradingName} onChange={(e) => handleInputChange('tradingName', e.target.value)} placeholder="Brand or trading name (if different)" className="w-full px-4 py-2.5 rounded-lg bg-[#f8f9ff] border border-[rgba(0,0,0,0.05)] text-[#1a1d2e] placeholder:text-[#a0a4b8] focus:outline-none focus:ring-2 focus:ring-[#6366f1]/20 focus:border-[#6366f1] transition-all duration-200" />
+                </div>
+
+                {/* Registration / GSTIN */}
+                <div>
+                  <label className="block text-sm font-medium text-[#1a1d2e] mb-2">Company Registration Number / GSTIN</label>
+                  <input type="text" value={formData.registrationNumber} onChange={(e) => handleInputChange('registrationNumber', e.target.value)} placeholder="Registration or GSTIN" className="w-full px-4 py-2.5 rounded-lg bg-[#f8f9ff] border border-[rgba(0,0,0,0.05)] text-[#1a1d2e] placeholder:text-[#a0a4b8] focus:outline-none focus:ring-2 focus:ring-[#6366f1]/20 focus:border-[#6366f1] transition-all duration-200" />
+                </div>
+
+                {/* Incorporation Date */}
+                <div>
+                  <label className="block text-sm font-medium text-[#1a1d2e] mb-2">Incorporation Date</label>
+                  <input type="date" value={formData.incorporationDate} onChange={(e) => handleInputChange('incorporationDate', e.target.value)} className="w-full px-4 py-2.5 rounded-lg bg-[#f8f9ff] border border-[rgba(0,0,0,0.05)] text-[#1a1d2e] focus:outline-none focus:ring-2 focus:ring-[#6366f1]/20 focus:border-[#6366f1] transition-all duration-200" />
+                </div>
+
+                {/* Incorporation Country */}
+                <div>
+                  <label className="block text-sm font-medium text-[#1a1d2e] mb-2">Incorporation Country</label>
+                  <input type="text" value={formData.incorporationCountry} onChange={(e) => handleInputChange('incorporationCountry', e.target.value)} placeholder="Country of incorporation" className="w-full px-4 py-2.5 rounded-lg bg-[#f8f9ff] border border-[rgba(0,0,0,0.05)] text-[#1a1d2e] placeholder:text-[#a0a4b8] focus:outline-none focus:ring-2 focus:ring-[#6366f1]/20 focus:border-[#6366f1] transition-all duration-200" />
+                </div>
+
                 {/* Vendor Type */}
                 <div>
                   <label className="block text-sm font-medium text-[#1a1d2e] mb-2">
@@ -177,19 +282,35 @@ export function AddVendorPage({ onNavigate, onSearch }: AddVendorPageProps) {
                   />
                 </div>
 
-                {/* Address */}
+                {/* Registered Office Address */}
                 <div className="md:col-span-2">
-                  <label className="block text-sm font-medium text-[#1a1d2e] mb-2">
-                    Address
-                  </label>
-                  <input
-                    type="text"
-                    value={formData.address}
-                    onChange={(e) => handleInputChange('address', e.target.value)}
-                    placeholder="Street address, city, state, zip"
-                    className="w-full px-4 py-2.5 rounded-lg bg-[#f8f9ff] border border-[rgba(0,0,0,0.05)] text-[#1a1d2e] placeholder:text-[#a0a4b8] focus:outline-none focus:ring-2 focus:ring-[#6366f1]/20 focus:border-[#6366f1] transition-all duration-200"
-                  />
+                  <label className="block text-sm font-medium text-[#1a1d2e] mb-2">Registered Office Address</label>
+                  <input type="text" value={formData.registeredOfficeAddress} onChange={(e) => handleInputChange('registeredOfficeAddress', e.target.value)} placeholder="Registered office address" className="w-full px-4 py-2.5 rounded-lg bg-[#f8f9ff] border border-[rgba(0,0,0,0.05)] text-[#1a1d2e] placeholder:text-[#a0a4b8] focus:outline-none focus:ring-2 focus:ring-[#6366f1]/20 focus:border-[#6366f1] transition-all duration-200" />
                 </div>
+
+                {/* Corporate Office Address */}
+                <div className="md:col-span-2">
+                  <label className="block text-sm font-medium text-[#1a1d2e] mb-2">Corporate Office Address</label>
+                  <input type="text" value={formData.corporateOfficeAddress} onChange={(e) => handleInputChange('corporateOfficeAddress', e.target.value)} placeholder="Corporate / head office address" className="w-full px-4 py-2.5 rounded-lg bg-[#f8f9ff] border border-[rgba(0,0,0,0.05)] text-[#1a1d2e] placeholder:text-[#a0a4b8] focus:outline-none focus:ring-2 focus:ring-[#6366f1]/20 focus:border-[#6366f1] transition-all duration-200" />
+                </div>
+                
+                  {/* Nature of Business */}
+                  <div>
+                    <label className="block text-sm font-medium text-[#1a1d2e] mb-2">Nature of Business</label>
+                    <input type="text" value={formData.natureOfBusiness} onChange={(e) => handleInputChange('natureOfBusiness', e.target.value)} placeholder="e.g., IT Services, Hardware Supply" className="w-full px-4 py-2.5 rounded-lg bg-[#f8f9ff] border border-[rgba(0,0,0,0.05)] text-[#1a1d2e] placeholder:text-[#a0a4b8] focus:outline-none focus:ring-2 focus:ring-[#6366f1]/20 focus:border-[#6366f1] transition-all duration-200" />
+                  </div>
+
+                  {/* Business Category */}
+                  <div>
+                    <label className="block text-sm font-medium text-[#1a1d2e] mb-2">Business Category</label>
+                    <input type="text" value={formData.businessCategory} onChange={(e) => handleInputChange('businessCategory', e.target.value)} placeholder="Category or industry sector" className="w-full px-4 py-2.5 rounded-lg bg-[#f8f9ff] border border-[rgba(0,0,0,0.05)] text-[#1a1d2e] placeholder:text-[#a0a4b8] focus:outline-none focus:ring-2 focus:ring-[#6366f1]/20 focus:border-[#6366f1] transition-all duration-200" />
+                  </div>
+
+                  {/* Service Coverage Area */}
+                  <div className="md:col-span-2">
+                    <label className="block text-sm font-medium text-[#1a1d2e] mb-2">Service Coverage Area</label>
+                    <input type="text" value={formData.serviceCoverageArea} onChange={(e) => handleInputChange('serviceCoverageArea', e.target.value)} placeholder="e.g., Local, National, Global or specific regions" className="w-full px-4 py-2.5 rounded-lg bg-[#f8f9ff] border border-[rgba(0,0,0,0.05)] text-[#1a1d2e] placeholder:text-[#a0a4b8] focus:outline-none focus:ring-2 focus:ring-[#6366f1]/20 focus:border-[#6366f1] transition-all duration-200" />
+                  </div>
               </div>
             </motion.div>
 
@@ -246,6 +367,63 @@ export function AddVendorPage({ onNavigate, onSearch }: AddVendorPageProps) {
                     placeholder="+1-555-123-4567"
                     className="w-full px-4 py-2.5 rounded-lg bg-[#f8f9ff] border border-[rgba(0,0,0,0.05)] text-[#1a1d2e] placeholder:text-[#a0a4b8] focus:outline-none focus:ring-2 focus:ring-[#6366f1]/20 focus:border-[#6366f1] transition-all duration-200"
                   />
+                </div>
+              </div>
+
+              {/* Multiple Contacts */}
+              <div className="mt-4">
+                <div className="flex items-center justify-between mb-2">
+                  <h4 className="text-sm font-semibold text-[#1a1d2e]">Additional Contacts</h4>
+                  <button type="button" onClick={() => {
+                    setFormData((f: any) => {
+                      const contacts = Array.isArray(f.contacts) ? [...f.contacts] : [];
+                      if (contacts.length >= 5) return f;
+                      contacts.push({});
+                      return { ...f, contacts };
+                    });
+                  }} className="text-sm text-[#6366f1] hover:underline">Add Contact</button>
+                </div>
+                <div className="space-y-4">
+                  {((formData as any).contacts || []).map((c: any, idx: number) => (
+                    <div key={idx} className="p-4 border rounded-lg bg-[#fbfbff]">
+                      <div className="flex justify-between items-center mb-2">
+                        <div className="text-sm font-medium">Contact #{idx + 1}</div>
+                        <div className="flex items-center gap-2">
+                          <button type="button" onClick={() => setFormData((f: any) => ({ ...f, contacts: f.contacts.filter((_: any, i: number) => i !== idx) }))} className="text-xs text-red-600">Remove</button>
+                        </div>
+                      </div>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        <div>
+                          <label className="block text-xs text-[#1a1d2e] mb-1">Contact Type</label>
+                          <input type="text" value={c.contactType || ''} onChange={(e) => setFormData((f: any) => { const contacts = [...f.contacts]; contacts[idx] = { ...contacts[idx], contactType: e.target.value }; return { ...f, contacts }; })} className="w-full px-3 py-2 rounded-lg bg-white border" />
+                        </div>
+                        <div>
+                          <label className="block text-xs text-[#1a1d2e] mb-1">Name</label>
+                          <input type="text" value={c.name || ''} onChange={(e) => setFormData((f: any) => { const contacts = [...f.contacts]; contacts[idx] = { ...contacts[idx], name: e.target.value }; return { ...f, contacts }; })} className="w-full px-3 py-2 rounded-lg bg-white border" />
+                        </div>
+                        <div>
+                          <label className="block text-xs text-[#1a1d2e] mb-1">Designation</label>
+                          <input type="text" value={c.designation || ''} onChange={(e) => setFormData((f: any) => { const contacts = [...f.contacts]; contacts[idx] = { ...contacts[idx], designation: e.target.value }; return { ...f, contacts }; })} className="w-full px-3 py-2 rounded-lg bg-white border" />
+                        </div>
+                        <div>
+                          <label className="block text-xs text-[#1a1d2e] mb-1">Phone</label>
+                          <input type="tel" value={c.phone || ''} onChange={(e) => setFormData((f: any) => { const contacts = [...f.contacts]; contacts[idx] = { ...contacts[idx], phone: e.target.value }; return { ...f, contacts }; })} className="w-full px-3 py-2 rounded-lg bg-white border" />
+                        </div>
+                        <div>
+                          <label className="block text-xs text-[#1a1d2e] mb-1">Email</label>
+                          <input type="email" value={c.email || ''} onChange={(e) => setFormData((f: any) => { const contacts = [...f.contacts]; contacts[idx] = { ...contacts[idx], email: e.target.value }; return { ...f, contacts }; })} className="w-full px-3 py-2 rounded-lg bg-white border" />
+                        </div>
+                        <div className="md:col-span-2">
+                          <label className="block text-xs text-[#1a1d2e] mb-1">Technical Support Contact Details (optional)</label>
+                          <input type="text" value={c.technicalDetails || ''} onChange={(e) => setFormData((f: any) => { const contacts = [...f.contacts]; contacts[idx] = { ...contacts[idx], technicalDetails: e.target.value }; return { ...f, contacts }; })} className="w-full px-3 py-2 rounded-lg bg-white border" />
+                        </div>
+                        <div className="md:col-span-2">
+                          <label className="block text-xs text-[#1a1d2e] mb-1">Billing / Finance Contact Details (optional)</label>
+                          <input type="text" value={c.billingDetails || ''} onChange={(e) => setFormData((f: any) => { const contacts = [...f.contacts]; contacts[idx] = { ...contacts[idx], billingDetails: e.target.value }; return { ...f, contacts }; })} className="w-full px-3 py-2 rounded-lg bg-white border" />
+                        </div>
+                      </div>
+                    </div>
+                  ))}
                 </div>
               </div>
             </motion.div>
@@ -346,6 +524,94 @@ export function AddVendorPage({ onNavigate, onSearch }: AddVendorPageProps) {
                     className="w-full px-4 py-2.5 rounded-lg bg-[#f8f9ff] border border-[rgba(0,0,0,0.05)] text-[#1a1d2e] placeholder:text-[#a0a4b8] focus:outline-none focus:ring-2 focus:ring-[#6366f1]/20 focus:border-[#6366f1] transition-all duration-200 resize-none"
                   />
                 </div>
+              </div>
+            </motion.div>
+            {/* Financial & Banking Information */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.4, delay: 0.25 }}
+              className="bg-white rounded-2xl border border-[rgba(0,0,0,0.08)] p-6 shadow-sm"
+            >
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-lg font-semibold text-[#1a1d2e]">Financial & Banking Information</h3>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-[#1a1d2e] mb-2">PAN / Tax Identification Number</label>
+                  <input type="text" value={(formData as any).panTaxId || ''} onChange={(e) => setFormData((f:any) => ({ ...f, panTaxId: e.target.value }))} className="w-full px-4 py-2.5 rounded-lg bg-[#f8f9ff] border" />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-[#1a1d2e] mb-2">Bank Name</label>
+                  <input type="text" value={(formData as any).bankName || ''} onChange={(e) => setFormData((f:any) => ({ ...f, bankName: e.target.value }))} className="w-full px-4 py-2.5 rounded-lg bg-[#f8f9ff] border" />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-[#1a1d2e] mb-2">Account Number</label>
+                  <input type="text" value={(formData as any).accountNumber || ''} onChange={(e) => setFormData((f:any) => ({ ...f, accountNumber: e.target.value }))} className="w-full px-4 py-2.5 rounded-lg bg-[#f8f9ff] border" />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-[#1a1d2e] mb-2">IFSC / SWIFT Code</label>
+                  <input type="text" value={(formData as any).ifscSwiftCode || ''} onChange={(e) => setFormData((f:any) => ({ ...f, ifscSwiftCode: e.target.value }))} className="w-full px-4 py-2.5 rounded-lg bg-[#f8f9ff] border" />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-[#1a1d2e] mb-2">Payment Terms</label>
+                  <select value={(formData as any).paymentTerms || 'Net 30'} onChange={(e) => setFormData((f:any) => ({ ...f, paymentTerms: e.target.value }))} className="w-full px-4 py-2.5 rounded-lg bg-[#f8f9ff] border">
+                    <option>Net 30</option>
+                    <option>Net 45</option>
+                    <option>Net 60</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-[#1a1d2e] mb-2">Preferred Currency</label>
+                  <select value={(formData as any).preferredCurrency || 'USD'} onChange={(e) => setFormData((f:any) => ({ ...f, preferredCurrency: e.target.value }))} className="w-full px-4 py-2.5 rounded-lg bg-[#f8f9ff] border">
+                    <option value="USD">USD</option>
+                    <option value="INR">INR</option>
+                    <option value="EUR">EUR</option>
+                    <option value="GBP">GBP</option>
+                    <option value="AUD">AUD</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-[#1a1d2e] mb-2">Vendor Credit Limit</label>
+                  <div className="relative">
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[#64748b]">{(formData as any).preferredCurrency || 'USD'}</span>
+                    <input type="number" min="0" step="0.01" value={((formData as any).vendorCreditLimit ?? '') as any} onChange={(e) => setFormData((f:any) => ({ ...f, vendorCreditLimit: e.target.value ? Number(e.target.value) : undefined }))} className="w-full pl-12 pr-4 py-2.5 rounded-lg bg-[#f8f9ff] border" />
+                  </div>
+                </div>
+                <div className="md:col-span-2">
+                  <label className="block text-sm font-medium text-[#1a1d2e] mb-2">GST Certificate / Tax Registration Certificate</label>
+                  <input type="file" accept=".pdf,.png,.jpg,.jpeg" onChange={(e) => setFormData((f:any) => ({ ...f, gstCertificateFile: e.target.files?.[0] ?? null }))} className="w-full" />
+                </div>
+              </div>
+            </motion.div>
+
+            {/* Custom Fields (from Settings) */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.4, delay: 0.25 }}
+              className="bg-white rounded-2xl border border-[rgba(0,0,0,0.08)] p-6 shadow-sm"
+            >
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-lg font-semibold text-[#1a1d2e]">Custom Fields</h3>
+              </div>
+              <p className="text-sm text-[#64748b] mb-3">These fields are defined globally in Settings.</p>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {fieldDefs.length === 0 && (
+                  <p className="text-sm text-[#94a3b8] md:col-span-2">No custom fields configured. Add them in Settings → Custom Fields.</p>
+                )}
+                {fieldDefs.map((def) => {
+                  const val = customFieldValues[def.key] ?? '';
+                  const onChange = (newVal: string) => setCustomFieldValues((v) => ({ ...v, [def.key]: newVal }));
+                  return (
+                    <div key={def.key}>
+                      <label className="block text-sm font-medium text-[#1a1d2e] mb-2">
+                        {def.label}{def.required ? ' *' : ''}
+                      </label>
+                      <FieldRenderer def={def} value={val} onChange={onChange} />
+                    </div>
+                  );
+                })}
               </div>
             </motion.div>
           </div>

@@ -3,9 +3,10 @@
 import { useEffect, useState } from 'react';
 import { usePrefs } from '../layout/PrefsContext';
 import { motion } from 'motion/react';
-import { ArrowLeft, Save, X, Calendar, DollarSign, Users } from 'lucide-react';
+import { ArrowLeft, Save, X, Calendar, DollarSign } from 'lucide-react';
 import { AssetFlowLayout } from '../layout/AssetFlowLayout';
-import { License } from '../../../lib/data';
+import { License, AssetFieldDef } from '../../../lib/data';
+import FieldRenderer from '../assets/FieldRenderer';
 import { fetchLicenseById, updateLicense } from '../../../lib/api';
 import { toast } from 'sonner@2.0.3';
 import { logLicenseCreated, logLicenseExpiring } from '../../../lib/events';
@@ -41,14 +42,33 @@ export function EditLicensePage({ licenseId, onNavigate, onSearch }: EditLicense
     name: '',
     vendor: '',
     type: 'SaaS' as License['type'],
-    seats: '0',
-    seatsUsed: '0',
     expirationDate: '',
     renewalDate: '',
     cost: '0',
     owner: '',
     compliance: 'Compliant' as License['compliance']
   });
+
+  // License custom fields
+  const [fieldDefs, setFieldDefs] = useState<AssetFieldDef[]>([]);
+  const [customFieldValues, setCustomFieldValues] = useState<Record<string, string>>({});
+
+  useEffect(() => {
+    try {
+      const s = localStorage.getItem('assetflow:settings');
+      if (s) {
+        const parsed = JSON.parse(s);
+        if (Array.isArray(parsed.licenseFields)) setFieldDefs(parsed.licenseFields as AssetFieldDef[]);
+      }
+    } catch { }
+  }, []);
+
+  useEffect(() => {
+    if (!license) return;
+    if ((license as any).customFields && typeof (license as any).customFields === 'object') {
+      setCustomFieldValues({ ...(license as any).customFields });
+    }
+  }, [license]);
 
   // Sync form with loaded license
   useEffect(() => {
@@ -57,8 +77,6 @@ export function EditLicensePage({ licenseId, onNavigate, onSearch }: EditLicense
       name: license.name,
       vendor: license.vendor,
       type: license.type,
-      seats: String(license.seats),
-      seatsUsed: String(license.seatsUsed),
       expirationDate: license.expirationDate,
       renewalDate: license.renewalDate,
       cost: String(license.cost),
@@ -83,14 +101,20 @@ export function EditLicensePage({ licenseId, onNavigate, onSearch }: EditLicense
       name: formData.name,
       vendor: formData.vendor,
       type: formData.type,
-      seats: parseInt(formData.seats || '0'),
-      seatsUsed: parseInt(formData.seatsUsed || '0'),
+      // Seats editing removed from UI; preserve existing values
+      seats: license.seats,
+      seatsUsed: license.seatsUsed,
       expirationDate: formData.expirationDate,
       renewalDate: formData.renewalDate,
       cost: parseFloat(formData.cost || '0'),
       owner: formData.owner,
       compliance: formData.compliance
     };
+
+    // include custom fields
+    if (fieldDefs.length > 0) {
+      (updated as any).customFields = Object.fromEntries(fieldDefs.map(def => [def.key, customFieldValues[def.key] ?? '']));
+    }
 
     // Log event
     // reuse logLicenseCreated for now as simple event
@@ -163,24 +187,7 @@ export function EditLicensePage({ licenseId, onNavigate, onSearch }: EditLicense
               </div>
             </motion.div>
 
-            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4, delay: 0.1 }} className="bg-white rounded-2xl border border-[rgba(0,0,0,0.08)] p-6 shadow-sm">
-              <div className="flex items-center gap-2 mb-4">
-                <Users className="h-5 w-5 text-[#6366f1]" />
-                <h3 className="text-lg font-semibold text-[#1a1d2e]">Seat Management</h3>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-[#1a1d2e] mb-2">Total Seats *</label>
-                  <input type="number" required min="1" value={formData.seats} onChange={(e) => handleInputChange('seats', e.target.value)} placeholder="e.g., 100" className="w-full px-4 py-2.5 rounded-lg bg-[#f8f9ff] border border-[rgba(0,0,0,0.05)] text-[#1a1d2e] placeholder:text-[#a0a4b8] focus:outline-none focus:ring-2 focus:ring-[#6366f1]/20 focus:border-[#6366f1] transition-all duration-200" />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-[#1a1d2e] mb-2">Seats in Use</label>
-                  <input type="number" min="0" max={formData.seats || undefined} value={formData.seatsUsed} onChange={(e) => handleInputChange('seatsUsed', e.target.value)} placeholder="e.g., 85" className="w-full px-4 py-2.5 rounded-lg bg-[#f8f9ff] border border-[rgba(0,0,0,0.05)] text-[#1a1d2e] placeholder:text-[#a0a4b8] focus:outline-none focus:ring-2 focus:ring-[#6366f1]/20 focus:border-[#6366f1] transition-all duration-200" />
-                </div>
-              </div>
-            </motion.div>
+            {/* Seat management removed from UI */}
 
             <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4, delay: 0.2 }} className="bg-white rounded-2xl border border-[rgba(0,0,0,0.08)] p-6 shadow-sm">
               <div className="flex items-center gap-2 mb-4">
@@ -221,6 +228,30 @@ export function EditLicensePage({ licenseId, onNavigate, onSearch }: EditLicense
                 </div>
               </div>
             </motion.div>
+            {/* Custom Fields (from Settings) */}
+            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4, delay: 0.25 }} className="bg-white rounded-2xl border border-[rgba(0,0,0,0.08)] p-6 shadow-sm">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-lg font-semibold text-[#1a1d2e]">Custom Fields</h3>
+              </div>
+              <p className="text-sm text-[#64748b] mb-3">These fields are defined globally in Settings.</p>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {fieldDefs.length === 0 && (
+                  <p className="text-sm text-[#94a3b8] md:col-span-2">No custom fields configured. Add them in Settings → Custom Fields.</p>
+                )}
+                {fieldDefs.map((def) => {
+                  const val = customFieldValues[def.key] ?? '';
+                  const onChange = (newVal: string) => setCustomFieldValues((v) => ({ ...v, [def.key]: newVal }));
+                  return (
+                    <div key={def.key}>
+                      <label className="block text-sm font-medium text-[#1a1d2e] mb-2">
+                        {def.label}{def.required ? ' *' : ''}
+                      </label>
+                      <FieldRenderer def={def} value={val} onChange={onChange} />
+                    </div>
+                  );
+                })}
+              </div>
+            </motion.div>
           </div>
 
           <div className="lg:col-span-1">
@@ -235,12 +266,7 @@ export function EditLicensePage({ licenseId, onNavigate, onSearch }: EditLicense
                   <span className="text-sm text-white/80">Status</span>
                   <span className="font-semibold">{formData.compliance}</span>
                 </div>
-                {formData.seats && (
-                  <div className="flex justify-between items-center pb-2 border-b border-white/20">
-                    <span className="text-sm text-white/80">Seats</span>
-                    <span className="font-semibold">{formData.seatsUsed || 0}/{formData.seats}</span>
-                  </div>
-                )}
+                {/* Seats removed from UI */}
                 {formData.cost && (
                   <div className="flex justify-between items-center pb-2 border-b border-white/20">
                     <span className="text-sm text-white/80">Annual Cost</span>

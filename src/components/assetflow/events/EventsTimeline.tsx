@@ -183,89 +183,59 @@ export function EventsTimeline({ events }: EventsTimelineProps) {
             {dateEvents.map((event, index) => (
               <motion.div
                 key={event.id}
-                initial={{ opacity: 0, x: -20 }}
+                initial={{ opacity: 0, x: -12 }}
                 animate={{ opacity: 1, x: 0 }}
-                transition={{ duration: 0.3, delay: 0.45 + groupIndex * 0.1 + index * 0.05 }}
+                transition={{ duration: 0.22, delay: 0.25 + groupIndex * 0.06 + index * 0.02 }}
+                title={formatFullTimestamp(event.timestamp)}
                 className={`
-                  p-6 flex gap-4 transition-all duration-200
-                  ${index !== dateEvents.length - 1 ? 'border-b border-[rgba(0,0,0,0.05)]' : ''}
-                  hover:bg-gradient-to-r hover:from-[#f8f9ff] hover:to-transparent
+                  px-3 py-2 flex items-center gap-3 text-sm transition-colors duration-150
+                  ${index !== dateEvents.length - 1 ? 'border-b border-[rgba(0,0,0,0.04)]' : ''}
+                  hover:bg-[rgba(248,249,255,0.6)]
                 `}
               >
-                {/* Timeline dot */}
-                <div className="flex-shrink-0 pt-1">
-                  <div className={`
-                    h-10 w-10 rounded-full flex items-center justify-center
-                    ${getEntityColor(event.entityType)}
-                  `}>
+                {/* Small timeline icon */}
+                <div className="flex-shrink-0">
+                  <div className={`h-6 w-6 rounded-full flex items-center justify-center text-xs ${getEntityColor(event.entityType)}`}>
                     {getEntityIcon(event.entityType)}
                   </div>
                 </div>
 
-                {/* Event Content */}
+                {/* Single-line content: badges + details + metadata */}
                 <div className="flex-1 min-w-0">
-                  <div className="flex items-start justify-between gap-4 mb-2">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2 mb-1">
-                        {/* Severity Badge */}
-                        <span className={`
-                          inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-semibold border
-                          ${getSeverityColor(event.severity)}
-                        `}>
-                          {getSeverityIcon(event.severity)}
-                          {event.severity}
-                        </span>
+                  <div className="flex items-center gap-3 w-full">
+                    {/* Left chunk: severity + entity badges */}
+                    <div className="flex items-center gap-2 flex-shrink-0">
+                      <span className={`inline-flex items-center justify-center px-2 py-0.5 rounded-full text-xs font-medium border ${getSeverityColor(event.severity)}`}>
+                        {getSeverityIcon(event.severity)}
+                      </span>
+                      <span className={`inline-flex items-center justify-center px-2 py-0.5 rounded-full text-xs font-medium ${getEntityColor(event.entityType)}`}>
+                        <span className="capitalize">{event.entityType}</span>
+                      </span>
+                    </div>
 
-                        {/* Entity Type Badge */}
-                        <span className={`
-                          inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold
-                          ${getEntityColor(event.entityType)}
-                        `}>
-                          <span className="capitalize">{event.entityType}</span>
-                        </span>
-                      </div>
+                    {/* Main inline details and meta (truncate as needed) */}
+                    <div className="flex items-center gap-2 min-w-0 flex-1">
+                      <div className="truncate font-medium text-[#0f1724]">{event.details}</div>
 
-                      {/* Details */}
-                      <p className="text-sm font-medium text-[#1a1d2e] mb-1">
-                        {event.details}
-                      </p>
+                      <span className="text-[#94a3b8]">•</span>
 
-                      {/* Action and User */}
-                      <div className="flex items-center gap-3 text-xs text-[#64748b]">
-                        <span className="font-mono bg-[#f8f9ff] px-2 py-0.5 rounded">
-                          {event.action}
-                        </span>
+                      <div className="flex items-center gap-2 text-xs text-[#64748b] flex-shrink-0">
+                        <span className="font-mono bg-[#f8f9ff] px-1.5 py-0.5 rounded">{event.action}</span>
                         <span>by {event.user}</span>
                         <span>•</span>
-                        <span className="font-mono">ID: {event.entityId}</span>
+                        <span className="font-mono">{event.entityId}</span>
                       </div>
 
-                      {/* Metadata */}
+                      {/* Compact metadata inline (key:val pairs) */}
                       {Object.keys(event.metadata).length > 0 && (
-                        <div className="mt-2 p-2 bg-[#f8f9ff] rounded-lg">
-                          <div className="flex flex-col gap-1">
-                            {Object.entries(event.metadata).map(([key, value]) => (
-                              <div key={key} className="text-xs text-[#64748b]">
-                                <span className="font-semibold">{key}:</span>
-                                <pre className="font-mono whitespace-pre-wrap break-words bg-white/60 border border-[rgba(0,0,0,0.05)] rounded px-2 py-1 mt-1">
-                                  {typeof value === 'object' ? JSON.stringify(value, null, 2) : String(value)}
-                                </pre>
-                              </div>
-                            ))}
-                          </div>
+                        <div className="ml-2 text-xs text-[#64748b] truncate">
+                          {Object.entries(event.metadata).map(([k, v]) => `${k}: ${typeof v === 'object' ? JSON.stringify(v) : String(v)}`).join(' · ')}
                         </div>
                       )}
                     </div>
 
                     {/* Timestamp */}
-                    <div className="flex-shrink-0 text-right">
-                      <div className="text-sm font-medium text-[#64748b]">
-                        {formatTimestamp(event.timestamp)}
-                      </div>
-                      <div className="text-xs text-[#94a3b8] mt-0.5">
-                        {formatFullTimestamp(event.timestamp)}
-                      </div>
-                    </div>
+                    <div className="flex-shrink-0 text-xs text-[#64748b] ml-3">{formatTimestamp(event.timestamp)}</div>
                   </div>
                 </div>
               </motion.div>
