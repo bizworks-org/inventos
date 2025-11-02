@@ -449,6 +449,28 @@ export default function EditAssetPage({ assetId, onNavigate, onSearch }: Props) 
                   </select>
                 </div>
 
+                <div className="md:col-span-2">
+                  <label className="mb-2 block text-sm font-medium">Asset Name *</label>
+                  <input
+                    required
+                    value={formData.name}
+                    onChange={(event) => handleInputChange('name', event.target.value)}
+                    className="w-full rounded-lg border bg-card px-4 py-2.5"
+                    placeholder={'e.g., MacBook Pro 16"'}
+                  />
+                </div>
+
+                <div>
+                  <label className="mb-2 block text-sm font-medium">Serial Number *</label>
+                  <input
+                    required
+                    value={formData.serialNumber}
+                    onChange={(event) => handleInputChange('serialNumber', event.target.value)}
+                    className="w-full rounded-lg border bg-card px-4 py-2.5"
+                    placeholder="e.g., MBP-2024-001"
+                  />
+                </div>
+
                 <div>
                   <label className="mb-2 block text-sm font-medium">Status *</label>
                   <select
