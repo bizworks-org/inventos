@@ -114,7 +114,7 @@ export function parseAssetsCSV(text: string): Asset[] {
     const asset: Asset = {
       id,
       name: get(r, 'name') || '',
-      type: (get(r, 'type') as Asset['type']) || 'Laptop',
+      typeId: (get(r, 'type') as Asset['typeId']) || 'Laptop',
       serialNumber: get(r, 'serial number') || '',
       assignedTo: get(r, 'assigned to') || '',
       department: get(r, 'department') || '',
@@ -264,7 +264,7 @@ export function parseAssetsFile(fileName: string, text: string): Asset[] {
     return raw.map((r) => ({
       id: r.id ?? generateId('AST'),
       name: r.name ?? '',
-      type: r.type ?? 'Laptop',
+      typeId: r.typeId ?? 'Laptop',
       serialNumber: r.serialNumber ?? '',
       assignedTo: r.assignedTo ?? '',
       department: r.department ?? '',

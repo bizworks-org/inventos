@@ -19,7 +19,7 @@ interface AssetsPageProps {
 }
 
 export type AssetStatus = 'All' | Asset['status'];
-export type AssetCategory = 'All' | 'Workstations' | 'Servers / Storage' | 'Networking' | 'Accessories' | 'Electronic Devices' | 'Others';
+export type AssetCategory = 'All' | string;
 
 export function AssetsPage({ onNavigate, onSearch }: AssetsPageProps) {
   const [selectedCategory, setSelectedCategory] = useState<AssetCategory>('All');
@@ -42,28 +42,89 @@ export function AssetsPage({ onNavigate, onSearch }: AssetsPageProps) {
     return () => { cancelled = true; };
   }, []);
 
-  const mapTypeToCategory = (t: Asset['type']): Exclude<AssetCategory, 'All'> => {
-    switch (t) {
-      case 'Laptop':
-      case 'Desktop':
-        return 'Workstations';
-      case 'Server':
-        return 'Servers / Storage';
-      case 'Monitor':
-        return 'Accessories';
-      case 'Printer':
-        return 'Others';
-      case 'Phone':
-        return 'Electronic Devices';
-      default:
-        return 'Others';
+  // Try reading catalog from localStorage to build a dynamic mapping from type -> category
+  type UiCategory = { id: number; name: string; types: Array<{ id?: number; name: string }> };
+  const [catalog, setCatalog] = useState<UiCategory[] | null>(null);
+  const fetchAndCacheCatalog = async () => {
+    // Preferred flow: read from localStorage first. If not present, fetch from API and cache.
+    try {
+      const raw = localStorage.getItem('catalog.categories');
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed)) {
+          setCatalog(parsed as UiCategory[]);
+          return;
+        }
+      }
+    } catch {}
+
+    try {
+      const res = await fetch('/api/catalog', { cache: 'no-store' });
+      if (!res.ok) throw new Error('Failed to fetch catalog');
+      const data = await res.json();
+      const cats = Array.isArray(data) ? data : data?.categories;
+      if (Array.isArray(cats)) {
+        try { localStorage.setItem('catalog.categories', JSON.stringify(cats)); } catch {}
+        setCatalog(cats as UiCategory[]);
+      }
+    } catch (e) {
+      // no-op; leave catalog null
     }
+  };
+
+  useEffect(() => {
+    fetchAndCacheCatalog();
+    const onClear = () => {
+      (async () => {
+        try {
+          const res = await fetch('/api/catalog', { cache: 'no-store' });
+          if (!res.ok) return;
+          const data = await res.json();
+          const cats = Array.isArray(data) ? data : data?.categories;
+          if (Array.isArray(cats)) {
+            try { localStorage.setItem('catalog.categories', JSON.stringify(cats)); } catch {}
+            setCatalog(cats as UiCategory[]);
+          }
+        } catch {}
+      })();
+    };
+    window.addEventListener('assetflow:catalog-cleared', onClear as EventListener);
+    return () => window.removeEventListener('assetflow:catalog-cleared', onClear as EventListener);
+  }, []);
+
+  // Build fast lookup maps from the catalog: by type id and by type name.
+  const catalogLookup = useMemo(() => {
+    const idToCategory = new Map<string, string>();
+    const nameToCategory = new Map<string, string>();
+    if (catalog && catalog.length) {
+      for (const c of catalog) {
+        for (const t of c.types || []) {
+          if (t.id !== undefined && t.id !== null) idToCategory.set(String(t.id), c.name);
+          if (t.name) nameToCategory.set(t.name, c.name);
+        }
+      }
+    }
+    return { idToCategory, nameToCategory };
+  }, [catalog]);
+
+  const mapAssetToCategory = (asset: Asset): Exclude<AssetCategory, 'All'> => {
+    const aid = (asset as any).type_id;
+    if (aid !== undefined && aid !== null) {
+      const byId = catalogLookup.idToCategory.get(String(aid));
+      if (byId) return byId as Exclude<AssetCategory, 'All'>;
+    }
+    if (asset.typeId) {
+      const byName = catalogLookup.nameToCategory.get(asset.typeId);
+      if (byName) return byName as Exclude<AssetCategory, 'All'>;
+      return asset.typeId as unknown as Exclude<AssetCategory, 'All'>;
+    }
+    return 'Other' as Exclude<AssetCategory, 'All'>;
   };
 
   const filteredAssets = useMemo(() => {
     const q = searchQuery.toLowerCase();
-    return assets.filter(asset => {
-      const matchesCategory = selectedCategory === 'All' || mapTypeToCategory(asset.type) === selectedCategory;
+  return assets.filter(asset => {
+  const matchesCategory = selectedCategory === 'All' || mapAssetToCategory(asset) === selectedCategory;
       const matchesStatus = selectedStatus === 'All' || asset.status === selectedStatus;
       const matchesSearch = !q ||
         asset.name.toLowerCase().includes(q) ||
@@ -83,12 +144,15 @@ export function AssetsPage({ onNavigate, onSearch }: AssetsPageProps) {
     });
   }, [assets, selectedCategory, selectedStatus, searchQuery]);
 
-  const assetCategories: AssetCategory[] = ['All', 'Workstations', 'Servers / Storage', 'Networking', 'Accessories', 'Electronic Devices', 'Others'];
+  const assetCategories: AssetCategory[] = useMemo(() => {
+    if (catalog && catalog.length) return ['All', ...catalog.map((c) => c.name)];
+    return ['All'];
+  }, [catalog]);
   const canWriteAssets = !!me?.permissions?.includes('assets_write') || me?.role === 'admin';
 
   const getCategoryCount = (cat: AssetCategory) => {
     if (cat === 'All') return assets.length;
-    return assets.filter(a => mapTypeToCategory(a.type) === cat).length;
+    return assets.filter(a => mapAssetToCategory(a) === cat).length;
   };
 
   const handleDelete = async (id: string, _name?: string) => {

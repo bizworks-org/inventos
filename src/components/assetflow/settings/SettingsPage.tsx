@@ -176,6 +176,9 @@ export function SettingsPage({ onNavigate, onSearch, view = 'general' }: Setting
   const [licenseFields, setLicenseFields] = useState<AssetFieldDef[]>([]);
   const [customTarget, setCustomTarget] = useState<'asset' | 'vendor' | 'license'>('asset');
 
+  // Catalog cache helper message
+  const [catalogMsg, setCatalogMsg] = useState<string | null>(null);
+
   const addCurrentField = () => {
     const def: AssetFieldDef = { key: '', label: '', required: false, placeholder: '', type: 'text' };
     if (customTarget === 'asset') setAssetFields((arr) => [...arr, def]);
@@ -477,6 +480,14 @@ export function SettingsPage({ onNavigate, onSearch, view = 'general' }: Setting
     }
   };
   console.log('consentRequired', consentRequired);
+  const clearCatalogCache = () => {
+    try {
+      localStorage.removeItem('catalog.categories');
+    } catch {}
+    try { window.dispatchEvent(new Event('assetflow:catalog-cleared')); } catch {}
+    setCatalogMsg('Catalog cache cleared');
+    setTimeout(() => setCatalogMsg(null), 3000);
+  };
   return (
     <AssetFlowLayout
       breadcrumbs={[
@@ -843,6 +854,16 @@ export function SettingsPage({ onNavigate, onSearch, view = 'general' }: Setting
                     </label>
                   </div>
 
+                </div>
+                <div className="mt-3 flex items-center justify-between p-4 rounded-xl bg-[#fff] border border-[rgba(0,0,0,0.06)]">
+                  <div>
+                    <p className="font-medium text-[#1a1d2e]">Catalog Cache</p>
+                    <p className="text-sm text-[#64748b]">Clear the local client cache of categories/types fetched from the database. After clearing, pages will re-fetch the catalog.</p>
+                  </div>
+                  <div className="flex flex-col items-end gap-2">
+                    <Button type="button" variant="outline" className="border-[#ef4444] text-[#ef4444] hover:bg-[#fee2e2]" onClick={clearCatalogCache}>Clear Catalog Cache</Button>
+                    {catalogMsg && <p className="text-xs text-[#10b981]">{catalogMsg}</p>}
+                  </div>
                 </div>
               </div>
             </TabsContent>

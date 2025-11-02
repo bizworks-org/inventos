@@ -26,7 +26,7 @@ async function http<T>(input: RequestInfo, init?: RequestInit): Promise<T> {
 type DbAsset = {
   id: string;
   name: string;
-  type: Asset['type'];
+  type_id: string | null;
   serial_number: string;
   assigned_to: string;
   assigned_email?: string | null;
@@ -76,10 +76,11 @@ function mapDbAsset(a: DbAsset): Asset {
       specs = a.specifications as any;
     }
   }
+  console.log('specs for asset', a);
   return {
     id: a.id,
     name: a.name,
-    type: a.type,
+    typeId: a.type_id || '',
     serialNumber: a.serial_number,
     assignedTo: a.assigned_to,
     // @ts-ignore augment type at runtime
@@ -99,10 +100,20 @@ function mapDbAsset(a: DbAsset): Asset {
 }
 
 function mapUiAssetToDb(a: Asset): DbAsset {
+  // Coerce UI type_id/typeId to a valid positive number; omit if empty/invalid to let server preserve existing
+  const rawType = (a as any).type_id ?? (a as any).typeId;
+  let outgoingTypeId: number | undefined = undefined;
+  if (rawType !== null && rawType !== undefined) {
+    const s = String(rawType).trim();
+    if (s !== '') {
+      const n = Number(s);
+      if (Number.isFinite(n) && n > 0) outgoingTypeId = n;
+    }
+  }
   return {
     id: a.id,
     name: a.name,
-    type: a.type,
+    type_id: outgoingTypeId as any,
     serial_number: a.serialNumber,
     assigned_to: a.assignedTo,
     // @ts-ignore include optional fields if present
@@ -128,6 +139,7 @@ export async function fetchAssets(): Promise<Asset[]> {
 
 export async function fetchAssetById(id: string): Promise<Asset> {
   const row = await http<DbAsset>(`/api/assets/${encodeURIComponent(id)}`);
+  console.log('Fetched asset row:', row, encodeURIComponent(id));
   return mapDbAsset(row);
 }
 

@@ -16,8 +16,25 @@ export async function GET(_req: NextRequest, ctx: any) {
   try {
     const { id } = await resolveParams(ctx);
     const rows = await query('SELECT * FROM assets WHERE id = :id', { id });
+    console.log('Fetched asset rows:', rows);
     if (!rows.length) return NextResponse.json({ error: 'Not found' }, { status: 404 });
-    return NextResponse.json(rows[0]);
+
+    // Some legacy rows may have type_id = 0 due to older writes. Attempt a best-effort
+    // resolution using the legacy `type` column if present, without mutating the DB.
+    const rec: any = rows[0];
+    const rawTypeId = rec?.type_id;
+    if ((rawTypeId === 0 || rawTypeId === '0' || rawTypeId === null || rawTypeId === undefined) && rec?.type) {
+      try {
+        const t = await query('SELECT id FROM asset_types WHERE name = :name LIMIT 1', { name: rec.type });
+        if (t && t.length) {
+          rec.type_id = Number(t[0].id);
+          console.warn(`GET /api/assets/${id}: resolved missing type_id from legacy type='${rec.type}' -> ${rec.type_id}`);
+        }
+      } catch (e) {
+        console.warn(`GET /api/assets/${id}: failed to resolve type_id from legacy type`, e);
+      }
+    }
+    return NextResponse.json(rec);
   } catch (e: any) {
     console.error(`GET /api/assets failed:`, e);
     return NextResponse.json({ error: e?.message || 'Database error' }, { status: 500 });
@@ -30,10 +47,39 @@ export async function PUT(req: NextRequest, ctx: any) {
   try {
     const { id } = await resolveParams(ctx);
     const body = await req.json();
+    // Resolve incoming type -> id if necessary, and avoid overwriting with 0 or empty
+    let typeId: number | undefined = undefined;
+    if (body && (body.type_id !== undefined && body.type_id !== null)) {
+      const raw = String(body.type_id).trim();
+      const n = Number(raw);
+      if (raw !== '' && Number.isFinite(n) && n > 0) {
+        typeId = n;
+      }
+    }
+    if (typeId === undefined && body && body.type) {
+      try {
+        const rows = await query('SELECT id FROM asset_types WHERE name = :name LIMIT 1', { name: body.type });
+        if (rows && rows.length) typeId = Number(rows[0].id);
+      } catch (e) {
+        // ignore lookup failures
+      }
+    }
+    // If still undefined, preserve existing DB value so we don't clobber it to 0
+    if (typeId === undefined) {
+      const existing = await query('SELECT type_id FROM assets WHERE id = :id LIMIT 1', { id });
+      if (!existing || !existing.length) {
+        return NextResponse.json({ error: 'Not found' }, { status: 404 });
+      }
+      typeId = Number(existing[0].type_id);
+    }
+    body.type_id = typeId;
+    delete body.type;
+
     if (body && typeof body.specifications === 'object') {
       body.specifications = JSON.stringify(body.specifications);
     }
-    const sql = `UPDATE assets SET name=:name, type=:type, serial_number=:serial_number, assigned_to=:assigned_to, assigned_email=:assigned_email, consent_status=:consent_status, department=:department, status=:status,
+
+    const sql = `UPDATE assets SET name=:name, type_id=:type_id, serial_number=:serial_number, assigned_to=:assigned_to, assigned_email=:assigned_email, consent_status=:consent_status, department=:department, status=:status,
       purchase_date=:purchase_date, end_of_support_date=:end_of_support_date, end_of_life_date=:end_of_life_date, warranty_expiry=:warranty_expiry, cost=:cost, location=:location, specifications=:specifications
       WHERE id=:id`;
     await query(sql, { ...body, id });

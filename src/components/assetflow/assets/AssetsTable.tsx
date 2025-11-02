@@ -1,7 +1,7 @@
 import { motion } from 'motion/react';
 import { Edit2, Trash2, ExternalLink, Mail } from 'lucide-react';
 import { Asset } from '../../../lib/data';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { usePrefs } from '../layout/PrefsContext';
 import { sendAssetConsent } from '../../../lib/api';
 import { toast } from 'sonner@2.0.3';
@@ -69,6 +69,92 @@ export function AssetsTable({ assets, onNavigate, onDelete, canWrite = true }: A
   const [consentRequired, setConsentRequired] = useState<boolean>(true);
   const formatCurrency = useCurrencyFormatter();
   const { density } = usePrefs();
+
+  // Catalog cache and mapping from type -> category
+  type UiCategory = { id: number; name: string; sort?: number; types: Array<{ id?: number; name: string; sort?: number }> };
+  const [catalog, setCatalog] = useState<UiCategory[] | null>(null);
+  useEffect(() => {
+    const loadFromStorage = () => {
+      try {
+        const raw = localStorage.getItem('catalog.categories');
+        if (!raw) return false;
+        const parsed = JSON.parse(raw);
+        if (!Array.isArray(parsed)) return false;
+        setCatalog(parsed as UiCategory[]);
+        return true;
+      } catch {
+        return false;
+      }
+    };
+
+    const fetchAndStore = async () => {
+      try {
+        const res = await fetch('/api/catalog', { cache: 'no-store' });
+        if (!res.ok) return;
+        const data = await res.json();
+        const cats = Array.isArray(data) ? data : data?.categories;
+        if (Array.isArray(cats)) {
+          try { localStorage.setItem('catalog.categories', JSON.stringify(cats)); } catch {}
+          setCatalog(cats as UiCategory[]);
+        }
+      } catch {}
+    };
+
+    // Prefer localStorage first; if missing, fetch from API
+    if (!loadFromStorage()) fetchAndStore();
+
+    const onClear = () => fetchAndStore();
+    window.addEventListener('assetflow:catalog-cleared', onClear as EventListener);
+    return () => window.removeEventListener('assetflow:catalog-cleared', onClear as EventListener);
+  }, []);
+
+  // Build lookups to resolve type_id -> category and type name -> category as well as id->type name
+  const catalogMaps = useMemo(() => {
+    const idToCategory = new Map<string, string>();
+    const nameToCategory = new Map<string, string>();
+    const idToTypeName = new Map<string, string>();
+    if (catalog && catalog.length) {
+      for (const c of catalog) {
+        for (const t of c.types || []) {
+          if (t.id !== undefined && t.id !== null) {
+            idToCategory.set(String(t.id), c.name);
+            idToTypeName.set(String(t.id), t.name);
+          }
+          if (t.name) nameToCategory.set(t.name, c.name);
+        }
+      }
+    }
+    return { idToCategory, nameToCategory, idToTypeName };
+  }, [catalog]);
+
+  const resolveTypeName = (asset: Asset) => {
+    // Prefer explicit type_name if server provides it
+    const explicit = (asset as any).type_name;
+    if (explicit) return explicit;
+    // Legacy string type
+    if ((asset as any).type) return (asset as any).type as string;
+    // If we have a numeric type_id, resolve it from catalog
+    const tid = (asset as any).type_id;
+    if (tid !== undefined && tid !== null) {
+      return catalogMaps.idToTypeName.get(String(tid)) ?? '';
+    }
+    return '';
+  };
+
+  const categoryOfAsset = (asset: Asset) => {
+    const tid = (asset as any).type_id;
+    if (tid !== undefined && tid !== null) {
+      const from = catalogMaps.idToCategory.get(String(tid));
+      if (from) return from;
+    }
+    const t = (asset as any).type as string | undefined;
+    if (t) {
+      const from = catalogMaps.nameToCategory.get(t);
+      if (from) return from;
+      return t;
+    }
+    return '';
+  };
 
   useEffect(() => {
     try {
@@ -184,18 +270,21 @@ export function AssetsTable({ assets, onNavigate, onDelete, canWrite = true }: A
                   <div className="flex items-center gap-3">
                     <div className={`
                       ${iconBox} rounded-lg flex items-center justify-center font-semibold
-                      ${asset.type === 'Laptop' ? 'bg-[#6366f1]/10 text-[#6366f1]' : ''}
-                      ${asset.type === 'Desktop' ? 'bg-[#8b5cf6]/10 text-[#8b5cf6]' : ''}
-                      ${asset.type === 'Server' ? 'bg-[#ec4899]/10 text-[#ec4899]' : ''}
-                      ${asset.type === 'Monitor' ? 'bg-[#f59e0b]/10 text-[#f59e0b]' : ''}
-                      ${asset.type === 'Printer' ? 'bg-[#10b981]/10 text-[#10b981]' : ''}
-                      ${asset.type === 'Phone' ? 'bg-[#3b82f6]/10 text-[#3b82f6]' : ''}
+                        ${(() => {
+                        const cat = (categoryOfAsset(asset) || '').toLowerCase();
+                        if (cat.includes('workstat')) return 'bg-[#6366f1]/10 text-[#6366f1]';
+                        if (cat.includes('server') || cat.includes('storage')) return 'bg-[#ec4899]/10 text-[#ec4899]';
+                        if (cat.includes('network')) return 'bg-[#10b981]/10 text-[#10b981]';
+                        if (cat.includes('accessor')) return 'bg-[#f59e0b]/10 text-[#f59e0b]';
+                        if (cat.includes('electronic')) return 'bg-[#3b82f6]/10 text-[#3b82f6]';
+                        return 'bg-[#e5e7eb] text-[#6b7280]';
+                      })()}
                     `}>
-                      {asset.type.substring(0, 2).toUpperCase()}
+                      {(() => { const name = resolveTypeName(asset) || String((asset as any).type_id ?? (asset as any).type ?? ''); return (name || '').substring(0, 2).toUpperCase(); })()}
                     </div>
                     <div>
                       <p className={`font-semibold text-[#1a1d2e] ${nameText}`}>{asset.name}</p>
-                      <p className={`${subText} text-[#94a3b8]`}>{asset.type}</p>
+                      <p className={`${subText} text-[#94a3b8]`}>{resolveTypeName(asset)}</p>
                     </div>
                   </div>
                 </td>

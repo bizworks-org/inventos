@@ -41,7 +41,7 @@ export async function POST(req: NextRequest) {
         {
           id: a.id,
           name: a.name,
-          type: a.type,
+          type: a.typeId,
           serial_number: a.serialNumber,
           assigned_to: a.assignedTo,
           department: a.department,

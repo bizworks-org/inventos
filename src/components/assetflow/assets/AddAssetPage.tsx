@@ -1,9 +1,10 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { usePrefs } from '../layout/PrefsContext';
 import { motion } from 'motion/react';
 import { ArrowLeft, Save, X } from 'lucide-react';
+import { toast } from 'sonner@2.0.3';
 import { AssetFlowLayout } from '../layout/AssetFlowLayout';
 import { Asset, AssetFieldDef, AssetFieldType } from '../../../lib/data';
 import { createAsset, sendAssetConsent } from '../../../lib/api';
@@ -15,41 +16,37 @@ interface AddAssetPageProps {
   onSearch?: (query: string) => void;
 }
 
-type AssetCategory = 'Workstations' | 'Servers / Storage' | 'Networking' | 'Accessories' | 'Electronic Devices' | 'Others';
-const assetTypes: Asset['type'][] = ['Laptop', 'Desktop', 'Server', 'Monitor', 'Printer', 'Phone'];
-const categoryList: AssetCategory[] = ['Workstations', 'Servers / Storage', 'Networking', 'Accessories', 'Electronic Devices', 'Others'];
-const categoryOfType = (t: Asset['type']): AssetCategory => {
-  switch (t) {
-    case 'Laptop':
-    case 'Desktop':
-      return 'Workstations';
-    case 'Server':
-      return 'Servers / Storage';
-    case 'Monitor':
-      return 'Accessories';
-    case 'Phone':
-      return 'Electronic Devices';
-    case 'Printer':
-    default:
-      return 'Others';
+type AssetCategory = string;
+// No hard-coded categories/types: prefer client cache (localStorage) and fall back to API when cache is cleared.
+
+// Try to read catalog from localStorage (written by admin UI). Fallback to builtins.
+type UiCategory = { id: number; name: string; sort?: number; types: Array<{ id?: number; name: string; sort?: number }> };
+
+const readCatalogFromStorage = (): UiCategory[] | null => {
+  try {
+    const raw = localStorage.getItem('catalog.categories');
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    if (!Array.isArray(parsed)) return null;
+    return parsed as UiCategory[];
+  } catch (e) {
+    return null;
   }
 };
-const typesByCategory = (cat: AssetCategory): Asset['type'][] => {
-  switch (cat) {
-    case 'Workstations':
-      return ['Laptop', 'Desktop'];
-    case 'Servers / Storage':
-      return ['Server'];
-    case 'Networking':
-      return [] as Asset['type'][]; // no built-in types yet
-    case 'Accessories':
-      return ['Monitor'];
-    case 'Electronic Devices':
-      return ['Phone'];
-    case 'Others':
-    default:
-      return ['Printer'];
+
+const categoryOfTypeFromCatalog = (cats: UiCategory[] | null, t: Asset['typeId']): string | null => {
+  if (!cats) return null;
+  for (const c of cats) {
+    if (Array.isArray(c.types) && c.types.some((x) => x.name === t)) return c.name;
   }
+  return null;
+};
+
+const typesByCategoryFromCatalog = (cats: UiCategory[] | null, catName: string): Asset['typeId'][] => {
+  if (!cats) return [] as Asset['typeId'][];
+  const c = cats.find((x) => x.name === catName);
+  if (!c) return [] as Asset['typeId'][];
+  return c.types.map((t) => t.name as Asset['typeId']);
 };
 const assetStatuses: Asset['status'][] = [
   'In Store (New)',
@@ -65,8 +62,9 @@ const assetStatuses: Asset['status'][] = [
 export function AddAssetPage({ onNavigate, onSearch }: AddAssetPageProps) {
   const { currencySymbol, formatCurrency } = usePrefs();
   const [consentRequired, setConsentRequired] = useState<boolean>(true);
-  const [assetType, setAssetType] = useState<Asset['type']>('Laptop');
-  const [category, setCategory] = useState<AssetCategory>(categoryOfType('Laptop'));
+  const [assetType, setAssetType] = useState<Asset['typeId'] | ''>('');
+  const [assetTypeId, setAssetTypeId] = useState<number | string | ''>('');
+  const [category, setCategory] = useState<AssetCategory>('');
   const [formData, setFormData] = useState({
     name: '',
     serialNumber: '',
@@ -89,7 +87,99 @@ export function AddAssetPage({ onNavigate, onSearch }: AddAssetPageProps) {
   const [fieldDefs, setFieldDefs] = useState<AssetFieldDef[]>([]);
   const [customFieldValues, setCustomFieldValues] = useState<Record<string, string>>({});
   const [extraFields, setExtraFields] = useState<Array<{ key: string; value: string }>>([]); // for backward compat free-form
+  const [saving, setSaving] = useState(false);
+  // Catalog from localStorage (optional)
+  const [catalog, setCatalog] = useState<UiCategory[] | null>(null);
 
+  // Prefer localStorage first; if absent, fetch from public API and cache. On 'assetflow:catalog-cleared' re-fetch from API.
+  const fetchAndCacheCatalog = async () => {
+    try {
+      const stored = readCatalogFromStorage();
+      if (stored) {
+        setCatalog(stored);
+        return;
+      }
+    } catch {}
+
+    try {
+      const res = await fetch('/api/catalog', { cache: 'no-store' });
+      if (!res.ok) throw new Error('Failed to fetch catalog');
+      const data = await res.json();
+      const cats = Array.isArray(data) ? data : data?.categories;
+      if (Array.isArray(cats)) {
+        try { localStorage.setItem('catalog.categories', JSON.stringify(cats)); } catch {}
+        setCatalog(cats as UiCategory[]);
+      }
+    } catch (e) {
+      // leave catalog null
+    }
+  };
+
+  useEffect(() => {
+    fetchAndCacheCatalog();
+    const onClear = () => {
+      (async () => {
+        try {
+          const res = await fetch('/api/catalog', { cache: 'no-store' });
+          if (!res.ok) return;
+          const data = await res.json();
+          const cats = Array.isArray(data) ? data : data?.categories;
+          if (Array.isArray(cats)) {
+            try { localStorage.setItem('catalog.categories', JSON.stringify(cats)); } catch {}
+            setCatalog(cats as UiCategory[]);
+          }
+        } catch {}
+      })();
+    };
+    window.addEventListener('assetflow:catalog-cleared', onClear as EventListener);
+    return () => window.removeEventListener('assetflow:catalog-cleared', onClear as EventListener);
+  }, []);
+
+  const categoryList = useMemo(() => {
+    if (catalog && catalog.length) return catalog.map((c) => c.name);
+    return [] as string[];
+  }, [catalog]);
+
+  // Build id->name map and easy accessors for category -> types with ids
+  const catalogMaps = useMemo(() => {
+    const idToName = new Map<string, string>();
+    const nameToId = new Map<string, number>();
+    if (catalog && catalog.length) {
+      for (const c of catalog) for (const t of c.types || []) {
+        if (t.id !== undefined && t.id !== null) idToName.set(String(t.id), t.name);
+        if (t.name && t.id !== undefined && t.id !== null) nameToId.set(t.name, Number(t.id));
+      }
+    }
+    return { idToName, nameToId };
+  }, [catalog]);
+
+  const assetTypes = useMemo(() => {
+    if (catalog && catalog.length) {
+      const all: string[] = [];
+      for (const c of catalog) for (const t of c.types) if (!all.includes(t.name)) all.push(t.name);
+      return all as Asset['typeId'][];
+    }
+    return [] as Asset['typeId'][];
+  }, [catalog]);
+
+  const typesByCategoryWithIds = (cat: AssetCategory) => {
+    if (!catalog) return [] as Array<{ id?: number; name: string }>;
+    const c = catalog.find((x) => x.name === cat);
+    if (!c) return [] as Array<{ id?: number; name: string }>;
+    return c.types.map((t) => ({ id: t.id, name: t.name }));
+  };
+
+  const categoryOfType = (t: Asset['typeId']): AssetCategory => {
+    const from = categoryOfTypeFromCatalog(catalog, t);
+    if (from) return from as AssetCategory;
+    return t as unknown as AssetCategory;
+  };
+
+  const typesByCategory = (cat: AssetCategory): Asset['typeId'][] => {
+    const list = typesByCategoryFromCatalog(catalog, cat as string);
+    if (list && list.length) return list;
+    return [] as Asset['typeId'][];
+  };
   useEffect(() => {
     try {
       const s = localStorage.getItem('assetflow:settings');
@@ -112,11 +202,18 @@ export function AddAssetPage({ onNavigate, onSearch }: AddAssetPageProps) {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
+    // Enforce that a valid asset type is selected from the catalog-derived list.
+    if (!assetType) {
+      toast.error('Please select an asset type from the catalog before saving.');
+      return;
+    }
+
     // Create new asset
+    setSaving(true);
     const newAsset: Asset = {
       id: `AST-${Date.now()}`,
       name: formData.name,
-      type: assetType,
+      typeId: assetType as Asset['typeId'],
       serialNumber: formData.serialNumber,
       assignedTo: formData.assignedTo,
       department: formData.department,
@@ -139,9 +236,15 @@ export function AddAssetPage({ onNavigate, onSearch }: AddAssetPageProps) {
       }
     };
 
+    // Attach type_id for newer schema if we have one (keep type for backward compatibility)
+    if (assetTypeId) {
+      // @ts-ignore allow additional property
+      (newAsset as any).type_id = typeof assetTypeId === 'string' && /^\\d+$/.test(String(assetTypeId)) ? Number(assetTypeId) : assetTypeId;
+    }
+
     // Log event
     logAssetCreated(newAsset.id, newAsset.name, 'admin@company.com', {
-      type: newAsset.type,
+      typeId: newAsset.typeId,
       cost: newAsset.cost
     });
 
@@ -165,8 +268,8 @@ export function AddAssetPage({ onNavigate, onSearch }: AddAssetPageProps) {
     } catch (err) {
       console.error('Failed to create asset', err);
     }
-
     // Navigate back to assets page
+    setSaving(false);
     onNavigate?.('assets');
   };
 
@@ -224,9 +327,16 @@ export function AddAssetPage({ onNavigate, onSearch }: AddAssetPageProps) {
                         type="button"
                         onClick={() => {
                           setCategory(cat);
-                          const options = typesByCategory(cat);
-                          if (options.length && !options.includes(assetType)) {
-                            setAssetType(options[0]);
+                          const options = typesByCategoryWithIds(cat);
+                          if (options.length) {
+                            const first = options[0];
+                            if (first.id !== undefined && first.id !== null) {
+                              setAssetTypeId(first.id);
+                              setAssetType(first.name as Asset['typeId']);
+                            } else {
+                              setAssetType(first.name as Asset['typeId']);
+                              setAssetTypeId('');
+                            }
                           }
                         }}
                         className={`
@@ -248,12 +358,23 @@ export function AddAssetPage({ onNavigate, onSearch }: AddAssetPageProps) {
                     <label className="block text-sm font-medium text-[#1a1d2e] mb-2">Asset Type *</label>
                   <select
                     required
-                    value={assetType}
-                    onChange={(e) => setAssetType(e.target.value as Asset['type'])}
+                    value={assetTypeId ? String(assetTypeId) : assetType}
+                    onChange={(e) => {
+                      const v = e.target.value;
+                      // Prefer numeric id values when present in catalog
+                      if (catalog && catalog.length && catalogMaps.idToName.has(v)) {
+                        setAssetTypeId(Number(v));
+                        setAssetType(catalogMaps.idToName.get(v) as Asset['typeId']);
+                      } else {
+                        // legacy: name value
+                        setAssetType(String(v) as Asset['typeId']);
+                        setAssetTypeId('');
+                      }
+                    }}
                     className="w-full px-4 py-2.5 rounded-lg bg-[#f8f9ff] border border-[rgba(0,0,0,0.05)] text-[#1a1d2e] focus:outline-none focus:ring-2 focus:ring-[#6366f1]/20 focus:border-[#6366f1] transition-all duration-200 cursor-pointer"
                   >
-                    {(typesByCategory(category).length ? typesByCategory(category) : assetTypes).map((t) => (
-                      <option key={t} value={t}>{t}</option>
+                    {(typesByCategoryWithIds(category).length ? typesByCategoryWithIds(category) : (catalog && catalog.length ? catalog.flatMap(c => c.types) : assetTypes.map((n) => ({ name: n } as any)))).map((t: any) => (
+                      <option key={t.id ?? t.name} value={t.id !== undefined && t.id !== null ? String(t.id) : t.name}>{t.name}</option>
                     ))}
                   </select>
                 </div>
@@ -601,10 +722,11 @@ export function AddAssetPage({ onNavigate, onSearch }: AddAssetPageProps) {
               <div className="space-y-3">
                 <button
                   type="submit"
-                  className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-white text-[#6366f1] rounded-lg font-semibold hover:shadow-lg transition-all duration-200"
+                  disabled={!assetType || saving}
+                  className={`w-full flex items-center justify-center gap-2 px-4 py-3 bg-white text-[#6366f1] rounded-lg font-semibold transition-all duration-200 ${(!assetType || saving) ? 'opacity-50 cursor-not-allowed' : 'hover:shadow-lg'}`}
                 >
                   <Save className="h-4 w-4" />
-                  Save Asset
+                  {saving ? 'Saving…' : 'Save Asset'}
                 </button>
                 <button
                   type="button"

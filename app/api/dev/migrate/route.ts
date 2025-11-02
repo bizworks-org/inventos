@@ -168,24 +168,219 @@ export async function POST(req: NextRequest) {
         INDEX idx_type_category (category_id)
       ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
     `);
-    // Seed common categories/types (idempotent)
+    // Seed categories/types using comprehensive list provided by the team
     await conn.query(`
-      INSERT IGNORE INTO asset_categories (id, name, sort) VALUES
-        (1, 'Workstations', 10),
-        (2, 'Servers / Storage', 20),
-        (3, 'Networking', 30),
-        (4, 'Accessories', 40),
-        (5, 'Electronic Devices', 50),
-        (6, 'Others', 60)
-    `);
-    await conn.query(`
-      INSERT IGNORE INTO asset_types (name, category_id, sort) VALUES
-        ('Laptop', 1, 10),
-        ('Desktop', 1, 20),
-        ('Server', 2, 10),
-        ('Monitor', 4, 10),
-        ('Printer', 6, 10),
-        ('Phone', 5, 10)
+      START TRANSACTION;
+
+      SET FOREIGN_KEY_CHECKS = 1;
+
+      -- Insert categories (adjust sort values as needed)
+      INSERT INTO asset_categories (\`name\`, \`sort\`)
+      VALUES
+        ('Endpoints', 10),
+        ('Networking', 20),
+        ('Virtualization', 30),
+        ('Mobile', 40),
+        ('Servers', 50),
+        ('Storage', 60),
+        ('Cloud Services', 70),
+        ('Security', 80),
+        ('Software / Applications', 90),
+        ('Identity & Access Management (IAM)', 100),
+        ('IT Service Management (ITSM)', 110),
+        ('Backup & Disaster Recovery', 120),
+        ('Monitoring & Observability', 130),
+        ('Data Center Infrastructure', 140),
+        ('Others', 150);
+
+      -- Insert types for each category using subselect to resolve category id
+      -- Endpoints
+      INSERT INTO asset_types (category_id, \`name\`, \`sort\`)
+      SELECT id, 'Desktops', 11 FROM asset_categories WHERE name = 'Endpoints';
+      INSERT INTO asset_types (category_id, \`name\`, \`sort\`)
+      SELECT id, 'Laptops', 12 FROM asset_categories WHERE name = 'Endpoints';
+      INSERT INTO asset_types (category_id, \`name\`, \`sort\`)
+      SELECT id, 'Workstations', 13 FROM asset_categories WHERE name = 'Endpoints';
+      INSERT INTO asset_types (category_id, \`name\`, \`sort\`)
+      SELECT id, 'Printers', 14 FROM asset_categories WHERE name = 'Endpoints';
+      INSERT INTO asset_types (category_id, \`name\`, \`sort\`)
+      SELECT id, 'Peripherals', 15 FROM asset_categories WHERE name = 'Endpoints';
+      INSERT INTO asset_types (category_id, \`name\`, \`sort\`)
+      SELECT id, 'Endpoint Security', 16 FROM asset_categories WHERE name = 'Endpoints';
+      INSERT INTO asset_types (category_id, \`name\`, \`sort\`)
+      SELECT id, 'OS Licensing', 17 FROM asset_categories WHERE name = 'Endpoints';
+
+      -- Networking
+      INSERT INTO asset_types (category_id, \`name\`, \`sort\`)
+      SELECT id, 'Routers', 21 FROM asset_categories WHERE name = 'Networking';
+      INSERT INTO asset_types (category_id, \`name\`, \`sort\`)
+      SELECT id, 'Switches', 22 FROM asset_categories WHERE name = 'Networking';
+      INSERT INTO asset_types (category_id, \`name\`, \`sort\`)
+      SELECT id, 'Firewalls', 23 FROM asset_categories WHERE name = 'Networking';
+      INSERT INTO asset_types (category_id, \`name\`, \`sort\`)
+      SELECT id, 'Access Points', 24 FROM asset_categories WHERE name = 'Networking';
+      INSERT INTO asset_types (category_id, \`name\`, \`sort\`)
+      SELECT id, 'VPN', 25 FROM asset_categories WHERE name = 'Networking';
+      INSERT INTO asset_types (category_id, \`name\`, \`sort\`)
+      SELECT id, 'DDI (DNS/DHCP/IPAM)', 26 FROM asset_categories WHERE name = 'Networking';
+      INSERT INTO asset_types (category_id, \`name\`, \`sort\`)
+      SELECT id, 'Load Balancers', 27 FROM asset_categories WHERE name = 'Networking';
+      INSERT INTO asset_types (category_id, \`name\`, \`sort\`)
+      SELECT id, 'Network Monitoring', 28 FROM asset_categories WHERE name = 'Networking';
+
+      -- Virtualization
+      INSERT INTO asset_types (category_id, \`name\`, \`sort\`)
+      SELECT id, 'Server Virtualization', 31 FROM asset_categories WHERE name = 'Virtualization';
+      INSERT INTO asset_types (category_id, \`name\`, \`sort\`)
+      SELECT id, 'Desktop Virtualization', 32 FROM asset_categories WHERE name = 'Virtualization';
+      INSERT INTO asset_types (category_id, \`name\`, \`sort\`)
+      SELECT id, 'Network Virtualization', 33 FROM asset_categories WHERE name = 'Virtualization';
+      INSERT INTO asset_types (category_id, \`name\`, \`sort\`)
+      SELECT id, 'Containers', 34 FROM asset_categories WHERE name = 'Virtualization';
+      INSERT INTO asset_types (category_id, \`name\`, \`sort\`)
+      SELECT id, 'HCI', 35 FROM asset_categories WHERE name = 'Virtualization';
+
+      -- Mobile
+      INSERT INTO asset_types (category_id, \`name\`, \`sort\`)
+      SELECT id, 'Smartphones', 41 FROM asset_categories WHERE name = 'Mobile';
+      INSERT INTO asset_types (category_id, \`name\`, \`sort\`)
+      SELECT id, 'Tablets', 42 FROM asset_categories WHERE name = 'Mobile';
+      INSERT INTO asset_types (category_id, \`name\`, \`sort\`)
+      SELECT id, 'MDM/MAM Tools', 43 FROM asset_categories WHERE name = 'Mobile';
+      INSERT INTO asset_types (category_id, \`name\`, \`sort\`)
+      SELECT id, 'BYOD Devices', 44 FROM asset_categories WHERE name = 'Mobile';
+      INSERT INTO asset_types (category_id, \`name\`, \`sort\`)
+      SELECT id, 'Mobile Security', 45 FROM asset_categories WHERE name = 'Mobile';
+
+      -- Servers
+      INSERT INTO asset_types (category_id, \`name\`, \`sort\`)
+      SELECT id, 'Physical Servers', 51 FROM asset_categories WHERE name = 'Servers';
+      INSERT INTO asset_types (category_id, \`name\`, \`sort\`)
+      SELECT id, 'Rack/Blade Servers', 52 FROM asset_categories WHERE name = 'Servers';
+      INSERT INTO asset_types (category_id, \`name\`, \`sort\`)
+      SELECT id, 'Tower Servers', 53 FROM asset_categories WHERE name = 'Servers';
+      INSERT INTO asset_types (category_id, \`name\`, \`sort\`)
+      SELECT id, 'Firmware/BIOS Tracking', 54 FROM asset_categories WHERE name = 'Servers';
+
+      -- Storage
+      INSERT INTO asset_types (category_id, \`name\`, \`sort\`)
+      SELECT id, 'SAN', 61 FROM asset_categories WHERE name = 'Storage';
+      INSERT INTO asset_types (category_id, \`name\`, \`sort\`)
+      SELECT id, 'NAS', 62 FROM asset_categories WHERE name = 'Storage';
+      INSERT INTO asset_types (category_id, \`name\`, \`sort\`)
+      SELECT id, 'DAS', 63 FROM asset_categories WHERE name = 'Storage';
+      INSERT INTO asset_types (category_id, \`name\`, \`sort\`)
+      SELECT id, 'Storage Arrays', 64 FROM asset_categories WHERE name = 'Storage';
+      INSERT INTO asset_types (category_id, \`name\`, \`sort\`)
+      SELECT id, 'Backup Appliances', 65 FROM asset_categories WHERE name = 'Storage';
+      INSERT INTO asset_types (category_id, \`name\`, \`sort\`)
+      SELECT id, 'Cloud Storage', 66 FROM asset_categories WHERE name = 'Storage';
+
+      -- Cloud Services
+      INSERT INTO asset_types (category_id, \`name\`, \`sort\`)
+      SELECT id, 'IaaS (AWS, Azure, GCP)', 71 FROM asset_categories WHERE name = 'Cloud Services';
+      INSERT INTO asset_types (category_id, \`name\`, \`sort\`)
+      SELECT id, 'PaaS', 72 FROM asset_categories WHERE name = 'Cloud Services';
+      INSERT INTO asset_types (category_id, \`name\`, \`sort\`)
+      SELECT id, 'SaaS', 73 FROM asset_categories WHERE name = 'Cloud Services';
+      INSERT INTO asset_types (category_id, \`name\`, \`sort\`)
+      SELECT id, 'Cloud Backups', 74 FROM asset_categories WHERE name = 'Cloud Services';
+
+      -- Security
+      INSERT INTO asset_types (category_id, \`name\`, \`sort\`)
+      SELECT id, 'SIEM', 82 FROM asset_categories WHERE name = 'Security';
+      INSERT INTO asset_types (category_id, \`name\`, \`sort\`)
+      SELECT id, 'IDS/IPS', 83 FROM asset_categories WHERE name = 'Security';
+      INSERT INTO asset_types (category_id, \`name\`, \`sort\`)
+      SELECT id, 'Endpoint Protection', 84 FROM asset_categories WHERE name = 'Security';
+      INSERT INTO asset_types (category_id, \`name\`, \`sort\`)
+      SELECT id, 'MFA', 85 FROM asset_categories WHERE name = 'Security';
+      INSERT INTO asset_types (category_id, \`name\`, \`sort\`)
+      SELECT id, 'Certificates', 86 FROM asset_categories WHERE name = 'Security';
+
+      -- Software / Applications
+      INSERT INTO asset_types (category_id, \`name\`, \`sort\`)
+      SELECT id, 'Licensed Software', 91 FROM asset_categories WHERE name = 'Software / Applications';
+      INSERT INTO asset_types (category_id, \`name\`, \`sort\`)
+      SELECT id, 'Open Source', 92 FROM asset_categories WHERE name = 'Software / Applications';
+      INSERT INTO asset_types (category_id, \`name\`, \`sort\`)
+      SELECT id, 'Productivity Suites', 93 FROM asset_categories WHERE name = 'Software / Applications';
+      INSERT INTO asset_types (category_id, \`name\`, \`sort\`)
+      SELECT id, 'Databases', 94 FROM asset_categories WHERE name = 'Software / Applications';
+      INSERT INTO asset_types (category_id, \`name\`, \`sort\`)
+      SELECT id, 'Middleware', 95 FROM asset_categories WHERE name = 'Software / Applications';
+
+      -- IAM
+      INSERT INTO asset_types (category_id, \`name\`, \`sort\`)
+      SELECT id, 'AD', 101 FROM asset_categories WHERE name = 'Identity & Access Management (IAM)';
+      INSERT INTO asset_types (category_id, \`name\`, \`sort\`)
+      SELECT id, 'Azure AD', 102 FROM asset_categories WHERE name = 'Identity & Access Management (IAM)';
+      INSERT INTO asset_types (category_id, \`name\`, \`sort\`)
+      SELECT id, 'SSO', 103 FROM asset_categories WHERE name = 'Identity & Access Management (IAM)';
+      INSERT INTO asset_types (category_id, \`name\`, \`sort\`)
+      SELECT id, 'LDAP', 104 FROM asset_categories WHERE name = 'Identity & Access Management (IAM)';
+      INSERT INTO asset_types (category_id, \`name\`, \`sort\`)
+      SELECT id, 'Privileged Access', 106 FROM asset_categories WHERE name = 'Identity & Access Management (IAM)';
+
+      -- ITSM
+      INSERT INTO asset_types (category_id, \`name\`, \`sort\`)
+      SELECT id, 'CMDB', 111 FROM asset_categories WHERE name = 'IT Service Management (ITSM)';
+      INSERT INTO asset_types (category_id, \`name\`, \`sort\`)
+      SELECT id, 'Incident Management', 112 FROM asset_categories WHERE name = 'IT Service Management (ITSM)';
+      INSERT INTO asset_types (category_id, \`name\`, \`sort\`)
+      SELECT id, 'Change Management', 113 FROM asset_categories WHERE name = 'IT Service Management (ITSM)';
+      INSERT INTO asset_types (category_id, \`name\`, \`sort\`)
+      SELECT id, 'Asset Tracking', 114 FROM asset_categories WHERE name = 'IT Service Management (ITSM)';
+
+      -- Backup & DR
+      INSERT INTO asset_types (category_id, \`name\`, \`sort\`)
+      SELECT id, 'Backup Software', 121 FROM asset_categories WHERE name = 'Backup & Disaster Recovery';
+      INSERT INTO asset_types (category_id, \`name\`, \`sort\`)
+      SELECT id, 'DR Sites', 122 FROM asset_categories WHERE name = 'Backup & Disaster Recovery';
+      INSERT INTO asset_types (category_id, \`name\`, \`sort\`)
+      SELECT id, 'Cloud Backup', 123 FROM asset_categories WHERE name = 'Backup & Disaster Recovery';
+      INSERT INTO asset_types (category_id, \`name\`, \`sort\`)
+      SELECT id, 'Replication Systems', 124 FROM asset_categories WHERE name = 'Backup & Disaster Recovery';
+
+      -- Monitoring & Observability
+      INSERT INTO asset_types (category_id, \`name\`, \`sort\`)
+      SELECT id, 'NMS', 131 FROM asset_categories WHERE name = 'Monitoring & Observability';
+      INSERT INTO asset_types (category_id, \`name\`, \`sort\`)
+      SELECT id, 'APM', 132 FROM asset_categories WHERE name = 'Monitoring & Observability';
+      INSERT INTO asset_types (category_id, \`name\`, \`sort\`)
+      SELECT id, 'Syslog Servers', 133 FROM asset_categories WHERE name = 'Monitoring & Observability';
+      INSERT INTO asset_types (category_id, \`name\`, \`sort\`)
+      SELECT id, 'SNMP Tools', 134 FROM asset_categories WHERE name = 'Monitoring & Observability';
+      INSERT INTO asset_types (category_id, \`name\`, \`sort\`)
+      SELECT id, 'Performance Dashboards', 135 FROM asset_categories WHERE name = 'Monitoring & Observability';
+
+      -- Data Center Infrastructure
+      INSERT INTO asset_types (category_id, \`name\`, \`sort\`)
+      SELECT id, 'Racks', 141 FROM asset_categories WHERE name = 'Data Center Infrastructure';
+      INSERT INTO asset_types (category_id, \`name\`, \`sort\`)
+      SELECT id, 'PDUs', 142 FROM asset_categories WHERE name = 'Data Center Infrastructure';
+      INSERT INTO asset_types (category_id, \`name\`, \`sort\`)
+      SELECT id, 'UPS', 143 FROM asset_categories WHERE name = 'Data Center Infrastructure';
+      INSERT INTO asset_types (category_id, \`name\`, \`sort\`)
+      SELECT id, 'Cooling', 144 FROM asset_categories WHERE name = 'Data Center Infrastructure';
+      INSERT INTO asset_types (category_id, \`name\`, \`sort\`)
+      SELECT id, 'Cabling', 145 FROM asset_categories WHERE name = 'Data Center Infrastructure';
+      INSERT INTO asset_types (category_id, \`name\`, \`sort\`)
+      SELECT id, 'Physical Space', 146 FROM asset_categories WHERE name = 'Data Center Infrastructure';
+
+      -- Others
+      INSERT INTO asset_types (category_id, \`name\`, \`sort\`)
+      SELECT id, 'Licenses', 151 FROM asset_categories WHERE name = 'Others';
+      INSERT INTO asset_types (category_id, \`name\`, \`sort\`)
+      SELECT id, 'Warranties', 152 FROM asset_categories WHERE name = 'Others';
+      INSERT INTO asset_types (category_id, \`name\`, \`sort\`)
+      SELECT id, 'Support Contracts', 153 FROM asset_categories WHERE name = 'Others';
+      INSERT INTO asset_types (category_id, \`name\`, \`sort\`)
+      SELECT id, 'Procurement Records', 154 FROM asset_categories WHERE name = 'Others';
+      INSERT INTO asset_types (category_id, \`name\`, \`sort\`)
+      SELECT id, 'Documentation', 155 FROM asset_categories WHERE name = 'Others';
+
+      COMMIT;
     `);
 
     return NextResponse.json({ ok: true });

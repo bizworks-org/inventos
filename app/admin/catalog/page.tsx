@@ -39,6 +39,7 @@ export default function CatalogAdminPage() {
             setCategories(cats);
             try {
                 localStorage.setItem('catalog.categories', JSON.stringify(cats));
+                try { window.dispatchEvent(new Event('assetflow:catalog-cleared')); } catch {}
             } catch (e) {
                 // ignore storage errors
             }

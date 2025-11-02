@@ -23,7 +23,7 @@ export function AssetOverviewChart() {
   const data = useMemo(() => {
     const map = new Map<string, number>();
     assets.forEach(a => {
-      map.set(a.type, (map.get(a.type) || 0) + 1);
+      map.set(a.typeId, (map.get(a.typeId) || 0) + 1);
     });
     return Array.from(map.entries()).map(([name, count]) => ({ name, count }));
   }, [assets]);

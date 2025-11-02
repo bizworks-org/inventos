@@ -1,58 +1,59 @@
-'use client';
+"use client";
 
-import { useEffect, useMemo, useState } from 'react';
-import { usePrefs } from '../layout/PrefsContext';
+import React, { useEffect, useMemo, useState } from 'react';
 import { motion } from 'motion/react';
 import { ArrowLeft, Save, X } from 'lucide-react';
-import { AssetFlowLayout } from '../layout/AssetFlowLayout';
-import { Asset, AssetFieldDef } from '../../../lib/data';
-import FieldRenderer from './FieldRenderer';
-import { fetchAssetById, updateAsset, sendAssetConsent } from '../../../lib/api';
-import { logAssetUpdated } from '../../../lib/events';
-import { toast } from 'sonner@2.0.3';
+import { toast } from 'sonner';
 
-interface EditAssetPageProps {
+import { usePrefs } from '../layout/PrefsContext';
+import { AssetFlowLayout } from '../layout/AssetFlowLayout';
+import FieldRenderer from './FieldRenderer';
+
+import { Asset, AssetFieldDef } from '../../../lib/data';
+import { fetchAssetById, updateAsset } from '../../../lib/api';
+import { logAssetUpdated } from '../../../lib/events';
+
+type UiCategory = {
+  id: number;
+  name: string;
+  sort?: number;
+  types: Array<{ id?: number; name: string; sort?: number }>;
+};
+
+type AssetCategory = string;
+
+interface Props {
   assetId: string;
-  onNavigate?: (page: string, id?: string) => void;
+  onNavigate?: (page: string) => void;
   onSearch?: (query: string) => void;
 }
 
-type AssetCategory = 'Workstations' | 'Servers / Storage' | 'Networking' | 'Accessories' | 'Electronic Devices' | 'Others';
-const assetTypes: Asset['type'][] = ['Laptop', 'Desktop', 'Server', 'Monitor', 'Printer', 'Phone'];
-const categoryList: AssetCategory[] = ['Workstations', 'Servers / Storage', 'Networking', 'Accessories', 'Electronic Devices', 'Others'];
-const categoryOfType = (t: Asset['type']): AssetCategory => {
-  switch (t) {
-    case 'Laptop':
-    case 'Desktop':
-      return 'Workstations';
-    case 'Server':
-      return 'Servers / Storage';
-    case 'Monitor':
-      return 'Accessories';
-    case 'Phone':
-      return 'Electronic Devices';
-    case 'Printer':
-    default:
-      return 'Others';
-  }
+// Catalog is always fetched from the server now; no localStorage caching.
+
+const typesByCategoryFromCatalog = (
+  cats: UiCategory[] | null,
+  catName: string,
+): Array<{ id?: number; name: string }> => {
+  if (!cats) return [];
+  const found = cats.find((category) => category.name === catName);
+  if (!found) return [];
+  return found.types.map((type) => ({ id: type.id, name: type.name }));
 };
-const typesByCategory = (cat: AssetCategory): Asset['type'][] => {
-  switch (cat) {
-    case 'Workstations':
-      return ['Laptop', 'Desktop'];
-    case 'Servers / Storage':
-      return ['Server'];
-    case 'Networking':
-      return [] as Asset['type'][];
-    case 'Accessories':
-      return ['Monitor'];
-    case 'Electronic Devices':
-      return ['Phone'];
-    case 'Others':
-    default:
-      return ['Printer'];
+
+const categoryOfTypeIdFromCatalog = (
+  cats: UiCategory[] | null,
+  id: number | string | null | undefined,
+): string | null => {
+  if (!cats || id == null) return null;
+  const targetId = String(id);
+  for (const category of cats) {
+    if (category.types.some((type) => type.id != null && String(type.id) === targetId)) {
+      return category.name;
+    }
   }
+  return null;
 };
+
 const assetStatuses: Asset['status'][] = [
   'In Store (New)',
   'In Store (Used)',
@@ -64,26 +65,18 @@ const assetStatuses: Asset['status'][] = [
   'Lost / Missing',
 ];
 
-export function EditAssetPage({ assetId, onNavigate, onSearch }: EditAssetPageProps) {
+export default function EditAssetPage({ assetId, onNavigate, onSearch }: Props) {
   const { currencySymbol, formatCurrency } = usePrefs();
-  const [asset, setAsset] = useState<Asset | undefined>(undefined);
+
+  const [asset, setAsset] = useState<Asset | null>(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
 
-  useEffect(() => {
-    let cancelled = false;
-    setLoading(true);
-    fetchAssetById(assetId)
-      .then((a) => { if (!cancelled) { setAsset(a); setError(null); } })
-      .catch((e) => { if (!cancelled) setError(e.message || 'Failed to load asset'); })
-      .finally(() => { if (!cancelled) setLoading(false); });
-    return () => { cancelled = true; };
-  }, [assetId]);
+  const [catalog, setCatalog] = useState<UiCategory[] | null>(null);
+  const [category, setCategory] = useState<AssetCategory>('');
+  const [assetTypeId, setAssetTypeId] = useState<string>('');
 
-  const [assetType, setAssetType] = useState<Asset['type']>('Laptop');
-  const [category, setCategory] = useState<AssetCategory>(categoryOfType('Laptop'));
   const [formData, setFormData] = useState({
     name: '',
     serialNumber: '',
@@ -95,37 +88,109 @@ export function EditAssetPage({ assetId, onNavigate, onSearch }: EditAssetPagePr
     eolDate: '',
     cost: '',
     location: '',
-    // Specifications
     processor: '',
     ram: '',
     storage: '',
-    os: ''
+    os: '',
   });
+
   const [fieldDefs, setFieldDefs] = useState<AssetFieldDef[]>([]);
   const [customFieldValues, setCustomFieldValues] = useState<Record<string, string>>({});
   const [extraFields, setExtraFields] = useState<Array<{ key: string; value: string }>>([]);
-  const [assignedEmail, setAssignedEmail] = useState<string>('');
+  const [assignedEmail, setAssignedEmail] = useState('');
   const [consentStatus, setConsentStatus] = useState<Asset['consentStatus']>('none');
-  const [consentRequired, setConsentRequired] = useState<boolean>(true);
+  const [consentRequired, setConsentRequired] = useState(true);
+
   useEffect(() => {
+    let cancelled = false;
+    setLoading(true);
+
+    fetchAssetById(assetId)
+      .then((record) => {
+        console.log('Fetched asset record:', record);
+        if (!cancelled) setAsset(record);
+      })
+      .catch((error) => {
+        console.error('Failed to load asset', error);
+        if (!cancelled) toast.error('Failed to load asset');
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [assetId]);
+
+  const fetchCatalog = async () => {
     try {
-      const s = localStorage.getItem('assetflow:settings');
-      if (s) {
-        const parsed = JSON.parse(s);
-        if (Array.isArray(parsed.assetFields)) setFieldDefs(parsed.assetFields as AssetFieldDef[]);
+      const response = await fetch('/api/catalog', { cache: 'no-store' });
+      if (!response.ok) throw new Error('Failed to load catalog');
+      const payload = await response.json();
+      const categories = Array.isArray(payload)
+        ? payload
+        : Array.isArray(payload?.categories)
+          ? payload.categories
+          : null;
+      if (categories) {
+        setCatalog(categories as UiCategory[]);
       }
-    } catch {}
-    try {
-      const v = document?.documentElement?.getAttribute('data-consent-required');
-      if (v === 'false' || v === '0') setConsentRequired(false);
-    } catch {}
+    } catch (error) {
+      console.error('Failed to refresh catalog', error);
+    }
+  };
+
+  useEffect(() => {
+    fetchCatalog();
+    const handler = () => {
+      fetchCatalog();
+    };
+    window.addEventListener('assetflow:catalog-cleared', handler as EventListener);
+    return () => {
+      window.removeEventListener('assetflow:catalog-cleared', handler as EventListener);
+    };
   }, []);
 
-  // Sync form with loaded asset
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem('assetflow:settings');
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        if (Array.isArray(parsed?.assetFields)) {
+          setFieldDefs(parsed.assetFields as AssetFieldDef[]);
+        }
+      }
+    } catch {
+      // ignore invalid settings cache
+    }
+
+    try {
+      const attr = document?.documentElement?.getAttribute('data-consent-required');
+      if (attr === 'false' || attr === '0') {
+        setConsentRequired(false);
+      }
+    } catch {
+      // ignore attribute lookup failures
+    }
+  }, []);
+
   useEffect(() => {
     if (!asset) return;
-    setAssetType(asset.type);
-    setCategory(categoryOfType(asset.type));
+
+  const serverTypeId = (asset as any).type_id ?? (asset as any).typeId;
+    // Prefer a valid numeric type_id (> 0). Avoid populating UI with "0" which isn't selectable.
+    if (serverTypeId != null && Number(serverTypeId) > 0) {
+      const idAsString = String(serverTypeId);
+      setAssetTypeId(idAsString);
+      const inferredCategory = categoryOfTypeIdFromCatalog(catalog, serverTypeId);
+      if (inferredCategory) setCategory(inferredCategory as AssetCategory);
+    } else {
+      setAssetTypeId('');
+      // keep category empty until a valid type is inferred or user selects
+      setCategory('');
+    }
+
     setFormData({
       name: asset.name,
       serialNumber: asset.serialNumber,
@@ -135,94 +200,158 @@ export function EditAssetPage({ assetId, onNavigate, onSearch }: EditAssetPagePr
       purchaseDate: asset.purchaseDate,
       eosDate: (asset as any).eosDate || '',
       eolDate: (asset as any).eolDate || '',
-      cost: String(asset.cost),
+      cost: asset.cost != null ? String(asset.cost) : '',
       location: asset.location,
       processor: asset.specifications?.processor ?? '',
       ram: asset.specifications?.ram ?? '',
       storage: asset.specifications?.storage ?? '',
-      os: asset.specifications?.os ?? ''
+      os: asset.specifications?.os ?? '',
     });
+
     setAssignedEmail((asset as any).assignedEmail || '');
     setConsentStatus((asset as any).consentStatus || 'none');
-    const cf = asset.specifications?.customFields || {};
-    const values: Record<string, string> = {};
-    const extras: Array<{ key: string; value: string }> = [];
-    const defKeys = new Set(fieldDefs.map((d) => d.key));
-    Object.entries(cf).forEach(([k, v]) => {
-      if (defKeys.has(k)) values[k] = String(v);
-      else extras.push({ key: k, value: String(v) });
-    });
-    setCustomFieldValues(values);
-    setExtraFields(extras);
-  }, [asset]);
 
-  const handleInputChange = (field: string, value: string) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
+    const customFields = asset.specifications?.customFields || {};
+    const configuredKeys = new Set(fieldDefs.map((def) => def.key));
+    const nextValues: Record<string, string> = {};
+    const orphanFields: Array<{ key: string; value: string }> = [];
+
+    Object.entries(customFields).forEach(([key, value]) => {
+      if (configuredKeys.has(key)) {
+        nextValues[key] = String(value ?? '');
+      } else {
+        orphanFields.push({ key, value: String(value ?? '') });
+      }
+    });
+
+    setCustomFieldValues(nextValues);
+    setExtraFields(orphanFields);
+  }, [asset, catalog, fieldDefs]);
+
+  const categoryOptions = useMemo(() => (catalog ? catalog.map((c) => c.name) : []), [catalog]);
+
+  const catalogMaps = useMemo(() => {
+    const idToName = new Map<string, string>();
+    if (catalog) {
+      for (const cat of catalog) {
+        for (const type of cat.types || []) {
+          if (type.id != null) {
+            idToName.set(String(type.id), type.name);
+          }
+        }
+      }
+    }
+    return { idToName };
+  }, [catalog]);
+
+  const typesForSelectedCategory = useMemo(() => {
+    if (!catalog) return [] as Array<{ id?: number; name: string }>;
+    const types = typesByCategoryFromCatalog(catalog, category);
+    if (types.length > 0) return types;
+    return catalog.flatMap((cat) => cat.types);
+  }, [catalog, category]);
+
+  const resolvedTypeName = assetTypeId ? catalogMaps.idToName.get(assetTypeId) : undefined;
+  const showSpecifications = resolvedTypeName ? ['Laptop', 'Desktop', 'Server'].includes(resolvedTypeName) : false;
+
+  const handleInputChange = (field: keyof typeof formData, value: string) => {
+    setFormData((previous) => ({ ...previous, [field]: value }));
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSubmit = async (event: React.FormEvent) => {
+    event.preventDefault();
 
-    if (!asset) { toast.error('Asset not found'); onNavigate?.('assets'); return; }
+    if (!asset) {
+      toast.error('Asset not found');
+      onNavigate?.('assets');
+      return;
+    }
 
     setSaving(true);
     setSaveSuccess(false);
 
-    // Updated asset draft
-    const updatedAsset: Asset = {
-      ...asset,
-      name: formData.name,
-      type: assetType,
-      serialNumber: formData.serialNumber,
-      assignedTo: formData.assignedTo,
-      // @ts-ignore enrich with optional fields
-      assignedEmail: assignedEmail || undefined,
-  consentStatus: consentRequired ? consentStatus : 'none',
-      department: formData.department,
-      status: formData.status,
-      purchaseDate: formData.purchaseDate,
-      eosDate: formData.eosDate || undefined,
-      eolDate: formData.eolDate || undefined,
-      cost: parseFloat(formData.cost),
-      location: formData.location,
-      specifications: {
-        processor: formData.processor,
-        ram: formData.ram,
-        storage: formData.storage,
-        os: formData.os,
-        customFields: {
-          ...Object.fromEntries(fieldDefs.map(def => [def.key, customFieldValues[def.key] ?? ''])),
-          ...Object.fromEntries(extraFields.filter(cf => cf.key.trim() !== '').map(cf => [cf.key.trim(), cf.value]))
-        }
-      }
+    const customFieldsPayload = {
+      ...Object.fromEntries(fieldDefs.map((def) => [def.key, customFieldValues[def.key] ?? ''])),
+      ...Object.fromEntries(
+        extraFields
+          .filter((entry) => entry.key.trim() !== '')
+          .map((entry) => [entry.key.trim(), entry.value]),
+      ),
     };
 
-    // Log event
-    logAssetUpdated(updatedAsset.id, updatedAsset.name, 'admin@company.com', {
-      name: [asset.name, updatedAsset.name],
-      type: [asset.type, updatedAsset.type],
-      status: [asset.status, updatedAsset.status]
+    const nextAsset: any = { ...asset };
+    delete nextAsset.type;
+
+    nextAsset.name = formData.name;
+    nextAsset.serialNumber = formData.serialNumber;
+    nextAsset.assignedTo = formData.assignedTo;
+    nextAsset.assignedEmail = assignedEmail || undefined;
+    nextAsset.consentStatus = consentRequired ? consentStatus : 'none';
+    nextAsset.department = formData.department;
+    nextAsset.status = formData.status;
+    nextAsset.purchaseDate = formData.purchaseDate;
+    nextAsset.eosDate = formData.eosDate || undefined;
+    nextAsset.eolDate = formData.eolDate || undefined;
+    nextAsset.cost = formData.cost ? Number(formData.cost) : null;
+    nextAsset.location = formData.location;
+
+    nextAsset.specifications = {
+      processor: formData.processor,
+      ram: formData.ram,
+      storage: formData.storage,
+      os: formData.os,
+      customFields: customFieldsPayload,
+    };
+
+    // Robust resolution of outgoing type_id: prefer current selection; fallback to existing asset's type_id if valid
+    let nextTypeId: number | null = null;
+    const selectedIdStr = (assetTypeId ?? '').toString().trim();
+    if (selectedIdStr !== '') {
+      const n = Number(selectedIdStr);
+      if (Number.isFinite(n) && n > 0) nextTypeId = n;
+    }
+    if (nextTypeId === null) {
+      const existing = (asset as any).type_id ?? (asset as any).typeId;
+      const m = Number(existing);
+      if (existing != null && Number.isFinite(m) && m > 0) nextTypeId = m;
+    }
+    console.log('Resolved type ID for submission:', nextTypeId);
+    if (nextTypeId !== null) {
+      nextAsset.type_id = nextTypeId;
+    } else {
+      delete nextAsset.type_id;
+    }
+    console.log('Outgoing asset payload type_id:', nextAsset.type_id);
+    logAssetUpdated(nextAsset.id, nextAsset.name, 'admin@company.com', {
+      name: [asset.name, nextAsset.name],
+      type: [(asset as any).type_id ?? null, nextAsset.type_id ?? null],
+      status: [asset.status, nextAsset.status],
     });
 
     try {
-      await updateAsset(updatedAsset.id, updatedAsset);
+      await updateAsset(nextAsset.id, nextAsset);
       toast.success('Asset updated successfully');
       setSaveSuccess(true);
-      // brief delay so inline banner is visible before navigating
-      setTimeout(() => onNavigate?.('assets'), 800);
-    } catch (err) {
-      console.error('Failed to update asset', err);
+      setTimeout(() => onNavigate?.('assets'), 600);
+    } catch (error) {
+      console.error('Failed to update asset', error);
       toast.error('Failed to update asset');
     } finally {
       setSaving(false);
     }
   };
 
-  const showSpecifications = ['Laptop', 'Desktop', 'Server'].includes(assetType);
-
   if (loading) {
     return (
-      <AssetFlowLayout breadcrumbs={[{ label: 'Home', href: '#' }, { label: 'IT Assets', href: '#' }, { label: 'Edit Asset' }]} currentPage="assets" onSearch={onSearch}>
+      <AssetFlowLayout
+        breadcrumbs={[
+          { label: 'Home', href: '#' },
+          { label: 'IT Assets', href: '#' },
+          { label: 'Edit Asset' },
+        ]}
+        currentPage="assets"
+        onSearch={onSearch}
+      >
         <div className="p-6">Loading asset...</div>
       </AssetFlowLayout>
     );
@@ -233,456 +362,400 @@ export function EditAssetPage({ assetId, onNavigate, onSearch }: EditAssetPagePr
       breadcrumbs={[
         { label: 'Home', href: '#' },
         { label: 'IT Assets', href: '#' },
-        { label: asset ? asset.name : 'Edit Asset' }
+        { label: asset ? asset.name : 'Edit Asset' },
       ]}
       currentPage="assets"
       onSearch={onSearch}
     >
       {saveSuccess && (
-        <div className="mb-4 rounded-lg border border-green-200 bg-green-50 text-green-700 px-4 py-3">
+        <div className="mb-4 rounded-lg border border-green-200 bg-green-50 px-4 py-3 text-green-700">
           Asset updated successfully.
         </div>
       )}
-      {/* Header */}
-      <div className="flex items-center justify-between mb-8">
-          <div className="flex items-center gap-4">
-          <button
-            onClick={() => onNavigate?.('assets')}
-            className="p-2 rounded-lg hover:bg-white border border-transparent hover:border-[rgba(0,0,0,0.1)] transition-all duration-200"
-          >
-            <ArrowLeft className="h-5 w-5 text-muted" />
-          </button>
-          <div>
-            <h1 className="text-3xl font-bold text-foreground mb-2">Edit Asset</h1>
-            <p className="text-muted">Update details for {asset?.name ?? 'selected asset'}</p>
-          </div>
+
+      <div className="mb-8 flex items-center gap-4">
+        <button
+          type="button"
+          onClick={() => onNavigate?.('assets')}
+          className="rounded-lg border border-transparent p-2 transition hover:border-black/10 hover:bg-white"
+        >
+          <ArrowLeft className="h-5 w-5 text-muted" />
+        </button>
+        <div>
+          <h1 className="mb-1 text-3xl font-bold text-foreground">Edit Asset</h1>
+          <p className="text-muted">Update details for {asset?.name ?? 'selected asset'}</p>
         </div>
       </div>
 
       <form onSubmit={handleSubmit}>
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Main Form - Takes 2 columns */}
-          <div className="lg:col-span-2 space-y-6">
-            {/* Basic Information */}
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+          <div className="space-y-6 lg:col-span-2">
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.4 }}
-              className="bg-white rounded-2xl border border-[rgba(0,0,0,0.08)] p-6 shadow-sm"
+              transition={{ duration: 0.3 }}
+              className="rounded-2xl border bg-white p-6 shadow-sm"
             >
-              <h3 className="text-lg font-semibold text-foreground mb-4">Basic Information</h3>
-              
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {/* Asset Category */}
+              <h3 className="mb-4 text-lg font-semibold">Basic Information</h3>
+
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                 <div className="md:col-span-2">
-                  <label className="block text-sm font-medium text-foreground mb-2">Asset Category *</label>
-                  <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
-                    {categoryList.map((cat) => (
+                  <label className="mb-2 block text-sm font-medium">Asset Category *</label>
+                  <div className="grid grid-cols-2 gap-2 md:grid-cols-3">
+                    {categoryOptions.map((catName) => (
                       <button
-                        key={cat}
+                        key={catName}
                         type="button"
                         onClick={() => {
-                          setCategory(cat);
-                          const options = typesByCategory(cat);
-                          if (options.length && !options.includes(assetType)) {
-                            setAssetType(options[0]);
-                          }
+                          setCategory(catName);
+                          const firstType = typesByCategoryFromCatalog(catalog, catName)[0];
+                          setAssetTypeId(firstType?.id != null ? String(firstType.id) : '');
                         }}
-                        className={`px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
-                          category === cat
-                            ? 'bg-gradient-to-r from-[#6366f1] to-[#8b5cf6] text-white shadow-md'
+                        className={`rounded-lg px-4 py-2 text-sm font-medium transition ${category === catName
+                            ? 'bg-gradient-to-r from-[#6366f1] to-[#8b5cf6] text-white shadow'
                             : 'bg-card text-muted hover:bg-card/95 hover:text-primary'
-                        }`}
+                          }`}
                       >
-                        {cat}
+                        {catName}
                       </button>
                     ))}
                   </div>
                 </div>
 
-                {/* Asset Type (by Category) */}
                 <div>
-                  <label className="block text-sm font-medium text-foreground mb-2">Asset Type *</label>
+                  <label className="mb-2 block text-sm font-medium">Asset Type *</label>
                   <select
                     required
-                    value={assetType}
-                    onChange={(e) => setAssetType(e.target.value as Asset['type'])}
-                    className="w-full px-4 py-2.5 rounded-lg bg-card border border-soft text-foreground focus:outline-none focus:ring-2 focus:ring-[#6366f1]/20 focus:border-[#6366f1] transition-all duration-200 cursor-pointer"
+                    value={assetTypeId}
+                    onChange={(event) => {
+                      const value = event.target.value;
+                      setAssetTypeId(value);
+                      if (value) {
+                        const inferred = categoryOfTypeIdFromCatalog(catalog, value);
+                        if (inferred) setCategory(inferred as AssetCategory);
+                      }
+                      console.log(value, 'value');
+                    }}
+                    className="w-full rounded-lg border bg-card px-4 py-2.5"
                   >
-                    {(typesByCategory(category).length ? typesByCategory(category) : assetTypes).map((t) => (
-                      <option key={t} value={t}>{t}</option>
-                    ))}
+                    <option value="">Select type</option>
+                    {typesForSelectedCategory
+                      .filter((type) => type.id != null)
+                      .map((type) => (
+                        <option key={type.id} value={String(type.id)}>
+                          {type.name}
+                        </option>
+                      ))}
                   </select>
                 </div>
 
-                {/* Asset Name */}
-                <div className="md:col-span-2">
-                  <label className="block text-sm font-medium text-foreground mb-2">
-                    Asset Name *
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    value={formData.name}
-                    onChange={(e) => handleInputChange('name', e.target.value)}
-                    placeholder="e.g., MacBook Pro 16&quot;"
-                    className="w-full px-4 py-2.5 rounded-lg bg-card border border-soft text-foreground placeholder-muted focus:outline-none focus:ring-2 focus:ring-[#6366f1]/20 focus:border-[#6366f1] transition-all duration-200"
-                  />
-                </div>
-
-                {/* Serial Number */}
                 <div>
-                  <label className="block text-sm font-medium text-foreground mb-2">
-                    Serial Number *
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    value={formData.serialNumber}
-                    onChange={(e) => handleInputChange('serialNumber', e.target.value)}
-                    placeholder="e.g., MBP-2024-001"
-                    className="w-full px-4 py-2.5 rounded-lg bg-card border border-soft text-foreground placeholder-muted focus:outline-none focus:ring-2 focus:ring-[#6366f1]/20 focus:border-[#6366f1] transition-all duration-200"
-                  />
-                </div>
-
-                {/* Status */}
-                <div>
-                  <label className="block text-sm font-medium text-foreground mb-2">
-                    Status *
-                  </label>
+                  <label className="mb-2 block text-sm font-medium">Status *</label>
                   <select
                     required
                     value={formData.status}
-                    onChange={(e) => handleInputChange('status', e.target.value)}
-                    className="w-full px-4 py-2.5 rounded-lg bg-card border border-soft text-foreground focus:outline-none focus:ring-2 focus:ring-[#6366f1]/20 focus:border-[#6366f1] transition-all duration-200 cursor-pointer"
+                    onChange={(event) => handleInputChange('status', event.target.value)}
+                    className="w-full rounded-lg border bg-card px-4 py-2.5"
                   >
-                    {assetStatuses.map(status => (
-                      <option key={status} value={status}>{status}</option>
+                    {assetStatuses.map((status) => (
+                      <option key={status} value={status}>
+                        {status}
+                      </option>
                     ))}
                   </select>
                 </div>
 
-                {/* Assigned To */}
                 <div>
-                  <label className="block text-sm font-medium text-foreground mb-2">
-                    Assigned To *
-                  </label>
+                  <label className="mb-2 block text-sm font-medium">Assigned To *</label>
                   <input
-                    type="text"
                     required
                     value={formData.assignedTo}
-                    onChange={(e) => handleInputChange('assignedTo', e.target.value)}
-                    placeholder="e.g., John Doe"
-                    className="w-full px-4 py-2.5 rounded-lg bg-card border border-soft text-foreground placeholder-muted focus:outline-none focus:ring-2 focus:ring-[#6366f1]/20 focus:border-[#6366f1] transition-all duration-200"
+                    onChange={(event) => handleInputChange('assignedTo', event.target.value)}
+                    className="w-full rounded-lg border bg-card px-4 py-2.5"
                   />
                 </div>
 
-                {/* Assigned To Email */}
                 <div>
-                  <label className="block text-sm font-medium text-foreground mb-2">
-                    Assigned To Email{formData.assignedTo.trim() ? ' *' : ' (optional)'}
+                  <label className="mb-2 block text-sm font-medium">
+                    Assigned Email{formData.assignedTo.trim() ? ' *' : ' (optional)'}
                   </label>
                   <input
                     type="email"
-                    required={!!formData.assignedTo.trim()}
+                    required={Boolean(formData.assignedTo.trim())}
                     value={assignedEmail}
-                    onChange={(e) => setAssignedEmail(e.target.value)}
-                    placeholder="user@example.com"
-                    className="w-full px-4 py-2.5 rounded-lg bg-card border border-soft text-foreground placeholder-muted focus:outline-none focus:ring-2 focus:ring-[#6366f1]/20 focus:border-[#6366f1] transition-all duration-200"
+                    onChange={(event) => setAssignedEmail(event.target.value)}
+                    className="w-full rounded-lg border bg-card px-4 py-2.5"
                   />
-                  <p className="text-xs text-muted mt-1">{consentRequired ? "If provided, we'll email this person to accept/reject." : 'Stored with the asset; no consent email will be sent.'}</p>
+                  <p className="mt-1 text-xs text-muted">
+                    {consentRequired
+                      ? "We'll email this person to accept or reject if provided."
+                      : 'Stored with the asset; consent email disabled.'}
+                  </p>
                 </div>
 
-                {/* Department */}
                 <div>
-                  <label className="block text-sm font-medium text-foreground mb-2">
-                    Department *
-                  </label>
+                  <label className="mb-2 block text-sm font-medium">Department *</label>
                   <input
-                    type="text"
                     required
                     value={formData.department}
-                    onChange={(e) => handleInputChange('department', e.target.value)}
-                    placeholder="e.g., Engineering"
-                    className="w-full px-4 py-2.5 rounded-lg bg-card border border-soft text-foreground placeholder-muted focus:outline-none focus:ring-2 focus:ring-[#6366f1]/20 focus:border-[#6366f1] transition-all duration-200"
+                    onChange={(event) => handleInputChange('department', event.target.value)}
+                    className="w-full rounded-lg border bg-card px-4 py-2.5"
                   />
                 </div>
 
-                {/* Location */}
                 <div className="md:col-span-2">
-                  <label className="block text-sm font-medium text-foreground mb-2">
-                    Location *
-                  </label>
+                  <label className="mb-2 block text-sm font-medium">Location *</label>
                   <input
-                    type="text"
                     required
                     value={formData.location}
-                    onChange={(e) => handleInputChange('location', e.target.value)}
-                    placeholder="e.g., Building A - Floor 3"
-                    className="w-full px-4 py-2.5 rounded-lg bg-card border border-soft text-foreground placeholder-muted focus:outline-none focus:ring-2 focus:ring-[#6366f1]/20 focus:border-[#6366f1] transition-all duration-200"
+                    onChange={(event) => handleInputChange('location', event.target.value)}
+                    className="w-full rounded-lg border bg-card px-4 py-2.5"
                   />
                 </div>
               </div>
             </motion.div>
 
-            {/* Financial & Lifecycle */}
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.4, delay: 0.1 }}
-              className="bg-card rounded-2xl border border-soft p-6 shadow-sm"
+              transition={{ duration: 0.3, delay: 0.05 }}
+              className="rounded-2xl border bg-card p-6"
             >
-              <h3 className="text-lg font-semibold text-foreground mb-4">Financial & Lifecycle</h3>
-              
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                {/* Cost */}
+              <h3 className="mb-4 text-lg font-semibold">Financial & Lifecycle</h3>
+
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
                 <div>
-                  <label className="block text-sm font-medium text-foreground mb-2">
-                    Purchase Cost *
-                  </label>
+                  <label className="mb-2 block text-sm font-medium">Purchase Cost *</label>
                   <div className="relative">
-                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted">{currencySymbol}</span>
+                    <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-muted">
+                      {currencySymbol}
+                    </span>
                     <input
                       type="number"
-                      required
                       min="0"
                       step="0.01"
+                      required
                       value={formData.cost}
-                      onChange={(e) => handleInputChange('cost', e.target.value)}
-                      placeholder="0.00"
-                      className="w-full pl-8 pr-4 py-2.5 rounded-lg bg-card border border-soft text-foreground placeholder-muted focus:outline-none focus:ring-2 focus:ring-[#6366f1]/20 focus:border-[#6366f1] transition-all duration-200"
+                      onChange={(event) => handleInputChange('cost', event.target.value)}
+                      className="w-full rounded-lg border bg-card px-8 py-2.5"
                     />
                   </div>
                 </div>
 
-                {/* Purchase Date */}
                 <div>
-                  <label className="block text-sm font-medium text-foreground mb-2">
-                    Purchase Date *
-                  </label>
+                  <label className="mb-2 block text-sm font-medium">Purchase Date *</label>
                   <input
                     type="date"
                     required
                     value={formData.purchaseDate}
-                    onChange={(e) => handleInputChange('purchaseDate', e.target.value)}
-                    className="w-full px-4 py-2.5 rounded-lg bg-card border border-soft text-foreground focus:outline-none focus:ring-2 focus:ring-[#6366f1]/20 focus:border-[#6366f1] transition-all duration-200"
+                    onChange={(event) => handleInputChange('purchaseDate', event.target.value)}
+                    className="w-full rounded-lg border bg-card px-4 py-2.5"
                   />
                 </div>
 
-                {/* End of Support */}
                 <div>
-                  <label className="block text-sm font-medium text-foreground mb-2">
-                    End of Support
-                  </label>
+                  <label className="mb-2 block text-sm font-medium">End of Support</label>
                   <input
                     type="date"
                     value={formData.eosDate}
-                    onChange={(e) => handleInputChange('eosDate', e.target.value)}
-                    className="w-full px-4 py-2.5 rounded-lg bg-card border border-soft text-foreground focus:outline-none focus:ring-2 focus:ring-[#6366f1]/20 focus:border-[#6366f1] transition-all duration-200"
+                    onChange={(event) => handleInputChange('eosDate', event.target.value)}
+                    className="w-full rounded-lg border bg-card px-4 py-2.5"
                   />
                 </div>
 
-                {/* End of Life */}
                 <div>
-                  <label className="block text-sm font-medium text-foreground mb-2">
-                    End of Life
-                  </label>
+                  <label className="mb-2 block text-sm font-medium">End of Life</label>
                   <input
                     type="date"
                     value={formData.eolDate}
-                    onChange={(e) => handleInputChange('eolDate', e.target.value)}
-                    className="w-full px-4 py-2.5 rounded-lg bg-card border border-soft text-foreground focus:outline-none focus:ring-2 focus:ring-[#6366f1]/20 focus:border-[#6366f1] transition-all duration-200"
+                    onChange={(event) => handleInputChange('eolDate', event.target.value)}
+                    className="w-full rounded-lg border bg-card px-4 py-2.5"
                   />
                 </div>
               </div>
             </motion.div>
 
-            {/* Specifications (conditional) */}
             {showSpecifications && (
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.4, delay: 0.2 }}
-                className="bg-card rounded-2xl border border-soft p-6 shadow-sm"
+                transition={{ duration: 0.3, delay: 0.1 }}
+                className="rounded-2xl border bg-card p-6"
               >
-                <h3 className="text-lg font-semibold text-foreground mb-4">
-                  Technical Specifications
-                </h3>
-                
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {/* Processor */}
+                <h3 className="mb-4 text-lg font-semibold">Technical Specifications</h3>
+                <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                   <div>
-                    <label className="block text-sm font-medium text-foreground mb-2">
-                      Processor
-                    </label>
+                    <label className="mb-2 block text-sm font-medium">Processor</label>
                     <input
-                      type="text"
                       value={formData.processor}
-                      onChange={(e) => handleInputChange('processor', e.target.value)}
-                      placeholder="e.g., M2 Pro, Intel Core i7"
-                      className="w-full px-4 py-2.5 rounded-lg bg-card border border-soft text-foreground placeholder-muted focus:outline-none focus:ring-2 focus:ring-[#6366f1]/20 focus:border-[#6366f1] transition-all duration-200"
+                      onChange={(event) => handleInputChange('processor', event.target.value)}
+                      className="w-full rounded-lg border bg-card px-4 py-2.5"
                     />
                   </div>
-
-                  {/* RAM */}
                   <div>
-                    <label className="block text-sm font-medium text-foreground mb-2">
-                      RAM
-                    </label>
+                    <label className="mb-2 block text-sm font-medium">RAM</label>
                     <input
-                      type="text"
                       value={formData.ram}
-                      onChange={(e) => handleInputChange('ram', e.target.value)}
-                      placeholder="e.g., 16GB, 32GB"
-                      className="w-full px-4 py-2.5 rounded-lg bg-card border border-soft text-foreground placeholder-muted focus:outline-none focus:ring-2 focus:ring-[#6366f1]/20 focus:border-[#6366f1] transition-all duration-200"
+                      onChange={(event) => handleInputChange('ram', event.target.value)}
+                      className="w-full rounded-lg border bg-card px-4 py-2.5"
                     />
                   </div>
-
-                  {/* Storage */}
                   <div>
-                    <label className="block text-sm font-medium text-foreground mb-2">
-                      Storage
-                    </label>
+                    <label className="mb-2 block text-sm font-medium">Storage</label>
                     <input
-                      type="text"
                       value={formData.storage}
-                      onChange={(e) => handleInputChange('storage', e.target.value)}
-                      placeholder="e.g., 512GB SSD, 1TB SSD"
-                      className="w-full px-4 py-2.5 rounded-lg bg-card border border-soft text-foreground placeholder-muted focus:outline-none focus:ring-2 focus:ring-[#6366f1]/20 focus:border-[#6366f1] transition-all duration-200"
+                      onChange={(event) => handleInputChange('storage', event.target.value)}
+                      className="w-full rounded-lg border bg-card px-4 py-2.5"
                     />
                   </div>
-
-                  {/* Operating System */}
                   <div>
-                    <label className="block text-sm font-medium text-foreground mb-2">
-                      Operating System
-                    </label>
+                    <label className="mb-2 block text-sm font-medium">Operating System</label>
                     <input
-                      type="text"
                       value={formData.os}
-                      onChange={(e) => handleInputChange('os', e.target.value)}
-                      placeholder="e.g., macOS Sonoma, Windows 11"
-                      className="w-full px-4 py-2.5 rounded-lg bg-card border border-soft text-foreground placeholder-muted focus:outline-none focus:ring-2 focus:ring-[#6366f1]/20 focus:border-[#6366f1] transition-all duration-200"
+                      onChange={(event) => handleInputChange('os', event.target.value)}
+                      className="w-full rounded-lg border bg-card px-4 py-2.5"
                     />
                   </div>
                 </div>
               </motion.div>
             )}
 
-            {/* Custom Fields (from Settings) */}
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.4, delay: 0.25 }}
-                className="bg-card rounded-2xl border border-soft p-6 shadow-sm"
+              transition={{ duration: 0.3, delay: 0.15 }}
+              className="rounded-2xl border bg-card p-6"
             >
-              <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-lg font-semibold text-foreground">Custom Fields</h3>
+              <div className="mb-3 flex items-center justify-between">
+                <h3 className="text-lg font-semibold">Custom Fields</h3>
+                <button
+                  type="button"
+                  onClick={() => setExtraFields((previous) => [...previous, { key: '', value: '' }])}
+                  className="rounded border px-3 py-1 text-sm font-medium text-primary hover:bg-primary/10"
+                >
+                  Add Field
+                </button>
               </div>
-                <p className="text-sm text-muted mb-3">These fields are defined globally in Settings.</p>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <p className="mb-4 text-sm text-muted">Configured globally in Settings.</p>
+
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                 {fieldDefs.length === 0 && (
-                    <p className="text-sm text-muted md:col-span-2">No custom fields configured. Add them in Settings → Asset Fields.</p>
+                  <p className="text-sm text-muted md:col-span-2">No custom fields configured.</p>
                 )}
                 {fieldDefs.map((def) => (
                   <div key={def.key}>
-                      <label className="block text-sm font-medium text-foreground mb-2">
-                        {def.label}{def.required ? ' *' : ''}
-                      </label>
-                      <FieldRenderer
-                        def={def}
-                        value={customFieldValues[def.key] ?? ''}
-                        onChange={(v) => setCustomFieldValues((vals) => ({ ...vals, [def.key]: v }))}
-                      />
+                    <label className="mb-2 block text-sm font-medium">
+                      {def.label}
+                      {def.required ? ' *' : ''}
+                    </label>
+                    <FieldRenderer
+                      def={def}
+                      value={customFieldValues[def.key] ?? ''}
+                      onChange={(value) =>
+                        setCustomFieldValues((previous) => ({ ...previous, [def.key]: value }))
+                      }
+                    />
                   </div>
                 ))}
               </div>
 
-              {/* Backward-compat additional fields (unknown keys) */}
               {extraFields.length > 0 && (
-                <div className="mt-6">
-                  <h4 className="text-sm font-semibold text-foreground mb-2">Additional Fields</h4>
-                  <div className="space-y-3">
-                    {extraFields.map((cf, idx) => (
-                      <div key={idx} className="grid grid-cols-1 md:grid-cols-12 gap-3 items-center">
-                        <input
-                          placeholder="Key"
-                          value={cf.key}
-                          onChange={(e) => setExtraFields((arr) => arr.map((it, i) => i === idx ? { ...it, key: e.target.value } : it))}
-                          className="md:col-span-5 w-full px-3 py-2 rounded-lg bg-card border border-soft text-foreground placeholder-muted"
-                        />
-                        <input
-                          placeholder="Value"
-                          value={cf.value}
-                          onChange={(e) => setExtraFields((arr) => arr.map((it, i) => i === idx ? { ...it, value: e.target.value } : it))}
-                          className="md:col-span-6 w-full px-3 py-2 rounded-lg bg-card border border-soft text-foreground placeholder-muted"
-                        />
-                        <button type="button" onClick={() => setExtraFields((arr) => arr.filter((_, i) => i !== idx))} className="md:col-span-1 px-3 py-2 rounded-lg bg-white border border-soft hover:bg-red-50 text-red-600">Remove</button>
-                      </div>
-                    ))}
-                  </div>
+                <div className="mt-6 space-y-3">
+                  <h4 className="text-sm font-semibold">Additional Fields</h4>
+                  {extraFields.map((entry, index) => (
+                    <div key={index} className="grid grid-cols-1 items-center gap-3 md:grid-cols-12">
+                      <input
+                        value={entry.key}
+                        onChange={(event) =>
+                          setExtraFields((previous) =>
+                            previous.map((item, idx) =>
+                              idx === index ? { ...item, key: event.target.value } : item,
+                            ),
+                          )
+                        }
+                        className="w-full rounded-lg border bg-card px-3 py-2 md:col-span-5"
+                        placeholder="Key"
+                      />
+                      <input
+                        value={entry.value}
+                        onChange={(event) =>
+                          setExtraFields((previous) =>
+                            previous.map((item, idx) =>
+                              idx === index ? { ...item, value: event.target.value } : item,
+                            ),
+                          )
+                        }
+                        className="w-full rounded-lg border bg-card px-3 py-2 md:col-span-6"
+                        placeholder="Value"
+                      />
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setExtraFields((previous) => previous.filter((_, idx) => idx !== index))
+                        }
+                        className="rounded-lg border px-3 py-2 text-sm text-red-600 hover:bg-red-50 md:col-span-1"
+                      >
+                        Remove
+                      </button>
+                    </div>
+                  ))}
                 </div>
               )}
             </motion.div>
           </div>
 
-          {/* Sidebar - Summary */}
-          <div className="lg:col-span-1">
-            <motion.div
-              initial={{ opacity: 0, x: 20 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ duration: 0.4, delay: 0.1 }}
-              className="bg-gradient-to-br from-[#6366f1] to-[#8b5cf6] rounded-2xl p-6 text-white sticky top-24 shadow-lg"
-            >
-              <h3 className="text-lg font-semibold mb-4">Asset Summary</h3>
-              
-              <div className="space-y-3 mb-6">
-                <div className="flex justify-between items-center pb-2 border-b border-white/20">
-                  <span className="text-sm text-white/80">Type</span>
-                  <span className="font-semibold">{assetType}</span>
+          <motion.div
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ duration: 0.3, delay: 0.1 }}
+            className="sticky top-24 h-fit rounded-2xl bg-gradient-to-br from-[#6366f1] to-[#8b5cf6] p-6 text-white"
+          >
+            <h3 className="mb-4 text-lg font-semibold">Asset Summary</h3>
+            <div className="mb-6 space-y-3">
+              <div className="flex items-center justify-between border-b border-white/20 pb-2 text-sm">
+                <span className="text-white/80">Type</span>
+                <span className="font-semibold">{resolvedTypeName ?? '--'}</span>
+              </div>
+              <div className="flex items-center justify-between border-b border-white/20 pb-2 text-sm">
+                <span className="text-white/80">Status</span>
+                <span className="font-semibold">{formData.status}</span>
+              </div>
+              {formData.cost && (
+                <div className="flex items-center justify-between border-b border-white/20 pb-2 text-sm">
+                  <span className="text-white/80">Cost</span>
+                  <span className="font-semibold">{formatCurrency(Number(formData.cost || '0'))}</span>
                 </div>
-                <div className="flex justify-between items-center pb-2 border-b border-white/20">
-                  <span className="text-sm text-white/80">Status</span>
-                  <span className="font-semibold">{formData.status}</span>
-                </div>
-                {formData.cost && (
-                  <div className="flex justify-between items-center pb-2 border-b border-white/20">
-                    <span className="text-sm text-white/80">Cost</span>
-                    <span className="font-semibold">{formatCurrency(parseFloat(formData.cost))}</span>
-                  </div>
-                )}
-              </div>
+              )}
+            </div>
 
-              <div className="space-y-3">
-                <button
-                  type="submit"
-                  disabled={saving}
-                  className={`w-full flex items-center justify-center gap-2 px-4 py-3 rounded-lg font-semibold transition-all duration-200 ${saving ? 'bg-white/70 text-muted cursor-not-allowed' : 'bg-white text-foreground hover:shadow-lg'}`}
-                >
-                  <Save className="h-4 w-4" />
-                  {saving ? 'Saving…' : 'Save Changes'}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => onNavigate?.('assets')}
-                  className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-white/10 text-white rounded-lg font-semibold hover:bg-white/20 transition-all duration-200"
-                >
-                  <X className="h-4 w-4" />
-                  Cancel
-                </button>
-              </div>
+            <div className="space-y-3">
+              <button
+                type="submit"
+                disabled={saving}
+                className={`flex w-full items-center justify-center gap-2 rounded-lg px-4 py-3 font-semibold transition ${saving ? 'cursor-not-allowed bg-white/70 text-muted' : 'bg-white text-foreground hover:shadow-lg'
+                  }`}
+              >
+                <Save className="h-4 w-4" />
+                {saving ? 'Saving...' : 'Save Changes'}
+              </button>
+              <button
+                type="button"
+                onClick={() => onNavigate?.('assets')}
+                className="flex w-full items-center justify-center gap-2 rounded-lg bg-white/10 px-4 py-3 font-semibold text-white transition hover:bg-white/20"
+              >
+                <X className="h-4 w-4" />
+                Cancel
+              </button>
+            </div>
 
-              <div className="mt-6 pt-6 border-t border-white/20">
-                <p className="text-xs text-white/70">
-                  Fields marked with * are required
-                </p>
-              </div>
-            </motion.div>
-          </div>
+            <p className="mt-6 text-xs text-white/70">Fields marked with * are required.</p>
+          </motion.div>
         </div>
       </form>
     </AssetFlowLayout>
   );
 }
 
-export default EditAssetPage;
+// Also export a named export for compatibility with sites using `import { EditAssetPage } from ...`.
+export { EditAssetPage };
+

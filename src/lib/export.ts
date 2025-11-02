@@ -50,7 +50,7 @@ export function buildAssetsCSV(assets: Asset[]): string {
     const base = [
       a.id,
       a.name,
-      a.type,
+      a.typeId,
       a.serialNumber,
       a.assignedTo,
       a.department,

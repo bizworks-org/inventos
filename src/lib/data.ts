@@ -3,7 +3,8 @@
 export interface Asset {
   id: string;
   name: string;
-  type: 'Laptop' | 'Desktop' | 'Server' | 'Monitor' | 'Printer' | 'Phone';
+  // Allow any DB-driven type name — don't hard-code allowed types here.
+  typeId: string;
   serialNumber: string;
   assignedTo: string;
   // Optional email used for consent workflow
@@ -167,7 +168,7 @@ export const mockAssets: Asset[] = [
   {
     id: 'AST-001',
     name: 'MacBook Pro 16"',
-    type: 'Laptop',
+    typeId: 'Laptop',
     serialNumber: 'MBP-2023-001',
     assignedTo: 'John Doe',
     department: 'Engineering',
@@ -187,7 +188,7 @@ export const mockAssets: Asset[] = [
   {
     id: 'AST-002',
     name: 'Dell XPS 15',
-    type: 'Laptop',
+    typeId: 'Laptop',
     serialNumber: 'DELL-2023-045',
     assignedTo: 'Sarah Johnson',
     department: 'Design',
@@ -207,7 +208,7 @@ export const mockAssets: Asset[] = [
   {
     id: 'AST-003',
     name: 'HP EliteDesk 800',
-    type: 'Desktop',
+    typeId: 'Desktop',
     serialNumber: 'HP-2022-189',
     assignedTo: 'Mike Chen',
     department: 'Finance',
@@ -227,7 +228,7 @@ export const mockAssets: Asset[] = [
   {
     id: 'AST-004',
     name: 'AWS EC2 Server',
-    type: 'Server',
+    typeId: 'Server',
     serialNumber: 'AWS-PROD-001',
     assignedTo: 'IT Operations',
     department: 'IT',
@@ -246,7 +247,7 @@ export const mockAssets: Asset[] = [
   {
     id: 'AST-005',
     name: 'ThinkPad X1 Carbon',
-    type: 'Laptop',
+    typeId: 'Laptop',
     serialNumber: 'LNV-2023-067',
     assignedTo: 'Emily Brown',
     department: 'Marketing',
@@ -266,7 +267,7 @@ export const mockAssets: Asset[] = [
   {
     id: 'AST-006',
     name: 'Dell UltraSharp 27"',
-    type: 'Monitor',
+    typeId: 'Monitor',
     serialNumber: 'MON-2023-234',
     assignedTo: 'Design Team',
     department: 'Design',
@@ -280,7 +281,7 @@ export const mockAssets: Asset[] = [
   {
     id: 'AST-007',
     name: 'iPhone 14 Pro',
-    type: 'Phone',
+    typeId: 'Phone',
     serialNumber: 'APPL-2023-891',
     assignedTo: 'David Wilson',
     department: 'Sales',
@@ -294,7 +295,7 @@ export const mockAssets: Asset[] = [
   {
     id: 'AST-008',
     name: 'HP LaserJet Pro',
-    type: 'Printer',
+    typeId: 'Printer',
     serialNumber: 'PRT-2022-456',
     assignedTo: 'Office Services',
     department: 'Operations',
@@ -587,8 +588,8 @@ export const mockEvents: Event[] = [
 ];
 
 // Helper functions
-export function getAssetsByType(type: Asset['type']): Asset[] {
-  return mockAssets.filter(asset => asset.type === type);
+export function getAssetsByType(typeId: string): Asset[] {
+  return mockAssets.filter(asset => asset.typeId === typeId);
 }
 
 export function getAssetsByStatus(status: Asset['status']): Asset[] {
@@ -620,11 +621,9 @@ export function getDashboardStats() {
 }
 
 export function getAssetDistribution() {
-  const types: Asset['type'][] = ['Laptop', 'Desktop', 'Server', 'Monitor', 'Printer', 'Phone'];
-  return types.map(type => ({
-    name: type,
-    count: getAssetsByType(type).length
-  }));
+  // Derive known types from the current mock assets rather than a hard-coded list
+  const types = Array.from(new Set(mockAssets.map(a => a.typeId)));
+  return types.map(typeId => ({ name: typeId, count: getAssetsByType(typeId).length }));
 }
 
 // Lookup helpers

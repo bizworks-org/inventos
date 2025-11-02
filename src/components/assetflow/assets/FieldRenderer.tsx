@@ -10,7 +10,7 @@ type Props = {
 
 export default function FieldRenderer({ def, value, onChange }: Props) {
   const val = value ?? '';
-  console.log('def.type', def.type, def, value);
+  // console.log('def.type', def.type, def, value);
   if (def.type === 'textarea') {
     return <textarea required={!!def.required} value={val} onChange={(e) => onChange(e.target.value)} placeholder={def.placeholder || ''} className="w-full px-3 py-2 rounded-lg bg-[#f8f9ff] border border-[rgba(0,0,0,0.08)]" />;
   }
