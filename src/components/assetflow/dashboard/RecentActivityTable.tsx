@@ -1,4 +1,7 @@
+"use client";
+
 import { motion } from 'motion/react';
+import Link from 'next/link';
 import { Activity } from '../../../lib/data';
 import { useEffect, useState } from 'react';
 import { fetchActivities } from '../../../lib/api';
@@ -112,12 +115,12 @@ export function RecentActivityTable() {
       </div>
 
       <div className="mt-6 pt-4 border-t border-[#e5e7eb]">
-        <a 
-          href="/assetflow/events" 
+        <Link
+          href="/events"
           className="text-sm font-semibold text-[#6366f1] hover:text-[#8b5cf6] transition-colors"
         >
           View all events →
-        </a>
+        </Link>
       </div>
     </motion.div>
   );

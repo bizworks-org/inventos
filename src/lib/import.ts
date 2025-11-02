@@ -72,28 +72,45 @@ export function parseAssetsCSV(text: string): Asset[] {
   const headers = rows[0].map(h => h.trim());
   const hi = headerIndexMap(headers);
   const get = (r: string[], name: string) => r[hi[name] ?? -1] ?? '';
+  // Determine per-column custom fields: any header not part of known asset columns
+  const known = new Set([
+    'id', 'name', 'type', 'serial number', 'assigned to', 'department', 'status',
+    'purchase date', 'end of support', 'end of life', 'cost', 'location',
+    'processor', 'ram', 'storage', 'os', 'custom fields', 'warranty expiry'
+  ]);
+  const customColumnHeaders = headers
+    .map(h => h.trim())
+    .filter(h => h && !known.has(h.toLowerCase()));
   const out: Asset[] = [];
   for (let i = 1; i < rows.length; i++) {
     const r = rows[i];
     if (!r || r.length === 0) continue;
     const id = (get(r, 'id') || '').trim() || generateId('AST');
     const cost = parseFloat((get(r, 'cost') || '0').trim());
-    // Parse custom fields if present. Expect a JSON object string in column "Custom Fields"
+    // Parse custom fields. Support old single JSON "Custom Fields" column AND per-column custom fields
     let customFields: Record<string, string> | undefined = undefined;
+    // 1) parse JSON blob if provided
     const cfRaw = get(r, 'custom fields');
     if (cfRaw && cfRaw.trim()) {
       try {
         const parsed = JSON.parse(cfRaw);
         if (parsed && typeof parsed === 'object') {
-          // Coerce values to strings
           customFields = Object.fromEntries(
             Object.entries(parsed as Record<string, unknown>).map(([k, v]) => [k, String(v)])
           );
         }
       } catch {
-        // ignore malformed JSON; leave undefined
+        // ignore malformed JSON; we'll still try per-column fields
       }
     }
+    // 2) extract per-column custom fields (these override JSON keys)
+    customColumnHeaders.forEach((header) => {
+      const raw = get(r, header);
+      if (raw !== undefined && raw !== null && String(raw).trim() !== '') {
+        if (!customFields) customFields = {};
+        customFields[header] = raw;
+      }
+    });
     const asset: Asset = {
       id,
       name: get(r, 'name') || '',

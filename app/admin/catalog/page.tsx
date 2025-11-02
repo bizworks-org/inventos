@@ -2,6 +2,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { toast } from 'sonner@2.0.3';
 import { Package, Plus, Laptop, Monitor, Server as ServerIcon, Printer as PrinterIcon, Smartphone, Box, Globe, Pencil, Check, X } from 'lucide-react';
+import Portal from '@/components/ui/Portal';
 
 export type UiCategory = { id: number; name: string; sort: number; types: Array<{ id: number; name: string; sort: number }> };
 
@@ -22,6 +23,10 @@ export default function CatalogAdminPage() {
     const [renamingTypeName, setRenamingTypeName] = useState('');
     const [renamingTypeCategoryId, setRenamingTypeCategoryId] = useState<number | null>(null);
     const [hoveredTypeId, setHoveredTypeId] = useState<number | null>(null);
+    const [confirmOpen, setConfirmOpen] = useState(false);
+    const [confirmPayload, setConfirmPayload] = useState<{ entity: 'category' | 'type'; id: number; name: string; count?: number; types?: string[] } | null>(null);
+    const [confirmBusy, setConfirmBusy] = useState(false);
+    const pendingTypes = confirmPayload && confirmPayload.entity === 'category' ? (categories.find((c) => c.id === confirmPayload.id)?.types || []) : [];
 
     const load = async () => {
         setLoading(true);
@@ -32,6 +37,11 @@ export default function CatalogAdminPage() {
             if (!res.ok) throw new Error(data?.error || 'Failed to load catalog');
             const cats: UiCategory[] = data.categories || [];
             setCategories(cats);
+            try {
+                localStorage.setItem('catalog.categories', JSON.stringify(cats));
+            } catch (e) {
+                // ignore storage errors
+            }
             if (cats.length && !selectedId) setSelectedId(cats[0].id);
         } catch (e: any) {
             setError(e?.message || 'Failed to load catalog');
@@ -192,6 +202,146 @@ export default function CatalogAdminPage() {
         }
     };
 
+    // When confirmation modal opens, perform a dry-run check to see if assets reference the entity
+    useEffect(() => {
+        let cancelled = false;
+        (async () => {
+                if (!confirmOpen || !confirmPayload) return;
+                // If we've already populated a count for this payload, don't re-run the dry-run check.
+                if (typeof confirmPayload.count === 'number') return;
+                try {
+                    const res = await fetch('/api/admin/catalog', { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ entity: confirmPayload.entity, id: confirmPayload.id, dryRun: true }) });
+                    const data = await res.json();
+                    if (cancelled) return;
+                    if (!res.ok) {
+                        toast.error(data?.error || 'Failed to check dependencies');
+                        return;
+                    }
+                    // populate count/types once so subsequent effect runs are no-ops
+                    setConfirmPayload((p) => p ? { ...p, count: (data?.count ?? 0), types: data?.types } : p);
+                } catch (e: any) {
+                    toast.error(e?.message || 'Failed to check dependencies');
+                }
+            })();
+        return () => { cancelled = true; };
+    }, [confirmOpen, confirmPayload]);
+
+    const performDelete = async () => {
+        if (!confirmPayload) return;
+        setConfirmBusy(true);
+        const target = confirmPayload; // capture before we null it out
+        try {
+            // If deleting a category and user requested to delete types first, delete them explicitly
+            if (target.entity === 'category') {
+                const cat = categories.find((c) => c.id === target.id);
+                const typeIds = cat?.types.map((t) => t.id) || [];
+                if (typeIds.length) {
+                    // First do a dry-run for each type to ensure no assets reference them
+                    const dryRuns = await Promise.all(typeIds.map((tid) => fetch('/api/admin/catalog', { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ entity: 'type', id: tid, dryRun: true }) })));
+                    for (const r of dryRuns) {
+                        const dd = await r.json().catch(() => ({}));
+                        if (!r.ok) throw new Error(dd?.error || 'Failed to check type dependencies');
+                        if (dd?.requiresConfirmation) {
+                            throw new Error('Cannot delete types because some types have assets assigned. Reassign assets first.');
+                        }
+                    }
+                    // send delete requests for each type
+                    const responses = await Promise.all(typeIds.map((tid) => fetch('/api/admin/catalog', { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ entity: 'type', id: tid }) })));
+                    for (const res of responses) {
+                        if (!res.ok) {
+                            const data = await res.json().catch(() => ({}));
+                            throw new Error(data?.error || 'Failed to delete type');
+                        }
+                    }
+                    // optimistically remove types from local state
+                    setCategories((prev) => prev.map((c) => c.id === target.id ? { ...c, types: [] } : c));
+                    try { localStorage.setItem('catalog.categories', JSON.stringify(categories.map((c) => c.id === target.id ? { ...c, types: [] } : c))); } catch (e) {}
+                }
+            }
+            const body: any = { entity: target.entity, id: target.id };
+            // force delete not permitted when assets are assigned — server will reject if assets exist
+            const res = await fetch('/api/admin/catalog', { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+            const data = await res.json();
+            if (!res.ok) throw new Error(data?.error || 'Delete failed');
+
+            // Optimistically update UI immediately
+            setCategories((prev) => {
+                if (target.entity === 'category') {
+                    const next = prev.filter((c) => c.id !== target.id);
+                    if (selectedId === target.id) {
+                        // move selection to first remaining category (if any)
+                        setSelectedId(next.length ? next[0].id : null);
+                    }
+                    try { localStorage.setItem('catalog.categories', JSON.stringify(next)); } catch (e) {}
+                    return next;
+                } else {
+                    // entity === 'type': remove the type from whichever category contains it
+                    let found = false;
+                    const next = prev.map((c) => {
+                        const hadType = c.types.some((t) => t.id === target.id);
+                        if (!hadType) return c;
+                        found = true;
+                        return { ...c, types: c.types.filter((t) => t.id !== target.id) };
+                    });
+                    const out = found ? next : prev;
+                    try { localStorage.setItem('catalog.categories', JSON.stringify(out)); } catch (e) {}
+                    return out;
+                }
+            });
+
+            // Close dialog and show success
+            setConfirmOpen(false);
+            setConfirmPayload(null);
+            toast.success(`${target.entity === 'category' ? 'Category' : 'Type'} deleted`);
+
+            // Refresh from server in the background to stay in sync
+            void load();
+        } catch (e: any) {
+            toast.error(e?.message || 'Delete failed');
+        } finally {
+            setConfirmBusy(false);
+        }
+    };
+
+    const modalRef = useRef<HTMLDivElement | null>(null);
+    const confirmBtnRef = useRef<HTMLButtonElement | null>(null);
+
+    // Focus trap & Escape handling for the inline modal
+    useEffect(() => {
+        if (!confirmOpen) return;
+        const prev = document.activeElement as HTMLElement | null;
+        const id = setTimeout(() => confirmBtnRef.current?.focus(), 120);
+
+        const onKey = (e: KeyboardEvent) => {
+            if (e.key === 'Escape') {
+                e.preventDefault();
+                setConfirmOpen(false);
+                setConfirmPayload(null);
+                return;
+            }
+            if (e.key === 'Tab') {
+                const container = modalRef.current;
+                if (!container) return;
+                const focusable = Array.from(container.querySelectorAll<HTMLElement>(
+                    'a[href], button:not([disabled]), textarea, input, select, [tabindex]:not([tabindex="-1"])'
+                )).filter((el) => !!(el.offsetWidth || el.offsetHeight || el.getClientRects().length));
+                if (focusable.length === 0) return;
+                const first = focusable[0];
+                const last = focusable.at(-1)!;
+                if (e.shiftKey && document.activeElement === first) {
+                    e.preventDefault();
+                    last.focus();
+                } else if (!e.shiftKey && document.activeElement === last) {
+                    e.preventDefault();
+                    first.focus();
+                }
+            }
+        };
+
+        document.addEventListener('keydown', onKey);
+        return () => { clearTimeout(id); document.removeEventListener('keydown', onKey); if (prev) prev.focus(); };
+    }, [confirmOpen]);
+
     return (
         <>
             <div className="mb-6">
@@ -280,6 +430,15 @@ export default function CatalogAdminPage() {
                                                 >
                                                     <Pencil className="h-3 w-3" />
                                                 </button>
+                                                <button
+                                                    type="button"
+                                                                onClick={(e) => { e.preventDefault(); e.stopPropagation(); console.debug('[Catalog] delete category click', { id: c.id, name: c.name }); setConfirmPayload({ entity: 'category', id: c.id, name: c.name }); setConfirmOpen(true); }}
+                                                    className={`inline-flex items-center text-xs p-1.5 rounded transition-opacity ${hoveredCategoryId === c.id ? 'opacity-100 visible' : 'opacity-0 invisible'} group-hover:opacity-100 group-hover:visible focus:opacity-100 focus:visible bg-[#fff1f2] text-[#b91c1c] hover:bg-[#fee2e2]`}
+                                                    aria-label="Delete category"
+                                                    title="Delete category"
+                                                >
+                                                    <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" /></svg>
+                                                </button>
                                                 <span className={`text-xs px-2 py-0.5 rounded-full ${isSelected ? 'bg-white/20 text-white' : 'bg-[#f1f5f9] text-[#64748b]'}`}>{c.types.length}</span>
                                             </div>
                                         </div>
@@ -349,6 +508,14 @@ export default function CatalogAdminPage() {
                                                             >
                                                                 <Pencil className="h-3 w-3" />
                                                             </button>
+                                                            <button
+                                                                onClick={() => { console.debug('[Catalog] delete type click', { id: t.id, name: t.name }); setConfirmPayload({ entity: 'type', id: t.id, name: t.name }); setConfirmOpen(true); }}
+                                                                className={`text-xs bg-white/20 hover:bg-white/30 p-1.5 rounded inline-flex items-center transition-opacity ${hoveredTypeId === t.id ? 'opacity-100 visible' : 'opacity-0 invisible'} group-hover:opacity-100 group-hover:visible focus:opacity-100 focus:visible`}
+                                                                aria-label="Delete type"
+                                                                title="Delete type"
+                                                            >
+                                                                <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 text-[#b91c1c]" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" /></svg>
+                                                            </button>
                                                             <button onClick={() => sortType(t.id, Math.max(0, (t.sort || 0) - 5))} className="text-xs bg-white/20 hover:bg-white/30 px-2 py-0.5 rounded">↑</button>
                                                             <button onClick={() => sortType(t.id, (t.sort || 0) + 5)} className="text-xs bg-white/20 hover:bg-white/30 px-2 py-0.5 rounded">↓</button>
                                                             <span className="text-xs bg-white/20 px-2 py-0.5 rounded-full">#{t.id}</span>
@@ -393,6 +560,64 @@ export default function CatalogAdminPage() {
                     </div>
                 </div>
             </div>
+            {/* Confirmation dialog (reusable component) */}
+            {console.debug('[Catalog] render confirm dialog state', { confirmOpen, confirmPayload })}
+            {confirmOpen && (
+                <Portal>
+                    <div className="fixed inset-0 z-40">
+                        <div className="absolute inset-0 bg-black/30 backdrop-blur-sm" onClick={() => { setConfirmOpen(false); setConfirmPayload(null); }} />
+                        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+                            <div ref={modalRef} role="dialog" aria-modal="true" aria-labelledby="catalog-confirm-title" className="max-w-md w-full bg-white rounded-2xl shadow-lg border border-[rgba(0,0,0,0.08)] p-6">
+                                <div className="mb-3">
+                                    <h3 id="catalog-confirm-title" className="text-lg font-semibold text-[#111827]">{confirmPayload ? `Delete ${confirmPayload.entity === 'category' ? 'Category' : 'Type'}` : 'Delete'}</h3>
+                                    {confirmPayload && <p className="text-sm text-[#64748b] mt-1">You are about to delete the {confirmPayload.entity === 'category' ? 'category' : 'type'} {confirmPayload.name}.</p>}
+                                </div>
+
+                                {confirmPayload && confirmPayload.entity === 'category' && pendingTypes.length > 0 && (
+                                    <div className="mb-3">
+                                        <p className="text-sm text-[#64748b]">This category contains <span className="font-semibold">{pendingTypes.length}</span> type(s). These types will be deleted along with the category if no assets reference them.</p>
+                                    </div>
+                                )}
+
+                                {confirmPayload && typeof confirmPayload.count === 'number' && confirmPayload.count > 0 ? (
+                                    <div className="p-4 bg-[#fff7ed] rounded-md border border-[#ffedd5] mb-2">
+                                        <p className="text-sm text-[#92400e]">There are <span className="font-semibold">{confirmPayload.count}</span> asset(s) that reference {confirmPayload.entity === 'category' ? 'types in this category' : 'this type'}.</p>
+                                        {confirmPayload.types && confirmPayload.types.length > 0 && (
+                                            <p className="text-xs text-[#92400e] mt-2">Affected types: {confirmPayload.types.join(', ')}</p>
+                                        )}
+                                        <p className="text-xs text-[#92400e] mt-2">Deleting will remove the {confirmPayload.entity === 'category' ? 'category and its types' : 'type'} from the catalog. Assets themselves will not be removed.</p>
+                                    </div>
+                                ) : (
+                                    <p className="text-sm text-[#64748b]">This action cannot be undone. Proceed?</p>
+                                )}
+
+                                <div className="mt-6 flex items-center justify-end gap-3">
+                                    <button
+                                        onClick={() => { setConfirmOpen(false); setConfirmPayload(null); }}
+                                        className="px-4 py-2 rounded-lg border bg-white"
+                                    >
+                                        Cancel
+                                    </button>
+
+                                    {confirmPayload && typeof confirmPayload.count === 'number' && confirmPayload.count > 0 ? (
+                                        // Cannot delete when assets are assigned; instruct the user
+                                        <div className="text-sm text-[#92400e]">This item cannot be deleted because there are assets assigned. Reassign or remove assets first.</div>
+                                    ) : (
+                                        <button
+                                            onClick={() => performDelete()}
+                                            ref={confirmBtnRef}
+                                            disabled={confirmBusy}
+                                            className="px-4 py-2 rounded-lg border bg-[#ef4444] text-white"
+                                        >
+                                            {confirmBusy ? 'Working…' : 'Delete'}
+                                        </button>
+                                    )}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </Portal>
+            )}
         </>
     );
 }

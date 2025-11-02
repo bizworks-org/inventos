@@ -1,4 +1,4 @@
-'use client';
+ 'use client';
 
 import { useEffect, useState } from 'react';
 import { motion } from 'motion/react';
@@ -8,6 +8,8 @@ import { Vendor, AssetFieldDef } from '../../../lib/data';
 import { createVendor } from '../../../lib/api';
 import { logVendorCreated } from '../../../lib/events';
 import FieldRenderer from '../assets/FieldRenderer';
+import FileDropzone from '../../ui/FileDropzone';
+import { uploadWithProgress } from '../../../lib/upload';
 
 interface AddVendorPageProps {
   onNavigate?: (page: string) => void;
@@ -18,6 +20,44 @@ const vendorTypes: Vendor['type'][] = ['Hardware', 'Software', 'Services', 'Clou
 const vendorStatuses: Vendor['status'][] = ['Approved', 'Pending', 'Rejected'];
 
 export function AddVendorPage({ onNavigate, onSearch }: AddVendorPageProps) {
+  const tabs = [
+    { id: 'vendor', label: 'Vendor Info' },
+    { id: 'contact', label: 'Contact' },
+    { id: 'it', label: 'IT & Security' },
+    { id: 'performance', label: 'Performance' },
+    { id: 'procurement', label: 'Procurement' },
+    { id: 'compliance', label: 'Compliance' },
+    { id: 'financial', label: 'Financial' },
+    { id: 'contract', label: 'Contract' },
+    { id: 'custom', label: 'Custom Fields' },
+  ];
+  const [activeTab, setActiveTab] = useState<string>('vendor');
+
+  // Profile-like state for IT / procurement fields
+  const [profile, setProfile] = useState<any>({
+    data_protection_ack: false,
+    network_endpoint_overview: '',
+    authorized_hardware: [] as string[],
+    support_warranty: '',
+    years_in_hardware_supply: '',
+    key_clients: '',
+    avg_delivery_timeline_value: '',
+    avg_delivery_timeline_unit: 'days',
+    after_sales_support: '',
+    request_type: 'New Vendor',
+    business_justification: '',
+    estimated_annual_spend: '',
+    evaluation_committee: [] as string[],
+    risk_assessment: 'Moderate',
+    legal_infosec_review_status: 'Pending',
+  });
+
+  const [saving, setSaving] = useState(false);
+
+  // pending documents to upload after vendor is created
+  useEffect(() => {
+    // noop placeholder to satisfy linter if needed
+  }, []);
   const [formData, setFormData] = useState({
     name: '',
     type: 'Software' as Vendor['type'],
@@ -53,6 +93,7 @@ export function AddVendorPage({ onNavigate, onSearch }: AddVendorPageProps) {
       billingDetails?: string;
     }>
   });
+  const [pendingProgress, setPendingProgress] = useState<Record<string, number>>({});
 
   // Custom field defs for Vendors (from Settings)
   const [fieldDefs, setFieldDefs] = useState<AssetFieldDef[]>([]);
@@ -74,6 +115,7 @@ export function AddVendorPage({ onNavigate, onSearch }: AddVendorPageProps) {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setSaving(true);
 
     // Create new vendor
     const newVendor: Vendor = {
@@ -84,9 +126,9 @@ export function AddVendorPage({ onNavigate, onSearch }: AddVendorPageProps) {
       email: formData.email,
       phone: formData.phone,
       status: formData.status,
-      contractValue: parseFloat(formData.contractValue),
+      contractValue: parseFloat(formData.contractValue || '0'),
       contractExpiry: formData.contractExpiry,
-      rating: parseFloat(formData.rating)
+      rating: parseFloat(formData.rating || '0')
     };
 
     // attach extended fields
@@ -122,17 +164,39 @@ export function AddVendorPage({ onNavigate, onSearch }: AddVendorPageProps) {
       const file: any = (formData as any).gstCertificateFile;
       if (file && file instanceof File) {
         try {
-          const fd = new FormData();
-          fd.append('file', file);
-          await fetch(`/api/vendors/${encodeURIComponent(newVendor.id)}/gst-certificate`, { method: 'POST', body: fd });
+          const keyFor = (f: File) => `${f.name}-${f.size}-${f.lastModified}`;
+          const key = keyFor(file);
+          const { promise } = uploadWithProgress(`/api/vendors/${encodeURIComponent(newVendor.id)}/gst-certificate`, file, {}, (pct) => {
+            setPendingProgress((cur) => ({ ...cur, [key]: pct }));
+          });
+          await promise;
         } catch (e) {
           console.warn('Failed to upload GST certificate:', e);
         }
       }
+      // Upload any pending compliance documents collected during Add
+      try {
+        const pending = (formData as any)._pendingDocs || [];
+        // helper to compute key matching FileDropzone
+        const keyFor = (f: File) => `${f.name}-${f.size}-${f.lastModified}`;
+        for (const p of pending) {
+          try {
+            const key = keyFor(p.file);
+            const { promise } = uploadWithProgress(`/api/vendors/${encodeURIComponent(newVendor.id)}/documents`, p.file, { type: p.type }, (pct) => {
+              setPendingProgress((cur) => ({ ...cur, [key]: pct }));
+            });
+            await promise;
+          } catch (e) {
+            console.warn('Failed to upload pending document', p.type, e);
+          }
+        }
+      } catch (e) { /* ignore */ }
       onNavigate?.('vendors');
     } catch (err) {
       console.error('Failed to create vendor', err);
       alert('Failed to create vendor. Please try again.');
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -162,138 +226,106 @@ export function AddVendorPage({ onNavigate, onSearch }: AddVendorPageProps) {
             <p className="text-[#64748b]">Register a new vendor or partner</p>
           </div>
         </div>
+        <div className="flex items-center gap-3">
+          <button type="submit" disabled={saving} className={`flex items-center justify-center gap-2 px-4 py-2 rounded-lg font-semibold transition-all duration-200 ${saving ? 'bg-gradient-to-r from-[#6366f1] to-[#8b5cf6] opacity-70 cursor-not-allowed' : 'bg-gradient-to-r from-[#6366f1] to-[#8b5cf6] text-white hover:shadow-lg hover:shadow-[#6366f1]/30'}`}>
+            <Save className="h-4 w-4" />{saving ? 'Saving…' : 'Save'}
+          </button>
+          <button type="button" onClick={() => onNavigate?.('vendors')} className="flex items-center justify-center gap-2 px-4 py-2 rounded-lg bg-white/10 text-[#111827] border border-[rgba(0,0,0,0.06)] font-semibold hover:bg-white/20 transition-all duration-200">
+            <X className="h-4 w-4" />Cancel
+          </button>
+        </div>
       </div>
 
       <form onSubmit={handleSubmit}>
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Main Form - Takes 2 columns */}
-          <div className="lg:col-span-2 space-y-6">
+        {/* Tabs */}
+        <div className="mb-4">
+          <nav
+            role="tablist"
+            aria-label="Add vendor tabs"
+            className="flex w-full flex-wrap gap-2 rounded-xl border border-[rgba(0,0,0,0.08)] bg-[#f8f9ff] p-2"
+            onKeyDown={(e) => {
+              const idx = tabs.findIndex((t) => t.id === activeTab);
+              if (e.key === 'ArrowRight') {
+                const next = tabs[(idx + 1) % tabs.length];
+                setActiveTab(next.id);
+              } else if (e.key === 'ArrowLeft') {
+                const prev = tabs[(idx - 1 + tabs.length) % tabs.length];
+                setActiveTab(prev.id);
+              }
+            }}
+          >
+            {tabs.map((t) => (
+              <button
+                key={t.id}
+                id={`tab-${t.id}`}
+                role="tab"
+                type="button"
+                aria-selected={activeTab === t.id}
+                aria-controls={`panel-${t.id}`}
+                tabIndex={activeTab === t.id ? 0 : -1}
+                onClick={() => setActiveTab(t.id)}
+                className={`${activeTab === t.id ? 'bg-white border border-[rgba(0,0,0,0.12)] shadow-md text-[#1a1d2e] font-semibold' : ''} flex items-center gap-2 px-3 py-2 rounded-xl text-sm`}
+              >
+                {t.label}
+              </button>
+            ))}
+          </nav>
+        </div>
+
+        <div className="grid grid-cols-1 gap-6">
+          {/* Main Form */}
+          <div className="space-y-6">
             {/* Vendor Information */}
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.4 }}
-              className="bg-white rounded-2xl border border-[rgba(0,0,0,0.08)] p-6 shadow-sm"
-            >
-              <div className="flex items-center gap-2 mb-4">
-                <Building2 className="h-5 w-5 text-[#6366f1]" />
-                <h3 className="text-lg font-semibold text-[#1a1d2e]">Vendor Information</h3>
-              </div>
-              
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {/* Vendor Name */}
-                <div className="md:col-span-2">
-                  <label className="block text-sm font-medium text-[#1a1d2e] mb-2">
-                    Vendor Name *
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    value={formData.name}
-                    onChange={(e) => handleInputChange('name', e.target.value)}
-                    placeholder="e.g., Microsoft Corporation"
-                    className="w-full px-4 py-2.5 rounded-lg bg-[#f8f9ff] border border-[rgba(0,0,0,0.05)] text-[#1a1d2e] placeholder:text-[#a0a4b8] focus:outline-none focus:ring-2 focus:ring-[#6366f1]/20 focus:border-[#6366f1] transition-all duration-200"
-                  />
+            {activeTab === 'vendor' && (
+              <motion.div id="panel-vendor" role="tabpanel" aria-labelledby="tab-vendor" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }} className="bg-white rounded-2xl border border-[rgba(0,0,0,0.08)] p-6 shadow-sm">
+                <div className="flex items-center gap-2 mb-4">
+                  <Building2 className="h-5 w-5 text-[#6366f1]" />
+                  <h3 className="text-lg font-semibold text-[#1a1d2e]">Vendor Information</h3>
                 </div>
 
-                {/* Vendor Legal Name */}
-                <div className="md:col-span-2">
-                  <label className="block text-sm font-medium text-[#1a1d2e] mb-2">
-                    Vendor Legal Name
-                  </label>
-                  <input
-                    type="text"
-                    value={formData.legalName}
-                    onChange={(e) => handleInputChange('legalName', e.target.value)}
-                    placeholder="Legal entity name (if different)"
-                    className="w-full px-4 py-2.5 rounded-lg bg-[#f8f9ff] border border-[rgba(0,0,0,0.05)] text-[#1a1d2e] placeholder:text-[#a0a4b8] focus:outline-none focus:ring-2 focus:ring-[#6366f1]/20 focus:border-[#6366f1] transition-all duration-200"
-                  />
-                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {/* Vendor Name */}
+                  <div className="md:col-span-2">
+                    <label className="block text-sm font-medium text-[#1a1d2e] mb-2">Vendor Name *</label>
+                    <input type="text" required value={formData.name} onChange={(e) => handleInputChange('name', e.target.value)} placeholder="e.g., Microsoft Corporation" className="w-full px-4 py-2.5 rounded-lg bg-[#f8f9ff] border border-[rgba(0,0,0,0.05)] text-[#1a1d2e] placeholder:text-[#a0a4b8] focus:outline-none focus:ring-2 focus:ring-[#6366f1]/20 focus:border-[#6366f1] transition-all duration-200" />
+                  </div>
 
-                {/* Trading / Brand Name */}
-                <div className="md:col-span-2">
-                  <label className="block text-sm font-medium text-[#1a1d2e] mb-2">Trading / Brand Name</label>
-                  <input type="text" value={formData.tradingName} onChange={(e) => handleInputChange('tradingName', e.target.value)} placeholder="Brand or trading name (if different)" className="w-full px-4 py-2.5 rounded-lg bg-[#f8f9ff] border border-[rgba(0,0,0,0.05)] text-[#1a1d2e] placeholder:text-[#a0a4b8] focus:outline-none focus:ring-2 focus:ring-[#6366f1]/20 focus:border-[#6366f1] transition-all duration-200" />
-                </div>
+                  {/* Vendor Legal Name */}
+                  <div className="md:col-span-2">
+                    <label className="block text-sm font-medium text-[#1a1d2e] mb-2">Vendor Legal Name</label>
+                    <input type="text" value={formData.legalName} onChange={(e) => handleInputChange('legalName', e.target.value)} placeholder="Legal entity name (if different)" className="w-full px-4 py-2.5 rounded-lg bg-[#f8f9ff] border border-[rgba(0,0,0,0.05)] text-[#1a1d2e] placeholder:text-[#a0a4b8] focus:outline-none focus:ring-2 focus:ring-[#6366f1]/20 focus:border-[#6366f1] transition-all duration-200" />
+                  </div>
 
-                {/* Registration / GSTIN */}
-                <div>
-                  <label className="block text-sm font-medium text-[#1a1d2e] mb-2">Company Registration Number / GSTIN</label>
-                  <input type="text" value={formData.registrationNumber} onChange={(e) => handleInputChange('registrationNumber', e.target.value)} placeholder="Registration or GSTIN" className="w-full px-4 py-2.5 rounded-lg bg-[#f8f9ff] border border-[rgba(0,0,0,0.05)] text-[#1a1d2e] placeholder:text-[#a0a4b8] focus:outline-none focus:ring-2 focus:ring-[#6366f1]/20 focus:border-[#6366f1] transition-all duration-200" />
-                </div>
+                  {/* Trading / Brand Name */}
+                  <div className="md:col-span-2">
+                    <label className="block text-sm font-medium text-[#1a1d2e] mb-2">Trading / Brand Name</label>
+                    <input type="text" value={formData.tradingName} onChange={(e) => handleInputChange('tradingName', e.target.value)} placeholder="Brand or trading name (if different)" className="w-full px-4 py-2.5 rounded-lg bg-[#f8f9ff] border border-[rgba(0,0,0,0.05)] text-[#1a1d2e] placeholder:text-[#a0a4b8] focus:outline-none focus:ring-2 focus:ring-[#6366f1]/20 focus:border-[#6366f1] transition-all duration-200" />
+                  </div>
 
-                {/* Incorporation Date */}
-                <div>
-                  <label className="block text-sm font-medium text-[#1a1d2e] mb-2">Incorporation Date</label>
-                  <input type="date" value={formData.incorporationDate} onChange={(e) => handleInputChange('incorporationDate', e.target.value)} className="w-full px-4 py-2.5 rounded-lg bg-[#f8f9ff] border border-[rgba(0,0,0,0.05)] text-[#1a1d2e] focus:outline-none focus:ring-2 focus:ring-[#6366f1]/20 focus:border-[#6366f1] transition-all duration-200" />
-                </div>
+                  {/* Registration / GSTIN */}
+                  <div>
+                    <label className="block text-sm font-medium text-[#1a1d2e] mb-2">Company Registration Number / GSTIN</label>
+                    <input type="text" value={formData.registrationNumber} onChange={(e) => handleInputChange('registrationNumber', e.target.value)} placeholder="Registration or GSTIN" className="w-full px-4 py-2.5 rounded-lg bg-[#f8f9ff] border border-[rgba(0,0,0,0.05)] text-[#1a1d2e] placeholder:text-[#a0a4b8] focus:outline-none focus:ring-2 focus:ring-[#6366f1]/20 focus:border-[#6366f1] transition-all duration-200" />
+                  </div>
 
-                {/* Incorporation Country */}
-                <div>
-                  <label className="block text-sm font-medium text-[#1a1d2e] mb-2">Incorporation Country</label>
-                  <input type="text" value={formData.incorporationCountry} onChange={(e) => handleInputChange('incorporationCountry', e.target.value)} placeholder="Country of incorporation" className="w-full px-4 py-2.5 rounded-lg bg-[#f8f9ff] border border-[rgba(0,0,0,0.05)] text-[#1a1d2e] placeholder:text-[#a0a4b8] focus:outline-none focus:ring-2 focus:ring-[#6366f1]/20 focus:border-[#6366f1] transition-all duration-200" />
-                </div>
+                  {/* Website */}
+                  <div>
+                    <label className="block text-sm font-medium text-[#1a1d2e] mb-2">Website</label>
+                    <input type="url" value={formData.website} onChange={(e) => handleInputChange('website', e.target.value)} placeholder="https://www.example.com" className="w-full px-4 py-2.5 rounded-lg bg-[#f8f9ff] border border-[rgba(0,0,0,0.05)] text-[#1a1d2e] placeholder:text-[#a0a4b8] focus:outline-none focus:ring-2 focus:ring-[#6366f1]/20 focus:border-[#6366f1] transition-all duration-200" />
+                  </div>
 
-                {/* Vendor Type */}
-                <div>
-                  <label className="block text-sm font-medium text-[#1a1d2e] mb-2">
-                    Vendor Type *
-                  </label>
-                  <select
-                    required
-                    value={formData.type}
-                    onChange={(e) => handleInputChange('type', e.target.value)}
-                    className="w-full px-4 py-2.5 rounded-lg bg-[#f8f9ff] border border-[rgba(0,0,0,0.05)] text-[#1a1d2e] focus:outline-none focus:ring-2 focus:ring-[#6366f1]/20 focus:border-[#6366f1] transition-all duration-200 cursor-pointer"
-                  >
-                    {vendorTypes.map(type => (
-                      <option key={type} value={type}>{type}</option>
-                    ))}
-                  </select>
-                </div>
+                  {/* Registered Office Address */}
+                  <div className="md:col-span-2">
+                    <label className="block text-sm font-medium text-[#1a1d2e] mb-2">Registered Office Address</label>
+                    <input type="text" value={formData.registeredOfficeAddress} onChange={(e) => handleInputChange('registeredOfficeAddress', e.target.value)} placeholder="Registered office address" className="w-full px-4 py-2.5 rounded-lg bg-[#f8f9ff] border border-[rgba(0,0,0,0.05)] text-[#1a1d2e] placeholder:text-[#a0a4b8] focus:outline-none focus:ring-2 focus:ring-[#6366f1]/20 focus:border-[#6366f1] transition-all duration-200" />
+                  </div>
 
-                {/* Status */}
-                <div>
-                  <label className="block text-sm font-medium text-[#1a1d2e] mb-2">
-                    Status *
-                  </label>
-                  <select
-                    required
-                    value={formData.status}
-                    onChange={(e) => handleInputChange('status', e.target.value)}
-                    className="w-full px-4 py-2.5 rounded-lg bg-[#f8f9ff] border border-[rgba(0,0,0,0.05)] text-[#1a1d2e] focus:outline-none focus:ring-2 focus:ring-[#6366f1]/20 focus:border-[#6366f1] transition-all duration-200 cursor-pointer"
-                  >
-                    {vendorStatuses.map(status => (
-                      <option key={status} value={status}>{status}</option>
-                    ))}
-                  </select>
-                </div>
+                  {/* Corporate Office Address */}
+                  <div className="md:col-span-2">
+                    <label className="block text-sm font-medium text-[#1a1d2e] mb-2">Corporate Office Address</label>
+                    <input type="text" value={formData.corporateOfficeAddress} onChange={(e) => handleInputChange('corporateOfficeAddress', e.target.value)} placeholder="Corporate / head office address" className="w-full px-4 py-2.5 rounded-lg bg-[#f8f9ff] border border-[rgba(0,0,0,0.05)] text-[#1a1d2e] placeholder:text-[#a0a4b8] focus:outline-none focus:ring-2 focus:ring-[#6366f1]/20 focus:border-[#6366f1] transition-all duration-200" />
+                  </div>
 
-                {/* Website */}
-                <div className="md:col-span-2">
-                  <label className="block text-sm font-medium text-[#1a1d2e] mb-2">
-                    Website
-                  </label>
-                  <input
-                    type="url"
-                    value={formData.website}
-                    onChange={(e) => handleInputChange('website', e.target.value)}
-                    placeholder="https://www.example.com"
-                    className="w-full px-4 py-2.5 rounded-lg bg-[#f8f9ff] border border-[rgba(0,0,0,0.05)] text-[#1a1d2e] placeholder:text-[#a0a4b8] focus:outline-none focus:ring-2 focus:ring-[#6366f1]/20 focus:border-[#6366f1] transition-all duration-200"
-                  />
-                </div>
-
-                {/* Registered Office Address */}
-                <div className="md:col-span-2">
-                  <label className="block text-sm font-medium text-[#1a1d2e] mb-2">Registered Office Address</label>
-                  <input type="text" value={formData.registeredOfficeAddress} onChange={(e) => handleInputChange('registeredOfficeAddress', e.target.value)} placeholder="Registered office address" className="w-full px-4 py-2.5 rounded-lg bg-[#f8f9ff] border border-[rgba(0,0,0,0.05)] text-[#1a1d2e] placeholder:text-[#a0a4b8] focus:outline-none focus:ring-2 focus:ring-[#6366f1]/20 focus:border-[#6366f1] transition-all duration-200" />
-                </div>
-
-                {/* Corporate Office Address */}
-                <div className="md:col-span-2">
-                  <label className="block text-sm font-medium text-[#1a1d2e] mb-2">Corporate Office Address</label>
-                  <input type="text" value={formData.corporateOfficeAddress} onChange={(e) => handleInputChange('corporateOfficeAddress', e.target.value)} placeholder="Corporate / head office address" className="w-full px-4 py-2.5 rounded-lg bg-[#f8f9ff] border border-[rgba(0,0,0,0.05)] text-[#1a1d2e] placeholder:text-[#a0a4b8] focus:outline-none focus:ring-2 focus:ring-[#6366f1]/20 focus:border-[#6366f1] transition-all duration-200" />
-                </div>
-                
                   {/* Nature of Business */}
                   <div>
                     <label className="block text-sm font-medium text-[#1a1d2e] mb-2">Nature of Business</label>
@@ -311,16 +343,123 @@ export function AddVendorPage({ onNavigate, onSearch }: AddVendorPageProps) {
                     <label className="block text-sm font-medium text-[#1a1d2e] mb-2">Service Coverage Area</label>
                     <input type="text" value={formData.serviceCoverageArea} onChange={(e) => handleInputChange('serviceCoverageArea', e.target.value)} placeholder="e.g., Local, National, Global or specific regions" className="w-full px-4 py-2.5 rounded-lg bg-[#f8f9ff] border border-[rgba(0,0,0,0.05)] text-[#1a1d2e] placeholder:text-[#a0a4b8] focus:outline-none focus:ring-2 focus:ring-[#6366f1]/20 focus:border-[#6366f1] transition-all duration-200" />
                   </div>
-              </div>
-            </motion.div>
+                </div>
+              </motion.div>
+            )}
+
+            {/* Procurement */}
+            {activeTab === 'procurement' && (
+              <motion.div id="panel-procurement" role="tabpanel" aria-labelledby="tab-procurement" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4, delay: 0.25 }} className="bg-white rounded-2xl border border-[rgba(0,0,0,0.08)] p-6 shadow-sm">
+                <h3 className="text-lg font-semibold text-[#1a1d2e] mb-4">Internal Procurement</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-[#1a1d2e] mb-2">Request Type</label>
+                    <select value={profile.request_type} onChange={(e) => setProfile((p:any) => ({ ...p, request_type: e.target.value }))} className="w-full px-3 py-2 rounded-lg bg-[#fbfbff] border">
+                      <option>New Vendor</option>
+                      <option>Renewal</option>
+                    </select>
+                  </div>
+
+                  <div className="md:col-span-2">
+                    <label className="block text-sm font-medium text-[#1a1d2e] mb-2">Business Justification / Purpose of Onboarding</label>
+                    <textarea value={profile.business_justification} onChange={(e) => setProfile((p:any) => ({ ...p, business_justification: e.target.value }))} className="w-full px-3 py-2 rounded-lg bg-[#fbfbff] border" rows={3} />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-[#1a1d2e] mb-2">Estimated Annual Spend</label>
+                    <input type="number" min="0" step="0.01" value={profile.estimated_annual_spend} onChange={(e) => setProfile((p:any) => ({ ...p, estimated_annual_spend: e.target.value }))} className="w-full px-3 py-2 rounded-lg bg-[#fbfbff] border" />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-[#1a1d2e] mb-2">Evaluation Committee / Approver Name(s)</label>
+                    <input type="text" placeholder="Comma-separated emails or names" value={(profile.evaluation_committee || []).join(', ')} onChange={(e) => setProfile((p:any) => ({ ...p, evaluation_committee: e.target.value.split(',').map((s:string) => s.trim()).filter(Boolean) }))} className="w-full px-3 py-2 rounded-lg bg-[#fbfbff] border" />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-[#1a1d2e] mb-2">Risk Assessment Notes</label>
+                    <select value={profile.risk_assessment} onChange={(e) => setProfile((p:any) => ({ ...p, risk_assessment: e.target.value }))} className="w-full px-3 py-2 rounded-lg bg-[#fbfbff] border">
+                      <option>High</option>
+                      <option>Moderate</option>
+                      <option>Low</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-[#1a1d2e] mb-2">Legal & InfoSec Review Status</label>
+                    <select value={profile.legal_infosec_review_status} onChange={(e) => setProfile((p:any) => ({ ...p, legal_infosec_review_status: e.target.value }))} className="w-full px-3 py-2 rounded-lg bg-[#fbfbff] border">
+                      <option>Pending</option>
+                      <option>Approved</option>
+                      <option>Rejected</option>
+                    </select>
+                  </div>
+                </div>
+              </motion.div>
+            )}
+
+            {/* Compliance & Documentation */}
+            {activeTab === 'compliance' && (
+              <motion.div id="panel-compliance" role="tabpanel" aria-labelledby="tab-compliance" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4, delay: 0.2 }} className="bg-white rounded-2xl border border-[rgba(0,0,0,0.08)] p-6 shadow-sm">
+                <h3 className="text-lg font-semibold text-[#1a1d2e] mb-4">Compliance & Documentation</h3>
+                <p className="text-sm text-[#64748b] mb-3">Upload required compliance documents. ISO / Quality Certifications may include multiple files.</p>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {[
+                    { key: 'registration_cert', label: 'Company Registration Certificate' },
+                    { key: 'nda', label: 'Non-Disclosure Agreement (NDA)' },
+                    { key: 'iso', label: 'ISO / Quality Certifications (multiple)', multiple: true },
+                    { key: 'liability_insurance', label: 'Liability Insurance Proof' },
+                    { key: 'cybersecurity', label: 'Cybersecurity Compliance Attestation' },
+                    { key: 'code_of_conduct', label: 'Signed Code of Conduct and Ethics Policy' },
+                    { key: 'supplier_diversity', label: 'Supplier Diversity Certification' },
+                  ].map((docDef) => (
+                    <div key={docDef.key} className="p-2 border rounded-lg bg-[#fbfbff]">
+                      <div className="flex items-center justify-between mb-2">
+                        <div className="text-sm font-medium">{docDef.label}</div>
+                      </div>
+
+                      {/* Themed FileDropzone component */}
+                      <div>
+                        {/* import the component locally to avoid top-level changes */}
+                        {/* Files for this doc type */}
+                        <FileDropzone
+                          id={`dropzone-${docDef.key}`}
+                          accept="application/pdf,image/*"
+                          multiple={!!docDef.multiple}
+                          compact={true}
+                          files={(((formData as any)._pendingDocs || []) as any[]).filter((d: any) => d.type === docDef.key).map((d: any) => d.file)}
+                          externalProgress={pendingProgress}
+                          onFilesAdded={(arr) => {
+                            setFormData((f: any) => {
+                              const existing = Array.isArray(f._pendingDocs) ? [...f._pendingDocs] : [];
+                              if (docDef.multiple) {
+                                for (const file of arr) existing.push({ type: docDef.key, file });
+                              } else {
+                                existing.push({ type: docDef.key, file: arr[0] });
+                              }
+                              return { ...f, _pendingDocs: existing };
+                            });
+                          }}
+                          onRemove={(idx) => {
+                            setFormData((f: any) => {
+                              const pending = Array.isArray(f._pendingDocs) ? [...f._pendingDocs] : [];
+                              // find indices for this type
+                              const indices = pending.map((p: any, i: number) => ({ i, t: p.type })).filter((x: any) => x.t === docDef.key).map((x: any) => x.i);
+                              const removeAt = indices[idx];
+                              if (removeAt === undefined) return f;
+                              pending.splice(removeAt, 1);
+                              return { ...f, _pendingDocs: pending };
+                            });
+                          }}
+                        />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </motion.div>
+            )}
 
             {/* Contact Information */}
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.4, delay: 0.1 }}
-              className="bg-white rounded-2xl border border-[rgba(0,0,0,0.08)] p-6 shadow-sm"
-            >
+            {activeTab === 'contact' && (
+              <motion.div id="panel-contact" role="tabpanel" aria-labelledby="tab-contact" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4, delay: 0.1 }} className="bg-white rounded-2xl border border-[rgba(0,0,0,0.08)] p-6 shadow-sm">
               <h3 className="text-lg font-semibold text-[#1a1d2e] mb-4">Contact Information</h3>
               
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -426,108 +565,112 @@ export function AddVendorPage({ onNavigate, onSearch }: AddVendorPageProps) {
                   ))}
                 </div>
               </div>
-            </motion.div>
+              </motion.div>
+            )}
 
-            {/* Contract & Performance */}
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.4, delay: 0.2 }}
-              className="bg-white rounded-2xl border border-[rgba(0,0,0,0.08)] p-6 shadow-sm"
-            >
-              <h3 className="text-lg font-semibold text-[#1a1d2e] mb-4">Contract & Performance</h3>
-              
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {/* Contract Value */}
-                <div>
-                  <label className="block text-sm font-medium text-[#1a1d2e] mb-2">
-                    Contract Value *
-                  </label>
-                  <div className="relative">
-                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[#64748b]">$</span>
-                    <input
-                      type="number"
-                      required
-                      min="0"
-                      step="0.01"
-                      value={formData.contractValue}
-                      onChange={(e) => handleInputChange('contractValue', e.target.value)}
-                      placeholder="0.00"
-                      className="w-full pl-8 pr-4 py-2.5 rounded-lg bg-[#f8f9ff] border border-[rgba(0,0,0,0.05)] text-[#1a1d2e] placeholder:text-[#a0a4b8] focus:outline-none focus:ring-2 focus:ring-[#6366f1]/20 focus:border-[#6366f1] transition-all duration-200"
-                    />
+            {/* IT & Security */}
+            {activeTab === 'it' && (
+              <motion.div id="panel-it" role="tabpanel" aria-labelledby="tab-it" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4, delay: 0.15 }} className="bg-white rounded-2xl border border-[rgba(0,0,0,0.08)] p-6 shadow-sm">
+                <h3 className="text-lg font-semibold text-[#1a1d2e] mb-4">IT & Security Assessment</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                  <div className="md:col-span-2 flex items-center gap-3">
+                    <input id="data_protection_ack" type="checkbox" checked={!!profile.data_protection_ack} onChange={(e) => setProfile((p:any) => ({ ...p, data_protection_ack: e.target.checked }))} />
+                    <label htmlFor="data_protection_ack" className="text-sm">Data Protection / Privacy Policy Acknowledgment</label>
                   </div>
-                </div>
 
-                {/* Contract Expiry */}
-                <div>
-                  <label className="block text-sm font-medium text-[#1a1d2e] mb-2">
-                    Contract Expiry *
-                  </label>
-                  <div className="relative">
-                    <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-[#64748b] pointer-events-none" />
-                    <input
-                      type="date"
-                      required
-                      value={formData.contractExpiry}
-                      onChange={(e) => handleInputChange('contractExpiry', e.target.value)}
-                      className="w-full pl-10 pr-4 py-2.5 rounded-lg bg-[#f8f9ff] border border-[rgba(0,0,0,0.05)] text-[#1a1d2e] focus:outline-none focus:ring-2 focus:ring-[#6366f1]/20 focus:border-[#6366f1] transition-all duration-200"
-                    />
-                  </div>
-                </div>
-
-                {/* Performance Rating */}
-                <div className="md:col-span-2">
-                  <label className="block text-sm font-medium text-[#1a1d2e] mb-2">
-                    Performance Rating *
-                  </label>
-                  <div className="space-y-2">
-                    <input
-                      type="range"
-                      min="0"
-                      max="5"
-                      step="0.1"
-                      value={formData.rating}
-                      onChange={(e) => handleInputChange('rating', e.target.value)}
-                      className="w-full h-2 rounded-lg appearance-none cursor-pointer"
-                      style={{
-                        background: `linear-gradient(to right, #f59e0b 0%, #f59e0b ${(ratingValue / 5) * 100}%, #e5e7eb ${(ratingValue / 5) * 100}%, #e5e7eb 100%)`
+                  <div className="md:col-span-2">
+                    <label className="block text-sm font-medium text-[#1a1d2e] mb-2">Information Security Policy Proof</label>
+                    <FileDropzone
+                      id="dropzone-information_security_policy"
+                      accept="application/pdf,image/*"
+                      multiple={false}
+                      files={(((formData as any)._pendingDocs || []) as any[]).filter((d: any) => d.type === 'information_security_policy').map((d: any) => d.file)}
+                      onFilesAdded={(arr) => {
+                        setFormData((f: any) => ({ ...f, _pendingDocs: [...(f._pendingDocs || []), { type: 'information_security_policy', file: arr[0] }] }));
+                      }}
+                      onRemove={(idx) => {
+                        setFormData((f: any) => {
+                          const pending = Array.isArray(f._pendingDocs) ? [...f._pendingDocs] : [];
+                          const indices = pending.map((p: any, i: number) => ({ i, t: p.type })).filter((x: any) => x.t === 'information_security_policy').map((x: any) => x.i);
+                          const removeAt = indices[idx];
+                          if (removeAt === undefined) return f;
+                          pending.splice(removeAt, 1);
+                          return { ...f, _pendingDocs: pending };
+                        });
                       }}
                     />
-                    <div className="flex items-center justify-between">
-                      <div className="flex gap-1">
-                        {[1, 2, 3, 4, 5].map(star => (
-                          <Star 
-                            key={star} 
-                            className={`h-5 w-5 ${
-                              star <= Math.round(ratingValue) 
-                                ? 'text-[#f59e0b] fill-[#f59e0b]' 
-                                : 'text-[#e5e7eb] fill-[#e5e7eb]'
-                            }`}
-                          />
-                        ))}
-                      </div>
-                      <span className="text-sm font-semibold text-[#1a1d2e]">{ratingValue.toFixed(1)} / 5.0</span>
+                  </div>
+
+                  <div className="md:col-span-2">
+                    <label className="block text-sm font-medium text-[#1a1d2e] mb-2">Network and Endpoint Security Measures Overview</label>
+                    <textarea value={profile.network_endpoint_overview} onChange={(e) => setProfile((p:any) => ({ ...p, network_endpoint_overview: e.target.value }))} className="w-full px-3 py-2 rounded-lg bg-[#fbfbff] border" rows={4} />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-[#1a1d2e] mb-2">Authorized Hardware Brands / Product Lines</label>
+                    <select multiple value={profile.authorized_hardware} onChange={(e) => setProfile((p:any) => ({ ...p, authorized_hardware: Array.from(e.target.selectedOptions).map(o => o.value) }))} className="w-full px-3 py-2 rounded-lg bg-[#fbfbff] border">
+                      {['Dell', 'HP', 'Lenovo', 'Apple', 'Cisco', 'Aruba', 'Juniper', 'Microsoft'].map(b => <option key={b} value={b}>{b}</option>)}
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-[#1a1d2e] mb-2">Support and Warranty Policy Details</label>
+                    <textarea value={profile.support_warranty} onChange={(e) => setProfile((p:any) => ({ ...p, support_warranty: e.target.value }))} className="w-full px-3 py-2 rounded-lg bg-[#fbfbff] border" rows={3} />
+                  </div>
+                </div>
+              </motion.div>
+            )}
+
+            {/* Contract */}
+            {activeTab === 'contract' && (
+              <motion.div id="panel-contract" role="tabpanel" aria-labelledby="tab-contract" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4, delay: 0.2 }} className="bg-white rounded-2xl border border-[rgba(0,0,0,0.08)] p-6 shadow-sm">
+                <h3 className="text-lg font-semibold text-[#1a1d2e] mb-4">Contract</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-[#1a1d2e] mb-2">Contract Value *</label>
+                    <div className="relative">
+                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[#64748b]">$</span>
+                      <input type="number" required min="0" step="0.01" value={formData.contractValue} onChange={(e) => handleInputChange('contractValue', e.target.value)} placeholder="0.00" className="w-full pl-8 pr-4 py-2.5 rounded-lg bg-[#f8f9ff] border border-[rgba(0,0,0,0.05)] text-[#1a1d2e] placeholder:text-[#a0a4b8] focus:outline-none focus:ring-2 focus:ring-[#6366f1]/20 focus:border-[#6366f1] transition-all duration-200" />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-[#1a1d2e] mb-2">Contract Expiry *</label>
+                    <div className="relative">
+                      <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-[#64748b] pointer-events-none" />
+                      <input type="date" required value={formData.contractExpiry} onChange={(e) => handleInputChange('contractExpiry', e.target.value)} className="w-full pl-10 pr-4 py-2.5 rounded-lg bg-[#f8f9ff] border border-[rgba(0,0,0,0.05)] text-[#1a1d2e] focus:outline-none focus:ring-2 focus:ring-[#6366f1]/20 focus:border-[#6366f1] transition-all duration-200" />
                     </div>
                   </div>
                 </div>
+              </motion.div>
+            )}
 
-                {/* Notes */}
-                <div className="md:col-span-2">
-                  <label className="block text-sm font-medium text-[#1a1d2e] mb-2">
-                    Notes
-                  </label>
-                  <textarea
-                    value={formData.notes}
-                    onChange={(e) => handleInputChange('notes', e.target.value)}
-                    placeholder="Additional notes or comments about this vendor..."
-                    rows={3}
-                    className="w-full px-4 py-2.5 rounded-lg bg-[#f8f9ff] border border-[rgba(0,0,0,0.05)] text-[#1a1d2e] placeholder:text-[#a0a4b8] focus:outline-none focus:ring-2 focus:ring-[#6366f1]/20 focus:border-[#6366f1] transition-all duration-200 resize-none"
-                  />
+            {/* Performance */}
+            {activeTab === 'performance' && (
+              <motion.div id="panel-performance" role="tabpanel" aria-labelledby="tab-performance" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4, delay: 0.2 }} className="bg-white rounded-2xl border border-[rgba(0,0,0,0.08)] p-6 shadow-sm">
+                <h3 className="text-lg font-semibold text-[#1a1d2e] mb-4">Performance & Notes</h3>
+                <div className="space-y-4">
+                  <label className="block text-sm font-medium text-[#1a1d2e] mb-2">Performance Rating *</label>
+                  <input type="range" min="0" max="5" step="0.1" value={formData.rating} onChange={(e) => handleInputChange('rating', e.target.value)} className="w-full h-2 rounded-lg appearance-none cursor-pointer" style={{ background: `linear-gradient(to right, #f59e0b 0%, #f59e0b ${(ratingValue / 5) * 100}%, #e5e7eb ${(ratingValue / 5) * 100}%, #e5e7eb 100%)` }} />
+                  <div className="flex items-center justify-between">
+                    <div className="flex gap-1">
+                      {[1,2,3,4,5].map(star => (
+                        <Star key={star} className={`h-5 w-5 ${star <= Math.round(ratingValue) ? 'text-[#f59e0b] fill-[#f59e0b]' : 'text-[#e5e7eb] fill-[#e5e7eb]'}`} />
+                      ))}
+                    </div>
+                    <span className="text-sm font-semibold text-[#1a1d2e]">{ratingValue.toFixed(1)} / 5.0</span>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-[#1a1d2e] mb-2">Notes</label>
+                    <textarea value={formData.notes} onChange={(e) => handleInputChange('notes', e.target.value)} rows={3} className="w-full px-4 py-2.5 rounded-lg bg-[#f8f9ff] border" placeholder="Additional notes or comments about this vendor..." />
+                  </div>
                 </div>
-              </div>
-            </motion.div>
+              </motion.div>
+            )}
             {/* Financial & Banking Information */}
-            <motion.div
+            {activeTab === 'financial' && (
+              <motion.div id="panel-financial" role="tabpanel" aria-labelledby="tab-financial" 
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.4, delay: 0.25 }}
@@ -580,13 +723,26 @@ export function AddVendorPage({ onNavigate, onSearch }: AddVendorPageProps) {
                 </div>
                 <div className="md:col-span-2">
                   <label className="block text-sm font-medium text-[#1a1d2e] mb-2">GST Certificate / Tax Registration Certificate</label>
-                  <input type="file" accept=".pdf,.png,.jpg,.jpeg" onChange={(e) => setFormData((f:any) => ({ ...f, gstCertificateFile: e.target.files?.[0] ?? null }))} className="w-full" />
+                  <FileDropzone
+                    id="dropzone-gst-add"
+                    accept=".pdf,.png,.jpg,.jpeg"
+                    multiple={false}
+                    onFilesAdded={(arr) => {
+                      const f = arr?.[0];
+                      if (!f) return;
+                      setFormData((p:any) => ({ ...p, gstCertificateFile: f }));
+                    }}
+                    externalProgress={pendingProgress}
+                    files={(((formData as any)._pendingDocs || []) as any[]).filter((d: any) => d.type === 'gst_certificate').map((d: any) => d.file)}
+                  />
                 </div>
               </div>
             </motion.div>
+            )}
 
             {/* Custom Fields (from Settings) */}
-            <motion.div
+            {activeTab === 'custom' && (
+              <motion.div id="panel-custom" role="tabpanel" aria-labelledby="tab-custom" 
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.4, delay: 0.25 }}
@@ -614,69 +770,10 @@ export function AddVendorPage({ onNavigate, onSearch }: AddVendorPageProps) {
                 })}
               </div>
             </motion.div>
+            )}
           </div>
 
-          {/* Sidebar - Summary */}
-          <div className="lg:col-span-1">
-            <motion.div
-              initial={{ opacity: 0, x: 20 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ duration: 0.4, delay: 0.1 }}
-              className="bg-gradient-to-br from-[#6366f1] to-[#8b5cf6] rounded-2xl p-6 text-white sticky top-24 shadow-lg"
-            >
-              <h3 className="text-lg font-semibold mb-4">Vendor Summary</h3>
-              
-              <div className="space-y-3 mb-6">
-                <div className="flex justify-between items-center pb-2 border-b border-white/20">
-                  <span className="text-sm text-white/80">Type</span>
-                  <span className="font-semibold">{formData.type}</span>
-                </div>
-                <div className="flex justify-between items-center pb-2 border-b border-white/20">
-                  <span className="text-sm text-white/80">Status</span>
-                  <span className="font-semibold">{formData.status}</span>
-                </div>
-                {formData.contractValue && (
-                  <div className="flex justify-between items-center pb-2 border-b border-white/20">
-                    <span className="text-sm text-white/80">Contract Value</span>
-                    <span className="font-semibold">${parseFloat(formData.contractValue).toLocaleString()}</span>
-                  </div>
-                )}
-                {formData.rating && (
-                  <div className="flex justify-between items-center pb-2 border-b border-white/20">
-                    <span className="text-sm text-white/80">Rating</span>
-                    <div className="flex items-center gap-1">
-                      <Star className="h-3.5 w-3.5 fill-white" />
-                      <span className="font-semibold">{parseFloat(formData.rating).toFixed(1)}</span>
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              <div className="space-y-3">
-                <button
-                  type="submit"
-                  className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-white text-[#6366f1] rounded-lg font-semibold hover:shadow-lg transition-all duration-200"
-                >
-                  <Save className="h-4 w-4" />
-                  Save Vendor
-                </button>
-                <button
-                  type="button"
-                  onClick={() => onNavigate?.('vendors')}
-                  className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-white/10 text-white rounded-lg font-semibold hover:bg-white/20 transition-all duration-200"
-                >
-                  <X className="h-4 w-4" />
-                  Cancel
-                </button>
-              </div>
-
-              <div className="mt-6 pt-6 border-t border-white/20">
-                <p className="text-xs text-white/70">
-                  Fields marked with * are required
-                </p>
-              </div>
-            </motion.div>
-          </div>
+          {/* Sidebar removed — form now full-width */}
         </div>
       </form>
     </AssetFlowLayout>

@@ -136,3 +136,68 @@ export async function PATCH(req: NextRequest) {
     return NextResponse.json({ error: e?.message || 'Database error' }, { status: 500 });
   }
 }
+
+export async function DELETE(req: NextRequest) {
+  const me = await requireAdmin();
+  if (!me) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+  try {
+    const body = await req.json();
+    const entity = (body?.entity || '').toString(); // 'category' | 'type'
+    const id = Number(body?.id);
+    const dryRun = !!body?.dryRun;
+    const force = !!body?.force;
+    if (!id || (entity !== 'category' && entity !== 'type')) {
+      return NextResponse.json({ error: 'entity (category|type) and numeric id are required' }, { status: 400 });
+    }
+
+    if (entity === 'type') {
+      // find type name
+      const rows = await query<{ id: number; name: string }>('SELECT id, name FROM asset_types WHERE id = :id', { id });
+      if (!rows.length) return NextResponse.json({ error: 'Type not found' }, { status: 404 });
+      const name = rows[0].name;
+      // count assets referencing this type by name
+      const cntRows = await query<{ cnt: number }>('SELECT COUNT(*) AS cnt FROM assets WHERE type = :name', { name });
+      const count = Number(cntRows[0]?.cnt ?? 0);
+      if (dryRun) {
+        // when asking only for dependencies, report whether confirmation is needed
+        if (count > 0) return NextResponse.json({ requiresConfirmation: true, count }, { status: 200 });
+        return NextResponse.json({ requiresConfirmation: false, count }, { status: 200 });
+      }
+      // Actual delete: do not allow deletion if assets reference this type
+      if (count > 0) {
+        return NextResponse.json({ error: 'Cannot delete type: assets are assigned to this type' }, { status: 409 });
+      }
+      // safe to delete
+      await query('DELETE FROM asset_types WHERE id = :id', { id });
+      return NextResponse.json({ ok: true });
+    }
+
+    // entity === 'category'
+    // collect associated type names
+    const types = await query<{ id: number; name: string }>('SELECT id, name FROM asset_types WHERE category_id = :id', { id });
+    const typeNames = types.map((t) => t.name);
+    let count = 0;
+    if (typeNames.length) {
+      // build positional placeholders
+      const placeholders = typeNames.map(() => '?').join(',');
+      const params = typeNames;
+      const cntRows = await query<any>(`SELECT COUNT(*) AS cnt FROM assets WHERE type IN (${placeholders})`, params);
+      count = Number(cntRows[0]?.cnt ?? 0);
+    }
+    if (dryRun) {
+      // report dependencies without performing deletion
+      if (count > 0) return NextResponse.json({ requiresConfirmation: true, count, types: typeNames }, { status: 200 });
+      return NextResponse.json({ requiresConfirmation: false, count, types: typeNames }, { status: 200 });
+    }
+    // Actual delete: do not allow deletion if any assets reference types in this category
+    if (count > 0) {
+      return NextResponse.json({ error: 'Cannot delete category: some assets reference types in this category' }, { status: 409 });
+    }
+    // delete category (will cascade-delete types)
+    await query('DELETE FROM asset_categories WHERE id = :id', { id });
+    return NextResponse.json({ ok: true });
+  } catch (e: any) {
+    console.error('DELETE /api/admin/catalog failed:', e);
+    return NextResponse.json({ error: e?.message || 'Database error' }, { status: 500 });
+  }
+}

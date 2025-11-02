@@ -13,6 +13,7 @@ import { VendorsPage } from './vendors/VendorsPage';
 import { AddVendorPage } from './vendors/AddVendorPage';
 import { EditVendorPage } from './vendors/EditVendorPage';
 import { EventsPage } from './events/EventsPage';
+import SearchResultsPage from './search/SearchResultsPage';
 import { SettingsPage } from './settings/SettingsPage';
 
 export type AssetFlowPage = 
@@ -107,6 +108,11 @@ export function AssetFlowApp() {
     return <SettingsPage onNavigate={handleNavigate} onSearch={handleSearch} />;
   }
 
+  // Search results
+  if (currentPage === 'search') {
+    return <SearchResultsPage query={searchQuery} onNavigate={handleNavigate} onSearch={handleSearch} />;
+  }
+
   // Placeholder for other pages
   return (
     <AssetFlowLayout
@@ -114,13 +120,13 @@ export function AssetFlowApp() {
       onSearch={handleSearch}
       breadcrumbs={[
         { label: 'Home', href: '#' },
-        { label: currentPage.charAt(0).toUpperCase() + currentPage.slice(1).replace('-', ' ') }
+        { label: String(currentPage).charAt(0).toUpperCase() + String(currentPage).slice(1).replace('-', ' ') }
       ]}
     >
       <div className="flex items-center justify-center min-h-[60vh]">
         <div className="text-center">
           <h2 className="text-2xl font-bold text-[#1a1d2e] mb-2">
-            {currentPage.charAt(0).toUpperCase() + currentPage.slice(1).replace('-', ' ')} Page
+            {String(currentPage).charAt(0).toUpperCase() + String(currentPage).slice(1).replace('-', ' ')} Page
           </h2>
           <p className="text-[#64748b]">
             This page is under construction. Dashboard, IT Assets, Licenses, Vendors, and Events pages are fully functional!

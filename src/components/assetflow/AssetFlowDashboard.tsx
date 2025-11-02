@@ -73,6 +73,7 @@ export function AssetFlowDashboard({ onNavigate, onSearch }: AssetFlowDashboardP
           trend={{ value: '+12%', isPositive: true }}
           gradient="from-[#6366f1] to-[#8b5cf6]"
           delay={0}
+          href="/assets"
         />
         <StatCard
           title="Licenses Expiring Soon"
@@ -81,6 +82,7 @@ export function AssetFlowDashboard({ onNavigate, onSearch }: AssetFlowDashboardP
           trend={{ value: '+2', isPositive: false }}
           gradient="from-[#ec4899] to-[#f43f5e]"
           delay={0.1}
+          href="/licenses"
         />
         <StatCard
           title="Assets in Repair"
@@ -89,6 +91,7 @@ export function AssetFlowDashboard({ onNavigate, onSearch }: AssetFlowDashboardP
           trend={{ value: '-25%', isPositive: true }}
           gradient="from-[#f59e0b] to-[#f97316]"
           delay={0.2}
+          href="/assets"
         />
         <StatCard
           title="Total Vendors"
@@ -97,6 +100,7 @@ export function AssetFlowDashboard({ onNavigate, onSearch }: AssetFlowDashboardP
           trend={{ value: '+3', isPositive: true }}
           gradient="from-[#10b981] to-[#14b8a6]"
           delay={0.3}
+          href="/vendors"
         />
       </div>
 

@@ -15,6 +15,16 @@ function csvEscape(value: unknown): string {
 
 // Builds a CSV string from assets, including common and spec fields
 export function buildAssetsCSV(assets: Asset[]): string {
+  // Collect all custom field keys across assets so we can emit them as separate columns
+  const customKeySet = new Set<string>();
+  assets.forEach((a) => {
+    const cf = a.specifications?.customFields;
+    if (cf && typeof cf === 'object') {
+      Object.keys(cf).forEach((k) => customKeySet.add(k));
+    }
+  });
+  const customKeys = Array.from(customKeySet).sort();
+
   const headers = [
     'ID',
     'Name',
@@ -32,38 +42,38 @@ export function buildAssetsCSV(assets: Asset[]): string {
     'RAM',
     'Storage',
     'OS',
-    'Custom Fields',
+    // add each custom field as its own column
+    ...customKeys,
   ];
 
-  const rows = assets.map((a) => [
-    a.id,
-    a.name,
-    a.type,
-    a.serialNumber,
-    a.assignedTo,
-    a.department,
-    a.status,
-    a.purchaseDate,
-    (a as any).eosDate ?? '',
-    (a as any).eolDate ?? '',
-    a.cost,
-    a.location,
-    a.specifications?.processor ?? '',
-    a.specifications?.ram ?? '',
-    a.specifications?.storage ?? '',
-    a.specifications?.os ?? '',
-    (() => {
-      const cf = a.specifications?.customFields;
-      if (!cf) return '';
-      const keys = Object.keys(cf);
-      if (keys.length === 0) return '';
-      try {
-        return JSON.stringify(cf);
-      } catch {
-        return '';
-      }
-    })(),
-  ]);
+  const rows = assets.map((a) => {
+    const base = [
+      a.id,
+      a.name,
+      a.type,
+      a.serialNumber,
+      a.assignedTo,
+      a.department,
+      a.status,
+      a.purchaseDate,
+      (a as any).eosDate ?? '',
+      (a as any).eolDate ?? '',
+      a.cost,
+      a.location,
+      a.specifications?.processor ?? '',
+      a.specifications?.ram ?? '',
+      a.specifications?.storage ?? '',
+      a.specifications?.os ?? '',
+    ];
+    const cf = (a.specifications?.customFields as Record<string, unknown> | undefined) ?? {};
+    const cfValues = customKeys.map((k) => {
+      const v = cf[k];
+      if (v === null || v === undefined) return '';
+      if (typeof v === 'object') return JSON.stringify(v);
+      return String(v);
+    });
+    return [...base, ...cfValues];
+  });
 
   const headerLine = headers.map(csvEscape).join(',');
   const bodyLines = rows.map((r) => r.map(csvEscape).join(',')).join('\n');

@@ -1,3 +1,5 @@
+"use client";
+
 import { motion } from 'motion/react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts';
 import { useEffect, useMemo, useState } from 'react';

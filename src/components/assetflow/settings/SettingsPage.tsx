@@ -15,6 +15,8 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Label } from '../../ui/label';
 import { Input } from '../../ui/input';
 import { fetchSettings, saveSettings, type ServerSettings } from '../../../lib/api';
+import FileDropzone from '../../ui/FileDropzone';
+import { uploadWithProgress } from '../../../lib/upload';
 import { getMe, type ClientMe } from '../../../lib/auth/client';
 import type { AssetFieldDef, AssetFieldType } from '../../../lib/data';
 
@@ -629,38 +631,31 @@ export function SettingsPage({ onNavigate, onSearch, view = 'general' }: Setting
                     <div>
                       <label className="block text-sm font-medium text-[#1a1d2e] mb-2">Bank Logo</label>
                       <div className="flex items-center gap-4">
-                        <div className="h-12 w-12 rounded-lg bg-[#f8f9ff] border border-[rgba(0,0,0,0.08)] flex items-center justify-center overflow-hidden">
-                          {logoUrl ? (
-                            <img src={logoUrl} alt="Logo" className="h-full w-full object-contain" />
-                          ) : (
-                            <span className="text-xs text-[#94a3b8]">No logo</span>
-                          )}
-                        </div>
-                        <input type="file" accept="image/*" id="brand-logo-input" className="hidden" onChange={async (e) => {
-                          setBrandingMsg(null);
-                          const f = e.target.files?.[0];
-                          if (!f) return;
-                          const fd = new FormData();
-                          fd.append('file', f);
-                          try {
-                            const res = await fetch('/api/branding/logo', { method: 'POST', body: fd });
-                            const data = await res.json();
-                            if (!res.ok) throw new Error(data?.error || 'Upload failed');
-                            setLogoUrl(data.logoUrl || null);
-                            setBrandingMsg('OK: Logo uploaded');
-                            // Update SSR attribute for immediate sidebar update
-                            try {
-                              document.documentElement.setAttribute('data-brand-logo', data.logoUrl || '');
-                            } catch { }
-                          } catch (e: any) {
-                            setBrandingMsg(`Error: ${e?.message || e}`);
-                          } finally {
-                            (e.target as HTMLInputElement).value = '';
-                          }
-                        }} />
-                        <button type="button" onClick={() => document.getElementById('brand-logo-input')?.click()} className="px-3 py-2 rounded-lg bg-[#f8f9ff] border border-[rgba(0,0,0,0.08)] hover:bg-white">
-                          Choose Logo…
-                        </button>
+                          <div className="h-12 w-12 rounded-lg bg-[#f8f9ff] border border-[rgba(0,0,0,0.08)] flex items-center justify-center overflow-hidden">
+                            {logoUrl ? (
+                              <img src={logoUrl} alt="Logo" className="h-full w-full object-contain" />
+                            ) : (
+                              <span className="text-xs text-[#94a3b8]">No logo</span>
+                            )}
+                          </div>
+                          <div>
+                            <FileDropzone id="branding-logo-dropzone" accept="image/*" multiple={false} onFilesAdded={async (arr) => {
+                              const f = arr?.[0];
+                              if (!f) return;
+                              setBrandingMsg(null);
+                              try {
+                                const { promise } = uploadWithProgress('/api/branding/logo', f, {}, (pct) => {
+                                  setBrandingMsg(`Uploading… ${pct}%`);
+                                });
+                                const data = await promise;
+                                setLogoUrl(data.logoUrl || null);
+                                setBrandingMsg('OK: Logo uploaded');
+                                try { document.documentElement.setAttribute('data-brand-logo', data.logoUrl || ''); } catch { }
+                              } catch (e: any) {
+                                setBrandingMsg(`Error: ${e?.message || e}`);
+                              }
+                            }} />
+                          </div>
                       </div>
                       <p className="text-xs text-[#94a3b8] mt-1">PNG/SVG/JPG/WebP up to a few MB. Stored under /public/brand.</p>
                     </div>
