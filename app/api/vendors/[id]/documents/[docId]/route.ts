@@ -14,7 +14,7 @@ export async function GET(_req: NextRequest, ctx: any) {
   const guard = await requirePermission('vendors_read');
   if (!('ok' in guard) || !guard.ok) return NextResponse.json({ error: 'Forbidden' }, { status: (guard as any).status ?? 403 });
   const { id, docId } = await resolveParams(ctx);
-  const rows = await query('SELECT id, `type`, name, blob FROM vendor_documents WHERE vendor_id = :vendor_id AND id = :id', { vendor_id: id, id: docId });
+  const rows = await query('SELECT id, `type`, name, `blob` FROM vendor_documents WHERE vendor_id = :vendor_id AND id = :id', { vendor_id: id, id: docId });
   if (!rows.length) return NextResponse.json({ error: 'Not found' }, { status: 404 });
   const row = rows[0] as any;
   if (!row.blob) return NextResponse.json({ error: 'No data' }, { status: 404 });

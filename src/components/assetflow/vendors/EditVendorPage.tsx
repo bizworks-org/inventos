@@ -30,6 +30,14 @@ export function EditVendorPage({ vendorId, onNavigate, onSearch }: EditVendorPag
   const [saving, setSaving] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [activeTab, setActiveTab] = useState<string>('vendor');
+  // Normalize phone input to optional leading + followed by digits only, max 20 digits
+  const normalizePhone = (raw: string) => {
+    const hasLeadingPlus = raw.trim().startsWith('+');
+    const digits = raw.replace(/\D/g, '');
+    const normalized = (hasLeadingPlus ? '+' : '') + digits;
+    // Limit to + and up to 20 digits (max length 21 including +)
+    return normalized.slice(0, 21);
+  };
   // Define tabs centrally so we can reuse for keyboard navigation and ARIA
   const tabs = [
     { id: 'vendor', label: 'Vendor Info' },
@@ -523,7 +531,16 @@ export function EditVendorPage({ vendorId, onNavigate, onSearch }: EditVendorPag
                     <label className="block text-sm font-medium text-[#1a1d2e] mb-2">Phone</label>
                     <div className="flex items-center gap-2">
                       <Phone className="h-4 w-4 text-[#64748b]" />
-                      <input type="text" value={formData.phone} onChange={(e) => handleInputChange('phone', e.target.value)} placeholder="+1-800-000-0000" className="w-full px-4 py-2.5 rounded-lg bg-[#f8f9ff] border border-[rgba(0,0,0,0.05)] text-[#1a1d2e] placeholder:text-[#a0a4b8] focus:outline-none focus:ring-2 focus:ring-[#6366f1]/20 focus:border-[#6366f1] transition-all duration-200" />
+                      <input
+                        type="tel"
+                        inputMode="tel"
+                        pattern="^\+?\d{7,20}$"
+                        title="Enter digits only, optionally starting with + (7–20 digits)"
+                        value={formData.phone}
+                        onChange={(e) => handleInputChange('phone', normalizePhone(e.target.value))}
+                        placeholder="+15551234567"
+                        className="w-full px-4 py-2.5 rounded-lg bg-[#f8f9ff] border border-[rgba(0,0,0,0.05)] text-[#1a1d2e] placeholder:text-[#a0a4b8] focus:outline-none focus:ring-2 focus:ring-[#6366f1]/20 focus:border-[#6366f1] transition-all duration-200"
+                      />
                     </div>
                   </div>
 
@@ -557,7 +574,15 @@ export function EditVendorPage({ vendorId, onNavigate, onSearch }: EditVendorPag
                             </div>
                             <div>
                               <label className="block text-xs text-[#1a1d2e] mb-1">Phone</label>
-                              <input type="tel" value={c.phone || ''} onChange={(e) => setFormData((f: any) => { const contacts = [...f.contacts]; contacts[idx] = { ...contacts[idx], phone: e.target.value }; return { ...f, contacts }; })} className="w-full px-3 py-2 rounded-lg bg-white border" />
+                              <input
+                                type="tel"
+                                inputMode="tel"
+                                pattern="^\+?\d{7,20}$"
+                                title="Enter digits only, optionally starting with + (7–20 digits)"
+                                value={c.phone || ''}
+                                onChange={(e) => setFormData((f: any) => { const contacts = [...f.contacts]; contacts[idx] = { ...contacts[idx], phone: normalizePhone(e.target.value) }; return { ...f, contacts }; })}
+                                className="w-full px-3 py-2 rounded-lg bg-white border"
+                              />
                             </div>
                             <div>
                               <label className="block text-xs text-[#1a1d2e] mb-1">Email</label>

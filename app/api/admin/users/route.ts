@@ -35,6 +35,20 @@ export async function PUT(req: NextRequest) {
   const body = await req.json();
   const { id, ...patch } = body || {};
   if (!id) return NextResponse.json({ error: 'Missing id' }, { status: 400 });
+  // Guard: prevent editing other administrators (self-edit allowed)
+  try {
+    const adminRows = await query<{ count: number }>(
+      `SELECT COUNT(*) AS count
+         FROM user_roles ur
+         JOIN roles r ON r.id = ur.role_id
+        WHERE ur.user_id = :id AND r.name = 'admin'`,
+      { id }
+    );
+    const isTargetAdmin = Number(adminRows?.[0]?.count || 0) > 0;
+    if (isTargetAdmin && (me as any).id !== id) {
+      return NextResponse.json({ error: 'Cannot edit another administrator.' }, { status: 403 });
+    }
+  } catch {}
   // Guard: prevent deactivating the last active administrator
   if (patch.active === false) {
     try {
@@ -74,6 +88,20 @@ export async function DELETE(req: NextRequest) {
   const { searchParams } = new URL(req.url);
   const id = searchParams.get('id');
   if (!id) return NextResponse.json({ error: 'Missing id' }, { status: 400 });
+  // Guard: prevent deleting other administrators (self-delete would also be undesirable, but we follow requirement strictly)
+  try {
+    const adminRows = await query<{ count: number }>(
+      `SELECT COUNT(*) AS count
+         FROM user_roles ur
+         JOIN roles r ON r.id = ur.role_id
+        WHERE ur.user_id = :id AND r.name = 'admin'`,
+      { id }
+    );
+    const isTargetAdmin = Number(adminRows?.[0]?.count || 0) > 0;
+    if (isTargetAdmin && (me as any).id !== id) {
+      return NextResponse.json({ error: 'Cannot delete another administrator.' }, { status: 403 });
+    }
+  } catch {}
   const ok = await dbDeleteUser(id);
   if (!ok) return NextResponse.json({ error: 'Not found' }, { status: 404 });
   return NextResponse.json({ ok: true });

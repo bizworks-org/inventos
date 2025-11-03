@@ -31,6 +31,10 @@ export async function POST(req: NextRequest) {
   if (!userId) return NextResponse.json({ error: 'userId required' }, { status: 400 });
   const user = await dbFindUserById(userId);
   if (!user) return NextResponse.json({ error: 'Not found' }, { status: 404 });
+  // Guard: do not allow resetting password of another administrator
+  if ((user.roles || []).includes('admin') && (me as any).id !== userId) {
+    return NextResponse.json({ error: 'Cannot reset password for another administrator.' }, { status: 403 });
+  }
   const password = generatePassword(12);
   const password_hash = hashPassword(password);
   await dbUpdateUserPassword(userId, password_hash);

@@ -53,6 +53,13 @@ export function AddVendorPage({ onNavigate, onSearch }: AddVendorPageProps) {
   });
 
   const [saving, setSaving] = useState(false);
+  // Normalize phone input to optional leading + followed by digits only, max 20 digits
+  const normalizePhone = (raw: string) => {
+    const hasLeadingPlus = raw.trim().startsWith('+');
+    const digits = raw.replace(/\D/g, '');
+    const normalized = (hasLeadingPlus ? '+' : '') + digits;
+    return normalized.slice(0, 21);
+  };
 
   // pending documents to upload after vendor is created
   useEffect(() => {
@@ -142,6 +149,17 @@ export function AddVendorPage({ onNavigate, onSearch }: AddVendorPageProps) {
     (newVendor as any).natureOfBusiness = formData.natureOfBusiness || undefined;
     (newVendor as any).businessCategory = formData.businessCategory || undefined;
     (newVendor as any).serviceCoverageArea = formData.serviceCoverageArea || undefined;
+    // attach financial fields
+    (newVendor as any).panTaxId = (formData as any).panTaxId || undefined;
+    (newVendor as any).bankName = (formData as any).bankName || undefined;
+    (newVendor as any).accountNumber = (formData as any).accountNumber || undefined;
+    (newVendor as any).ifscSwiftCode = (formData as any).ifscSwiftCode || undefined;
+    (newVendor as any).paymentTerms = (formData as any).paymentTerms || undefined;
+    (newVendor as any).preferredCurrency = (formData as any).preferredCurrency || undefined;
+    if ((formData as any).vendorCreditLimit !== undefined && (formData as any).vendorCreditLimit !== '') {
+      const v = Number((formData as any).vendorCreditLimit);
+      (newVendor as any).vendorCreditLimit = Number.isFinite(v) ? v : undefined;
+    }
     // attach contacts (up to 5)
     if ((formData as any).contacts && Array.isArray((formData as any).contacts)) {
       (newVendor as any).contacts = (formData as any).contacts.slice(0, 5).map((c: any) => ({ ...c }));
@@ -500,10 +518,13 @@ export function AddVendorPage({ onNavigate, onSearch }: AddVendorPageProps) {
                   </label>
                   <input
                     type="tel"
+                    inputMode="tel"
+                    pattern="^\+?\d{7,20}$"
+                    title="Enter digits only, optionally starting with + (7–20 digits)"
                     required
                     value={formData.phone}
-                    onChange={(e) => handleInputChange('phone', e.target.value)}
-                    placeholder="+1-555-123-4567"
+                    onChange={(e) => handleInputChange('phone', normalizePhone(e.target.value))}
+                    placeholder="+15551234567"
                     className="w-full px-4 py-2.5 rounded-lg bg-[#f8f9ff] border border-[rgba(0,0,0,0.05)] text-[#1a1d2e] placeholder:text-[#a0a4b8] focus:outline-none focus:ring-2 focus:ring-[#6366f1]/20 focus:border-[#6366f1] transition-all duration-200"
                   />
                 </div>
@@ -546,7 +567,15 @@ export function AddVendorPage({ onNavigate, onSearch }: AddVendorPageProps) {
                         </div>
                         <div>
                           <label className="block text-xs text-[#1a1d2e] mb-1">Phone</label>
-                          <input type="tel" value={c.phone || ''} onChange={(e) => setFormData((f: any) => { const contacts = [...f.contacts]; contacts[idx] = { ...contacts[idx], phone: e.target.value }; return { ...f, contacts }; })} className="w-full px-3 py-2 rounded-lg bg-white border" />
+                          <input
+                            type="tel"
+                            inputMode="tel"
+                            pattern="^\+?\d{7,20}$"
+                            title="Enter digits only, optionally starting with + (7–20 digits)"
+                            value={c.phone || ''}
+                            onChange={(e) => setFormData((f: any) => { const contacts = [...f.contacts]; contacts[idx] = { ...contacts[idx], phone: normalizePhone(e.target.value) }; return { ...f, contacts }; })}
+                            className="w-full px-3 py-2 rounded-lg bg-white border"
+                          />
                         </div>
                         <div>
                           <label className="block text-xs text-[#1a1d2e] mb-1">Email</label>

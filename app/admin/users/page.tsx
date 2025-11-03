@@ -294,13 +294,15 @@ export default function ManageUsersPage() {
                           const Icon = r === 'admin' ? Shield : UserIcon;
                           const isSelf = me?.id === u.id;
                           const isAdminChip = r === 'admin';
+                          const isTargetAdmin = (u.roles || []).includes('admin');
                           const disabledSelfAdminToggle = isSelf && isAdminChip;
+                          const disableAllRoleEditsForOtherAdmins = isTargetAdmin && !isSelf;
                           const button = (
                             <button
                               key={r}
                               type="button"
                               onClick={() => {
-                                if (disabledSelfAdminToggle) return; // block self admin toggle in UI
+                                if (disabledSelfAdminToggle || disableAllRoleEditsForOtherAdmins) return; // block edits
                                 const next = new Set(u.roles || []);
                                 if (selected) {
                                   // if removing admin from someone, show confirm dialog
@@ -316,12 +318,12 @@ export default function ManageUsersPage() {
                                 setUsers((cur) => cur.map((usr) => usr.id === u.id ? { ...usr, roles: nextArr } : usr));
                                 queueUserRolesUpdate(u.id, nextArr);
                               }}
-                              disabled={disabledSelfAdminToggle}
+                              disabled={disabledSelfAdminToggle || disableAllRoleEditsForOtherAdmins}
                               className={`relative group px-3 py-2 rounded-lg border transition-colors
                                 ${selected
                                   ? 'text-white border-transparent'
                                   : 'bg-white text-[#1a1d2e] border-[#e2e8f0] hover:border-[#cbd5e1]'}
-                                ${disabledSelfAdminToggle ? 'opacity-60 cursor-not-allowed' : ''}
+                                ${(disabledSelfAdminToggle || disableAllRoleEditsForOtherAdmins) ? 'opacity-60 cursor-not-allowed' : ''}
                               `}
                               style={selected ? { backgroundImage: roleGradient(r as Role) } : undefined}
                               aria-pressed={selected}
@@ -333,13 +335,13 @@ export default function ManageUsersPage() {
                               </div>
                             </button>
                           );
-                          if (disabledSelfAdminToggle) {
+                          if (disabledSelfAdminToggle || disableAllRoleEditsForOtherAdmins) {
                             return (
                               <Tooltip key={r}>
                                 <TooltipTrigger asChild>
                                   {button}
                                 </TooltipTrigger>
-                                <TooltipContent>Cannot change your own Admin role</TooltipContent>
+                                <TooltipContent>{disabledSelfAdminToggle ? 'Cannot change your own Admin role' : 'Cannot modify roles of another Admin'}</TooltipContent>
                               </Tooltip>
                             );
                           }
@@ -352,13 +354,26 @@ export default function ManageUsersPage() {
                       <div className="flex gap-2 items-center">
                         <Dialog open={!!editing && editing.id === u.id} onOpenChange={(open) => { if (!open) setEditing(null); }}>
                           <DialogTrigger asChild>
-                            <button
-                              onClick={() => setEditing({ id: u.id, name: u.name, email: u.email, active: u.active })}
-                              className="px-3 py-2 rounded-lg text-sm font-medium text-white shadow-sm hover:shadow-md focus:outline-none focus:ring-2 focus:ring-indigo-500/40 transition-all"
-                              style={{ backgroundImage: 'linear-gradient(to right, #6366f1, #8b5cf6)' }}
-                            >
-                              <span className="inline-flex items-center gap-1"><Pencil className="h-4 w-4" /> Edit</span>
-                            </button>
+                            {(() => {
+                              const disableEdit = (u.roles || []).includes('admin') && me?.id !== u.id;
+                              const btn = (
+                                <button
+                                  onClick={() => !disableEdit && setEditing({ id: u.id, name: u.name, email: u.email, active: u.active })}
+                                  disabled={disableEdit}
+                                  className={`px-3 py-2 rounded-lg text-sm font-medium transition-all ${disableEdit ? 'bg-[#f3f4f6] text-[#9ca3af] cursor-not-allowed' : 'text-white shadow-sm hover:shadow-md focus:outline-none focus:ring-2 focus:ring-indigo-500/40'}`}
+                                  style={disableEdit ? undefined : { backgroundImage: 'linear-gradient(to right, #6366f1, #8b5cf6)' }}
+                                >
+                                  <span className="inline-flex items-center gap-1"><Pencil className="h-4 w-4" /> Edit</span>
+                                </button>
+                              );
+                              if (!disableEdit) return btn;
+                              return (
+                                <Tooltip>
+                                  <TooltipTrigger asChild>{btn}</TooltipTrigger>
+                                  <TooltipContent>Cannot edit another Admin</TooltipContent>
+                                </Tooltip>
+                              );
+                            })()}
                           </DialogTrigger>
                           <DialogContent className="bg-white border border-[#e2e8f0]">
                             <DialogHeader>
@@ -397,47 +412,74 @@ export default function ManageUsersPage() {
                           </button>
                         ) : null}
                       {(() => {
-                        const isLastActiveAdmin = u.active && (u.roles || []).includes('admin') && activeAdminCount === 1;
+                        const isTargetAdmin = (u.roles || []).includes('admin');
+                        const isOtherAdmin = isTargetAdmin && me?.id !== u.id;
+                        const isLastActiveAdmin = u.active && isTargetAdmin && activeAdminCount === 1;
                         const deactivateButton = (
                           <button
                             onClick={() => deactivate(u.id)}
-                            disabled={!u.active || isLastActiveAdmin}
+                            disabled={!u.active || isLastActiveAdmin || isOtherAdmin}
                             className={`px-3 py-2 rounded-lg transition-all text-sm font-medium
-                              ${(!u.active || isLastActiveAdmin)
+                              ${(!u.active || isLastActiveAdmin || isOtherAdmin)
                                 ? 'bg-[#f3f4f6] text-[#9ca3af] cursor-not-allowed'
                                 : 'text-white shadow-sm hover:shadow-md focus:outline-none focus:ring-2 focus:ring-[#f59e0b]/40'}
                             `}
-                            style={(!u.active || isLastActiveAdmin) ? undefined : { backgroundImage: 'linear-gradient(to right, #f59e0b, #d97706)' }}
+                            style={(!u.active || isLastActiveAdmin || isOtherAdmin) ? undefined : { backgroundImage: 'linear-gradient(to right, #f59e0b, #d97706)' }}
                           >
                             Deactivate
                           </button>
                         );
-                        if (isLastActiveAdmin) {
+                        if (isLastActiveAdmin || isOtherAdmin) {
                           return (
                             <Tooltip>
                               <TooltipTrigger asChild>
                                 <span className="inline-block">{deactivateButton}</span>
                               </TooltipTrigger>
-                              <TooltipContent>Cannot deactivate the last active Admin</TooltipContent>
+                              <TooltipContent>{isLastActiveAdmin ? 'Cannot deactivate the last active Admin' : 'Cannot deactivate another Admin'}</TooltipContent>
                             </Tooltip>
                           );
                         }
                         return deactivateButton;
                       })()}
-                      <button
-                        onClick={() => resetPassword(u.id)}
-                        className="px-3 py-2 rounded-lg text-sm font-medium text-white shadow-sm hover:shadow-md focus:outline-none focus:ring-2 focus:ring-sky-500/40 transition-all"
-                        style={{ backgroundImage: 'linear-gradient(to right, #06b6d4, #3b82f6)' }}
-                      >
-                        Reset Password
-                      </button>
-                      <button
-                        onClick={() => remove(u.id)}
-                        className="px-3 py-2 rounded-lg text-sm font-medium text-white shadow-sm hover:shadow-md focus:outline-none focus:ring-2 focus:ring-[#ef4444]/40 transition-all"
-                        style={{ backgroundImage: 'linear-gradient(to right, #ef4444, #b91c1c)' }}
-                      >
-                        Delete
-                      </button>
+                      {(() => {
+                        const disableOthersAdmin = (u.roles || []).includes('admin') && me?.id !== u.id;
+                        const resetBtn = (
+                          <button
+                            onClick={() => !disableOthersAdmin && resetPassword(u.id)}
+                            disabled={disableOthersAdmin}
+                            className={`px-3 py-2 rounded-lg text-sm font-medium transition-all ${disableOthersAdmin ? 'bg-[#f3f4f6] text-[#9ca3af] cursor-not-allowed' : 'text-white shadow-sm hover:shadow-md focus:outline-none focus:ring-2 focus:ring-sky-500/40'}`}
+                            style={disableOthersAdmin ? undefined : { backgroundImage: 'linear-gradient(to right, #06b6d4, #3b82f6)' }}
+                          >
+                            Reset Password
+                          </button>
+                        );
+                        const deleteBtn = (
+                          <button
+                            onClick={() => !disableOthersAdmin && remove(u.id)}
+                            disabled={disableOthersAdmin}
+                            className={`px-3 py-2 rounded-lg text-sm font-medium transition-all ${disableOthersAdmin ? 'bg-[#f3f4f6] text-[#9ca3af] cursor-not-allowed' : 'text-white shadow-sm hover:shadow-md focus:outline-none focus:ring-2 focus:ring-[#ef4444]/40'}`}
+                            style={disableOthersAdmin ? undefined : { backgroundImage: 'linear-gradient(to right, #ef4444, #b91c1c)' }}
+                          >
+                            Delete
+                          </button>
+                        );
+                        if (!disableOthersAdmin) return (<>
+                          {resetBtn}
+                          {deleteBtn}
+                        </>);
+                        return (
+                          <>
+                            <Tooltip>
+                              <TooltipTrigger asChild><span className="inline-block">{resetBtn}</span></TooltipTrigger>
+                              <TooltipContent>Cannot reset password for another Admin</TooltipContent>
+                            </Tooltip>
+                            <Tooltip>
+                              <TooltipTrigger asChild><span className="inline-block">{deleteBtn}</span></TooltipTrigger>
+                              <TooltipContent>Cannot delete another Admin</TooltipContent>
+                            </Tooltip>
+                          </>
+                        );
+                      })()}
                       </div>
                     </td>
                   </tr>

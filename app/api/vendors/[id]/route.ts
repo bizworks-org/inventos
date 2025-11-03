@@ -51,8 +51,6 @@ export async function PUT(req: NextRequest, ctx: any) {
     ,payment_terms=:payment_terms
     ,preferred_currency=:preferred_currency
     ,vendor_credit_limit=:vendor_credit_limit
-    ,gst_certificate_name=:gst_certificate_name
-    ,gst_certificate_blob=:gst_certificate_blob
     WHERE id=:id`;
   // If contacts provided, serialize to JSON for DB storage
   const params = { ...body, id, contacts: (body as any).contacts ? JSON.stringify((body as any).contacts) : null };

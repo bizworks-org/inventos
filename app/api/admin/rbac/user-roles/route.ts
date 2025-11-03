@@ -16,6 +16,20 @@ export async function POST(req: NextRequest) {
   const body = await req.json();
   const { userId, roles } = body || {};
   if (!userId || !Array.isArray(roles)) return NextResponse.json({ error: 'Bad request' }, { status: 400 });
+  // Guard: disallow modifying roles of other administrators
+  try {
+    const rows = await query<{ count: number }>(
+      `SELECT COUNT(*) AS count
+         FROM user_roles ur
+         JOIN roles r ON r.id = ur.role_id
+        WHERE ur.user_id = :userId AND r.name = 'admin'`,
+      { userId }
+    );
+    const targetIsAdmin = Number(rows?.[0]?.count || 0) > 0;
+    if (targetIsAdmin && (me as any).id !== userId) {
+      return NextResponse.json({ error: 'Cannot modify roles of another administrator.' }, { status: 403 });
+    }
+  } catch {}
   // Guard: prevent an admin from removing their own admin role, especially if they are the last admin
   if (userId === (me as any).id && !roles.includes('admin')) {
     try {

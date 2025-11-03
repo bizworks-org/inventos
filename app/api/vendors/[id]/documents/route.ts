@@ -32,6 +32,6 @@ export async function POST(req: NextRequest, ctx: any) {
   const buffer = Buffer.from(arrayBuffer);
   const origName = (blobFile as any).name || 'document';
 
-  const res = await query('INSERT INTO vendor_documents (vendor_id, `type`, name, blob) VALUES (:vendor_id, :type, :name, :blob)', { vendor_id: id, type, name: origName, blob: buffer });
+  const res = await query('INSERT INTO vendor_documents (vendor_id, `type`, name, `blob`) VALUES (:vendor_id, :type, :name, :blob)', { vendor_id: id, type, name: origName, blob: buffer });
   return NextResponse.json({ ok: true, id: (res as any).insertId, name: origName });
 }
