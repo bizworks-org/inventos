@@ -1,6 +1,9 @@
+"use client";
+
 import { Search, User } from 'lucide-react';
 import { useState } from 'react';
 import { NotificationsBell } from './NotificationsBell';
+import { useMe } from './MeContext';
 
 interface HeaderProps {
   breadcrumbs?: { label: string; href?: string }[];
@@ -9,6 +12,7 @@ interface HeaderProps {
 
 export function Header({ breadcrumbs = [], onSearch }: HeaderProps) {
   const [searchQuery, setSearchQuery] = useState('');
+  const { me } = useMe();
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -68,6 +72,10 @@ export function Header({ breadcrumbs = [], onSearch }: HeaderProps) {
 
           {/* User Profile */}
           <button className="flex items-center gap-2 p-2 rounded-lg hover:bg-[#f3f4f6] transition-colors">
+            {/* User name next to avatar (hidden on small screens) */}
+            <span className="hidden md:block text-sm text-[#1a1d2e] font-medium max-w-[180px] truncate" title={me?.name || me?.email || undefined}>
+              {me?.name || me?.email || 'User'}
+            </span>
             <div className="h-8 w-8 rounded-full bg-gradient-to-br from-[#6366f1] to-[#8b5cf6] flex items-center justify-center">
               <User className="h-4 w-4 text-white" />
             </div>

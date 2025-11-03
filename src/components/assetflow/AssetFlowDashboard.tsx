@@ -9,6 +9,7 @@ import { RecentActivityTable } from './dashboard/RecentActivityTable';
 import { initializeSampleEvents } from '../../lib/data';
 import { fetchAssets, fetchLicenses, fetchVendors } from '../../lib/api';
 import type { Asset, License, Vendor } from '../../lib/data';
+import { useMe } from './layout/MeContext';
 
 interface AssetFlowDashboardProps {
   onNavigate?: (page: string) => void;
@@ -20,6 +21,7 @@ export function AssetFlowDashboard({ onNavigate, onSearch }: AssetFlowDashboardP
   const [licenses, setLicenses] = useState<License[]>([]);
   const [vendors, setVendors] = useState<Vendor[]>([]);
   const [errors, setErrors] = useState<string | null>(null);
+  const { me } = useMe();
 
   // Load data and initialize sample events on first load
   useEffect(() => {
@@ -60,7 +62,7 @@ export function AssetFlowDashboard({ onNavigate, onSearch }: AssetFlowDashboardP
     >
       {/* Welcome Section */}
       <div className="mb-8">
-        <h1 className="text-3xl font-bold text-[#1a1d2e] mb-2">Welcome back, John</h1>
+        <h1 className="text-3xl font-bold text-[#1a1d2e] mb-2">{`Welcome back, ${me?.name || (me?.email ? me.email.split('@')[0] : 'there')}`}</h1>
         <p className="text-[#64748b]">Here's what's happening with your IT assets today.</p>
       </div>
 

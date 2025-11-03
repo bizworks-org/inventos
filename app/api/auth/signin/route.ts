@@ -15,7 +15,8 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Not authorized' }, { status: 401 });
   }
 
-  // Enforce single active session per user: block if an active session exists
+  // Enforce single active session per user: if any active session exists, revoke it and continue
+  // This avoids a stale lock preventing re-login after logout or unexpected tab closes.
   try {
     const existing = await query<{ id: string }>(
       `SELECT id FROM sessions 
@@ -26,7 +27,7 @@ export async function POST(req: NextRequest) {
       { user_id: user.id }
     );
     if (existing.length > 0) {
-      return NextResponse.json({ error: 'Already signed in on another device' }, { status: 409 });
+      await query(`UPDATE sessions SET revoked_at = CURRENT_TIMESTAMP WHERE user_id = :user_id AND revoked_at IS NULL`, { user_id: user.id });
     }
   } catch {}
   const role = (Array.isArray(user.roles) && user.roles.includes('admin')) ? 'admin' : 'user';

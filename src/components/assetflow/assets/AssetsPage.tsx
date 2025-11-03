@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import { motion } from 'motion/react';
-import { Plus, Download, Upload, Search, Filter, ListFilter } from 'lucide-react';
+import { Plus, Download, Upload, Search, Filter, RefreshCcw } from 'lucide-react';
 import { AssetFlowLayout } from '../layout/AssetFlowLayout';
 import { Asset } from '../../../lib/data';
 import { fetchAssets, deleteAsset } from '../../../lib/api';
@@ -10,7 +10,7 @@ import { exportAssetsToCSV } from '../../../lib/export';
 import { importAssets, parseAssetsFile } from '../../../lib/import';
 import { toast } from 'sonner@2.0.3';
 import { AssetsTable } from './AssetsTable';
-import { Tabs } from '../../ui/tabs';
+// removed unused Tabs import
 import { getMe, type ClientMe } from '../../../lib/auth/client';
 
 interface AssetsPageProps {
@@ -243,46 +243,63 @@ export function AssetsPage({ onNavigate, onSearch }: AssetsPageProps) {
         transition={{ duration: 0.4, delay: 0.1 }}
         className="bg-white rounded-2xl border border-[rgba(0,0,0,0.08)] p-6 mb-6 shadow-sm"
       >
-        {/* Search */}
-        <div className="relative mb-4">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-[#a0a4b8]" />
-          <input
-            type="text"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Search by name, serial number, assignee, or department..."
-            className="
-              w-full pl-10 pr-4 py-2.5 rounded-lg
-              bg-[#f8f9ff] border border-[rgba(0,0,0,0.05)]
-              text-sm text-[#1a1d2e] placeholder:text-[#a0a4b8]
-              focus:outline-none focus:ring-2 focus:ring-[#6366f1]/20 focus:border-[#6366f1]
-              transition-all duration-200
-            "
-          />
+        {/* Category Tabs (match Vendors page style) */}
+        <div className="flex items-center justify-between gap-2 mb-4">
+          <div className="flex items-center gap-2 overflow-x-auto pb-2">
+            {assetCategories.map((cat, index) => (
+              <motion.button
+                key={cat}
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.3, delay: 0.05 + index * 0.04 }}
+                onClick={() => setSelectedCategory(cat)}
+                className={`
+                  flex items-center gap-2 px-4 py-2 rounded-lg whitespace-nowrap transition-all duration-200
+                  ${selectedCategory === cat
+                    ? 'bg-gradient-to-r from-[#6366f1] to-[#8b5cf6] text-white shadow-md'
+                    : 'bg-[#f8f9ff] text-[#64748b] hover:bg-[#e0e7ff] hover:text-[#6366f1]'
+                  }
+                `}
+              >
+                <span className="font-medium">{cat === 'All' ? 'All' : cat}</span>
+                <span className={`${selectedCategory === cat ? 'bg-white/20 text-white' : 'bg-white text-[#64748b]'} px-2 py-0.5 rounded-full text-xs`}>
+                  {getCategoryCount(cat)}
+                </span>
+              </motion.button>
+            ))}
+          </div>
+          <button
+            onClick={() => {
+              try { localStorage.removeItem('catalog.categories'); } catch {}
+              window.dispatchEvent(new Event('assetflow:catalog-cleared'));
+              toast.success('Catalog refreshed');
+            }}
+            className="flex items-center gap-2 px-3 py-2 rounded-lg bg-white border border-[rgba(0,0,0,0.1)] hover:bg-[#f8f9ff] text-[#1a1d2e] text-sm"
+            title="Refresh catalog"
+          >
+            <RefreshCcw className="h-4 w-4" />
+            Refresh Catalog
+          </button>
         </div>
 
-        {/* Category and Status side-by-side */}
-        <div className="flex gap-4 flex-wrap">
-          {/* Category Filter */}
-          <div className="relative md:w-72">
-            <ListFilter className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-[#a0a4b8] pointer-events-none" />
-            <select
-              value={selectedCategory}
-              onChange={(e) => setSelectedCategory(e.target.value as AssetCategory)}
+        {/* Search and Status */}
+        <div className="flex gap-4">
+          {/* Search */}
+          <div className="flex-1 relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-[#a0a4b8]" />
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Search by name, serial number, assignee, or department..."
               className="
-                w-full pl-10 pr-8 py-2.5 rounded-lg appearance-none
+                w-full pl-10 pr-4 py-2.5 rounded-lg
                 bg-[#f8f9ff] border border-[rgba(0,0,0,0.05)]
-                text-sm text-[#1a1d2e] font-medium
+                text-sm text-[#1a1d2e] placeholder:text-[#a0a4b8]
                 focus:outline-none focus:ring-2 focus:ring-[#6366f1]/20 focus:border-[#6366f1]
-                transition-all duration-200 cursor-pointer
+                transition-all duration-200
               "
-            >
-              {assetCategories.map((cat) => (
-                <option key={cat} value={cat}>
-                  {cat === 'All' ? 'All Categories' : `${cat} (${getCategoryCount(cat)})`}
-                </option>
-              ))}
-            </select>
+            />
           </div>
 
           {/* Status Filter */}

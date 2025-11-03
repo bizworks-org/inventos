@@ -1,13 +1,11 @@
 import { NextResponse } from 'next/server';
-import { readAuthToken, verifyToken } from '@/lib/auth/server';
 import { dbFindUserById, dbGetUserPermissions } from '@/lib/auth/db-users';
+import { readMeFromCookie } from '@/lib/auth/permissions';
 
 export async function GET() {
-  const token = await readAuthToken();
-  const payload = verifyToken(token);
-  if (!payload) return NextResponse.json({ user: null }, { status: 200 });
-  const { id } = payload as any;
-  const user = await dbFindUserById(id);
+  const me = await readMeFromCookie();
+  if (!me?.id) return NextResponse.json({ user: null }, { status: 200 });
+  const user = await dbFindUserById(me.id);
   if (!user) return NextResponse.json({ user: null }, { status: 200 });
   const role: 'admin' | 'user' = (Array.isArray(user.roles) && user.roles.includes('admin')) ? 'admin' : 'user';
   const permissions = await dbGetUserPermissions(user.id);
