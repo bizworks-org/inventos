@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { query } from '@/lib/db';
-import { requirePermission } from '@/lib/auth/permissions';
+import { requirePermission, readMeFromCookie } from '@/lib/auth/permissions';
+import { notify } from '@/lib/notifications';
 
 // Clean single implementation for GET and POST
 export async function GET() {
@@ -50,6 +51,32 @@ export async function POST(req: NextRequest) {
       VALUES (:id, :name, :type_id, :serial_number, :assigned_to, :assigned_email, :consent_status, :department, :status, :purchase_date, :end_of_support_date, :end_of_life_date, :warranty_expiry, :cost, :location, :specifications)`;
 
     await query(sql, body);
+    // Fire-and-forget in-app/email notifications
+    try {
+      const me = await readMeFromCookie();
+      const recipients: string[] = [];
+      if (body.assigned_email) recipients.push(String(body.assigned_email));
+      // Also notify admins
+      try {
+        const admins = await query<any>(
+          `SELECT u.email FROM users u
+           JOIN user_roles ur ON ur.user_id = u.id
+           JOIN roles r ON r.id = ur.role_id
+           WHERE r.name = 'admin'`
+        );
+        for (const a of admins) if (a?.email) recipients.push(String(a.email));
+      } catch {}
+      if (recipients.length) {
+        await notify({
+          type: 'asset.created',
+          title: `Asset created: ${body.name || body.id}`,
+          body: `${me?.email || 'system'} created asset ${body.name || body.id}`,
+          recipients,
+          entity: { type: 'asset', id: String(body.id) },
+          metadata: { id: body.id, name: body.name },
+        });
+      }
+    } catch {}
     return NextResponse.json({ ok: true }, { status: 201 });
   } catch (e: any) {
     console.error('POST /api/assets failed:', e);

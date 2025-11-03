@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { query } from '@/lib/db';
-import { requirePermission } from '@/lib/auth/permissions';
+import { requirePermission, readMeFromCookie } from '@/lib/auth/permissions';
+import { notify } from '@/lib/notifications';
 
 export async function GET() {
   const guard = await requirePermission('vendors_read');
@@ -30,5 +31,19 @@ export async function POST(req: NextRequest) {
   // Ensure contacts is stored as JSON string when provided
   const params = { ...body, contacts: body.contacts ? JSON.stringify(body.contacts) : null };
   await query(sql, params);
+  // Notify admins about new vendor
+  try {
+    const me = await readMeFromCookie();
+    const admins = await query<any>(
+      `SELECT u.email FROM users u
+       JOIN user_roles ur ON ur.user_id = u.id
+       JOIN roles r ON r.id = ur.role_id
+       WHERE r.name = 'admin'`
+    );
+    const recipients = admins.map((a: any) => String(a.email)).filter(Boolean);
+    if (recipients.length) {
+      await notify({ type: 'vendor.created', title: `Vendor created: ${body.name}`, body: `${me?.email || 'system'} created vendor ${body.name}`, recipients, entity: { type: 'vendor', id: String(body.id) }, metadata: { id: body.id, name: body.name } });
+    }
+  } catch {}
   return NextResponse.json({ ok: true }, { status: 201 });
 }

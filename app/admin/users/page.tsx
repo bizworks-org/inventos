@@ -3,7 +3,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { toast } from 'sonner@2.0.3';
 import { useRouter } from 'next/navigation';
 import { Shield, User as UserIcon, Package, FileText, Building2, Activity, Pencil } from 'lucide-react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogTrigger, DialogFooter, DialogClose } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose } from '@/components/ui/dialog';
 import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
 import { AlertDialog, AlertDialogTrigger, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, AlertDialogAction, AlertDialogCancel } from '@/components/ui/alert-dialog';
 
@@ -353,28 +353,26 @@ export default function ManageUsersPage() {
                     <td className="py-3 pr-4 align-middle">
                       <div className="flex gap-2 items-center">
                         <Dialog open={!!editing && editing.id === u.id} onOpenChange={(open) => { if (!open) setEditing(null); }}>
-                          <DialogTrigger asChild>
-                            {(() => {
-                              const disableEdit = (u.roles || []).includes('admin') && me?.id !== u.id;
-                              const btn = (
-                                <button
-                                  onClick={() => !disableEdit && setEditing({ id: u.id, name: u.name, email: u.email, active: u.active })}
-                                  disabled={disableEdit}
-                                  className={`px-3 py-2 rounded-lg text-sm font-medium transition-all ${disableEdit ? 'bg-[#f3f4f6] text-[#9ca3af] cursor-not-allowed' : 'text-white shadow-sm hover:shadow-md focus:outline-none focus:ring-2 focus:ring-indigo-500/40'}`}
-                                  style={disableEdit ? undefined : { backgroundImage: 'linear-gradient(to right, #6366f1, #8b5cf6)' }}
-                                >
-                                  <span className="inline-flex items-center gap-1"><Pencil className="h-4 w-4" /> Edit</span>
-                                </button>
-                              );
-                              if (!disableEdit) return btn;
-                              return (
-                                <Tooltip>
-                                  <TooltipTrigger asChild>{btn}</TooltipTrigger>
-                                  <TooltipContent>Cannot edit another Admin</TooltipContent>
-                                </Tooltip>
-                              );
-                            })()}
-                          </DialogTrigger>
+                          {(() => {
+                            const disableEdit = (u.roles || []).includes('admin') && me?.id !== u.id;
+                            const btn = (
+                              <button
+                                onClick={() => !disableEdit && setEditing({ id: u.id, name: u.name, email: u.email, active: u.active })}
+                                disabled={disableEdit}
+                                className={`px-3 py-2 rounded-lg text-sm font-medium transition-all ${disableEdit ? 'bg-[#f3f4f6] text-[#9ca3af] cursor-not-allowed' : 'text-white shadow-sm hover:shadow-md focus:outline-none focus:ring-2 focus:ring-indigo-500/40'}`}
+                                style={disableEdit ? undefined : { backgroundImage: 'linear-gradient(to right, #6366f1, #8b5cf6)' }}
+                              >
+                                <span className="inline-flex items-center gap-1"><Pencil className="h-4 w-4" /> Edit</span>
+                              </button>
+                            );
+                            if (!disableEdit) return btn;
+                            return (
+                              <Tooltip>
+                                <TooltipTrigger asChild>{btn}</TooltipTrigger>
+                                <TooltipContent>Cannot edit another Admin</TooltipContent>
+                              </Tooltip>
+                            );
+                          })()}
                           <DialogContent className="bg-white border border-[#e2e8f0]">
                             <DialogHeader>
                               <DialogTitle>Edit User</DialogTitle>

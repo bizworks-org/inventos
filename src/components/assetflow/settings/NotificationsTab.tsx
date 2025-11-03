@@ -32,12 +32,16 @@ export default function NotificationsTab({ notify, setNotify, handleSave }: Prop
                 aria-label="Toggle email notifications"
               />
             </div>
-            <div className="flex items-center justify-between p-4 border rounded-xl bg-[#f8f9ff] border-[rgba(0,0,0,0.08)] opacity-70">
+            <div className="flex items-center justify-between p-4 border rounded-xl bg-[#f8f9ff] border-[rgba(0,0,0,0.08)]">
               <div>
-                <p className="font-medium text-[#1a1d2e]">Push Notifications</p>
-                <p className="text-sm text-[#64748b]">Not available yet</p>
+                <p className="font-medium text-[#1a1d2e]">In-app</p>
+                <p className="text-sm text-[#64748b]">Show notifications inside the app</p>
               </div>
-              <Switch checked={false} disabled aria-label="Push notifications disabled" />
+              <Switch
+                checked={!!notify.channels.push}
+                onCheckedChange={(val: any) => setNotify((n: any) => ({ ...n, channels: { ...n.channels, push: !!val } }))}
+                aria-label="Toggle in-app notifications"
+              />
             </div>
           </div>
         </CardContent>

@@ -1,5 +1,6 @@
 import nodemailer from 'nodemailer';
 import { loadMailConfigSync } from './configStore';
+import { query } from '@/lib/db';
 
 export type ConsentEmailParams = {
   to: string;
@@ -11,17 +12,9 @@ export type ConsentEmailParams = {
 };
 
 export async function sendConsentEmail(params: ConsentEmailParams): Promise<void> {
-  const cfg = loadMailConfigSync();
-  if (!cfg) throw new Error('Mail server is not configured');
-  const transport = nodemailer.createTransport({
-    host: cfg.host,
-    port: cfg.port ?? 587,
-    secure: Boolean(cfg.secure ?? ((cfg.port ?? 587) === 465)),
-    auth: cfg.user ? { user: cfg.user, pass: cfg.password || '' } : undefined,
-  });
-  const from = cfg.fromName ? `${cfg.fromName} <${cfg.fromEmail}>` : cfg.fromEmail;
+  const { transporter, from } = await getTransportOrThrow();
   const html = renderConsentHtml(params);
-  await transport.sendMail({
+  await transporter.sendMail({
     from,
     to: params.to,
     subject: `Consent requested: ${params.assetName} (Asset ${params.assetId})`,
@@ -70,4 +63,76 @@ function escapeHtml(s: string): string {
   return s.replace(/[&<>"']/g, (ch) => ({
     '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
   }[ch] as string));
+}
+
+// --- Generic mailer for notifications or other emails ---
+let cachedKey: string | null = null;
+let cachedTransporter: any = null;
+let cachedFrom: string | null = null;
+
+async function loadFromOrgSettings(): Promise<{ transporter: any; from: string } | null> {
+  try {
+    const rows = await query<any>(`SELECT email_from, smtp FROM org_settings WHERE id = 1 LIMIT 1`);
+    if (!rows?.length) return null;
+    const email_from = rows[0]?.email_from as string | null;
+    const raw = rows[0]?.smtp;
+    const smtp = typeof raw === 'object' ? raw : (raw ? JSON.parse(raw) : null);
+    if (!smtp || !smtp.host) return null;
+    const host = smtp.host as string;
+    const port = Number(smtp.port ?? 587);
+    const secure = Boolean(smtp.secure ?? (port === 465));
+    const user = smtp.user as string | undefined;
+    const pass = smtp.pass || smtp.password || '';
+    const key = `org:${host}:${port}:${secure}:${user || ''}:${email_from || ''}`;
+    if (!cachedTransporter || cachedKey !== key) {
+      cachedTransporter = nodemailer.createTransport({ host, port, secure, auth: user ? { user, pass } : undefined });
+      cachedKey = key;
+      cachedFrom = email_from || '';
+    }
+    return { transporter: cachedTransporter!, from: cachedFrom || '' };
+  } catch {
+    return null;
+  }
+}
+
+function loadFromFs(): { transporter: any; from: string } | null {
+  try {
+    const cfg = loadMailConfigSync();
+    if (!cfg) return null;
+    const host = cfg.host;
+    const port = Number(cfg.port ?? 587);
+    const secure = Boolean(cfg.secure ?? (port === 465));
+    const user = cfg.user;
+    const pass = cfg.password || '';
+    const from = cfg.fromName ? `${cfg.fromName} <${cfg.fromEmail}>` : cfg.fromEmail;
+    const key = `fs:${host}:${port}:${secure}:${user || ''}:${from || ''}`;
+    if (!cachedTransporter || cachedKey !== key) {
+      cachedTransporter = nodemailer.createTransport({ host, port, secure, auth: user ? { user, pass } : undefined });
+      cachedKey = key;
+      cachedFrom = from;
+    }
+    return { transporter: cachedTransporter!, from: cachedFrom || '' };
+  } catch {
+    return null;
+  }
+}
+
+async function getTransportOrThrow(): Promise<{ transporter: any; from: string }> {
+  const org = await loadFromOrgSettings();
+  const fs = org ?? loadFromFs();
+  if (!fs) throw new Error('Mail server is not configured');
+  return fs;
+}
+
+export async function sendEmail(to: string, subject: string, text?: string, html?: string): Promise<boolean> {
+  try {
+    const { transporter, from } = await getTransportOrThrow();
+    const payload: any = { from: from || undefined, to, subject };
+    if (html) payload.html = html;
+    if (text) payload.text = text;
+    await transporter.sendMail(payload);
+    return true;
+  } catch {
+    return false;
+  }
 }

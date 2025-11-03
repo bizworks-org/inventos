@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { query } from '@/lib/db';
-import { requirePermission } from '@/lib/auth/permissions';
+import { requirePermission, readMeFromCookie } from '@/lib/auth/permissions';
+import { notify } from '@/lib/notifications';
 
 async function resolveParams(ctx: any): Promise<{ id?: string }> {
   const p = ctx?.params;
@@ -56,6 +57,22 @@ export async function PUT(req: NextRequest, ctx: any) {
   const params = { ...body, id, contacts: (body as any).contacts ? JSON.stringify((body as any).contacts) : null };
   const sqlWithContacts = sql.replace('\n    WHERE id=:id', ',\n    contacts=:contacts\n    WHERE id=:id');
   await query(sqlWithContacts, params);
+  // Notify admins about vendor update
+  try {
+    const me = await readMeFromCookie();
+    const rows = await query<any>('SELECT name FROM vendors WHERE id = :id LIMIT 1', { id });
+    const name = rows?.[0]?.name || String(id);
+    const admins = await query<any>(
+      `SELECT u.email FROM users u
+       JOIN user_roles ur ON ur.user_id = u.id
+       JOIN roles r ON r.id = ur.role_id
+       WHERE r.name = 'admin'`
+    );
+    const recipients = admins.map((a: any) => String(a.email)).filter(Boolean);
+    if (recipients.length) {
+      await notify({ type: 'vendor.updated', title: `Vendor updated: ${name}`, body: `${me?.email || 'system'} updated vendor ${name}`, recipients, entity: { type: 'vendor', id: String(id) }, metadata: { id, changes: body } });
+    }
+  } catch {}
   return NextResponse.json({ ok: true });
 }
 

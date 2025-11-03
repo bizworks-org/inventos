@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { query } from '@/lib/db';
-import { requirePermission } from '@/lib/auth/permissions';
+import { requirePermission, readMeFromCookie } from '@/lib/auth/permissions';
+import { notify } from '@/lib/notifications';
 
 async function resolveParams(ctx: any): Promise<{ id?: string }> {
   const p = ctx?.params;
@@ -83,6 +84,34 @@ export async function PUT(req: NextRequest, ctx: any) {
       purchase_date=:purchase_date, end_of_support_date=:end_of_support_date, end_of_life_date=:end_of_life_date, warranty_expiry=:warranty_expiry, cost=:cost, location=:location, specifications=:specifications
       WHERE id=:id`;
     await query(sql, { ...body, id });
+    // Notify about update
+    try {
+      const me = await readMeFromCookie();
+      // fetch current record to get assigned_email & name
+      const rows = await query<any>('SELECT id, name, assigned_email FROM assets WHERE id = :id LIMIT 1', { id });
+      const rec = rows?.[0];
+      const recipients: string[] = [];
+      if (rec?.assigned_email) recipients.push(String(rec.assigned_email));
+      try {
+        const admins = await query<any>(
+          `SELECT u.email FROM users u
+           JOIN user_roles ur ON ur.user_id = u.id
+           JOIN roles r ON r.id = ur.role_id
+           WHERE r.name = 'admin'`
+        );
+        for (const a of admins) if (a?.email) recipients.push(String(a.email));
+      } catch {}
+      if (recipients.length) {
+        await notify({
+          type: 'asset.updated',
+          title: `Asset updated: ${rec?.name || id}`,
+          body: `${me?.email || 'system'} updated asset ${rec?.name || id}`,
+          recipients,
+          entity: { type: 'asset', id: String(id) },
+          metadata: { id, changes: body },
+        });
+      }
+    } catch {}
     return NextResponse.json({ ok: true });
   } catch (e: any) {
     console.error(`PUT /api/assets failed:`, e);

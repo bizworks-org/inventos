@@ -1,5 +1,6 @@
-import { Search, Bell, User } from 'lucide-react';
+import { Search, User } from 'lucide-react';
 import { useState } from 'react';
+import { NotificationsBell } from './NotificationsBell';
 
 interface HeaderProps {
   breadcrumbs?: { label: string; href?: string }[];
@@ -63,10 +64,7 @@ export function Header({ breadcrumbs = [], onSearch }: HeaderProps) {
           </form>
 
           {/* Notifications */}
-          <button className="relative p-2 rounded-lg hover:bg-[#f3f4f6] transition-colors">
-            <Bell className="h-5 w-5 text-[#1a1d2e]" />
-            <span className="absolute top-1 right-1 h-2 w-2 bg-[#ef4444] rounded-full border-2 border-white"></span>
-          </button>
+          <NotificationsBell />
 
           {/* User Profile */}
           <button className="flex items-center gap-2 p-2 rounded-lg hover:bg-[#f3f4f6] transition-colors">

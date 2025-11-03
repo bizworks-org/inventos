@@ -116,9 +116,11 @@ export function SettingsPage({ onNavigate, onSearch, view = 'general' }: Setting
     }
   }), []);
   const normalizeNotify = (raw: any): NotificationSettings => {
+    const channelsInput = raw?.channels || raw?.channel || {};
     const channels = {
-      email: Boolean(raw?.channels?.email ?? raw?.email ?? true),
-      push: Boolean(raw?.channels?.push ?? false),
+      email: Boolean(channelsInput.email ?? raw?.email ?? true),
+      // accept either "in_app" or legacy "push" and map to in-app toggle
+      push: Boolean(channelsInput.in_app ?? channelsInput.push ?? false),
     };
     const events = {
       assets: {
