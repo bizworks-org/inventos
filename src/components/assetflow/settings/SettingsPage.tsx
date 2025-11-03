@@ -19,6 +19,14 @@ import FileDropzone from '../../ui/FileDropzone';
 import { uploadWithProgress } from '../../../lib/upload';
 import { getMe, type ClientMe } from '../../../lib/auth/client';
 import type { AssetFieldDef, AssetFieldType } from '../../../lib/data';
+import DisabledCard from './DisabledCard';
+import IntegrationsTab from './IntegrationsTab';
+import EventsTab from './EventsTab';
+import DatabaseTab from './DatabaseTab';
+import ProfileTab from './ProfileTab';
+import BrandingTab from './BrandingTab';
+import PreferencesTab from './PreferencesTab';
+import NotificationsTab from './NotificationsTab';
 
 interface SettingsPageProps {
   onNavigate?: (page: string) => void;
@@ -69,7 +77,12 @@ type EventsConfig = {
 export function SettingsPage({ onNavigate, onSearch, view = 'general' }: SettingsPageProps) {
   const { theme, setTheme, systemTheme } = useTheme();
   const { me: ctxMe, setMe: setCtxMe } = useMe();
-  const [activeTab, setActiveTab] = useState<string>(view === 'technical' ? 'events' : 'profile');
+  // Globally disable some technical tabs (Database, Integrations, Events)
+  // Toggle this to true to prevent users from interacting with those sections from the UI.
+  const techTabsDisabled = true;
+
+  // If technical tabs are hidden, pick a safe default visible tab when view === 'technical'
+  const [activeTab, setActiveTab] = useState<string>(view === 'technical' ? (techTabsDisabled ? 'assetFields' : 'events') : 'profile');
   const [saving, setSaving] = useState(false);
   const [serverError, setServerError] = useState<string | null>(null);
   const [me, setMe] = useState<ClientMe>(null);
@@ -220,9 +233,9 @@ export function SettingsPage({ onNavigate, onSearch, view = 'general' }: Setting
         if (parsed.integrations) {
           setConnected((prev) => ({ ...prev, ...parsed.integrations }));
         }
-  if (Array.isArray(parsed.assetFields)) setAssetFields(parsed.assetFields as AssetFieldDef[]);
-  if (Array.isArray(parsed.vendorFields)) setVendorFields(parsed.vendorFields as AssetFieldDef[]);
-  if (Array.isArray(parsed.licenseFields)) setLicenseFields(parsed.licenseFields as AssetFieldDef[]);
+        if (Array.isArray(parsed.assetFields)) setAssetFields(parsed.assetFields as AssetFieldDef[]);
+        if (Array.isArray(parsed.vendorFields)) setVendorFields(parsed.vendorFields as AssetFieldDef[]);
+        if (Array.isArray(parsed.licenseFields)) setLicenseFields(parsed.licenseFields as AssetFieldDef[]);
         if (parsed.events) setEvents({
           enabled: !!parsed.events.enabled,
           method: parsed.events.method === 'kafka' ? 'kafka' : 'webhook',
@@ -376,7 +389,7 @@ export function SettingsPage({ onNavigate, onSearch, view = 'general' }: Setting
     try {
       setSaving(true);
       await saveSettings(payload);
-  localStorage.setItem('assetflow:settings', JSON.stringify({ name, email, prefs, notify, mode, events, integrations: connected, assetFields, vendorFields, licenseFields }));
+      localStorage.setItem('assetflow:settings', JSON.stringify({ name, email, prefs, notify, mode, events, integrations: connected, assetFields, vendorFields, licenseFields }));
       // Notify PrefsProvider listeners (density/language/currency can update live)
       window.dispatchEvent(new Event('assetflow:prefs-updated'));
       setServerError(null);
@@ -463,6 +476,60 @@ export function SettingsPage({ onNavigate, onSearch, view = 'general' }: Setting
     setEndpointUrl('');
   };
 
+  // Database handlers extracted to pass into DatabaseTab
+  const onTestConnection = async () => {
+    setDbTestBusy(true);
+    setDbMsg(null);
+    try {
+      const res = await fetch('/api/db/config', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ host: dbForm.host, port: Number(dbForm.port) || 3306, user: dbForm.user, password: dbForm.password, database: dbForm.database }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data?.error || 'Failed');
+      setDbMsg('OK: Connection successful');
+    } catch (e: any) {
+      setDbMsg(`Error: ${e?.message || e}`);
+    } finally {
+      setDbTestBusy(false);
+    }
+  };
+
+  const onSaveConfig = async () => {
+    try {
+      const res = await fetch('/api/db/config', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ host: dbForm.host, port: Number(dbForm.port) || 3306, user: dbForm.user, password: dbForm.password, database: dbForm.database }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data?.error || 'Failed');
+      setDbMsg('OK: Configuration saved securely on server');
+    } catch (e: any) {
+      setDbMsg(`Error: ${e?.message || e}`);
+    }
+  };
+
+  const onInitialize = async () => {
+    setDbBusy(true);
+    setDbMsg(null);
+    try {
+      const res = await fetch('/api/db/init', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ host: dbForm.host, port: Number(dbForm.port) || 3306, user: dbForm.user, password: dbForm.password, database: dbForm.database }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data?.error || 'Failed');
+      setDbMsg(`OK: Database initialized${data?.persisted ? ' and configuration saved securely' : ''}.`);
+    } catch (e: any) {
+      setDbMsg(`Error: ${e?.message || e}`);
+    } finally {
+      setDbBusy(false);
+    }
+  };
+
   // Extracted handler for consent toggle to keep render concise and allow reuse
   const handleConsentToggle = async (val: boolean) => {
     setConsentRequired(!!val);
@@ -483,8 +550,8 @@ export function SettingsPage({ onNavigate, onSearch, view = 'general' }: Setting
   const clearCatalogCache = () => {
     try {
       localStorage.removeItem('catalog.categories');
-    } catch {}
-    try { window.dispatchEvent(new Event('assetflow:catalog-cleared')); } catch {}
+    } catch { }
+    try { window.dispatchEvent(new Event('assetflow:catalog-cleared')); } catch { }
     setCatalogMsg('Catalog cache cleared');
     setTimeout(() => setCatalogMsg(null), 3000);
   };
@@ -542,15 +609,28 @@ export function SettingsPage({ onNavigate, onSearch, view = 'general' }: Setting
 
             {view === 'technical' && (
               <>
-                <TabsTrigger value="integrations" className={`${activeTab === 'integrations' ? 'bg-white border border-[rgba(0,0,0,0.12)] shadow-md text-[#1a1d2e] font-semibold' : ''} flex items-center gap-2 px-3 py-2 rounded-xl`}>
-                  <Server className="h-4 w-4 text-[#6366f1]" /> Integrations
-                </TabsTrigger>
-                <TabsTrigger value="events" className={`${activeTab === 'events' ? 'bg-white border border-[rgba(0,0,0,0.12)] shadow-md text-[#1a1d2e] font-semibold' : ''} flex items-center gap-2 px-3 py-2 rounded-xl`}>
-                  <Rss className="h-4 w-4 text-[#f97316]" /> Events
-                </TabsTrigger>
-                <TabsTrigger value="database" className={`${activeTab === 'database' ? 'bg-white border border-[rgba(0,0,0,0.12)] shadow-md text-[#1a1d2e] font-semibold' : ''} flex items-center gap-2 px-3 py-2 rounded-xl`}>
-                  <Database className="h-4 w-4 text-[#10b981]" /> Database
-                </TabsTrigger>
+                {!techTabsDisabled && (
+                  <>
+                    <TabsTrigger
+                      value="integrations"
+                      className={`${activeTab === 'integrations' ? 'bg-white border border-[rgba(0,0,0,0.12)] shadow-md text-[#1a1d2e] font-semibold' : ''} flex items-center gap-2 px-3 py-2 rounded-xl`}
+                    >
+                      <Server className="h-4 w-4 text-[#6366f1]" /> Integrations
+                    </TabsTrigger>
+                    <TabsTrigger
+                      value="events"
+                      className={`${activeTab === 'events' ? 'bg-white border border-[rgba(0,0,0,0.12)] shadow-md text-[#1a1d2e] font-semibold' : ''} flex items-center gap-2 px-3 py-2 rounded-xl`}
+                    >
+                      <Rss className="h-4 w-4 text-[#f97316]" /> Events
+                    </TabsTrigger>
+                    <TabsTrigger
+                      value="database"
+                      className={`${activeTab === 'database' ? 'bg-white border border-[rgba(0,0,0,0.12)] shadow-md text-[#1a1d2e] font-semibold' : ''} flex items-center gap-2 px-3 py-2 rounded-xl`}
+                    >
+                      <Database className="h-4 w-4 text-[#10b981]" /> Database
+                    </TabsTrigger>
+                  </>
+                )}
                 <TabsTrigger value="assetFields" className={`${activeTab === 'assetFields' ? 'bg-white border border-[rgba(0,0,0,0.12)] shadow-md text-[#1a1d2e] font-semibold' : ''} flex items-center gap-2 px-3 py-2 rounded-xl`}>
                   <SlidersHorizontal className="h-4 w-4 text-[#8b5cf6]" /> Asset Fields
                 </TabsTrigger>
@@ -566,476 +646,77 @@ export function SettingsPage({ onNavigate, onSearch, view = 'general' }: Setting
           {/* Profile */}
           {view === 'general' && (
             <TabsContent value="profile" className="mt-0 space-y-8">
-              <div className="space-y-8">
-                <div>
-                  <h3 className="text-lg font-semibold text-[#1a1d2e] mb-3">Profile</h3>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div>
-                      <label className="block text-sm font-medium text-[#1a1d2e] mb-2">Full Name</label>
-                      <input
-                        className="w-full px-3 py-2 rounded-lg bg-[#f8f9ff] border border-[rgba(0,0,0,0.08)] focus:outline-none focus:ring-2 focus:ring-[#6366f1]/20"
-                        value={name}
-                        onChange={(e) => setName(e.target.value)}
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-[#1a1d2e] mb-2">Email</label>
-                      <input
-                        type="email"
-                        disabled
-                        className="w-full px-3 py-2 rounded-lg bg-[#f8f9ff] border border-[rgba(0,0,0,0.08)] text-[#6b7280]"
-                        value={email}
-                        onChange={(e) => setEmail(e.target.value)}
-                      />
-                      <p className="text-xs text-[#94a3b8] mt-1">Email is managed by an administrator.</p>
-                    </div>
-                  </div>
-                </div>
-
-                <div>
-                  <h3 className="text-lg font-semibold text-[#1a1d2e] mb-3">Change Password</h3>
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                    <div>
-                      <label className="block text-sm font-medium text-[#1a1d2e] mb-2">Current Password</label>
-                      <input type="password" className="w-full px-3 py-2 rounded-lg bg-[#f8f9ff] border border-[rgba(0,0,0,0.08)]" value={pwdCurrent} onChange={(e) => setPwdCurrent(e.target.value)} />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-[#1a1d2e] mb-2">New Password</label>
-                      <input type="password" className="w-full px-3 py-2 rounded-lg bg-[#f8f9ff] border border-[rgba(0,0,0,0.08)]" value={pwdNew} onChange={(e) => setPwdNew(e.target.value)} />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-[#1a1d2e] mb-2">Confirm New Password</label>
-                      <input type="password" className="w-full px-3 py-2 rounded-lg bg-[#f8f9ff] border border-[rgba(0,0,0,0.08)]" value={pwdNew2} onChange={(e) => setPwdNew2(e.target.value)} />
-                    </div>
-                  </div>
-                </div>
-
-                {/* Branding moved to its own tab */}
-
-                {profileMsg && (
-                  <p className={`text-sm ${profileMsg.startsWith('OK') ? 'text-green-600' : 'text-red-600'}`}>{profileMsg}</p>
-                )}
-
-                <div className="flex justify-end">
-                  <Button type="button" onClick={saveProfile} className="bg-gradient-to-r from-[#6366f1] to-[#8b5cf6] text-white hover:shadow-lg hover:shadow-[#6366f1]/30">Save Profile</Button>
-                </div>
-              </div>
+              <ProfileTab
+                name={name}
+                setName={setName}
+                email={email}
+                setEmail={setEmail}
+                pwdCurrent={pwdCurrent}
+                setPwdCurrent={setPwdCurrent}
+                pwdNew={pwdNew}
+                setPwdNew={setPwdNew}
+                pwdNew2={pwdNew2}
+                setPwdNew2={setPwdNew2}
+                profileMsg={profileMsg}
+                saveProfile={saveProfile}
+              />
             </TabsContent>
           )}
 
           {/* Branding Tab */}
           {view === 'general' && (
             <TabsContent value="branding" className="mt-0 space-y-8">
-              <div className="space-y-6">
-                <div>
-                  <h3 className="text-lg font-semibold text-[#1a1d2e] mb-3">Branding</h3>
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-end">
-                    <div>
-                      <label className="block text-sm font-medium text-[#1a1d2e] mb-2">Brand Name</label>
-                      <input
-                        className="w-full px-3 py-2 rounded-lg bg-[#f8f9ff] border border-[rgba(0,0,0,0.08)] focus:outline-none focus:ring-2 focus:ring-[#6366f1]/20"
-                        value={brandName}
-                        onChange={(e) => setBrandName(e.target.value)}
-                      />
-                      <p className="text-xs text-[#94a3b8] mt-1">Shown in the sidebar and titles.</p>
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-[#1a1d2e] mb-2">Bank Logo</label>
-                      <div className="flex items-center gap-4">
-                          <div className="h-12 w-12 rounded-lg bg-[#f8f9ff] border border-[rgba(0,0,0,0.08)] flex items-center justify-center overflow-hidden">
-                            {logoUrl ? (
-                              <img src={logoUrl} alt="Logo" className="h-full w-full object-contain" />
-                            ) : (
-                              <span className="text-xs text-[#94a3b8]">No logo</span>
-                            )}
-                          </div>
-                          <div>
-                            <FileDropzone id="branding-logo-dropzone" accept="image/*" multiple={false} onFilesAdded={async (arr) => {
-                              const f = arr?.[0];
-                              if (!f) return;
-                              setBrandingMsg(null);
-                              try {
-                                const { promise } = uploadWithProgress('/api/branding/logo', f, {}, (pct) => {
-                                  setBrandingMsg(`Uploading… ${pct}%`);
-                                });
-                                const data = await promise;
-                                setLogoUrl(data.logoUrl || null);
-                                setBrandingMsg('OK: Logo uploaded');
-                                try { document.documentElement.setAttribute('data-brand-logo', data.logoUrl || ''); } catch { }
-                              } catch (e: any) {
-                                setBrandingMsg(`Error: ${e?.message || e}`);
-                              }
-                            }} />
-                          </div>
-                      </div>
-                      <p className="text-xs text-[#94a3b8] mt-1">PNG/SVG/JPG/WebP up to a few MB. Stored under /public/brand.</p>
-                    </div>
-                  </div>
-                  <div className="flex justify-end mt-6">
-                    <Button type="button" onClick={async () => {
-                      setBrandingMsg(null);
-                      try {
-                        const res = await fetch('/api/branding', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ brandName, logoUrl }) });
-                        const data = await res.json();
-                        if (!res.ok) throw new Error(data?.error || 'Failed to save branding');
-                        setBrandingMsg('OK: Branding saved');
-                        try {
-                          document.documentElement.setAttribute('data-brand-name', brandName || '');
-                          document.documentElement.setAttribute('data-brand-logo', logoUrl || '');
-                        } catch { }
-                      } catch (e: any) {
-                        setBrandingMsg(`Error: ${e?.message || e}`);
-                      }
-                    }} className="bg-gradient-to-r from-[#6366f1] to-[#8b5cf6] text-white hover:shadow-lg hover:shadow-[#6366f1]/30">Save Branding</Button>
-                  </div>
-                  {brandingMsg && <p className={`text-sm mt-2 ${brandingMsg.startsWith('OK') ? 'text-green-600' : 'text-red-600'}`}>{brandingMsg}</p>}
-                </div>
-              </div>
+              <BrandingTab
+                brandName={brandName}
+                setBrandName={setBrandName}
+                logoUrl={logoUrl}
+                setLogoUrl={setLogoUrl}
+                brandingMsg={brandingMsg}
+                setBrandingMsg={setBrandingMsg}
+              />
             </TabsContent>
           )}
 
           {/* Preferences + Appearance */}
           {view === 'general' && (
             <TabsContent value="preferences" className="mt-0 space-y-8">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div>
-                  <label className="block text-sm font-medium text-[#1a1d2e] mb-2">Table Density</label>
-                  <div className="flex gap-3">
-                    <button
-                      type="button"
-                      onClick={() => { setPrefs((p) => ({ ...p, density: 'ultra-compact' })); persistPrefs({ density: 'ultra-compact' }); }}
-                      className={`px-3 py-2 rounded-lg border ${prefs.density === 'ultra-compact' ? 'bg-[#e0e7ff] border-[#6366f1] text-[#1a1d2e]' : 'bg-[#f8f9ff] border-[rgba(0,0,0,0.08)] text-[#64748b]'
-                        }`}
-                    >
-                      Ultra-compact
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => { setPrefs((p) => ({ ...p, density: 'compact' })); persistPrefs({ density: 'compact' }); }}
-                      className={`px-3 py-2 rounded-lg border ${prefs.density === 'compact' ? 'bg-[#e0e7ff] border-[#6366f1] text-[#1a1d2e]' : 'bg-[#f8f9ff] border-[rgba(0,0,0,0.08)] text-[#64748b]'
-                        }`}
-                    >
-                      Compact
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => { setPrefs((p) => ({ ...p, density: 'comfortable' })); persistPrefs({ density: 'comfortable' }); }}
-                      className={`px-3 py-2 rounded-lg border ${prefs.density === 'comfortable' ? 'bg-[#e0e7ff] border-[#6366f1] text-[#1a1d2e]' : 'bg-[#f8f9ff] border-[rgba(0,0,0,0.08)] text-[#64748b]'
-                        }`}
-                    >
-                      Comfortable
-                    </button>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-[#1a1d2e] mb-2">Currency</label>
-                    <select
-                      className="w-full px-3 py-2 rounded-lg bg-[#f8f9ff] border border-[rgba(0,0,0,0.08)]"
-                      value={prefs.currency}
-                      onChange={(e) => setPrefs((p) => ({ ...p, currency: e.target.value as Preferences['currency'] }))}
-                    >
-                      {(['USD', 'EUR', 'GBP', 'INR', 'JPY', 'AUD', 'CAD', 'CNY', 'SGD'] as const).map((c) => (
-                        <option key={c} value={c}>{c}</option>
-                      ))}
-                    </select>
-                    <p className="text-xs text-[#94a3b8] mt-1">Used for cost and value displays.</p>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-[#1a1d2e] mb-2">Language</label>
-                    <select
-                      className="w-full px-3 py-2 rounded-lg bg-[#f8f9ff] border border-[rgba(0,0,0,0.08)]"
-                      value={prefs.language}
-                      onChange={(e) => setPrefs((p) => ({ ...p, language: e.target.value as Preferences['language'] }))}
-                    >
-                      {([
-                        { code: 'en', label: 'English' },
-                        { code: 'hi', label: 'हिंदी (Hindi)' },
-                        { code: 'ta', label: 'தமிழ் (Tamil)' },
-                        { code: 'te', label: 'తెలుగు (Telugu)' },
-                        { code: 'bn', label: 'বাংলা (Bengali)' },
-                        { code: 'mr', label: 'मराठी (Marathi)' },
-                        { code: 'gu', label: 'ગુજરાતી (Gujarati)' },
-                        { code: 'kn', label: 'ಕನ್ನಡ (Kannada)' },
-                        { code: 'ml', label: 'മലയാളം (Malayalam)' },
-                        { code: 'pa', label: 'ਪੰਜਾਬੀ (Punjabi)' },
-                        { code: 'or', label: 'ଓଡ଼ିଆ (Odia)' },
-                        { code: 'as', label: 'অসমীয়া (Assamese)' },
-                        { code: 'sa', label: 'संस्कृतम् (Sanskrit)' },
-                        { code: 'kok', label: 'कोंकणी (Konkani)' },
-                        { code: 'ur', label: 'اُردو (Urdu)' },
-                        { code: 'ar', label: 'العربية (Arabic)' },
-                      ] as const).map((lng) => (
-                        <option key={lng.code} value={lng.code}>{lng.label}</option>
-                      ))}
-                    </select>
-                    <p className="text-xs text-[#94a3b8] mt-1">Applies to UI text (requires translation files to fully localize).</p>
-                  </div>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-[#1a1d2e] mb-2">Date Format</label>
-                  <div className="flex flex-wrap gap-3">
-                    {(['YYYY-MM-DD', 'MM/DD/YYYY', 'DD/MM/YYYY'] as const).map((fmt) => (
-                      <button
-                        key={fmt}
-                        onClick={() => setPrefs((p) => ({ ...p, dateFormat: fmt }))}
-                        className={`px-3 py-2 rounded-lg border ${prefs.dateFormat === fmt ? 'bg-[#e0e7ff] border-[#6366f1] text-[#1a1d2e]' : 'bg-[#f8f9ff] border-[rgba(0,0,0,0.08)] text-[#64748b]'
-                          }`}
-                      >
-                        {fmt}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              </div>
-
-              <div>
-                <h3 className="text-lg font-semibold text-[#1a1d2e]">Theme</h3>
-                <p className="text-sm text-[#64748b] mb-4">Choose how AssetFlow should look on this device.</p>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                  <button
-                    onClick={() => setMode('light')}
-                    className={`p-6 rounded-xl border text-left transition ${mode === 'light' ? 'bg-[#e0e7ff] border-[#6366f1]' : 'bg-[#f8f9ff] border-[rgba(0,0,0,0.08)]'
-                      }`}
-                  >
-                    <Sun className="h-5 w-5 mb-2" />
-                    <p className="font-medium text-[#1a1d2e]">Light</p>
-                    <p className="text-sm text-[#64748b]">Bright appearance</p>
-                  </button>
-                  <button
-                    onClick={() => setMode('dark')}
-                    className={`p-6 rounded-xl border text-left transition ${mode === 'dark' ? 'bg-[#e0e7ff] border-[#6366f1]' : 'bg-[#f8f9ff] border-[rgba(0,0,0,0.08)]'
-                      }`}
-                  >
-                    <Moon className="h-5 w-5 mb-2" />
-                    <p className="font-medium text-[#1a1d2e]">Dark</p>
-                    <p className="text-sm text-[#64748b]">Reduced eye strain</p>
-                  </button>
-                  <button
-                    onClick={() => setMode('system')}
-                    className={`p-6 rounded-xl border text-left transition ${mode === 'system' ? 'bg-[#e0e7ff] border-[#6366f1]' : 'bg-[#f8f9ff] border-[rgba(0,0,0,0.08)]'
-                      }`}
-                  >
-                    <Laptop className="h-5 w-5 mb-2" />
-                    <p className="font-medium text-[#1a1d2e]">System</p>
-                    <p className="text-sm text-[#64748b]">Follow OS setting</p>
-                  </button>
-                </div>
-                <p className="text-sm text-[#94a3b8] mt-4">
-                  Current theme: <span className="font-medium text-[#1a1d2e]">{(mode === 'system' ? systemTheme : mode) || 'system'}</span>
-                </p>
-              </div>
-
-              <div>
-                <h3 className="text-lg font-semibold text-[#1a1d2e]">Asset Management</h3>
-                <p className="text-sm text-[#64748b] mb-4">Configure how assets are assigned and managed.</p>
-                <div className="flex items-center justify-between p-4 border rounded-xl bg-[#f8f9ff] border-[rgba(0,0,0,0.08)]">
-                  <div>
-                    <p className="font-medium text-[#1a1d2e]">Require Consent for Asset Assignments</p>
-                    <p className="text-sm text-[#64748b]">When enabled, assigning assets to users requires email consent approval</p>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <input
-                      id="require-consent-checkbox"
-                      type="checkbox"
-                      checked={!!consentRequired}
-                      onChange={(e) => handleConsentToggle(e.target.checked)}
-                      aria-label="Require consent for asset assignments"
-                      className="peer h-6 w-6 cursor-pointer rounded border border-gray-300 
-               text-green-500 focus:ring-2 focus:ring-green-400/50 
-               checked:bg-green-500 checked:border-green-500 
-               transition-all duration-200 ease-in-out"
-                    />
-                    <label
-                      htmlFor="require-consent-checkbox"
-                      className="cursor-pointer text-sm text-[#64748b] 
-               peer-hover:text-[#475569] peer-checked:text-green-600 
-               transition-colors duration-200"
-                    >
-                      Yes
-                    </label>
-                  </div>
-
-                </div>
-                <div className="mt-3 flex items-center justify-between p-4 rounded-xl bg-[#fff] border border-[rgba(0,0,0,0.06)]">
-                  <div>
-                    <p className="font-medium text-[#1a1d2e]">Catalog Cache</p>
-                    <p className="text-sm text-[#64748b]">Clear the local client cache of categories/types fetched from the database. After clearing, pages will re-fetch the catalog.</p>
-                  </div>
-                  <div className="flex flex-col items-end gap-2">
-                    <Button type="button" variant="outline" className="border-[#ef4444] text-[#ef4444] hover:bg-[#fee2e2]" onClick={clearCatalogCache}>Clear Catalog Cache</Button>
-                    {catalogMsg && <p className="text-xs text-[#10b981]">{catalogMsg}</p>}
-                  </div>
-                </div>
-              </div>
+              <PreferencesTab
+                prefs={prefs}
+                setPrefs={setPrefs as any}
+                persistPrefs={persistPrefs}
+                mode={mode}
+                setMode={setMode}
+                systemTheme={systemTheme}
+              />
             </TabsContent>
           )}
 
           {/* Notifications */}
           {view === 'general' && (
             <TabsContent value="notifications" className="mt-0 space-y-8">
-              <form className="space-y-6" onSubmit={(e) => { e.preventDefault(); handleSave(); }}>
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Notification Channels</CardTitle>
-                    <CardDescription>Choose how you want to be notified.</CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                      <div className="flex items-center justify-between p-4 border rounded-xl bg-[#f8f9ff] border-[rgba(0,0,0,0.08)]">
-                        <div>
-                          <p className="font-medium text-[#1a1d2e]">Email</p>
-                          <p className="text-sm text-[#64748b]">Get notifications via email</p>
-                        </div>
-                        <Switch
-                          checked={notify.channels.email}
-                          onCheckedChange={(val) => setNotify((n) => ({ ...n, channels: { ...n.channels, email: !!val } }))}
-                          aria-label="Toggle email notifications"
-                        />
-                      </div>
-                      <div className="flex items-center justify-between p-4 border rounded-xl bg-[#f8f9ff] border-[rgba(0,0,0,0.08)] opacity-70">
-                        <div>
-                          <p className="font-medium text-[#1a1d2e]">Push Notifications</p>
-                          <p className="text-sm text-[#64748b]">Not available yet</p>
-                        </div>
-                        <Switch checked={false} disabled aria-label="Push notifications disabled" />
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Event Notifications</CardTitle>
-                    <CardDescription>Choose which events trigger notifications.</CardDescription>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    {/* Assets */}
-                    <div className="border rounded-xl p-4">
-                      <p className="font-semibold text-[#1a1d2e] mb-3">Assets</p>
-                      <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                        <div className="flex items-center justify-between p-3 rounded-lg bg-[#f8f9ff]">
-                          <span className="text-sm">New Asset Added</span>
-                          <Switch checked={notify.events.assets.newAsset} onCheckedChange={(v) => setNotify((n) => ({ ...n, events: { ...n.events, assets: { ...n.events.assets, newAsset: !!v } } }))} />
-                        </div>
-                        <div className="flex items-center justify-between p-3 rounded-lg bg-[#f8f9ff]">
-                          <span className="text-sm">Asset Status Change</span>
-                          <Switch checked={notify.events.assets.statusChange} onCheckedChange={(v) => setNotify((n) => ({ ...n, events: { ...n.events, assets: { ...n.events.assets, statusChange: !!v } } }))} />
-                        </div>
-                        <div className="flex items-center justify-between p-3 rounded-lg bg-[#f8f9ff]">
-                          <span className="text-sm">Maintenance Due</span>
-                          <Switch checked={notify.events.assets.maintenanceDue} onCheckedChange={(v) => setNotify((n) => ({ ...n, events: { ...n.events, assets: { ...n.events.assets, maintenanceDue: !!v } } }))} />
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Licenses */}
-                    <div className="border rounded-xl p-4">
-                      <p className="font-semibold text-[#1a1d2e] mb-3">Licenses</p>
-                      <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                        <div className="flex items-center justify-between p-3 rounded-lg bg-[#f8f9ff]">
-                          <span className="text-sm">License Expiring Soon</span>
-                          <Switch checked={notify.events.licenses.expiringSoon} onCheckedChange={(v) => setNotify((n) => ({ ...n, events: { ...n.events, licenses: { ...n.events.licenses, expiringSoon: !!v } } }))} />
-                        </div>
-                        <div className="flex items-center justify-between p-3 rounded-lg bg-[#f8f9ff]">
-                          <span className="text-sm">License Expired</span>
-                          <Switch checked={notify.events.licenses.expired} onCheckedChange={(v) => setNotify((n) => ({ ...n, events: { ...n.events, licenses: { ...n.events.licenses, expired: !!v } } }))} />
-                        </div>
-                        <div className="flex items-center justify-between p-3 rounded-lg bg-[#f8f9ff]">
-                          <span className="text-sm">Compliance Status Change</span>
-                          <Switch checked={notify.events.licenses.complianceChange} onCheckedChange={(v) => setNotify((n) => ({ ...n, events: { ...n.events, licenses: { ...n.events.licenses, complianceChange: !!v } } }))} />
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Vendors */}
-                    <div className="border rounded-xl p-4">
-                      <p className="font-semibold text-[#1a1d2e] mb-3">Vendors</p>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                        <div className="flex items-center justify-between p-3 rounded-lg bg-[#f8f9ff]">
-                          <span className="text-sm">Contract Nears Renewal</span>
-                          <Switch checked={notify.events.vendors.contractRenewal} onCheckedChange={(v) => setNotify((n) => ({ ...n, events: { ...n.events, vendors: { ...n.events.vendors, contractRenewal: !!v } } }))} />
-                        </div>
-                        <div className="flex items-center justify-between p-3 rounded-lg bg-[#f8f9ff]">
-                          <span className="text-sm">New Vendor Approved</span>
-                          <Switch checked={notify.events.vendors.newVendorApproved} onCheckedChange={(v) => setNotify((n) => ({ ...n, events: { ...n.events, vendors: { ...n.events.vendors, newVendorApproved: !!v } } }))} />
-                        </div>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-
-                <div className="flex justify-end">
-                  <Button type="submit" className="bg-gradient-to-r from-[#6366f1] to-[#8b5cf6] text-white hover:shadow-lg hover:shadow-[#6366f1]/30">Save Preferences</Button>
-                </div>
-              </form>
+              <NotificationsTab notify={notify} setNotify={setNotify as any} handleSave={handleSave} />
             </TabsContent>
           )}
           {/* Integrations */}
           {view === 'technical' && (
             <TabsContent value="integrations" className="mt-0 space-y-8">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Automated Asset Discovery</CardTitle>
-                  <CardDescription>Connect to external systems to discover and track assets automatically.</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                    {integrations.map((it) => {
-                      const Icon = it.icon;
-                      const isConnected = connected[it.id];
-                      return (
-                        <div key={it.id} className="flex items-center justify-between p-4 border rounded-xl bg-[#f8f9ff] border-[rgba(0,0,0,0.08)]">
-                          <div className="flex items-center gap-3">
-                            <div className="h-10 w-10 rounded-lg bg-white border border-[rgba(0,0,0,0.06)] flex items-center justify-center">
-                              <Icon className="h-5 w-5 text-[#6366f1]" />
-                            </div>
-                            <div>
-                              <p className="font-medium text-[#1a1d2e] flex items-center gap-2">
-                                {it.name}
-                                {isConnected && (
-                                  <Badge variant="secondary" className="bg-[#e0f2f1] text-[#065f46] border-[#10b981]/20">
-                                    <Check className="h-3 w-3" /> Connected
-                                  </Badge>
-                                )}
-                              </p>
-                              <p className="text-sm text-[#64748b]">{it.description}</p>
-                            </div>
-                          </div>
-
-                          {!isConnected ? (
-                            <Dialog open={dialogOpenFor === it.id} onOpenChange={(o) => setDialogOpenFor(o ? it.id : null)}>
-                              <DialogTrigger asChild>
-                                <Button className="bg-gradient-to-r from-[#6366f1] to-[#8b5cf6] text-white hover:shadow-lg hover:shadow-[#6366f1]/30">Connect</Button>
-                              </DialogTrigger>
-                              <DialogContent>
-                                <DialogHeader>
-                                  <DialogTitle>Connect {it.name}</DialogTitle>
-                                  <DialogDescription>Enter credentials to authorize this integration.</DialogDescription>
-                                </DialogHeader>
-                                <div className="space-y-4">
-                                  <div className="space-y-2">
-                                    <Label htmlFor="apiKey">API Key</Label>
-                                    <Input id="apiKey" type="password" value={apiKey} onChange={(e) => setApiKey(e.target.value)} placeholder="••••••••" />
-                                  </div>
-                                  <div className="space-y-2">
-                                    <Label htmlFor="endpoint">Endpoint URL (optional)</Label>
-                                    <Input id="endpoint" value={endpointUrl} onChange={(e) => setEndpointUrl(e.target.value)} placeholder="https://api.example.com" />
-                                  </div>
-                                </div>
-                                <DialogFooter className="mt-4">
-                                  <Button variant="outline" type="button" className="border-[#6366f1] text-[#6366f1] hover:bg-[#eef2ff]" onClick={() => setDialogOpenFor(null)}>Cancel</Button>
-                                  <Button type="button" className="bg-gradient-to-r from-[#6366f1] to-[#8b5cf6] text-white hover:shadow-lg hover:shadow-[#6366f1]/30" onClick={() => handleConnect(it.id)}>Connect</Button>
-                                </DialogFooter>
-                              </DialogContent>
-                            </Dialog>
-                          ) : (
-                            <Button variant="outline" className="border-[#ef4444] text-[#ef4444] hover:bg-[#fee2e2]" onClick={() => setConnected((c) => ({ ...c, [it.id]: false }))}>Disconnect</Button>
-                          )}
-                        </div>
-                      );
-                    })}
-                  </div>
-                </CardContent>
-              </Card>
+              {techTabsDisabled ? (
+                <DisabledCard title="Integrations" description="This section has been disabled by the administrator." />
+              ) : (
+                <IntegrationsTab
+                  techTabsDisabled={techTabsDisabled}
+                  integrations={integrations}
+                  connected={connected}
+                  dialogOpenFor={dialogOpenFor}
+                  setDialogOpenFor={setDialogOpenFor}
+                  apiKey={apiKey}
+                  setApiKey={setApiKey}
+                  endpointUrl={endpointUrl}
+                  setEndpointUrl={setEndpointUrl}
+                  handleConnect={handleConnect}
+                  setConnected={setConnected}
+                />
+              )}
             </TabsContent>
           )}
 
@@ -1078,216 +759,40 @@ export function SettingsPage({ onNavigate, onSearch, view = 'general' }: Setting
           {/* Events */}
           {view === 'technical' && (
             <TabsContent value="events" className="mt-0 space-y-8">
-              <div className="space-y-6">
-                {/* Enable */}
-                <div className="flex items-center justify-between p-4 border rounded-xl bg-[#f8f9ff] border-[rgba(0,0,0,0.08)]">
-                  <div>
-                    <p className="font-medium text-[#1a1d2e]">Enable Event Delivery</p>
-                    <p className="text-sm text-[#64748b]">Send AssetFlow events to your system</p>
-                  </div>
-                  <Switch checked={events.enabled} onCheckedChange={(v) => setEvents((e) => ({ ...e, enabled: !!v }))} />
-                </div>
-
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                  {/* REST Webhook Card */}
-                  <Card>
-                    <CardHeader>
-                      <div className="flex items-center gap-2">
-                        <Rss className="h-5 w-5 text-[#6366f1]" />
-                        <CardTitle>REST API Endpoint</CardTitle>
-                      </div>
-                      <CardDescription>Send events via HTTP POST/PUT to your endpoint.</CardDescription>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
-                      <div>
-                        <Label className="mb-1 block">Endpoint URL</Label>
-                        <Input placeholder="https://example.com/webhook" value={events.webhookUrl} onChange={(e) => setEvents((v) => ({ ...v, webhookUrl: e.target.value }))} />
-                      </div>
-                      <div>
-                        <Label className="mb-1 block">HTTP Method</Label>
-                        <select
-                          className="w-full px-3 py-2 rounded-lg bg-[#f8f9ff] border border-[rgba(0,0,0,0.08)]"
-                          value={events.webhookMethod}
-                          onChange={(e) => setEvents((v) => ({ ...v, webhookMethod: e.target.value as 'POST' | 'PUT' }))}
-                        >
-                          <option value="POST">POST</option>
-                          <option value="PUT">PUT</option>
-                        </select>
-                      </div>
-                      <div>
-                        <Label className="mb-1 block">Headers (JSON)</Label>
-                        <textarea
-                          rows={4}
-                          className={`w-full px-3 py-2 rounded-lg bg-[#f8f9ff] border ${headersError ? 'border-red-400' : 'border-[rgba(0,0,0,0.08)]'} focus:outline-none focus:ring-2 focus:ring-[#6366f1]/20`}
-                          value={events.webhookHeaders}
-                          onChange={(e) => {
-                            setEvents((v) => ({ ...v, webhookHeaders: e.target.value }));
-                            setHeadersError(null);
-                          }}
-                        />
-                        {headersError && <p className="text-sm text-red-500 mt-1">{headersError}</p>}
-                      </div>
-                      <div>
-                        <Label className="mb-1 block">Secret Token (optional)</Label>
-                        <Input type="password" placeholder="Used to sign requests (e.g., HMAC)" value={events.webhookSecret} onChange={(e) => setEvents((v) => ({ ...v, webhookSecret: e.target.value }))} />
-                      </div>
-                    </CardContent>
-                    <CardFooter className="flex justify-end border-t">
-                      <Button type="button" className="bg-gradient-to-r from-[#6366f1] to-[#8b5cf6] text-white hover:shadow-lg hover:shadow-[#6366f1]/30" onClick={saveRestSettings}>Save REST Settings</Button>
-                    </CardFooter>
-                  </Card>
-
-                  {/* Kafka Card */}
-                  <Card>
-                    <CardHeader>
-                      <div className="flex items-center gap-2">
-                        <Send className="h-5 w-5 text-[#6366f1]" />
-                        <CardTitle>Apache Kafka</CardTitle>
-                      </div>
-                      <CardDescription>Publish events to a Kafka topic.</CardDescription>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
-                      <div>
-                        <Label className="mb-1 block">Bootstrap Servers</Label>
-                        <Input placeholder="broker1:9092,broker2:9092" value={events.kafkaBrokers} onChange={(e) => setEvents((v) => ({ ...v, kafkaBrokers: e.target.value }))} />
-                      </div>
-                      <div>
-                        <Label className="mb-1 block">Topic Name</Label>
-                        <Input placeholder="assetflow.events" value={events.kafkaTopic} onChange={(e) => setEvents((v) => ({ ...v, kafkaTopic: e.target.value }))} />
-                      </div>
-                      <div>
-                        <Label className="mb-1 block">Client ID</Label>
-                        <Input placeholder="assetflow-ui" value={events.kafkaClientId} onChange={(e) => setEvents((v) => ({ ...v, kafkaClientId: e.target.value }))} />
-                      </div>
-                      <div>
-                        <Label className="mb-1 block">SASL Mechanism</Label>
-                        <select
-                          className="w-full px-3 py-2 rounded-lg bg-[#f8f9ff] border border-[rgba(0,0,0,0.08)]"
-                          value={events.kafkaSaslMechanism}
-                          onChange={(e) => setEvents((v) => ({ ...v, kafkaSaslMechanism: e.target.value as EventsConfig['kafkaSaslMechanism'] }))}
-                        >
-                          <option value="none">None</option>
-                          <option value="plain">PLAIN</option>
-                          <option value="scram-sha-256">SCRAM-SHA-256</option>
-                          <option value="scram-sha-512">SCRAM-SHA-512</option>
-                        </select>
-                      </div>
-                      {events.kafkaSaslMechanism !== 'none' && (
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                          <div>
-                            <Label className="mb-1 block">Username</Label>
-                            <Input value={events.kafkaUsername} onChange={(e) => setEvents((v) => ({ ...v, kafkaUsername: e.target.value }))} />
-                          </div>
-                          <div>
-                            <Label className="mb-1 block">Password</Label>
-                            <Input type="password" value={events.kafkaPassword} onChange={(e) => setEvents((v) => ({ ...v, kafkaPassword: e.target.value }))} />
-                          </div>
-                        </div>
-                      )}
-                    </CardContent>
-                    <CardFooter className="flex justify-end border-t">
-                      <Button type="button" className="bg-gradient-to-r from-[#6366f1] to-[#8b5cf6] text-white hover:shadow-lg hover:shadow-[#6366f1]/30" onClick={saveKafkaSettings}>Save Kafka Settings</Button>
-                    </CardFooter>
-                  </Card>
-                </div>
-              </div>
+              {techTabsDisabled ? (
+                <DisabledCard title="Events" description="Event delivery has been disabled by the administrator." />
+              ) : (
+                <EventsTab
+                  techTabsDisabled={techTabsDisabled}
+                  events={events}
+                  setEvents={setEvents}
+                  headersError={headersError}
+                  setHeadersError={setHeadersError}
+                  saveRestSettings={saveRestSettings}
+                  saveKafkaSettings={saveKafkaSettings}
+                />
+              )}
             </TabsContent>
           )}
 
           {/* Database */}
           {view === 'technical' && (
             <TabsContent value="database" className="mt-0 space-y-8">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Database Connection</CardTitle>
-                  <CardDescription>Provide MySQL connection details to initialize required tables.</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                      <Label className="mb-1 block">Host</Label>
-                      <Input value={dbForm.host} onChange={(e) => setDbForm((v) => ({ ...v, host: e.target.value }))} placeholder="localhost" />
-                    </div>
-                    <div>
-                      <Label className="mb-1 block">Port</Label>
-                      <Input value={dbForm.port} onChange={(e) => setDbForm((v) => ({ ...v, port: e.target.value }))} placeholder="3306" />
-                    </div>
-                    <div>
-                      <Label className="mb-1 block">User</Label>
-                      <Input value={dbForm.user} onChange={(e) => setDbForm((v) => ({ ...v, user: e.target.value }))} placeholder="root" />
-                    </div>
-                    <div>
-                      <Label className="mb-1 block">Password</Label>
-                      <Input type="password" value={dbForm.password} onChange={(e) => setDbForm((v) => ({ ...v, password: e.target.value }))} />
-                    </div>
-                    <div className="md:col-span-2">
-                      <Label className="mb-1 block">Database</Label>
-                      <Input value={dbForm.database} onChange={(e) => setDbForm((v) => ({ ...v, database: e.target.value }))} placeholder="inventos" />
-                    </div>
-                  </div>
-                  {dbMsg && <p className={`text-sm ${dbMsg.startsWith('OK') ? 'text-green-600' : 'text-red-600'}`}>{dbMsg}</p>}
-                </CardContent>
-                <CardFooter className="flex justify-between gap-3 flex-wrap border-t">
-                  <div className="flex items-center gap-2">
-                    <Button type="button" variant="outline" className="border-[#6366f1] text-[#6366f1] hover:bg-[#eef2ff]" disabled={dbTestBusy} onClick={async () => {
-                      setDbTestBusy(true);
-                      setDbMsg(null);
-                      try {
-                        const res = await fetch('/api/db/config', {
-                          method: 'PUT',
-                          headers: { 'Content-Type': 'application/json' },
-                          body: JSON.stringify({ host: dbForm.host, port: Number(dbForm.port) || 3306, user: dbForm.user, password: dbForm.password, database: dbForm.database }),
-                        });
-                        const data = await res.json();
-                        if (!res.ok) throw new Error(data?.error || 'Failed');
-                        setDbMsg('OK: Connection successful');
-                      } catch (e: any) {
-                        setDbMsg(`Error: ${e?.message || e}`);
-                      } finally {
-                        setDbTestBusy(false);
-                      }
-                    }}>
-                      {dbTestBusy ? 'Testing…' : 'Test Connection'}
-                    </Button>
-                    <Button type="button" className="bg-gradient-to-r from-[#06b6d4] to-[#3b82f6] text-white hover:shadow-lg hover:shadow-[#06b6d4]/20" onClick={async () => {
-                      try {
-                        const res = await fetch('/api/db/config', {
-                          method: 'POST',
-                          headers: { 'Content-Type': 'application/json' },
-                          body: JSON.stringify({ host: dbForm.host, port: Number(dbForm.port) || 3306, user: dbForm.user, password: dbForm.password, database: dbForm.database }),
-                        });
-                        const data = await res.json();
-                        if (!res.ok) throw new Error(data?.error || 'Failed');
-                        setDbMsg('OK: Configuration saved securely on server');
-                      } catch (e: any) {
-                        setDbMsg(`Error: ${e?.message || e}`);
-                      }
-                    }}>
-                      Save Config Securely
-                    </Button>
-                  </div>
-                  <Button type="button" disabled={dbBusy} className="bg-gradient-to-r from-[#10b981] to-[#22c55e] text-white hover:shadow-lg hover:shadow-[#22c55e]/20" onClick={async () => {
-                    setDbBusy(true);
-                    setDbMsg(null);
-                    try {
-                      const res = await fetch('/api/db/init', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ host: dbForm.host, port: Number(dbForm.port) || 3306, user: dbForm.user, password: dbForm.password, database: dbForm.database }),
-                      });
-                      const data = await res.json();
-                      if (!res.ok) throw new Error(data?.error || 'Failed');
-                      setDbMsg(`OK: Database initialized${data?.persisted ? ' and configuration saved securely' : ''}.`);
-                    } catch (e: any) {
-                      setDbMsg(`Error: ${e?.message || e}`);
-                    } finally {
-                      setDbBusy(false);
-                    }
-                  }}>
-                    {dbBusy ? 'Initializing…' : 'Initialize Database'}
-                  </Button>
-                </CardFooter>
-              </Card>
+              {techTabsDisabled ? (
+                <DisabledCard title="Database" description="Database configuration has been disabled by the administrator." />
+              ) : (
+                <DatabaseTab
+                  techTabsDisabled={techTabsDisabled}
+                  dbForm={dbForm}
+                  setDbForm={setDbForm}
+                  dbMsg={dbMsg}
+                  dbTestBusy={dbTestBusy}
+                  dbBusy={dbBusy}
+                  onTestConnection={onTestConnection}
+                  onSaveConfig={onSaveConfig}
+                  onInitialize={onInitialize}
+                />
+              )}
             </TabsContent>
           )}
 
@@ -1300,7 +805,7 @@ export function SettingsPage({ onNavigate, onSearch, view = 'general' }: Setting
                   <CardDescription>Define custom fields that appear on Add/Edit pages. Choose which page the field applies to: Assets, Vendors or Licenses. Values are stored under specifications.customFields by key on the respective object.</CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <div className="space-y-3">
+                  <div className="space-y-3 pb-4 border-b">
                     <div className="flex items-center gap-4 mb-3">
                       <label className={`px-3 py-2 rounded-lg cursor-pointer ${customTarget === 'asset' ? 'bg-white border border-[rgba(0,0,0,0.08)] shadow-sm' : 'bg-[#f8f9ff]'}`}>
                         <input type="radio" name="customTarget" value="asset" checked={customTarget === 'asset'} onChange={() => setCustomTarget('asset')} className="mr-2" /> Assets
@@ -1393,9 +898,22 @@ export function SettingsPage({ onNavigate, onSearch, view = 'general' }: Setting
                       ));
                     })()}
 
-                    <div className="flex justify-between items-center mt-3">
-                      <Button type="button" variant="outline" className="border-[#6366f1] text-[#6366f1] hover:bg-[#eef2ff]" onClick={addCurrentField}>Add Field</Button>
-                      <Button type="button" className="bg-gradient-to-r from-[#6366f1] to-[#8b5cf6] text-white hover:shadow-lg hover:shadow-[#6366f1]/30" onClick={handleSave}>Save Fields</Button>
+                    <div className="flex justify-between items-center mt-3 mb-3 mb-6">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        className="border-[#6366f1] text-[#6366f1] mb-3 hover:bg-[#eef2ff]"
+                        onClick={addCurrentField}
+                      >
+                        Add Field
+                      </Button>
+                      <Button
+                        type="button"
+                        className="bg-gradient-to-r from-[#6366f1] to-[#8b5cf6] mb-3 text-white hover:shadow-lg hover:shadow-[#6366f1]/30"
+                        onClick={handleSave}
+                      >
+                        Save Fields
+                      </Button>
                     </div>
                   </div>
                 </CardContent>

@@ -1,0 +1,134 @@
+"use client";
+
+import React from 'react';
+
+interface Preferences {
+  density: 'ultra-compact' | 'compact' | 'comfortable';
+  dateFormat: 'YYYY-MM-DD' | 'MM/DD/YYYY' | 'DD/MM/YYYY';
+  currency: string;
+  language: string;
+}
+
+interface Props {
+  prefs: Preferences;
+  setPrefs: React.Dispatch<React.SetStateAction<Preferences>>;
+  persistPrefs: (next: Partial<Preferences>) => void;
+  mode: 'light' | 'dark' | 'system';
+  setMode: (m: 'light' | 'dark' | 'system') => void;
+  systemTheme?: string | undefined;
+}
+
+export default function PreferencesTab({ prefs, setPrefs, persistPrefs, mode, setMode, systemTheme }: Props) {
+  return (
+    <>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div>
+          <label className="block text-sm font-medium text-[#1a1d2e] mb-2">Table Density</label>
+          <div className="flex gap-3">
+            <button
+              type="button"
+              onClick={() => { setPrefs((p) => ({ ...p, density: 'ultra-compact' })); persistPrefs({ density: 'ultra-compact' }); }}
+              className={`px-3 py-2 rounded-lg border ${prefs.density === 'ultra-compact' ? 'bg-[#e0e7ff] border-[#6366f1] text-[#1a1d2e]' : 'bg-[#f8f9ff] border-[rgba(0,0,0,0.08)] text-[#64748b]'
+                }`}
+            >
+              Ultra-compact
+            </button>
+            <button
+              type="button"
+              onClick={() => { setPrefs((p) => ({ ...p, density: 'compact' })); persistPrefs({ density: 'compact' }); }}
+              className={`px-3 py-2 rounded-lg border ${prefs.density === 'compact' ? 'bg-[#e0e7ff] border-[#6366f1] text-[#1a1d2e]' : 'bg-[#f8f9ff] border-[rgba(0,0,0,0.08)] text-[#64748b]'
+                }`}
+            >
+              Compact
+            </button>
+            <button
+              type="button"
+              onClick={() => { setPrefs((p) => ({ ...p, density: 'comfortable' })); persistPrefs({ density: 'comfortable' }); }}
+              className={`px-3 py-2 rounded-lg border ${prefs.density === 'comfortable' ? 'bg-[#e0e7ff] border-[#6366f1] text-[#1a1d2e]' : 'bg-[#f8f9ff] border-[rgba(0,0,0,0.08)] text-[#64748b]'
+                }`}
+            >
+              Comfortable
+            </button>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-[#1a1d2e] mb-2">Currency</label>
+            <select
+              className="w-full px-3 py-2 rounded-lg bg-[#f8f9ff] border border-[rgba(0,0,0,0.08)]"
+              value={prefs.currency}
+              onChange={(e) => setPrefs((p) => ({ ...p, currency: e.target.value }))}
+            >
+              {(['USD', 'EUR', 'GBP', 'INR', 'JPY', 'AUD', 'CAD', 'CNY', 'SGD'] as const).map((c) => (
+                <option key={c} value={c}>{c}</option>
+              ))}
+            </select>
+            <p className="text-xs text-[#94a3b8] mt-1">Used for cost and value displays.</p>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-[#1a1d2e] mb-2">Language</label>
+            <select
+              className="w-full px-3 py-2 rounded-lg bg-[#f8f9ff] border border-[rgba(0,0,0,0.08)]"
+              value={prefs.language}
+              onChange={(e) => setPrefs((p) => ({ ...p, language: e.target.value }))}
+            >
+              <option value="en">English</option>
+              <option value="hi">हिंदी (Hindi)</option>
+              <option value="ta">தமிழ் (Tamil)</option>
+              <option value="te">తెలుగు (Telugu)</option>
+            </select>
+            <p className="text-xs text-[#94a3b8] mt-1">Applies to UI text (requires translation files to fully localize).</p>
+          </div>
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-[#1a1d2e] mb-2">Date Format</label>
+          <div className="flex flex-wrap gap-3">
+            {(['YYYY-MM-DD', 'MM/DD/YYYY', 'DD/MM/YYYY'] as const).map((fmt) => (
+              <button
+                key={fmt}
+                onClick={() => setPrefs((p) => ({ ...p, dateFormat: fmt }))}
+                className={`px-3 py-2 rounded-lg border ${prefs.dateFormat === fmt ? 'bg-[#e0e7ff] border-[#6366f1] text-[#1a1d2e]' : 'bg-[#f8f9ff] border-[rgba(0,0,0,0.08)] text-[#64748b]'
+                  }`}
+              >
+                {fmt}
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      <div className="space-y-4">
+        <div>
+          <h3 className="text-lg font-semibold text-[#1a1d2e]">Theme</h3>
+          <p className="text-sm text-[#64748b] mb-4">Choose how AssetFlow should look on this device.</p>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <button
+              onClick={() => setMode('light')}
+              className={`p-6 rounded-xl border text-left transition ${mode === 'light' ? 'bg-[#e0e7ff] border-[#6366f1]' : 'bg-[#f8f9ff] border-[rgba(0,0,0,0.08)]'
+                }`}
+            >
+              <p className="font-medium text-[#1a1d2e]">Light</p>
+              <p className="text-sm text-[#64748b]">Bright appearance</p>
+            </button>
+            <button
+              onClick={() => setMode('dark')}
+              className={`p-6 rounded-xl border text-left transition ${mode === 'dark' ? 'bg-[#e0e7ff] border-[#6366f1]' : 'bg-[#f8f9ff] border-[rgba(0,0,0,0.08)]'
+                }`}
+            >
+              <p className="font-medium text-[#1a1d2e]">Dark</p>
+              <p className="text-sm text-[#64748b]">Reduced eye strain</p>
+            </button>
+            <button
+              onClick={() => setMode('system')}
+              className={`p-6 rounded-xl border text-left transition ${mode === 'system' ? 'bg-[#e0e7ff] border-[#6366f1]' : 'bg-[#f8f9ff] border-[rgba(0,0,0,0.08)]'
+                }`}
+            >
+              <p className="font-medium text-[#1a1d2e]">System</p>
+              <p className="text-sm text-[#64748b]">Follow OS setting</p>
+            </button>
+          </div>
+          <p className="text-sm text-[#94a3b8] mt-4">Current theme: <span className="font-medium text-[#1a1d2e]">{(mode === 'system' ? systemTheme : mode) || 'system'}</span></p>
+        </div>
+      </div>
+    </>
+  );
+}
+

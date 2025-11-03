@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import { motion } from 'motion/react';
-import { Plus, Download, Upload, Search, Filter } from 'lucide-react';
+import { Plus, Download, Upload, Search, Filter, ListFilter } from 'lucide-react';
 import { AssetFlowLayout } from '../layout/AssetFlowLayout';
 import { Asset } from '../../../lib/data';
 import { fetchAssets, deleteAsset } from '../../../lib/api';
@@ -108,15 +108,20 @@ export function AssetsPage({ onNavigate, onSearch }: AssetsPageProps) {
   }, [catalog]);
 
   const mapAssetToCategory = (asset: Asset): Exclude<AssetCategory, 'All'> => {
-    const aid = (asset as any).type_id;
-    if (aid !== undefined && aid !== null) {
-      const byId = catalogLookup.idToCategory.get(String(aid));
-      if (byId) return byId as Exclude<AssetCategory, 'All'>;
-    }
-    if (asset.typeId) {
-      const byName = catalogLookup.nameToCategory.get(asset.typeId);
+    // Prefer explicit DB type_id if present on the object
+    const rawTypeId = (asset as any).type_id ?? (asset as any).typeId;
+    if (rawTypeId !== undefined && rawTypeId !== null) {
+      const s = String(rawTypeId).trim();
+      // If numeric-ish, try ID lookup
+      if (s !== '' && /^\d+$/.test(s)) {
+        const byId = catalogLookup.idToCategory.get(s);
+        if (byId) return byId as Exclude<AssetCategory, 'All'>;
+      }
+      // Try name lookup
+      const byName = catalogLookup.nameToCategory.get(s);
       if (byName) return byName as Exclude<AssetCategory, 'All'>;
-      return asset.typeId as unknown as Exclude<AssetCategory, 'All'>;
+      // Fall back to a stable bucket if mapping is unknown
+      return 'Other' as Exclude<AssetCategory, 'All'>;
     }
     return 'Other' as Exclude<AssetCategory, 'All'>;
   };
@@ -238,65 +243,56 @@ export function AssetsPage({ onNavigate, onSearch }: AssetsPageProps) {
         transition={{ duration: 0.4, delay: 0.1 }}
         className="bg-white rounded-2xl border border-[rgba(0,0,0,0.08)] p-6 mb-6 shadow-sm"
       >
-        {/* Category Tabs */}
-        <div className="flex items-center gap-2 mb-4 overflow-x-auto pb-2">
-          {assetCategories.map((cat, index) => (
-            <motion.button
-              key={cat}
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.3, delay: 0.15 + index * 0.05 }}
-              onClick={() => setSelectedCategory(cat)}
-              className={`
-                flex items-center gap-2 px-4 py-2 rounded-lg whitespace-nowrap transition-all duration-200
-                ${selectedCategory === cat
-                  ? 'bg-gradient-to-r from-[#6366f1] to-[#8b5cf6] text-white shadow-md'
-                  : 'bg-[#f8f9ff] text-[#64748b] hover:bg-[#e0e7ff] hover:text-[#6366f1]'
-                }
-              `}
-            >
-              <span className="font-medium">{cat}</span>
-              <span className={`
-                px-2 py-0.5 rounded-full text-xs
-                ${selectedCategory === cat
-                  ? 'bg-white/20 text-white'
-                  : 'bg-white text-[#64748b]'
-                }
-              `}>
-                {getCategoryCount(cat)}
-              </span>
-            </motion.button>
-          ))}
+        {/* Search */}
+        <div className="relative mb-4">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-[#a0a4b8]" />
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="Search by name, serial number, assignee, or department..."
+            className="
+              w-full pl-10 pr-4 py-2.5 rounded-lg
+              bg-[#f8f9ff] border border-[rgba(0,0,0,0.05)]
+              text-sm text-[#1a1d2e] placeholder:text-[#a0a4b8]
+              focus:outline-none focus:ring-2 focus:ring-[#6366f1]/20 focus:border-[#6366f1]
+              transition-all duration-200
+            "
+          />
         </div>
 
-        {/* Search and Status Filter */}
-        <div className="flex gap-4">
-          {/* Search */}
-          <div className="flex-1 relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-[#a0a4b8]" />
-            <input
-              type="text"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search by name, serial number, assignee, or department..."
+        {/* Category and Status side-by-side */}
+        <div className="flex gap-4 flex-wrap">
+          {/* Category Filter */}
+          <div className="relative md:w-72">
+            <ListFilter className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-[#a0a4b8] pointer-events-none" />
+            <select
+              value={selectedCategory}
+              onChange={(e) => setSelectedCategory(e.target.value as AssetCategory)}
               className="
-                w-full pl-10 pr-4 py-2.5 rounded-lg
+                w-full pl-10 pr-8 py-2.5 rounded-lg appearance-none
                 bg-[#f8f9ff] border border-[rgba(0,0,0,0.05)]
-                text-sm text-[#1a1d2e] placeholder:text-[#a0a4b8]
+                text-sm text-[#1a1d2e] font-medium
                 focus:outline-none focus:ring-2 focus:ring-[#6366f1]/20 focus:border-[#6366f1]
-                transition-all duration-200
+                transition-all duration-200 cursor-pointer
               "
-            />
+            >
+              {assetCategories.map((cat) => (
+                <option key={cat} value={cat}>
+                  {cat === 'All' ? 'All Categories' : `${cat} (${getCategoryCount(cat)})`}
+                </option>
+              ))}
+            </select>
           </div>
 
           {/* Status Filter */}
-          <div className="relative">
+          <div className="relative md:w-60">
             <Filter className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-[#a0a4b8] pointer-events-none" />
             <select
               value={selectedStatus}
               onChange={(e) => setSelectedStatus(e.target.value as AssetStatus)}
               className="
-                pl-10 pr-8 py-2.5 rounded-lg appearance-none
+                w-full pl-10 pr-8 py-2.5 rounded-lg appearance-none
                 bg-[#f8f9ff] border border-[rgba(0,0,0,0.05)]
                 text-sm text-[#1a1d2e] font-medium
                 focus:outline-none focus:ring-2 focus:ring-[#6366f1]/20 focus:border-[#6366f1]
