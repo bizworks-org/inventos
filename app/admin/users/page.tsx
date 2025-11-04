@@ -108,7 +108,7 @@ export default function ManageUsersPage() {
     const res = await fetch('/api/admin/users', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: editing.id, name: form.name, email: form.email }) });
     if (!res.ok) {
       let msg = 'Failed to update user';
-      try { const data = await res.json(); if (data?.error) msg = data.error; } catch {}
+      try { const data = await res.json(); if (data?.error) msg = data.error; } catch { }
       toast.error(msg);
       return;
     }
@@ -148,7 +148,7 @@ export default function ManageUsersPage() {
       try {
         const data = await res.json();
         if (data?.error) msg = data.error;
-      } catch {}
+      } catch { }
       return toast.error(msg);
     }
     load();
@@ -191,7 +191,7 @@ export default function ManageUsersPage() {
       try {
         const data = await res.json();
         if (data?.error) msg = data.error;
-      } catch {}
+      } catch { }
       return toast.error(msg);
     }
     toast.success('User activated');
@@ -205,7 +205,7 @@ export default function ManageUsersPage() {
       if (!res.ok) throw new Error(data?.error || 'Failed to reset password');
       const pwd = data?.password as string;
       if (pwd) {
-        try { await navigator.clipboard.writeText(pwd); } catch {}
+        try { await navigator.clipboard.writeText(pwd); } catch { }
         toast.success(`New password: ${pwd}${' '}(copied)`);
       } else {
         toast.success('Password reset');
@@ -414,75 +414,75 @@ export default function ManageUsersPage() {
                             Activate
                           </button>
                         ) : null}
-                      {(() => {
-                        const isTargetAdmin = (u.roles || []).includes('admin');
-                        const isOtherAdmin = isTargetAdmin && me?.id !== u.id;
-                        const isLastActiveAdmin = u.active && isTargetAdmin && activeAdminCount === 1;
-                        const deactivateButton = (
-                          <button
-                            onClick={() => deactivate(u.id)}
-                            disabled={!u.active || isLastActiveAdmin || isOtherAdmin}
-                            className={`px-3 py-2 rounded-lg transition-all text-sm font-medium
+                        {(() => {
+                          const isTargetAdmin = (u.roles || []).includes('admin');
+                          const isOtherAdmin = isTargetAdmin && me?.id !== u.id;
+                          const isLastActiveAdmin = u.active && isTargetAdmin && activeAdminCount === 1;
+                          const deactivateButton = (
+                            <button
+                              onClick={() => deactivate(u.id)}
+                              disabled={!u.active || isLastActiveAdmin || isOtherAdmin}
+                              className={`px-3 py-2 rounded-lg transition-all text-sm font-medium
                               ${(!u.active || isLastActiveAdmin || isOtherAdmin)
-                                ? 'bg-[#f3f4f6] text-[#9ca3af] cursor-not-allowed'
-                                : 'text-white shadow-sm hover:shadow-md focus:outline-none focus:ring-2 focus:ring-[#f59e0b]/40'}
+                                  ? 'bg-[#f3f4f6] text-[#9ca3af] cursor-not-allowed'
+                                  : 'text-white shadow-sm hover:shadow-md focus:outline-none focus:ring-2 focus:ring-[#f59e0b]/40'}
                             `}
-                            style={(!u.active || isLastActiveAdmin || isOtherAdmin) ? undefined : { backgroundImage: 'linear-gradient(to right, #f59e0b, #d97706)' }}
-                          >
-                            Deactivate
-                          </button>
-                        );
-                        if (isLastActiveAdmin || isOtherAdmin) {
-                          return (
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <span className="inline-block">{deactivateButton}</span>
-                              </TooltipTrigger>
-                              <TooltipContent>{isLastActiveAdmin ? 'Cannot deactivate the last active Admin' : 'Cannot deactivate another Admin'}</TooltipContent>
-                            </Tooltip>
+                              style={(!u.active || isLastActiveAdmin || isOtherAdmin) ? undefined : { backgroundImage: 'linear-gradient(to right, #f59e0b, #d97706)' }}
+                            >
+                              Deactivate
+                            </button>
                           );
-                        }
-                        return deactivateButton;
-                      })()}
-                      {(() => {
-                        const disableOthersAdmin = (u.roles || []).includes('admin') && me?.id !== u.id;
-                        const resetBtn = (
-                          <button
-                            onClick={() => !disableOthersAdmin && resetPassword(u.id)}
-                            disabled={disableOthersAdmin}
-                            className={`px-3 py-2 rounded-lg text-sm font-medium transition-all ${disableOthersAdmin ? 'bg-[#f3f4f6] text-[#9ca3af] cursor-not-allowed' : 'text-white shadow-sm hover:shadow-md focus:outline-none focus:ring-2 focus:ring-sky-500/40'}`}
-                            style={disableOthersAdmin ? undefined : { backgroundImage: 'linear-gradient(to right, #06b6d4, #3b82f6)' }}
-                          >
-                            Reset Password
-                          </button>
-                        );
-                        const deleteBtn = (
-                          <button
-                            onClick={() => !disableOthersAdmin && remove(u.id)}
-                            disabled={disableOthersAdmin}
-                            className={`px-3 py-2 rounded-lg text-sm font-medium transition-all ${disableOthersAdmin ? 'bg-[#f3f4f6] text-[#9ca3af] cursor-not-allowed' : 'text-white shadow-sm hover:shadow-md focus:outline-none focus:ring-2 focus:ring-[#ef4444]/40'}`}
-                            style={disableOthersAdmin ? undefined : { backgroundImage: 'linear-gradient(to right, #ef4444, #b91c1c)' }}
-                          >
-                            Delete
-                          </button>
-                        );
-                        if (!disableOthersAdmin) return (<>
-                          {resetBtn}
-                          {deleteBtn}
-                        </>);
-                        return (
-                          <>
-                            <Tooltip>
-                              <TooltipTrigger asChild><span className="inline-block">{resetBtn}</span></TooltipTrigger>
-                              <TooltipContent>Cannot reset password for another Admin</TooltipContent>
-                            </Tooltip>
-                            <Tooltip>
-                              <TooltipTrigger asChild><span className="inline-block">{deleteBtn}</span></TooltipTrigger>
-                              <TooltipContent>Cannot delete another Admin</TooltipContent>
-                            </Tooltip>
-                          </>
-                        );
-                      })()}
+                          if (isLastActiveAdmin || isOtherAdmin) {
+                            return (
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <span className="inline-block">{deactivateButton}</span>
+                                </TooltipTrigger>
+                                <TooltipContent>{isLastActiveAdmin ? 'Cannot deactivate the last active Admin' : 'Cannot deactivate another Admin'}</TooltipContent>
+                              </Tooltip>
+                            );
+                          }
+                          return deactivateButton;
+                        })()}
+                        {(() => {
+                          const disableOthersAdmin = (u.roles || []).includes('admin') && me?.id !== u.id;
+                          const resetBtn = (
+                            <button
+                              onClick={() => !disableOthersAdmin && resetPassword(u.id)}
+                              disabled={disableOthersAdmin}
+                              className={`px-3 py-2 rounded-lg text-sm font-medium transition-all ${disableOthersAdmin ? 'bg-[#f3f4f6] text-[#9ca3af] cursor-not-allowed' : 'text-white shadow-sm hover:shadow-md focus:outline-none focus:ring-2 focus:ring-sky-500/40'}`}
+                              style={disableOthersAdmin ? undefined : { backgroundImage: 'linear-gradient(to right, #06b6d4, #3b82f6)' }}
+                            >
+                              Reset Password
+                            </button>
+                          );
+                          const deleteBtn = (
+                            <button
+                              onClick={() => !disableOthersAdmin && remove(u.id)}
+                              disabled={disableOthersAdmin}
+                              className={`px-3 py-2 rounded-lg text-sm font-medium transition-all ${disableOthersAdmin ? 'bg-[#f3f4f6] text-[#9ca3af] cursor-not-allowed' : 'text-white shadow-sm hover:shadow-md focus:outline-none focus:ring-2 focus:ring-[#ef4444]/40'}`}
+                              style={disableOthersAdmin ? undefined : { backgroundImage: 'linear-gradient(to right, #ef4444, #b91c1c)' }}
+                            >
+                              Delete
+                            </button>
+                          );
+                          if (!disableOthersAdmin) return (<>
+                            {resetBtn}
+                            {deleteBtn}
+                          </>);
+                          return (
+                            <>
+                              <Tooltip>
+                                <TooltipTrigger asChild><span className="inline-block">{resetBtn}</span></TooltipTrigger>
+                                <TooltipContent>Cannot reset password for another Admin</TooltipContent>
+                              </Tooltip>
+                              <Tooltip>
+                                <TooltipTrigger asChild><span className="inline-block">{deleteBtn}</span></TooltipTrigger>
+                                <TooltipContent>Cannot delete another Admin</TooltipContent>
+                              </Tooltip>
+                            </>
+                          );
+                        })()}
                       </div>
                     </td>
                   </tr>
