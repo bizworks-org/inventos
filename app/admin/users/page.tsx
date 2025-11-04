@@ -3,9 +3,8 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { toast } from 'sonner@2.0.3';
 import { useRouter } from 'next/navigation';
 import { Shield, User as UserIcon, Package, FileText, Building2, Activity, Pencil } from 'lucide-react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose } from '@/components/ui/dialog';
-import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
 import { AlertDialog, AlertDialogTrigger, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, AlertDialogAction, AlertDialogCancel } from '@/components/ui/alert-dialog';
+import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
 
 type Role = 'admin' | 'user';
 type User = { id: string; name: string; email: string; roles: Role[]; active: boolean };
@@ -20,8 +19,7 @@ export default function ManageUsersPage() {
   const [rolePerms, setRolePerms] = useState<Record<Role, Set<string>>>({ admin: new Set(), user: new Set() });
   const [me, setMe] = useState<{ id: string; email: string; role: Role } | null>(null);
   const [confirmRemoveAdminFor, setConfirmRemoveAdminFor] = useState<{ userId: string; userName: string } | null>(null);
-  const [editing, setEditing] = useState<{ id: string; name: string; email: string; active: boolean } | null>(null);
-  const [editOpen, setEditOpen] = useState(false);
+  const [editing, setEditing] = useState<User | null>(null);
   const router = useRouter();
 
   // Helpers: choose stable, high-contrast gradient colors for chips
@@ -105,6 +103,21 @@ export default function ManageUsersPage() {
     load();
   };
 
+  const saveEdit = async () => {
+    if (!editing) return;
+    const res = await fetch('/api/admin/users', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: editing.id, name: form.name, email: form.email }) });
+    if (!res.ok) {
+      let msg = 'Failed to update user';
+      try { const data = await res.json(); if (data?.error) msg = data.error; } catch {}
+      toast.error(msg);
+      return;
+    }
+    toast.success('User updated');
+    setEditing(null);
+    setForm({ name: '', email: '', role: 'user', password: '' });
+    load();
+  };
+
   // Queued updates for user roles (debounced per user)
   const roleUpdateTimers = useRef<Record<string, any>>({});
   const pendingUserRoles = useRef<Record<string, Role[]>>({});
@@ -171,20 +184,6 @@ export default function ManageUsersPage() {
     load();
   };
 
-  const saveEdit = async () => {
-    if (!editing) return;
-    const res = await fetch('/api/admin/users', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: editing.id, name: editing.name, email: editing.email, active: editing.active }) });
-    if (!res.ok) {
-      let msg = 'Failed to update user';
-      try { const data = await res.json(); if (data?.error) msg = data.error; } catch {}
-      toast.error(msg);
-      return;
-    }
-    toast.success('User updated');
-    setEditing(null);
-    load();
-  };
-
   const activate = async (id: string) => {
     const res = await fetch('/api/admin/users', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id, active: true }) });
     if (!res.ok) {
@@ -229,38 +228,65 @@ export default function ManageUsersPage() {
         <p className="text-[#64748b]">Create users, assign roles and permissions.</p>
       </div>
 
-      {/* Add User Card */}
+      {/* Add/Edit User Card */}
       <div className="bg-white border border-[#e2e8f0] rounded-xl p-6 mb-6 max-w-3xl">
-        <h2 className="text-lg font-semibold mb-3">Add User</h2>
+        <h2 className="text-lg font-semibold mb-3">{editing ? `Edit User: ${editing.name}` : 'Add User'}</h2>
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           <input className="px-3 py-2.5 rounded-lg border border-[#e2e8f0] bg-white" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="Full name" />
           <input className="px-3 py-2.5 rounded-lg border border-[#e2e8f0] bg-white" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} placeholder="Email" />
-          <select className="px-3 py-2.5 rounded-lg border border-[#e2e8f0] bg-white" value={form.role} onChange={(e) => setForm({ ...form, role: e.target.value as Role })}>
+          <select className="px-3 py-2.5 rounded-lg border border-[#e2e8f0] bg-white" value={form.role} onChange={(e) => setForm({ ...form, role: e.target.value as Role })} disabled={!!editing}>
             <option value="user">User</option>
             <option value="admin">Admin</option>
           </select>
           <button
             type="button"
             onClick={generatePassword}
-            className="px-3 py-2.5 rounded-lg text-sm font-medium text-white shadow-sm hover:shadow-md focus:outline-none focus:ring-2 focus:ring-sky-500/40 transition-all"
+            className="px-3 py-2.5 rounded-lg text-sm font-medium text-white shadow-sm hover:shadow-md focus:outline-none focus:ring-2 focus:ring-sky-500/40 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
             style={{ backgroundImage: 'linear-gradient(to right, #06b6d4, #3b82f6)' }}
             title={form.password ? `Generated: ${form.password}` : 'Generate a secure password'}
+            disabled={!!editing}
           >
             Generate Password
           </button>
         </div>
-        <div className="mt-4">
-          <button
-            onClick={addUser}
-            disabled={!form.name || !form.email || !form.password}
-            className={`px-4 py-2.5 rounded-lg text-white hover:opacity-90 ${(!form.name || !form.email || !form.password) ? 'cursor-not-allowed' : ''}`}
-            style={(!form.name || !form.email || !form.password)
-              ? { backgroundColor: '#9ca3af' }
-              : { backgroundImage: 'linear-gradient(to right, #1a1d2e, #0f1218)' }}
-          >
-            Create
-          </button>
-          <p className="mt-2 text-xs text-[#64748b]">{form.password ? 'Password generated and ready.' : 'Click “Generate Password” to enable Create.'}</p>
+        <div className="mt-4 flex items-center gap-3">
+          {editing ? (
+            <>
+              <button
+                onClick={saveEdit}
+                disabled={!form.name || !form.email}
+                className={`px-4 py-2.5 rounded-lg text-white hover:opacity-90 ${(!form.name || !form.email) ? 'cursor-not-allowed' : ''}`}
+                style={(!form.name || !form.email)
+                  ? { backgroundColor: '#9ca3af' }
+                  : { backgroundImage: 'linear-gradient(to right, #6366f1, #8b5cf6)' }}
+              >
+                Save Changes
+              </button>
+              <button
+                onClick={() => {
+                  setEditing(null);
+                  setForm({ name: '', email: '', role: 'user', password: '' });
+                }}
+                className="px-4 py-2.5 rounded-lg bg-[#f3f4f6] text-[#111827]"
+              >
+                Cancel
+              </button>
+            </>
+          ) : (
+            <>
+              <button
+                onClick={addUser}
+                disabled={!form.name || !form.email || !form.password}
+                className={`px-4 py-2.5 rounded-lg text-white hover:opacity-90 ${(!form.name || !form.email || !form.password) ? 'cursor-not-allowed' : ''}`}
+                style={(!form.name || !form.email || !form.password)
+                  ? { backgroundColor: '#9ca3af' }
+                  : { backgroundImage: 'linear-gradient(to right, #1a1d2e, #0f1218)' }}
+              >
+                Create
+              </button>
+              <p className="text-xs text-[#64748b]">{form.password ? 'Password generated and ready.' : 'Click “Generate Password” to enable Create.'}</p>
+            </>
+          )}
         </div>
       </div>
 
@@ -360,8 +386,9 @@ export default function ManageUsersPage() {
                               type="button"
                               onClick={() => {
                                 if (disableEdit) return;
-                                setEditing({ id: u.id, name: u.name, email: u.email, active: u.active });
-                                setEditOpen(true);
+                                setEditing(u);
+                                setForm({ name: u.name, email: u.email, role: u.roles[0] || 'user', password: '' });
+                                window.scrollTo({ top: 0, behavior: 'smooth' });
                               }}
                               disabled={disableEdit}
                               className={`px-3 py-2 rounded-lg text-sm font-medium transition-all ${disableEdit ? 'bg-[#f3f4f6] text-[#9ca3af] cursor-not-allowed' : 'text-white shadow-sm hover:shadow-md focus:outline-none focus:ring-2 focus:ring-indigo-500/40'}`}
@@ -498,35 +525,6 @@ export default function ManageUsersPage() {
           </AlertDialogContent>
         )}
       </AlertDialog>
-      {/* Centralized Edit Dialog */}
-      <Dialog open={editOpen} onOpenChange={(open) => { setEditOpen(open); if (!open) setEditing(null); }}>
-        <DialogContent key={editing?.id || 'none'} className="bg-white border border-[#e2e8f0]">
-          <DialogHeader>
-            <DialogTitle>Edit User</DialogTitle>
-            <DialogDescription>Update basic user details. Roles can be adjusted via chips above.</DialogDescription>
-          </DialogHeader>
-          <div className="grid gap-3 py-2">
-            <label className="grid gap-1 text-sm">
-              <span className="text-[#64748b]">Name</span>
-              <input className="px-3 py-2.5 rounded-lg border border-[#e2e8f0] bg-white" value={editing?.name || ''} onChange={(e) => setEditing((cur) => cur ? { ...cur, name: e.target.value } : cur)} />
-            </label>
-            <label className="grid gap-1 text-sm">
-              <span className="text-[#64748b]">Email</span>
-              <input className="px-3 py-2.5 rounded-lg border border-[#e2e8f0] bg-white" value={editing?.email || ''} onChange={(e) => setEditing((cur) => cur ? { ...cur, email: e.target.value } : cur)} />
-            </label>
-            <label className="inline-flex items-center gap-2 text-sm">
-              <input type="checkbox" checked={!!editing?.active} onChange={(e) => setEditing((cur) => cur ? { ...cur, active: e.target.checked } : cur)} />
-              <span>Active</span>
-            </label>
-          </div>
-          <DialogFooter>
-            <DialogClose asChild>
-              <button type="button" className="px-3 py-2 rounded-lg bg-[#f3f4f6] text-[#111827]">Cancel</button>
-            </DialogClose>
-            <button type="button" onClick={saveEdit} className="px-3 py-2 rounded-lg text-sm font-medium text-white shadow-sm hover:shadow-md focus:outline-none focus:ring-2 focus:ring-indigo-500/40 transition-all" style={{ backgroundImage: 'linear-gradient(to right, #6366f1, #8b5cf6)' }}>Save</button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </>
   );
 }

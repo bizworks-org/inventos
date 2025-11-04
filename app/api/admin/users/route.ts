@@ -6,8 +6,21 @@ import { readAuthToken, verifyToken } from '@/lib/auth/server';
 async function requireAdmin() {
   const token = await readAuthToken();
   const payload = verifyToken(token);
-  if (!payload || payload.role !== 'admin') return null;
-  return payload;
+  if (!payload) return null;
+  // Always confirm admin via DB to avoid stale tokens or mismatched roles
+  try {
+    const rows = await query<{ count: number }>(
+      `SELECT COUNT(*) AS count
+         FROM user_roles ur
+         JOIN roles r ON r.id = ur.role_id
+        WHERE ur.user_id = :uid AND r.name = 'admin'`,
+      { uid: (payload as any).id }
+    );
+    const isAdmin = Number(rows?.[0]?.count || 0) > 0;
+    return isAdmin ? { ...payload, role: 'admin' } : null;
+  } catch {
+    return null;
+  }
 }
 
 export async function GET() {
