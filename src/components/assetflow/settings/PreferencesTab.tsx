@@ -63,36 +63,9 @@ export default function PreferencesTab({ prefs, setPrefs, persistPrefs, mode, se
             </select>
             <p className="text-xs text-[#94a3b8] mt-1">Used for cost and value displays.</p>
           </div>
-          <div>
-            <label className="block text-sm font-medium text-[#1a1d2e] mb-2">Language</label>
-            <select
-              className="w-full px-3 py-2 rounded-lg bg-[#f8f9ff] border border-[rgba(0,0,0,0.08)]"
-              value={prefs.language}
-              onChange={(e) => setPrefs((p) => ({ ...p, language: e.target.value }))}
-            >
-              <option value="en">English</option>
-              <option value="hi">हिंदी (Hindi)</option>
-              <option value="ta">தமிழ் (Tamil)</option>
-              <option value="te">తెలుగు (Telugu)</option>
-            </select>
-            <p className="text-xs text-[#94a3b8] mt-1">Applies to UI text (requires translation files to fully localize).</p>
-          </div>
+          {/* Language selector intentionally hidden */}
         </div>
-        <div>
-          <label className="block text-sm font-medium text-[#1a1d2e] mb-2">Date Format</label>
-          <div className="flex flex-wrap gap-3">
-            {(['YYYY-MM-DD', 'MM/DD/YYYY', 'DD/MM/YYYY'] as const).map((fmt) => (
-              <button
-                key={fmt}
-                onClick={() => setPrefs((p) => ({ ...p, dateFormat: fmt }))}
-                className={`px-3 py-2 rounded-lg border ${prefs.dateFormat === fmt ? 'bg-[#e0e7ff] border-[#6366f1] text-[#1a1d2e]' : 'bg-[#f8f9ff] border-[rgba(0,0,0,0.08)] text-[#64748b]'
-                  }`}
-              >
-                {fmt}
-              </button>
-            ))}
-          </div>
-        </div>
+        {/* Date Format selector intentionally removed */}
       </div>
 
       <div className="space-y-4">

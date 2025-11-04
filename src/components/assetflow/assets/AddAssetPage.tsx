@@ -90,6 +90,10 @@ export function AddAssetPage({ onNavigate, onSearch }: AddAssetPageProps) {
   const [saving, setSaving] = useState(false);
   // Catalog from localStorage (optional)
   const [catalog, setCatalog] = useState<UiCategory[] | null>(null);
+  // CIA Evaluation state
+  const [cia, setCia] = useState<{ c: number; i: number; a: number }>({ c: 1, i: 1, a: 1 });
+  const ciaTotal = useMemo(() => (cia.c || 0) + (cia.i || 0) + (cia.a || 0), [cia]);
+  const ciaAvg = useMemo(() => (ciaTotal / 3), [ciaTotal]);
 
   // Prefer localStorage first; if absent, fetch from public API and cache. On 'assetflow:catalog-cleared' re-fetch from API.
   const fetchAndCacheCatalog = async () => {
@@ -224,6 +228,10 @@ export function AddAssetPage({ onNavigate, onSearch }: AddAssetPageProps) {
       eolDate: formData.eolDate || undefined,
       cost: parseFloat(formData.cost),
       location: formData.location,
+  // CIA dedicated fields (persist only components; compute total/avg in UI)
+  ciaConfidentiality: cia.c,
+  ciaIntegrity: cia.i,
+  ciaAvailability: cia.a,
       specifications: {
         processor: formData.processor,
         ram: formData.ram,
@@ -487,6 +495,58 @@ export function AddAssetPage({ onNavigate, onSearch }: AddAssetPageProps) {
                     placeholder="e.g., Building A - Floor 3"
                     className="w-full px-4 py-2.5 rounded-lg bg-[#f8f9ff] border border-[rgba(0,0,0,0.05)] text-[#1a1d2e] placeholder:text-[#a0a4b8] focus:outline-none focus:ring-2 focus:ring-[#6366f1]/20 focus:border-[#6366f1] transition-all duration-200"
                   />
+                </div>
+              </div>
+            </motion.div>
+
+            {/* CIA Evaluation */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.4, delay: 0.22 }}
+              className="bg-white rounded-2xl border border-[rgba(0,0,0,0.08)] p-6 shadow-sm"
+            >
+              <h3 className="text-lg font-semibold text-[#1a1d2e] mb-4">CIA Evaluation</h3>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-[#1a1d2e] mb-2">Confidentiality</label>
+                  <select
+                    value={String(cia.c)}
+                    onChange={(e) => setCia((v) => ({ ...v, c: Number(e.target.value) }))}
+                    className="w-full px-3 py-2.5 rounded-lg bg-[#f8f9ff] border border-[rgba(0,0,0,0.08)]"
+                  >
+                    {[1,2,3,4,5].map(n => (<option key={n} value={n}>{n}</option>))}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-[#1a1d2e] mb-2">Integrity</label>
+                  <select
+                    value={String(cia.i)}
+                    onChange={(e) => setCia((v) => ({ ...v, i: Number(e.target.value) }))}
+                    className="w-full px-3 py-2.5 rounded-lg bg-[#f8f9ff] border border-[rgba(0,0,0,0.08)]"
+                  >
+                    {[1,2,3,4,5].map(n => (<option key={n} value={n}>{n}</option>))}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-[#1a1d2e] mb-2">Availability</label>
+                  <select
+                    value={String(cia.a)}
+                    onChange={(e) => setCia((v) => ({ ...v, a: Number(e.target.value) }))}
+                    className="w-full px-3 py-2.5 rounded-lg bg-[#f8f9ff] border border-[rgba(0,0,0,0.08)]"
+                  >
+                    {[1,2,3,4,5].map(n => (<option key={n} value={n}>{n}</option>))}
+                  </select>
+                </div>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+                <div className="p-3 rounded-lg bg-[#f8f9ff] border border-[rgba(0,0,0,0.05)] flex items-center justify-between">
+                  <span className="text-sm text-[#64748b]">Total</span>
+                  <span className="text-base font-semibold text-[#1a1d2e]">{ciaTotal}</span>
+                </div>
+                <div className="p-3 rounded-lg bg-[#f8f9ff] border border-[rgba(0,0,0,0.05)] flex items-center justify-between">
+                  <span className="text-sm text-[#64748b]">Average</span>
+                  <span className="text-base font-semibold text-[#1a1d2e]">{(ciaAvg).toFixed(2)}</span>
                 </div>
               </div>
             </motion.div>

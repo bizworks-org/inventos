@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../ui/card';
-import { Switch } from '../../ui/switch';
+import { Checkbox } from '../../ui/checkbox';
 import { Button } from '../../ui/button';
 
 interface Props {
@@ -26,10 +26,11 @@ export default function NotificationsTab({ notify, setNotify, handleSave }: Prop
                 <p className="font-medium text-[#1a1d2e]">Email</p>
                 <p className="text-sm text-[#64748b]">Get notifications via email</p>
               </div>
-              <Switch
-                checked={notify.channels.email}
+              <Checkbox
+                className="border-[#e2e8f0] bg-white"
+                checked={!!notify.channels.email}
                 onCheckedChange={(val: any) => setNotify((n: any) => ({ ...n, channels: { ...n.channels, email: !!val } }))}
-                aria-label="Toggle email notifications"
+                aria-label="Enable email notifications"
               />
             </div>
             <div className="flex items-center justify-between p-4 border rounded-xl bg-[#f8f9ff] border-[rgba(0,0,0,0.08)]">
@@ -37,10 +38,11 @@ export default function NotificationsTab({ notify, setNotify, handleSave }: Prop
                 <p className="font-medium text-[#1a1d2e]">In-app</p>
                 <p className="text-sm text-[#64748b]">Show notifications inside the app</p>
               </div>
-              <Switch
+              <Checkbox
+                className="border-[#e2e8f0] bg-white"
                 checked={!!notify.channels.push}
                 onCheckedChange={(val: any) => setNotify((n: any) => ({ ...n, channels: { ...n.channels, push: !!val } }))}
-                aria-label="Toggle in-app notifications"
+                aria-label="Enable in-app notifications"
               />
             </div>
           </div>
@@ -59,15 +61,15 @@ export default function NotificationsTab({ notify, setNotify, handleSave }: Prop
             <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
               <div className="flex items-center justify-between p-3 rounded-lg bg-[#f8f9ff]">
                 <span className="text-sm">New Asset Added</span>
-                <Switch checked={notify.events.assets.newAsset} onCheckedChange={(v: any) => setNotify((n: any) => ({ ...n, events: { ...n.events, assets: { ...n.events.assets, newAsset: !!v } } }))} />
+                <Checkbox className="border-[#e2e8f0] bg-black" checked={!!notify.events.assets.newAsset} onCheckedChange={(v: any) => setNotify((n: any) => ({ ...n, events: { ...n.events, assets: { ...n.events.assets, newAsset: !!v } } }))} />
               </div>
               <div className="flex items-center justify-between p-3 rounded-lg bg-[#f8f9ff]">
                 <span className="text-sm">Asset Status Change</span>
-                <Switch checked={notify.events.assets.statusChange} onCheckedChange={(v: any) => setNotify((n: any) => ({ ...n, events: { ...n.events, assets: { ...n.events.assets, statusChange: !!v } } }))} />
+                <Checkbox className="border-[#e2e8f0] bg-black" checked={!!notify.events.assets.statusChange} onCheckedChange={(v: any) => setNotify((n: any) => ({ ...n, events: { ...n.events, assets: { ...n.events.assets, statusChange: !!v } } }))} />
               </div>
               <div className="flex items-center justify-between p-3 rounded-lg bg-[#f8f9ff]">
                 <span className="text-sm">Maintenance Due</span>
-                <Switch checked={notify.events.assets.maintenanceDue} onCheckedChange={(v: any) => setNotify((n: any) => ({ ...n, events: { ...n.events, assets: { ...n.events.assets, maintenanceDue: !!v } } }))} />
+                <Checkbox className="border-[#e2e8f0] bg-black" checked={!!notify.events.assets.maintenanceDue} onCheckedChange={(v: any) => setNotify((n: any) => ({ ...n, events: { ...n.events, assets: { ...n.events.assets, maintenanceDue: !!v } } }))} />
               </div>
             </div>
           </div>
@@ -78,15 +80,15 @@ export default function NotificationsTab({ notify, setNotify, handleSave }: Prop
             <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
               <div className="flex items-center justify-between p-3 rounded-lg bg-[#f8f9ff]">
                 <span className="text-sm">License Expiring Soon</span>
-                <Switch checked={notify.events.licenses.expiringSoon} onCheckedChange={(v: any) => setNotify((n: any) => ({ ...n, events: { ...n.events, licenses: { ...n.events.licenses, expiringSoon: !!v } } }))} />
+                <Checkbox className="border-[#e2e8f0] bg-white" checked={!!notify.events.licenses.expiringSoon} onCheckedChange={(v: any) => setNotify((n: any) => ({ ...n, events: { ...n.events, licenses: { ...n.events.licenses, expiringSoon: !!v } } }))} />
               </div>
               <div className="flex items-center justify-between p-3 rounded-lg bg-[#f8f9ff]">
                 <span className="text-sm">License Expired</span>
-                <Switch checked={notify.events.licenses.expired} onCheckedChange={(v: any) => setNotify((n: any) => ({ ...n, events: { ...n.events, licenses: { ...n.events.licenses, expired: !!v } } }))} />
+                <Checkbox className="border-[#e2e8f0] bg-white" checked={!!notify.events.licenses.expired} onCheckedChange={(v: any) => setNotify((n: any) => ({ ...n, events: { ...n.events, licenses: { ...n.events.licenses, expired: !!v } } }))} />
               </div>
               <div className="flex items-center justify-between p-3 rounded-lg bg-[#f8f9ff]">
                 <span className="text-sm">Compliance Status Change</span>
-                <Switch checked={notify.events.licenses.complianceChange} onCheckedChange={(v: any) => setNotify((n: any) => ({ ...n, events: { ...n.events, licenses: { ...n.events.licenses, complianceChange: !!v } } }))} />
+                <Checkbox className="border-[#e2e8f0] bg-white" checked={!!notify.events.licenses.complianceChange} onCheckedChange={(v: any) => setNotify((n: any) => ({ ...n, events: { ...n.events, licenses: { ...n.events.licenses, complianceChange: !!v } } }))} />
               </div>
             </div>
           </div>
@@ -97,11 +99,11 @@ export default function NotificationsTab({ notify, setNotify, handleSave }: Prop
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
               <div className="flex items-center justify-between p-3 rounded-lg bg-[#f8f9ff]">
                 <span className="text-sm">Contract Nears Renewal</span>
-                <Switch checked={notify.events.vendors.contractRenewal} onCheckedChange={(v: any) => setNotify((n: any) => ({ ...n, events: { ...n.events, vendors: { ...n.events.vendors, contractRenewal: !!v } } }))} />
+                <Checkbox className="border-[#e2e8f0] bg-white" checked={!!notify.events.vendors.contractRenewal} onCheckedChange={(v: any) => setNotify((n: any) => ({ ...n, events: { ...n.events, vendors: { ...n.events.vendors, contractRenewal: !!v } } }))} />
               </div>
               <div className="flex items-center justify-between p-3 rounded-lg bg-[#f8f9ff]">
                 <span className="text-sm">New Vendor Approved</span>
-                <Switch checked={notify.events.vendors.newVendorApproved} onCheckedChange={(v: any) => setNotify((n: any) => ({ ...n, events: { ...n.events, vendors: { ...n.events.vendors, newVendorApproved: !!v } } }))} />
+                <Checkbox className="border-[#e2e8f0] bg-white" checked={!!notify.events.vendors.newVendorApproved} onCheckedChange={(v: any) => setNotify((n: any) => ({ ...n, events: { ...n.events, vendors: { ...n.events.vendors, newVendorApproved: !!v } } }))} />
               </div>
             </div>
           </div>

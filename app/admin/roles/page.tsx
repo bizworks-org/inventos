@@ -24,14 +24,16 @@ export default function RolesPermissionsPage() {
     Promise.all([
       fetch('/api/admin/rbac/roles').then(r => r.json()).catch(() => ({ roles: [] })),
       fetch('/api/admin/rbac/permissions').then(r => r.json()).catch(() => ({ permissions: [] })),
-      fetch('/api/admin/rbac/role-permissions?role=admin').then(r => r.json()).catch(() => ({ role: 'admin', permissions: [] })),
+      // Only fetch user role permissions; Admin will implicitly have all permissions
       fetch('/api/admin/rbac/role-permissions?role=user').then(r => r.json()).catch(() => ({ role: 'user', permissions: [] })),
     ])
-      .then(([r1, r2, rpA, rpU]) => {
-        setAllRoles(r1.roles || []);
+      .then(([r1, r2, rpU]) => {
+        // Show only the Users block on this page
+        const roles: Role[] = (r1.roles || []).filter((r: Role) => r !== 'admin');
+        setAllRoles(roles);
         setAllPermissions(r2.permissions || []);
         setRolePerms({
-          admin: new Set(rpA.permissions || []),
+          admin: new Set(),
           user: new Set(rpU.permissions || []),
         });
         setLoading(false);
@@ -73,6 +75,10 @@ export default function RolesPermissionsPage() {
     return Shield;
   };
 
+  // Hide specific permissions from the Roles page UI
+  const formatLabel = (s: string) => s.replace(/_/g, ' ').replace(/\b\w/g, (m) => m.toUpperCase());
+  const hiddenPermissionLabels = new Set<string>(['Manage User', 'Manage Users', 'Read Event', 'Read Events']);
+
   return (
     <>
       <div className="mb-6">
@@ -86,15 +92,18 @@ export default function RolesPermissionsPage() {
         ) : error ? (
           <p className="text-[#ef4444]">{error}</p>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-5xl">
+          <div>
+            <p className="text-sm text-[#64748b] mb-4">Admin has all permissions by default. Configure permissions for Users below.</p>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-5xl">
+            {/* Only render Users block; Admin is omitted intentionally */}
             {allRoles.map((role) => (
               <div key={role} className="border border-[#e2e8f0] rounded-lg p-4">
                 <h3 className="text-base font-semibold mb-2 capitalize">{role}</h3>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  {allPermissions.map((p) => {
+                  {allPermissions.filter((perm) => !hiddenPermissionLabels.has(formatLabel(perm))).map((p) => {
                     const selected = rolePerms[role as Role]?.has(p);
                     const Icon = iconFor(p);
-                    const label = p.replace(/_/g, ' ').replace(/\b\w/g, (m) => m.toUpperCase());
+                    const label = formatLabel(p);
                     return (
                       <button
                         key={`${role}-${p}`}
@@ -124,6 +133,7 @@ export default function RolesPermissionsPage() {
                 </div>
               </div>
             ))}
+            </div>
           </div>
         )}
       </div>

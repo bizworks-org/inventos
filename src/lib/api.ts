@@ -40,6 +40,10 @@ type DbAsset = {
   cost: number;
   location: string;
   specifications: any | null;
+  // CIA columns
+  cia_confidentiality?: number | null;
+  cia_integrity?: number | null;
+  cia_availability?: number | null;
 };
 
 // Normalize various DB date representations into 'YYYY-MM-DD' for date inputs
@@ -96,6 +100,10 @@ function mapDbAsset(a: DbAsset): Asset {
     cost: Number(a.cost),
     location: a.location,
     specifications: specs,
+  // Only use dedicated CIA columns; do not read from customFields
+  ciaConfidentiality: (a as any).cia_confidentiality as any,
+  ciaIntegrity: (a as any).cia_integrity as any,
+  ciaAvailability: (a as any).cia_availability as any,
   };
 }
 
@@ -129,6 +137,10 @@ function mapUiAssetToDb(a: Asset): DbAsset {
     cost: a.cost,
     location: a.location,
     specifications: a.specifications ?? null,
+    // CIA columns (optional)
+    cia_confidentiality: (a as any).ciaConfidentiality ?? null,
+    cia_integrity: (a as any).ciaIntegrity ?? null,
+    cia_availability: (a as any).ciaAvailability ?? null,
   };
 }
 

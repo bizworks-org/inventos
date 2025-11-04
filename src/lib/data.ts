@@ -29,6 +29,12 @@ export interface Asset {
   warrantyExpiry?: string;
   cost: number;
   location: string;
+  // CIA evaluation (stored in dedicated DB columns)
+  ciaConfidentiality?: number; // 1..5
+  ciaIntegrity?: number;       // 1..5
+  ciaAvailability?: number;    // 1..5
+  ciaTotal?: number;           // sum of C+I+A
+  ciaAverage?: number;         // average of C/I/A rounded to 2 decimals
   specifications?: {
     processor?: string;
     ram?: string;

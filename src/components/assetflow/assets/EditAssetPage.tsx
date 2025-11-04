@@ -100,6 +100,10 @@ export default function EditAssetPage({ assetId, onNavigate, onSearch }: Props) 
   const [assignedEmail, setAssignedEmail] = useState('');
   const [consentStatus, setConsentStatus] = useState<Asset['consentStatus']>('none');
   const [consentRequired, setConsentRequired] = useState(true);
+  // CIA Evaluation state
+  const [cia, setCia] = useState<{ c: number; i: number; a: number }>({ c: 1, i: 1, a: 1 });
+  const ciaTotal = useMemo(() => (cia.c || 0) + (cia.i || 0) + (cia.a || 0), [cia]);
+  const ciaAvg = useMemo(() => (ciaTotal / 3), [ciaTotal]);
 
   useEffect(() => {
     let cancelled = false;
@@ -178,7 +182,7 @@ export default function EditAssetPage({ assetId, onNavigate, onSearch }: Props) 
   useEffect(() => {
     if (!asset) return;
 
-  const serverTypeId = (asset as any).type_id ?? (asset as any).typeId;
+    const serverTypeId = (asset as any).type_id ?? (asset as any).typeId;
     // Prefer a valid numeric type_id (> 0). Avoid populating UI with "0" which isn't selectable.
     if (serverTypeId != null && Number(serverTypeId) > 0) {
       const idAsString = String(serverTypeId);
@@ -212,17 +216,35 @@ export default function EditAssetPage({ assetId, onNavigate, onSearch }: Props) 
     setConsentStatus((asset as any).consentStatus || 'none');
 
     const customFields = asset.specifications?.customFields || {};
+    // Exclude CIA-related legacy keys from being shown as custom fields
+    const EXCLUDE_CF_KEYS = new Set([
+      'cia_confidentiality',
+      'cia_integrity',
+      'cia_availability',
+      'cia_total',
+      'cia_average',
+    ]);
     const configuredKeys = new Set(fieldDefs.map((def) => def.key));
     const nextValues: Record<string, string> = {};
     const orphanFields: Array<{ key: string; value: string }> = [];
 
     Object.entries(customFields).forEach(([key, value]) => {
+      if (EXCLUDE_CF_KEYS.has(key)) return; // never surface CIA fields as custom fields
       if (configuredKeys.has(key)) {
-        nextValues[key] = String(value ?? '');
+        if (!EXCLUDE_CF_KEYS.has(key)) nextValues[key] = String(value ?? '');
       } else {
         orphanFields.push({ key, value: String(value ?? '') });
       }
     });
+
+  // Initialize CIA strictly from dedicated columns; default to 1..5 range
+  const cCol = (asset as any).ciaConfidentiality;
+  const iCol = (asset as any).ciaIntegrity;
+  const aCol = (asset as any).ciaAvailability;
+  const c = Number(cCol ?? 1);
+  const i = Number(iCol ?? 1);
+  const a = Number(aCol ?? 1);
+    setCia({ c: Number.isFinite(c) && c >= 1 && c <= 5 ? c : 1, i: Number.isFinite(i) && i >= 1 && i <= 5 ? i : 1, a: Number.isFinite(a) && a >= 1 && a <= 5 ? a : 1 });
 
     setCustomFieldValues(nextValues);
     setExtraFields(orphanFields);
@@ -302,6 +324,11 @@ export default function EditAssetPage({ assetId, onNavigate, onSearch }: Props) 
       os: formData.os,
       customFields: customFieldsPayload,
     };
+
+  // CIA dedicated fields (persist only components; compute total/avg in UI)
+  nextAsset.ciaConfidentiality = cia.c;
+  nextAsset.ciaIntegrity = cia.i;
+  nextAsset.ciaAvailability = cia.a;
 
     // Robust resolution of outgoing type_id: prefer current selection; fallback to existing asset's type_id if valid
     let nextTypeId: number | null = null;
@@ -390,6 +417,7 @@ export default function EditAssetPage({ assetId, onNavigate, onSearch }: Props) 
       <form onSubmit={handleSubmit}>
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
           <div className="space-y-6 lg:col-span-2">
+            {/* Basic Information */}
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
@@ -411,10 +439,11 @@ export default function EditAssetPage({ assetId, onNavigate, onSearch }: Props) 
                           const firstType = typesByCategoryFromCatalog(catalog, catName)[0];
                           setAssetTypeId(firstType?.id != null ? String(firstType.id) : '');
                         }}
-                        className={`rounded-lg px-4 py-2 text-sm font-medium transition ${category === catName
+                        className={`rounded-lg px-4 py-2 text-sm font-medium transition ${
+                          category === catName
                             ? 'bg-gradient-to-r from-[#6366f1] to-[#8b5cf6] text-white shadow'
                             : 'bg-card text-muted hover:bg-card/95 hover:text-primary'
-                          }`}
+                        }`}
                       >
                         {catName}
                       </button>
@@ -434,7 +463,6 @@ export default function EditAssetPage({ assetId, onNavigate, onSearch }: Props) 
                         const inferred = categoryOfTypeIdFromCatalog(catalog, value);
                         if (inferred) setCategory(inferred as AssetCategory);
                       }
-                      console.log(value, 'value');
                     }}
                     className="w-full rounded-lg border bg-card px-4 py-2.5"
                   >
@@ -537,6 +565,7 @@ export default function EditAssetPage({ assetId, onNavigate, onSearch }: Props) 
               </div>
             </motion.div>
 
+            {/* Financial & Lifecycle */}
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
@@ -576,7 +605,7 @@ export default function EditAssetPage({ assetId, onNavigate, onSearch }: Props) 
                 </div>
 
                 <div>
-                  <label className="mb-2 block text-sm font-medium">End of Support</label>
+                  <label className="mb-2 block text sm font-medium">End of Support</label>
                   <input
                     type="date"
                     value={formData.eosDate}
@@ -597,6 +626,7 @@ export default function EditAssetPage({ assetId, onNavigate, onSearch }: Props) 
               </div>
             </motion.div>
 
+            {/* Technical Specifications (conditional) */}
             {showSpecifications && (
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
@@ -642,6 +672,59 @@ export default function EditAssetPage({ assetId, onNavigate, onSearch }: Props) 
               </motion.div>
             )}
 
+            {/* CIA Evaluation */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.3, delay: 0.12 }}
+              className="rounded-2xl border bg-card p-6"
+            >
+              <h3 className="mb-4 text-lg font-semibold">CIA Evaluation</h3>
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+                <div>
+                  <label className="mb-2 block text-sm font-medium">Confidentiality</label>
+                  <select
+                    value={String(cia.c)}
+                    onChange={(e) => setCia((v) => ({ ...v, c: Number(e.target.value) }))}
+                    className="w-full rounded-lg border bg-card px-4 py-2.5"
+                  >
+                    {[1,2,3,4,5].map(n => (<option key={n} value={n}>{n}</option>))}
+                  </select>
+                </div>
+                <div>
+                  <label className="mb-2 block text-sm font-medium">Integrity</label>
+                  <select
+                    value={String(cia.i)}
+                    onChange={(e) => setCia((v) => ({ ...v, i: Number(e.target.value) }))}
+                    className="w-full rounded-lg border bg-card px-4 py-2.5"
+                  >
+                    {[1,2,3,4,5].map(n => (<option key={n} value={n}>{n}</option>))}
+                  </select>
+                </div>
+                <div>
+                  <label className="mb-2 block text-sm font-medium">Availability</label>
+                  <select
+                    value={String(cia.a)}
+                    onChange={(e) => setCia((v) => ({ ...v, a: Number(e.target.value) }))}
+                    className="w-full rounded-lg border bg-card px-4 py-2.5"
+                  >
+                    {[1,2,3,4,5].map(n => (<option key={n} value={n}>{n}</option>))}
+                  </select>
+                </div>
+              </div>
+              <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2">
+                <div className="flex items-center justify-between rounded-lg border bg-card px-4 py-2.5">
+                  <span className="text-sm text-muted">Total</span>
+                  <span className="text-base font-semibold">{ciaTotal}</span>
+                </div>
+                <div className="flex items-center justify-between rounded-lg border bg-card px-4 py-2.5">
+                  <span className="text-sm text-muted">Average</span>
+                  <span className="text-base font-semibold">{ciaAvg.toFixed(2)}</span>
+                </div>
+              </div>
+            </motion.div>
+
+            {/* Custom Fields */}
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
@@ -726,6 +809,7 @@ export default function EditAssetPage({ assetId, onNavigate, onSearch }: Props) 
             </motion.div>
           </div>
 
+          {/* Sidebar summary */}
           <motion.div
             initial={{ opacity: 0, x: 20 }}
             animate={{ opacity: 1, x: 0 }}
@@ -754,8 +838,9 @@ export default function EditAssetPage({ assetId, onNavigate, onSearch }: Props) 
               <button
                 type="submit"
                 disabled={saving}
-                className={`flex w-full items-center justify-center gap-2 rounded-lg px-4 py-3 font-semibold transition ${saving ? 'cursor-not-allowed bg-white/70 text-muted' : 'bg-white text-foreground hover:shadow-lg'
-                  }`}
+                className={`flex w-full items-center justify-center gap-2 rounded-lg px-4 py-3 font-semibold transition ${
+                  saving ? 'cursor-not-allowed bg-white/70 text-muted' : 'bg-white text-foreground hover:shadow-lg'
+                }`}
               >
                 <Save className="h-4 w-4" />
                 {saving ? 'Saving...' : 'Save Changes'}

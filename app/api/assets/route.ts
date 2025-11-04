@@ -45,12 +45,21 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Missing asset type' }, { status: 400 });
     }
 
+    // Extract CIA values strictly from body; clamp 1..5; default to 1
+    const clamp = (n: number) => Math.max(1, Math.min(5, n));
+    const cia_c = Number.isFinite(Number(body?.cia_confidentiality)) ? clamp(Number(body?.cia_confidentiality)) : 1;
+    const cia_i = Number.isFinite(Number(body?.cia_integrity)) ? clamp(Number(body?.cia_integrity)) : 1;
+    const cia_a = Number.isFinite(Number(body?.cia_availability)) ? clamp(Number(body?.cia_availability)) : 1;
+  // Do not persist total/average; UI will compute as needed
+
     if (body && typeof body.specifications === 'object') body.specifications = JSON.stringify(body.specifications);
 
-    const sql = `INSERT INTO assets (id, name, type_id, serial_number, assigned_to, assigned_email, consent_status, department, status, purchase_date, end_of_support_date, end_of_life_date, warranty_expiry, cost, location, specifications)
-      VALUES (:id, :name, :type_id, :serial_number, :assigned_to, :assigned_email, :consent_status, :department, :status, :purchase_date, :end_of_support_date, :end_of_life_date, :warranty_expiry, :cost, :location, :specifications)`;
+    const sql = `INSERT INTO assets (id, name, type_id, serial_number, assigned_to, assigned_email, consent_status, department, status, purchase_date, end_of_support_date, end_of_life_date, warranty_expiry, cost, location, specifications,
+      cia_confidentiality, cia_integrity, cia_availability)
+      VALUES (:id, :name, :type_id, :serial_number, :assigned_to, :assigned_email, :consent_status, :department, :status, :purchase_date, :end_of_support_date, :end_of_life_date, :warranty_expiry, :cost, :location, :specifications,
+      :cia_confidentiality, :cia_integrity, :cia_availability)`;
 
-    await query(sql, body);
+    await query(sql, { ...body, cia_confidentiality: cia_c, cia_integrity: cia_i, cia_availability: cia_a });
     // Fire-and-forget in-app/email notifications
     try {
       const me = await readMeFromCookie();

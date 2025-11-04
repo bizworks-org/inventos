@@ -76,14 +76,22 @@ export async function PUT(req: NextRequest, ctx: any) {
     body.type_id = typeId;
     delete body.type;
 
+    // Extract CIA values strictly from body; clamp 1..5; default to 1
+    const clamp = (n: number) => Math.max(1, Math.min(5, n));
+    const cia_c = Number.isFinite(Number(body?.cia_confidentiality)) ? clamp(Number(body?.cia_confidentiality)) : 1;
+    const cia_i = Number.isFinite(Number(body?.cia_integrity)) ? clamp(Number(body?.cia_integrity)) : 1;
+    const cia_a = Number.isFinite(Number(body?.cia_availability)) ? clamp(Number(body?.cia_availability)) : 1;
+  // Do not persist total/average; UI will compute as needed
+
     if (body && typeof body.specifications === 'object') {
       body.specifications = JSON.stringify(body.specifications);
     }
 
     const sql = `UPDATE assets SET name=:name, type_id=:type_id, serial_number=:serial_number, assigned_to=:assigned_to, assigned_email=:assigned_email, consent_status=:consent_status, department=:department, status=:status,
-      purchase_date=:purchase_date, end_of_support_date=:end_of_support_date, end_of_life_date=:end_of_life_date, warranty_expiry=:warranty_expiry, cost=:cost, location=:location, specifications=:specifications
+      purchase_date=:purchase_date, end_of_support_date=:end_of_support_date, end_of_life_date=:end_of_life_date, warranty_expiry=:warranty_expiry, cost=:cost, location=:location, specifications=:specifications,
+      cia_confidentiality=:cia_confidentiality, cia_integrity=:cia_integrity, cia_availability=:cia_availability
       WHERE id=:id`;
-    await query(sql, { ...body, id });
+    await query(sql, { ...body, id, cia_confidentiality: cia_c, cia_integrity: cia_i, cia_availability: cia_a });
     // Notify about update
     try {
       const me = await readMeFromCookie();

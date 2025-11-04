@@ -45,6 +45,7 @@ function Switch({ className, ...props }: React.ComponentProps<typeof SwitchPrimi
       )}
   onClick={handleClick}
   onKeyDown={handleKeyDown}
+  checked={checked as boolean | undefined}
   {...(rest as any)}
       // keep passing the original handler so Radix still receives it
       onCheckedChange={onCheckedChange}
