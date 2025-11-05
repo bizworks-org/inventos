@@ -46,6 +46,21 @@ export function AssetFlowDashboard({ onNavigate, onSearch }: AssetFlowDashboardP
     return () => { cancelled = true; };
   }, []);
 
+  // Auto-open notifications once on first dashboard load in this session
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const key = 'notifPanelShownOnce';
+    if (sessionStorage.getItem(key)) return;
+    // Small delay to let header mount
+    const t = setTimeout(() => {
+      try {
+        window.dispatchEvent(new CustomEvent('open-notifications'));
+        sessionStorage.setItem(key, '1');
+      } catch {}
+    }, 500);
+    return () => clearTimeout(t);
+  }, []);
+
   // Counts sourced from summary endpoint; fallback to 0 if not yet loaded
   const totalAssets = summary?.totalAssets ?? 0;
   const assetsInRepair = summary?.assetsInRepair ?? 0;

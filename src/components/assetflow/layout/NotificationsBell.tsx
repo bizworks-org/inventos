@@ -22,6 +22,9 @@ export function NotificationsBell() {
   const [error, setError] = useState<string | null>(null);
   const [markingAll, setMarkingAll] = useState(false);
   const ref = useRef<HTMLDivElement | null>(null);
+  const [mounted, setMounted] = useState(false); // NEW
+
+  useEffect(() => { setMounted(true); }, []); // NEW
 
   const unreadCount = useMemo(() => items.filter(i => !i.read_at).length, [items]);
 
@@ -29,7 +32,7 @@ export function NotificationsBell() {
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch("/api/notifications?limit=20", { cache: "no-store" });
+      const res = await fetch("/api/notifications?limit=10", { cache: "no-store" });
       const data = await res.json();
       if (!res.ok) throw new Error(data?.error || "Failed to load notifications");
       setItems((data?.items as NotificationItem[]) || []);
@@ -83,26 +86,45 @@ export function NotificationsBell() {
     return () => document.removeEventListener("mousedown", onDocClick);
   }, [open]);
 
+  // Initial fetch to update badge count even when closed
+  useEffect(() => {
+    fetchItems().catch(() => void 0);
+    // Listen for programmatic open/refresh events
+    const openHandler = () => {
+      setOpen(true);
+      fetchItems().catch(() => void 0);
+    };
+    const refreshHandler = () => {
+      fetchItems().catch(() => void 0);
+    };
+    window.addEventListener('open-notifications', openHandler as EventListener);
+    window.addEventListener('refresh-notifications', refreshHandler as EventListener);
+    return () => {
+      window.removeEventListener('open-notifications', openHandler as EventListener);
+      window.removeEventListener('refresh-notifications', refreshHandler as EventListener);
+    };
+  }, []);
+
   return (
     <div className="relative" ref={ref}>
       <button onClick={() => setOpen(o => !o)} className="relative p-2 rounded-lg hover:bg-[#f3f4f6] transition-colors" aria-label="Notifications">
         <Bell className="h-5 w-5 text-[#1a1d2e]" />
-        {unreadCount > 0 && (
-          <span className="absolute -top-0.5 -right-0.5 min-w-4 h-4 px-1 text-[10px] leading-4 bg-[#ef4444] text-white rounded-full border-2 border-white flex items-center justify-center">
+        {mounted && unreadCount > 0 && ( // render badge only after mount to avoid SSR diff
+          <span className="absolute -top-0.5 -right-0.5 min-w-4 h-4 px-1 text-[8px] leading-4 bg-[#ef4444] text-white rounded-full border-2 border-white flex items-center justify-center" suppressHydrationWarning>
             {unreadCount > 9 ? "9+" : unreadCount}
           </span>
         )}
       </button>
-      {open && (
-        <div className="absolute right-0 mt-2 w-96 bg-white border border-[rgba(0,0,0,0.08)] rounded-xl shadow-lg overflow-hidden z-50">
-          <div className="flex items-center justify-between px-4 py-2 border-b">
+      {mounted && open && ( // avoid SSR rendering of popup entirely
+        <div className="absolute right-0 mt-2 h-1/2 bg-white border border-[rgba(0,0,0,0.08)] rounded-xl shadow-lg overflow-hidden z-50 flex flex-col"> {/* wider + fixed height */}
+          <div className="flex items-center justify-between px-4 py-2 border-b shrink-0">
             <span className="text-sm font-semibold text-[#1a1d2e]">Notifications</span>
             <button disabled={markingAll || unreadCount === 0} onClick={markAllRead} className={`text-xs flex items-center gap-1 px-2 py-1 rounded ${unreadCount === 0 ? 'text-[#94a3b8] cursor-not-allowed' : 'text-[#10b981] hover:bg-[#ecfdf5]' }`}>
               {markingAll ? <Loader2 className="h-3.5 w-3.5 animate-spin"/> : <Check className="h-3.5 w-3.5"/>}
               Mark all read
             </button>
           </div>
-          <div className="max-h-96 overflow-auto divide-y">
+          <div className="flex-1 overflow-y-auto divide-y"> {/* fixed-height container, scrolling list */}
             {loading ? (
               <div className="p-4 text-sm text-[#64748b]">Loading…</div>
             ) : error ? (
@@ -116,10 +138,12 @@ export function NotificationsBell() {
                     <div>
                       <p className="text-sm font-medium text-[#111827]">{i.title}</p>
                       <p className="text-xs text-[#6b7280] mt-0.5">{i.body}</p>
-                      <p className="text-[11px] text-[#9ca3af] mt-1">{new Date(i.created_at).toLocaleString()}</p>
+                      <p className="text-[11px] text-[#9ca3af] mt-1" suppressHydrationWarning>
+                        {new Date(i.created_at).toLocaleString()}
+                      </p>
                     </div>
                     {!i.read_at && (
-                      <button onClick={() => markOneRead(i.id)} className="text-xs text-[#10b981] hover:underline">Mark read</button>
+                      <button onClick={() => markOneRead(i.id)} className="text-xs w-10 text-[#10b981] hover:underline">Mark read</button>
                     )}
                   </div>
                 </div>

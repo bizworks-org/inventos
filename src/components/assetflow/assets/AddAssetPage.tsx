@@ -59,6 +59,9 @@ const assetStatuses: Asset['status'][] = [
   'Lost / Missing',
 ];
 
+// Local draft key for autosave
+const ADD_ASSET_DRAFT_KEY = 'assetflow:add-asset-draft';
+
 export function AddAssetPage({ onNavigate, onSearch }: AddAssetPageProps) {
   const { currencySymbol, formatCurrency } = usePrefs();
   const [consentRequired, setConsentRequired] = useState<boolean>(true);
@@ -94,6 +97,37 @@ export function AddAssetPage({ onNavigate, onSearch }: AddAssetPageProps) {
   const [cia, setCia] = useState<{ c: number; i: number; a: number }>({ c: 1, i: 1, a: 1 });
   const ciaTotal = useMemo(() => (cia.c || 0) + (cia.i || 0) + (cia.a || 0), [cia]);
   const ciaAvg = useMemo(() => (ciaTotal / 3), [ciaTotal]);
+
+  // Load any saved draft on first mount
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(ADD_ASSET_DRAFT_KEY);
+      if (!raw) return;
+      const draft = JSON.parse(raw);
+      if (draft && typeof draft === 'object') {
+        if (draft.formData && typeof draft.formData === 'object') {
+          setFormData((prev) => ({ ...prev, ...draft.formData }));
+        }
+        if (typeof draft.assetType !== 'undefined') setAssetType(draft.assetType as any);
+        if (typeof draft.assetTypeId !== 'undefined') setAssetTypeId(draft.assetTypeId as any);
+        if (typeof draft.category !== 'undefined') setCategory(draft.category as any);
+        if (draft.customFieldValues && typeof draft.customFieldValues === 'object') setCustomFieldValues(draft.customFieldValues);
+        if (Array.isArray(draft.extraFields)) setExtraFields(draft.extraFields);
+        if (draft.cia && typeof draft.cia === 'object') setCia((v) => ({ ...v, ...draft.cia }));
+      }
+    } catch {}
+  }, []);
+
+  // Autosave draft to localStorage when fields change (debounced)
+  useEffect(() => {
+    const t = setTimeout(() => {
+      try {
+        const payload = { formData, assetType, assetTypeId, category, customFieldValues, extraFields, cia };
+        localStorage.setItem(ADD_ASSET_DRAFT_KEY, JSON.stringify(payload));
+      } catch {}
+    }, 300);
+    return () => clearTimeout(t);
+  }, [formData, assetType, assetTypeId, category, customFieldValues, extraFields, cia]);
 
   // Prefer localStorage first; if absent, fetch from public API and cache. On 'assetflow:catalog-cleared' re-fetch from API.
   const fetchAndCacheCatalog = async () => {
@@ -267,6 +301,7 @@ export function AddAssetPage({ onNavigate, onSearch }: AddAssetPageProps) {
         }
       }
       await createAsset(newAsset);
+      try { localStorage.removeItem(ADD_ASSET_DRAFT_KEY); } catch {}
       // Trigger consent email only if required (best-effort)
       if (consentRequired && (newAsset as any).assignedEmail) {
         try {
@@ -434,14 +469,14 @@ export function AddAssetPage({ onNavigate, onSearch }: AddAssetPageProps) {
                   </select>
                 </div>
 
-                {/* Assigned To */}
+                {/* Assigned To (required only when Allocated) */}
                 <div>
                   <label className="block text-sm font-medium text-[#1a1d2e] mb-2">
-                    Assigned To *
+                    Assigned To{formData.status === 'Allocated' ? ' *' : ' (optional)'}
                   </label>
                   <input
                     type="text"
-                    required
+                    required={formData.status === 'Allocated'}
                     value={formData.assignedTo}
                     onChange={(e) => handleInputChange('assignedTo', e.target.value)}
                     placeholder="e.g., John Doe"
@@ -540,13 +575,13 @@ export function AddAssetPage({ onNavigate, onSearch }: AddAssetPageProps) {
                 </div>
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
-                <div className="p-3 rounded-lg bg-[#f8f9ff] border border-[rgba(0,0,0,0.05)] flex items-center justify-between">
-                  <span className="text-sm text-[#64748b]">Total</span>
-                  <span className="text-base font-semibold text-[#1a1d2e]">{ciaTotal}</span>
+                <div className="p-3 m-4 rounded-lg bg-[#f8f9ff] border border-[rgba(0,0,0,0.05)] flex items-center justify-between">
+                  <span className="p-2 text-sm text-[#64748b]">Total</span>
+                  <span className="p-2 text-base font-semibold text-[#1a1d2e]">{ciaTotal}</span>
                 </div>
-                <div className="p-3 rounded-lg bg-[#f8f9ff] border border-[rgba(0,0,0,0.05)] flex items-center justify-between">
-                  <span className="text-sm text-[#64748b]">Average</span>
-                  <span className="text-base font-semibold text-[#1a1d2e]">{(ciaAvg).toFixed(2)}</span>
+                <div className="p-3 m-4 rounded-lg bg-[#f8f9ff] border border-[rgba(0,0,0,0.05)] flex items-center justify-between">
+                  <span className="p-2 text-sm text-[#64748b]">Average</span>
+                  <span className="p-2 text-base font-semibold text-[#1a1d2e]">{(ciaAvg).toFixed(2)}</span>
                 </div>
               </div>
             </motion.div>
@@ -790,7 +825,7 @@ export function AddAssetPage({ onNavigate, onSearch }: AddAssetPageProps) {
                 </button>
                 <button
                   type="button"
-                  onClick={() => onNavigate?.('assets')}
+                  onClick={() => { try { localStorage.removeItem(ADD_ASSET_DRAFT_KEY); } catch {}; onNavigate?.('assets'); }}
                   className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-white/10 text-white rounded-lg font-semibold hover:bg-white/20 transition-all duration-200"
                 >
                   <X className="h-4 w-4" />
