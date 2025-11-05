@@ -3,58 +3,44 @@
 import { motion } from 'motion/react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts';
 import { useEffect, useMemo, useState } from 'react';
-import { fetchAssets } from '../../../lib/api';
-import type { Asset } from '../../../lib/data';
-import { useMe } from '../layout/MeContext';
 
 const COLORS = ['#6366f1', '#8b5cf6', '#ec4899', '#f59e0b', '#10b981', '#3b82f6'];
 
+type DistRow = { name: string; count: number };
+
 export function AssetOverviewChart() {
-  const [assets, setAssets] = useState<Asset[]>([]);
+  const [dist, setDist] = useState<DistRow[]>([]);
   const [error, setError] = useState<string | null>(null);
-  const { me } = useMe();
-  const isAdmin = me?.role === 'admin';
 
   useEffect(() => {
-    if (!isAdmin) return; // Non-admins: don't even attempt to fetch
     let cancelled = false;
-    fetchAssets()
-      .then(rows => { if (!cancelled) { setAssets(rows); setError(null); } })
-      .catch(e => { if (!cancelled) setError(e?.message || 'Failed to load assets'); });
+    fetch('/api/dashboard/asset-distribution')
+      .then(async (r) => {
+        if (!r.ok) throw new Error(`Failed: ${r.status}`);
+        const data = await r.json();
+        if (!cancelled) { setDist(Array.isArray(data) ? data : []); setError(null); }
+      })
+      .catch(e => { if (!cancelled) setError(e?.message || 'Failed to load assets distribution'); });
     return () => { cancelled = true; };
-  }, [isAdmin]);
+  }, []);
 
-  const data = useMemo(() => {
-    const map = new Map<string, number>();
-    assets.forEach(a => {
-      map.set(a.typeId, (map.get(a.typeId) || 0) + 1);
-    });
-    return Array.from(map.entries()).map(([name, count]) => ({ name, count }));
-  }, [assets]);
-
-  const notAuthorized = !isAdmin || (error && /403|forbidden/i.test(error));
+  const data = useMemo(() => dist, [dist]);
 
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5, delay: 0.4 }}
-      className={`rounded-2xl bg-white border border-[rgba(0,0,0,0.08)] p-6 shadow-sm ${notAuthorized ? 'opacity-60' : ''}`}
-      aria-disabled={notAuthorized}
+      className={`rounded-2xl bg-white border border-[rgba(0,0,0,0.08)] p-6 shadow-sm`}
     >
       <div className="mb-6">
         <h3 className="text-lg font-semibold text-[#1a1d2e]">Asset Distribution by Category</h3>
         <p className="text-sm text-[#64748b] mt-1">Overview of IT assets across different types</p>
       </div>
 
-      {notAuthorized ? (
-        <div className="h-[300px] flex items-center justify-center">
-          <div className="text-center">
-            <div className="text-sm font-semibold text-[#1a1d2e]">Not authorized</div>
-            <div className="text-xs text-[#94a3b8] mt-1">You don’t have permission to view this chart.</div>
-          </div>
-        </div>
-      ) : (
+      {data.length === 0 && !error ? (
+        <div className="h-[300px] flex items-center justify-center text-sm text-[#64748b]">No data</div>
+      ) : !error ? (
         <ResponsiveContainer width="100%" height={300}>
           <BarChart data={data} margin={{ top: 20, right: 30, left: 20, bottom: 20 }}>
             <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
@@ -88,10 +74,10 @@ export function AssetOverviewChart() {
             </Bar>
           </BarChart>
         </ResponsiveContainer>
-      )}
+      ) : null}
 
       {/* Legend or message */}
-      {notAuthorized ? null : (
+      {error ? null : (
         <div className="mt-4 flex flex-wrap gap-4">
           {data.map((item, index) => (
             <div key={item.name} className="flex items-center gap-2">
@@ -104,8 +90,7 @@ export function AssetOverviewChart() {
           ))}
         </div>
       )}
-      {/* Only show non-403 errors */}
-      {error && !/403|forbidden/i.test(error) && <p className="text-sm text-[#ef4444] mt-2">{error}</p>}
+      {error && <p className="text-sm text-[#ef4444] mt-2">{error}</p>}
     </motion.div>
   );
 }

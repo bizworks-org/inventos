@@ -87,11 +87,44 @@ export async function PUT(req: NextRequest, ctx: any) {
       body.specifications = JSON.stringify(body.specifications);
     }
 
+    // Fetch previous status for history
+    let prevStatus: string | null = null;
+    try {
+      const cur = await query<any>('SELECT status FROM assets WHERE id = :id LIMIT 1', { id });
+      prevStatus = cur?.[0]?.status ?? null;
+    } catch {}
+
     const sql = `UPDATE assets SET name=:name, type_id=:type_id, serial_number=:serial_number, assigned_to=:assigned_to, assigned_email=:assigned_email, consent_status=:consent_status, department=:department, status=:status,
       purchase_date=:purchase_date, end_of_support_date=:end_of_support_date, end_of_life_date=:end_of_life_date, warranty_expiry=:warranty_expiry, cost=:cost, location=:location, specifications=:specifications,
       cia_confidentiality=:cia_confidentiality, cia_integrity=:cia_integrity, cia_availability=:cia_availability
       WHERE id=:id`;
     await query(sql, { ...body, id, cia_confidentiality: cia_c, cia_integrity: cia_i, cia_availability: cia_a });
+    // Record status change in history and activities if changed
+    try {
+      const newStatus: string | null = body?.status ?? null;
+      if (newStatus && prevStatus !== null && newStatus !== prevStatus) {
+        const me = await readMeFromCookie();
+        await query(
+          `INSERT INTO asset_status_history (asset_id, from_status, to_status, changed_by) VALUES (:asset_id, :from_status, :to_status, :changed_by)`,
+          { asset_id: id, from_status: prevStatus, to_status: newStatus, changed_by: me?.email || null }
+        );
+        // Also add an activity row for UI timeline
+        await query(
+          `INSERT INTO activities (id, ts, user, action, entity, entity_id, details, severity)
+           VALUES (:id, NOW(), :user, :action, 'Asset', :entity_id, :details, :severity)`,
+          {
+            id: `ACT-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`,
+            user: me?.email || 'system',
+            action: 'Status Changed',
+            entity_id: String(id),
+            details: `Status changed from "${prevStatus}" to "${newStatus}"`,
+            severity: 'info',
+          }
+        );
+      }
+    } catch (e) {
+      console.warn('Failed to record status history/activity', e);
+    }
     // Notify about update
     try {
       const me = await readMeFromCookie();

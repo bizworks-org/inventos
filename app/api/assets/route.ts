@@ -60,6 +60,31 @@ export async function POST(req: NextRequest) {
       :cia_confidentiality, :cia_integrity, :cia_availability)`;
 
     await query(sql, { ...body, cia_confidentiality: cia_c, cia_integrity: cia_i, cia_availability: cia_a });
+    // Record initial status in history for new asset
+    try {
+      const me = await readMeFromCookie();
+      if (body?.status) {
+        await query(
+          `INSERT INTO asset_status_history (asset_id, from_status, to_status, changed_by) VALUES (:asset_id, :from_status, :to_status, :changed_by)`,
+          { asset_id: body.id, from_status: null, to_status: body.status, changed_by: me?.email || null }
+        );
+        // Also add activity
+        await query(
+          `INSERT INTO activities (id, ts, user, action, entity, entity_id, details, severity)
+           VALUES (:id, NOW(), :user, :action, 'Asset', :entity_id, :details, :severity)`,
+          {
+            id: `ACT-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`,
+            user: me?.email || 'system',
+            action: 'Created',
+            entity_id: String(body.id),
+            details: `Asset created with status "${body.status}"`,
+            severity: 'success',
+          }
+        );
+      }
+    } catch (e) {
+      console.warn('Failed to record initial asset status/activity', e);
+    }
     // Fire-and-forget in-app/email notifications
     try {
       const me = await readMeFromCookie();

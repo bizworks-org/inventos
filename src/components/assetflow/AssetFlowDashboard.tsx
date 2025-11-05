@@ -1,14 +1,12 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Package, FileText, Users, Wrench } from 'lucide-react';
 import { AssetFlowLayout } from './layout/AssetFlowLayout';
 import { StatCard } from './dashboard/StatCard';
 import { AssetOverviewChart } from './dashboard/AssetOverviewChart';
 import { RecentActivityTable } from './dashboard/RecentActivityTable';
 import { initializeSampleEvents } from '../../lib/data';
-import { fetchAssets, fetchLicenses, fetchVendors } from '../../lib/api';
-import type { Asset, License, Vendor } from '../../lib/data';
 import { useMe } from './layout/MeContext';
 
 interface AssetFlowDashboardProps {
@@ -17,42 +15,42 @@ interface AssetFlowDashboardProps {
 }
 
 export function AssetFlowDashboard({ onNavigate, onSearch }: AssetFlowDashboardProps) {
-  const [assets, setAssets] = useState<Asset[]>([]);
-  const [licenses, setLicenses] = useState<License[]>([]);
-  const [vendors, setVendors] = useState<Vendor[]>([]);
   const [errors, setErrors] = useState<string | null>(null);
+  const [summary, setSummary] = useState<{
+    totalAssets: number;
+    totalAssetsDelta: number;
+    assetsInRepair: number;
+    assetsInRepairDelta: number;
+    licensesExpiringSoon: number;
+    licensesExpiringSoonDelta: number;
+    totalVendors: number;
+    totalVendorsDelta: number;
+  } | null>(null);
   const { me } = useMe();
 
-  // Load data and initialize sample events on first load
+  // Initialize sample events (client-side event bus) on first load
   useEffect(() => {
     initializeSampleEvents();
+  }, []);
+
+  // Fetch aggregated summary (authorized for all roles)
+  useEffect(() => {
     let cancelled = false;
-    Promise.all([fetchAssets(), fetchLicenses(), fetchVendors()])
-      .then(([a, l, v]) => {
-        if (cancelled) return;
-        setAssets(a);
-        setLicenses(l);
-        setVendors(v);
-        setErrors(null);
+    fetch('/api/dashboard/summary')
+      .then(async (r) => {
+        if (!r.ok) throw new Error(`Summary failed: ${r.status}`);
+        const data = await r.json();
+        if (!cancelled) setSummary(data);
       })
-      .catch((e) => { if (!cancelled) setErrors(e?.message || 'Failed to load dashboard data'); });
+      .catch(() => {/* keep summary null if unavailable */});
     return () => { cancelled = true; };
   }, []);
 
-  const stats = useMemo(() => {
-    const totalAssets = assets.length;
-    const assetsInRepair = assets.filter(
-      a => a.status === 'In Repair (In Store)' || a.status === 'In Repair (Allocated)'
-    ).length;
-    const licensesExpiringSoon = licenses.filter(l => {
-      const d = new Date(l.expirationDate);
-      const now = new Date();
-      const days = Math.floor((d.getTime() - now.getTime()) / 86400000);
-      return days <= 90 && days >= 0;
-    }).length;
-    const totalVendors = vendors.length;
-    return { totalAssets, assetsInRepair, licensesExpiringSoon, totalVendors };
-  }, [assets, licenses, vendors]);
+  // Counts sourced from summary endpoint; fallback to 0 if not yet loaded
+  const totalAssets = summary?.totalAssets ?? 0;
+  const assetsInRepair = summary?.assetsInRepair ?? 0;
+  const licensesExpiringSoon = summary?.licensesExpiringSoon ?? 0;
+  const totalVendors = summary?.totalVendors ?? 0;
 
   return (
     <AssetFlowLayout 
@@ -68,42 +66,57 @@ export function AssetFlowDashboard({ onNavigate, onSearch }: AssetFlowDashboardP
 
       {/* Stats Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-        <StatCard
-          title="Total Assets"
-          value={stats.totalAssets}
-          icon={Package}
-          trend={{ value: '+12%', isPositive: true }}
-          gradient="from-[#6366f1] to-[#8b5cf6]"
-          delay={0}
-          href="/assets"
-        />
-        <StatCard
-          title="Licenses Expiring Soon"
-          value={stats.licensesExpiringSoon}
-          icon={FileText}
-          trend={{ value: '+2', isPositive: false }}
-          gradient="from-[#ec4899] to-[#f43f5e]"
-          delay={0.1}
-          href="/licenses"
-        />
-        <StatCard
-          title="Assets in Repair"
-          value={stats.assetsInRepair}
-          icon={Wrench}
-          trend={{ value: '-25%', isPositive: true }}
-          gradient="from-[#f59e0b] to-[#f97316]"
-          delay={0.2}
-          href="/assets"
-        />
-        <StatCard
-          title="Total Vendors"
-          value={stats.totalVendors}
-          icon={Users}
-          trend={{ value: '+3', isPositive: true }}
-          gradient="from-[#10b981] to-[#14b8a6]"
-          delay={0.3}
-          href="/vendors"
-        />
+        {summary === null ? (
+          // Simple loading skeletons
+          Array.from({ length: 4 }).map((_, i) => (
+            <div key={`skeleton-${i}`} className="rounded-2xl bg-white border border-[rgba(0,0,0,0.08)] p-6 shadow-sm">
+              <div className="animate-pulse">
+                <div className="h-4 w-24 bg-[#e5e7eb] rounded mb-3"></div>
+                <div className="h-8 w-20 bg-[#e5e7eb] rounded mb-4"></div>
+                <div className="h-3 w-28 bg-[#e5e7eb] rounded"></div>
+              </div>
+            </div>
+          ))
+        ) : (
+          <>
+            <StatCard
+              title="Total Assets"
+              value={totalAssets}
+              icon={Package}
+              trend={{ value: `${summary.totalAssetsDelta >= 0 ? '+' : ''}${summary.totalAssetsDelta}`, isPositive: summary.totalAssetsDelta >= 0 }}
+              gradient="from-[#6366f1] to-[#8b5cf6]"
+              delay={0}
+              href="/assets"
+            />
+            <StatCard
+              title="Licenses Expiring Soon"
+              value={licensesExpiringSoon}
+              icon={FileText}
+              trend={{ value: `${summary.licensesExpiringSoonDelta >= 0 ? '+' : ''}${summary.licensesExpiringSoonDelta}`, isPositive: summary.licensesExpiringSoonDelta >= 0 }}
+              gradient="from-[#ec4899] to-[#f43f5e]"
+              delay={0.1}
+              href="/licenses"
+            />
+            <StatCard
+              title="Assets in Repair"
+              value={assetsInRepair}
+              icon={Wrench}
+              trend={{ value: `${summary.assetsInRepairDelta >= 0 ? '+' : ''}${summary.assetsInRepairDelta}`, isPositive: summary.assetsInRepairDelta >= 0 }}
+              gradient="from-[#f59e0b] to-[#f97316]"
+              delay={0.2}
+              href="/assets"
+            />
+            <StatCard
+              title="Total Vendors"
+              value={totalVendors}
+              icon={Users}
+              trend={{ value: `${summary.totalVendorsDelta >= 0 ? '+' : ''}${summary.totalVendorsDelta}`, isPositive: summary.totalVendorsDelta >= 0 }}
+              gradient="from-[#10b981] to-[#14b8a6]"
+              delay={0.3}
+              href="/vendors"
+            />
+          </>
+        )}
       </div>
 
       {/* Charts and Activity */}
