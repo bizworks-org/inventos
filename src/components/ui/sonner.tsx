@@ -15,6 +15,10 @@ const Toaster = ({ ...props }: ToasterProps) => {
           "--normal-bg": "var(--popover)",
           "--normal-text": "var(--popover-foreground)",
           "--normal-border": "var(--border)",
+          // Increase default toaster width and constrain height with scrolling
+          "--width": "480px",
+          maxHeight: "360px",
+          overflowY: "auto",
         } as React.CSSProperties
       }
       {...props}

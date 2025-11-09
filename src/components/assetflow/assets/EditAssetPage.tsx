@@ -3,6 +3,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { motion } from 'motion/react';
 import { ArrowLeft, Save, X } from 'lucide-react';
+import { Button } from '../../ui/button';
 import { toast } from 'sonner';
 
 import { usePrefs } from '../layout/PrefsContext';
@@ -93,6 +94,23 @@ export default function EditAssetPage({ assetId, onNavigate, onSearch }: Props) 
     storage: '',
     os: '',
   });
+
+  const [locationsList, setLocationsList] = useState<Array<{ id?: string; code?: string; name: string; address?: string; zipcode?: string }>>([]);
+
+  useEffect(() => {
+    const load = () => {
+      try {
+        const raw = localStorage.getItem('assetflow:locations');
+        if (!raw) return setLocationsList([]);
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed)) setLocationsList(parsed.filter(Boolean));
+      } catch { setLocationsList([]); }
+    };
+    load();
+    const handler = (ev: any) => { try { load(); } catch {} };
+    window.addEventListener('assetflow:locations-updated', handler as EventListener);
+    return () => window.removeEventListener('assetflow:locations-updated', handler as EventListener);
+  }, []);
 
   const [fieldDefs, setFieldDefs] = useState<AssetFieldDef[]>([]);
   const [customFieldValues, setCustomFieldValues] = useState<Record<string, string>>({});
@@ -400,14 +418,10 @@ export default function EditAssetPage({ assetId, onNavigate, onSearch }: Props) 
         </div>
       )}
 
-      <div className="mb-8 flex items-center gap-4">
-        <button
-          type="button"
-          onClick={() => onNavigate?.('assets')}
-          className="rounded-lg border border-transparent p-2 transition hover:border-black/10 hover:bg-white"
-        >
+        <div className="mb-8 flex items-center gap-4">
+        <Button variant="ghost" size="sm" onClick={() => onNavigate?.('assets')}>
           <ArrowLeft className="h-5 w-5 text-muted" />
-        </button>
+        </Button>
         <div>
           <h1 className="mb-1 text-3xl font-bold text-foreground">Edit Asset</h1>
           <p className="text-muted">Update details for {asset?.name ?? 'selected asset'}</p>
@@ -555,12 +569,17 @@ export default function EditAssetPage({ assetId, onNavigate, onSearch }: Props) 
 
                 <div className="md:col-span-2">
                   <label className="mb-2 block text-sm font-medium">Location *</label>
-                  <input
+                  <select
                     required
-                    value={formData.location}
+                    value={formData.location ?? ''}
                     onChange={(event) => handleInputChange('location', event.target.value)}
                     className="w-full rounded-lg border bg-card px-4 py-2.5"
-                  />
+                  >
+                    <option value="">Select location</option>
+                    {locationsList.map((l) => (
+                      <option key={l.id ?? l.code} value={l.code ?? l.name}>{l.code ?? l.name}{l.name ? ` — ${l.name}` : ''}</option>
+                    ))}
+                  </select>
                 </div>
               </div>
             </motion.div>
@@ -718,7 +737,7 @@ export default function EditAssetPage({ assetId, onNavigate, onSearch }: Props) 
                   <span className="text-base font-semibold">{ciaTotal}</span>
                 </div>
                 <div className="flex items-center justify-between rounded-lg border bg-card px-4 py-2.5">
-                  <span className="text-sm text-muted">Average</span>
+                  <span className="text-sm text-muted">CIA Score</span>
                   <span className="text-base font-semibold">{ciaAvg.toFixed(2)}</span>
                 </div>
               </div>
@@ -835,24 +854,18 @@ export default function EditAssetPage({ assetId, onNavigate, onSearch }: Props) 
             </div>
 
             <div className="space-y-3">
-              <button
+              <Button
                 type="submit"
                 disabled={saving}
-                className={`flex w-full items-center justify-center gap-2 rounded-lg px-4 py-3 font-semibold transition ${
-                  saving ? 'cursor-not-allowed bg-white/70 text-muted' : 'bg-white text-foreground hover:shadow-lg'
-                }`}
+                className={`${saving ? 'cursor-not-allowed' : ''}`}
               >
                 <Save className="h-4 w-4" />
                 {saving ? 'Saving...' : 'Save Changes'}
-              </button>
-              <button
-                type="button"
-                onClick={() => onNavigate?.('assets')}
-                className="flex w-full items-center justify-center gap-2 rounded-lg bg-white/10 px-4 py-3 font-semibold text-white transition hover:bg-white/20"
-              >
+              </Button>
+              <Button variant="ghost" onClick={() => onNavigate?.('assets')}>
                 <X className="h-4 w-4" />
                 Cancel
-              </button>
+              </Button>
             </div>
 
             <p className="mt-6 text-xs text-white/70">Fields marked with * are required.</p>

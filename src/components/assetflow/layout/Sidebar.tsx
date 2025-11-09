@@ -62,6 +62,7 @@ export function Sidebar({ currentPage = 'dashboard', me: meProp }: SidebarProps 
     admin_roles: '/admin/roles',
     admin_catalog: '/admin/catalog',
     settings_events: '/events',
+    settings_customization: '/settings/customization',
     settings_catalog: '/admin/catalog',
     settings_general: '/settings',
     settings_configuration: '/settings/tech',
@@ -127,6 +128,7 @@ export function Sidebar({ currentPage = 'dashboard', me: meProp }: SidebarProps 
       const children: NavItem[] = [
         { name: 'General', id: 'settings_general', icon: Settings, colorClass: 'text-violet-300' },
         { name: 'Events', id: 'settings_events', icon: Activity, colorClass: 'text-sky-300' },
+        { name: 'Customization', id: 'settings_customization', icon: Package, colorClass: 'text-rose-300' },
       ];
       if (isAdminLike) {
         children.push({ name: 'Configuration', id: 'settings_configuration', icon: Settings, colorClass: 'text-violet-300' });

@@ -1,30 +1,38 @@
-'use client';
+"use client";
 
-import { useEffect, useMemo, useState } from 'react';
-import { motion } from 'motion/react';
-import { Plus, Download, Upload, Search, Filter, RefreshCcw } from 'lucide-react';
-import { AssetFlowLayout } from '../layout/AssetFlowLayout';
-import { Asset } from '../../../lib/data';
-import { fetchAssets, deleteAsset } from '../../../lib/api';
-import { exportAssetsToCSV } from '../../../lib/export';
-import { importAssets, parseAssetsFile } from '../../../lib/import';
-import { toast } from 'sonner@2.0.3';
-import { AssetsTable } from './AssetsTable';
+import { useEffect, useMemo, useState } from "react";
+import { motion } from "motion/react";
+import {
+  Plus,
+  Download,
+  Upload,
+  Search,
+  Filter,
+  RefreshCcw,
+} from "lucide-react";
+import { AssetFlowLayout } from "../layout/AssetFlowLayout";
+import { Asset } from "../../../lib/data";
+import { fetchAssets, deleteAsset } from "../../../lib/api";
+import { exportAssetsToCSV } from "../../../lib/export";
+import { importAssets, parseAssetsFile } from "../../../lib/import";
+import { toast } from "sonner@2.0.3";
+import { AssetsTable } from "./AssetsTable";
 // removed unused Tabs import
-import { getMe, type ClientMe } from '../../../lib/auth/client';
+import { getMe, type ClientMe } from "../../../lib/auth/client";
 
 interface AssetsPageProps {
   onNavigate?: (page: string) => void;
   onSearch?: (query: string) => void;
 }
 
-export type AssetStatus = 'All' | Asset['status'];
-export type AssetCategory = 'All' | string;
+export type AssetStatus = "All" | Asset["status"];
+export type AssetCategory = "All" | string;
 
 export function AssetsPage({ onNavigate, onSearch }: AssetsPageProps) {
-  const [selectedCategory, setSelectedCategory] = useState<AssetCategory>('All');
-  const [selectedStatus, setSelectedStatus] = useState<AssetStatus>('All');
-  const [searchQuery, setSearchQuery] = useState('');
+  const [selectedCategory, setSelectedCategory] =
+    useState<AssetCategory>("All");
+  const [selectedStatus, setSelectedStatus] = useState<AssetStatus>("All");
+  const [searchQuery, setSearchQuery] = useState("");
   const [assets, setAssets] = useState<Asset[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -33,22 +41,39 @@ export function AssetsPage({ onNavigate, onSearch }: AssetsPageProps) {
   useEffect(() => {
     let cancelled = false;
     // Fetch current user for UI gating
-    getMe().then(setMe).catch(() => setMe(null));
+    getMe()
+      .then(setMe)
+      .catch(() => setMe(null));
     setLoading(true);
     fetchAssets()
-      .then((rows) => { if (!cancelled) { setAssets(rows); setError(null); } })
-      .catch((e) => { if (!cancelled) setError(e.message || 'Failed to load assets'); })
-      .finally(() => { if (!cancelled) setLoading(false); });
-    return () => { cancelled = true; };
+      .then((rows) => {
+        if (!cancelled) {
+          setAssets(rows);
+          setError(null);
+        }
+      })
+      .catch((e) => {
+        if (!cancelled) setError(e.message || "Failed to load assets");
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   // Try reading catalog from localStorage to build a dynamic mapping from type -> category
-  type UiCategory = { id: number; name: string; types: Array<{ id?: number; name: string }> };
+  type UiCategory = {
+    id: number;
+    name: string;
+    types: Array<{ id?: number; name: string }>;
+  };
   const [catalog, setCatalog] = useState<UiCategory[] | null>(null);
   const fetchAndCacheCatalog = async () => {
     // Preferred flow: read from localStorage first. If not present, fetch from API and cache.
     try {
-      const raw = localStorage.getItem('catalog.categories');
+      const raw = localStorage.getItem("catalog.categories");
       if (raw) {
         const parsed = JSON.parse(raw);
         if (Array.isArray(parsed)) {
@@ -59,12 +84,14 @@ export function AssetsPage({ onNavigate, onSearch }: AssetsPageProps) {
     } catch {}
 
     try {
-      const res = await fetch('/api/catalog', { cache: 'no-store' });
-      if (!res.ok) throw new Error('Failed to fetch catalog');
+      const res = await fetch("/api/catalog", { cache: "no-store" });
+      if (!res.ok) throw new Error("Failed to fetch catalog");
       const data = await res.json();
       const cats = Array.isArray(data) ? data : data?.categories;
       if (Array.isArray(cats)) {
-        try { localStorage.setItem('catalog.categories', JSON.stringify(cats)); } catch {}
+        try {
+          localStorage.setItem("catalog.categories", JSON.stringify(cats));
+        } catch {}
         setCatalog(cats as UiCategory[]);
       }
     } catch (e) {
@@ -77,19 +104,28 @@ export function AssetsPage({ onNavigate, onSearch }: AssetsPageProps) {
     const onClear = () => {
       (async () => {
         try {
-          const res = await fetch('/api/catalog', { cache: 'no-store' });
+          const res = await fetch("/api/catalog", { cache: "no-store" });
           if (!res.ok) return;
           const data = await res.json();
           const cats = Array.isArray(data) ? data : data?.categories;
           if (Array.isArray(cats)) {
-            try { localStorage.setItem('catalog.categories', JSON.stringify(cats)); } catch {}
+            try {
+              localStorage.setItem("catalog.categories", JSON.stringify(cats));
+            } catch {}
             setCatalog(cats as UiCategory[]);
           }
         } catch {}
       })();
     };
-    window.addEventListener('assetflow:catalog-cleared', onClear as EventListener);
-    return () => window.removeEventListener('assetflow:catalog-cleared', onClear as EventListener);
+    window.addEventListener(
+      "assetflow:catalog-cleared",
+      onClear as EventListener
+    );
+    return () =>
+      window.removeEventListener(
+        "assetflow:catalog-cleared",
+        onClear as EventListener
+      );
   }, []);
 
   // Build fast lookup maps from the catalog: by type id and by type name.
@@ -99,7 +135,8 @@ export function AssetsPage({ onNavigate, onSearch }: AssetsPageProps) {
     if (catalog && catalog.length) {
       for (const c of catalog) {
         for (const t of c.types || []) {
-          if (t.id !== undefined && t.id !== null) idToCategory.set(String(t.id), c.name);
+          if (t.id !== undefined && t.id !== null)
+            idToCategory.set(String(t.id), c.name);
           if (t.name) nameToCategory.set(t.name, c.name);
         }
       }
@@ -107,31 +144,35 @@ export function AssetsPage({ onNavigate, onSearch }: AssetsPageProps) {
     return { idToCategory, nameToCategory };
   }, [catalog]);
 
-  const mapAssetToCategory = (asset: Asset): Exclude<AssetCategory, 'All'> => {
+  const mapAssetToCategory = (asset: Asset): Exclude<AssetCategory, "All"> => {
     // Prefer explicit DB type_id if present on the object
     const rawTypeId = (asset as any).type_id ?? (asset as any).typeId;
     if (rawTypeId !== undefined && rawTypeId !== null) {
       const s = String(rawTypeId).trim();
       // If numeric-ish, try ID lookup
-      if (s !== '' && /^\d+$/.test(s)) {
+      if (s !== "" && /^\d+$/.test(s)) {
         const byId = catalogLookup.idToCategory.get(s);
-        if (byId) return byId as Exclude<AssetCategory, 'All'>;
+        if (byId) return byId as Exclude<AssetCategory, "All">;
       }
       // Try name lookup
       const byName = catalogLookup.nameToCategory.get(s);
-      if (byName) return byName as Exclude<AssetCategory, 'All'>;
+      if (byName) return byName as Exclude<AssetCategory, "All">;
       // Fall back to a stable bucket if mapping is unknown
-      return 'Other' as Exclude<AssetCategory, 'All'>;
+      return "Other" as Exclude<AssetCategory, "All">;
     }
-    return 'Other' as Exclude<AssetCategory, 'All'>;
+    return "Other" as Exclude<AssetCategory, "All">;
   };
 
   const filteredAssets = useMemo(() => {
     const q = searchQuery.toLowerCase();
-  return assets.filter(asset => {
-  const matchesCategory = selectedCategory === 'All' || mapAssetToCategory(asset) === selectedCategory;
-      const matchesStatus = selectedStatus === 'All' || asset.status === selectedStatus;
-      const matchesSearch = !q ||
+    return assets.filter((asset) => {
+      const matchesCategory =
+        selectedCategory === "All" ||
+        mapAssetToCategory(asset) === selectedCategory;
+      const matchesStatus =
+        selectedStatus === "All" || asset.status === selectedStatus;
+      const matchesSearch =
+        !q ||
         asset.name.toLowerCase().includes(q) ||
         asset.serialNumber.toLowerCase().includes(q) ||
         asset.assignedTo.toLowerCase().includes(q) ||
@@ -141,7 +182,11 @@ export function AssetsPage({ onNavigate, onSearch }: AssetsPageProps) {
           const cf = asset.specifications?.customFields;
           if (!cf) return false;
           for (const [k, v] of Object.entries(cf)) {
-            if (k.toLowerCase().includes(q) || String(v).toLowerCase().includes(q)) return true;
+            if (
+              k.toLowerCase().includes(q) ||
+              String(v).toLowerCase().includes(q)
+            )
+              return true;
           }
           return false;
         })();
@@ -150,18 +195,20 @@ export function AssetsPage({ onNavigate, onSearch }: AssetsPageProps) {
   }, [assets, selectedCategory, selectedStatus, searchQuery]);
 
   const assetCategories: AssetCategory[] = useMemo(() => {
-    if (catalog && catalog.length) return ['All', ...catalog.map((c) => c.name)];
-    return ['All'];
+    if (catalog && catalog.length)
+      return ["All", ...catalog.map((c) => c.name)];
+    return ["All"];
   }, [catalog]);
-  const canWriteAssets = !!me?.permissions?.includes('assets_write') || me?.role === 'admin';
+  const canWriteAssets =
+    !!me?.permissions?.includes("assets_write") || me?.role === "admin";
 
   const getCategoryCount = (cat: AssetCategory) => {
-    if (cat === 'All') return assets.length;
-    return assets.filter(a => mapAssetToCategory(a) === cat).length;
+    if (cat === "All") return assets.length;
+    return assets.filter((a) => mapAssetToCategory(a) === cat).length;
   };
 
   const handleDelete = async (id: string, _name?: string) => {
-    const keep = assets.filter(a => a.id !== id);
+    const keep = assets.filter((a) => a.id !== id);
     setAssets(keep); // optimistic
     try {
       await deleteAsset(id);
@@ -174,10 +221,7 @@ export function AssetsPage({ onNavigate, onSearch }: AssetsPageProps) {
 
   return (
     <AssetFlowLayout
-      breadcrumbs={[
-        { label: 'Home', href: '#' },
-        { label: 'IT Assets' }
-      ]}
+      breadcrumbs={[{ label: "Home", href: "#" }, { label: "IT Assets" }]}
       currentPage="assets"
       onSearch={onSearch}
     >
@@ -185,39 +229,56 @@ export function AssetsPage({ onNavigate, onSearch }: AssetsPageProps) {
       <div className="flex items-center justify-between mb-8">
         <div>
           <h1 className="text-3xl font-bold text-[#1a1d2e] mb-2">IT Assets</h1>
-          <p className="text-[#64748b]">Manage and track all your IT hardware assets</p>
+          <p className="text-[#64748b]">
+            Manage and track all your IT hardware assets
+          </p>
         </div>
 
         {/* Action Buttons */}
-        <motion.div 
+        <motion.div
           initial={{ opacity: 0, x: 20 }}
           animate={{ opacity: 1, x: 0 }}
           transition={{ duration: 0.3 }}
           className="flex gap-3"
         >
-          <button onClick={() => document.getElementById('asset-import-input')?.click()} className="flex items-center gap-2 px-4 py-2 rounded-lg bg-white border border-[rgba(0,0,0,0.1)] hover:bg-[#f8f9ff] transition-all duration-200 text-[#1a1d2e]">
+          <button
+            onClick={() =>
+              document.getElementById("asset-import-input")?.click()
+            }
+            className="flex items-center gap-2 px-4 py-2 rounded-lg bg-white border border-[rgba(0,0,0,0.1)] hover:bg-[#f8f9ff] transition-all duration-200 text-[#1a1d2e]"
+          >
             <Upload className="h-4 w-4" />
             Import
           </button>
-          <input id="asset-import-input" type="file" accept=".csv,.json" className="hidden" onChange={async (e) => {
-            const file = e.target.files?.[0];
-            if (!file) return;
-            try {
-              const text = await file.text();
-              const items = parseAssetsFile(file.name, text);
-              const doing = toast.loading(`Importing ${items.length} assets…`);
-              const res = await importAssets(items);
-              toast.dismiss(doing);
-              toast.success(`Imported ${res.created} created, ${res.updated} updated, ${res.failed} failed`);
-              // refresh list
-              setAssets(await fetchAssets());
-            } catch (err: any) {
-              toast.error(`Import failed: ${err?.message || err}`);
-            } finally {
-              (e.target as HTMLInputElement).value = '';
-            }
-          }} />
-          <button 
+          <input
+            id="asset-import-input"
+            type="file"
+            accept=".csv,.json"
+            className="hidden"
+            onChange={async (e) => {
+              const file = e.target.files?.[0];
+              if (!file) return;
+              try {
+                const text = await file.text();
+                const items = parseAssetsFile(file.name, text);
+                const doing = toast.loading(
+                  `Importing ${items.length} assets…`
+                );
+                const res = await importAssets(items);
+                toast.dismiss(doing);
+                toast.success(
+                  `Imported ${res.created} created, ${res.updated} updated, ${res.failed} failed`
+                );
+                // refresh list
+                setAssets(await fetchAssets());
+              } catch (err: any) {
+                toast.error(`Import failed: ${err?.message || err}`);
+              } finally {
+                (e.target as HTMLInputElement).value = "";
+              }
+            }}
+          />
+          <button
             onClick={() => exportAssetsToCSV(filteredAssets)}
             className="flex items-center gap-2 px-4 py-2 rounded-lg bg-white border border-[rgba(0,0,0,0.1)] hover:bg-[#f8f9ff] transition-all duration-200 text-[#1a1d2e]"
           >
@@ -225,8 +286,8 @@ export function AssetsPage({ onNavigate, onSearch }: AssetsPageProps) {
             Export
           </button>
           {canWriteAssets && (
-            <button 
-              onClick={() => onNavigate?.('assets-add')}
+            <button
+              onClick={() => onNavigate?.("assets-add")}
               className="flex items-center gap-2 px-4 py-2 rounded-lg bg-gradient-to-r from-[#6366f1] to-[#8b5cf6] text-white hover:shadow-lg hover:shadow-[#6366f1]/30 transition-all duration-200"
             >
               <Plus className="h-4 w-4" />
@@ -255,14 +316,23 @@ export function AssetsPage({ onNavigate, onSearch }: AssetsPageProps) {
                 onClick={() => setSelectedCategory(cat)}
                 className={`
                   flex items-center gap-2 px-4 py-2 rounded-lg whitespace-nowrap transition-all duration-200
-                  ${selectedCategory === cat
-                    ? 'bg-gradient-to-r from-[#6366f1] to-[#8b5cf6] text-white shadow-md'
-                    : 'bg-[#f8f9ff] text-[#64748b] hover:bg-[#e0e7ff] hover:text-[#6366f1]'
+                  ${
+                    selectedCategory === cat
+                      ? "bg-gradient-to-r from-[#6366f1] to-[#8b5cf6] text-white shadow-md"
+                      : "bg-[#f8f9ff] text-[#64748b] hover:bg-[#e0e7ff] hover:text-[#6366f1]"
                   }
                 `}
               >
-                <span className="font-medium">{cat === 'All' ? 'All' : cat}</span>
-                <span className={`${selectedCategory === cat ? 'bg-white/20 text-white' : 'bg-white text-[#64748b]'} px-2 py-0.5 rounded-full text-xs`}>
+                <span className="font-medium">
+                  {cat === "All" ? "All" : cat}
+                </span>
+                <span
+                  className={`${
+                    selectedCategory === cat
+                      ? "bg-white/20 text-white"
+                      : "bg-white text-[#64748b]"
+                  } px-2 py-0.5 rounded-full text-xs`}
+                >
                   {getCategoryCount(cat)}
                 </span>
               </motion.button>
@@ -270,15 +340,16 @@ export function AssetsPage({ onNavigate, onSearch }: AssetsPageProps) {
           </div>
           <button
             onClick={() => {
-              try { localStorage.removeItem('catalog.categories'); } catch {}
-              window.dispatchEvent(new Event('assetflow:catalog-cleared'));
-              toast.success('Catalog refreshed');
+              try {
+                localStorage.removeItem("catalog.categories");
+              } catch {}
+              window.dispatchEvent(new Event("assetflow:catalog-cleared"));
+              toast.success("Catalog refreshed");
             }}
             className="flex items-center gap-2 px-3 py-2 rounded-lg bg-white border border-[rgba(0,0,0,0.1)] hover:bg-[#f8f9ff] text-[#1a1d2e] text-sm"
-            title="Refresh catalog"
+            title="Refresh Catalog"
           >
             <RefreshCcw className="h-4 w-4" />
-            Refresh Catalog
           </button>
         </div>
 
@@ -321,8 +392,12 @@ export function AssetsPage({ onNavigate, onSearch }: AssetsPageProps) {
               <option value="In Store (Used)">In Store (Used)</option>
               <option value="Allocated">Allocated</option>
               <option value="In Repair (In Store)">In Repair (In Store)</option>
-              <option value="In Repair (Allocated)">In Repair (Allocated)</option>
-              <option value="Faulty – To Be Scrapped">Faulty – To Be Scrapped</option>
+              <option value="In Repair (Allocated)">
+                In Repair (Allocated)
+              </option>
+              <option value="Faulty – To Be Scrapped">
+                Faulty – To Be Scrapped
+              </option>
               <option value="Scrapped / Disposed">Scrapped / Disposed</option>
               <option value="Lost / Missing">Lost / Missing</option>
             </select>
@@ -332,17 +407,27 @@ export function AssetsPage({ onNavigate, onSearch }: AssetsPageProps) {
         {/* Results Count */}
         <div className="mt-4 pt-4 border-t border-[rgba(0,0,0,0.05)]">
           <p className="text-sm text-[#64748b]">
-            Showing <span className="font-semibold text-[#1a1d2e]">{filteredAssets.length}</span> of{' '}
-            <span className="font-semibold text-[#1a1d2e]">{assets.length}</span> assets
+            Showing{" "}
+            <span className="font-semibold text-[#1a1d2e]">
+              {filteredAssets.length}
+            </span>{" "}
+            of{" "}
+            <span className="font-semibold text-[#1a1d2e]">
+              {assets.length}
+            </span>{" "}
+            assets
           </p>
         </div>
       </motion.div>
 
       {/* Assets Table */}
-      {error && (
-        <div className="mb-4 text-sm text-red-600">{error}</div>
-      )}
-  <AssetsTable assets={filteredAssets} onNavigate={onNavigate} onDelete={canWriteAssets ? handleDelete : undefined} canWrite={canWriteAssets} />
+      {error && <div className="mb-4 text-sm text-red-600">{error}</div>}
+      <AssetsTable
+        assets={filteredAssets}
+        onNavigate={onNavigate}
+        onDelete={canWriteAssets ? handleDelete : undefined}
+        canWrite={canWriteAssets}
+      />
     </AssetFlowLayout>
   );
 }

@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { usePrefs } from '../layout/PrefsContext';
 import { motion } from 'motion/react';
 import { ArrowLeft, Save, X } from 'lucide-react';
+import { Button } from '../../ui/button';
 import { toast } from 'sonner@2.0.3';
 import { AssetFlowLayout } from '../layout/AssetFlowLayout';
 import { Asset, AssetFieldDef, AssetFieldType } from '../../../lib/data';
@@ -93,6 +94,7 @@ export function AddAssetPage({ onNavigate, onSearch }: AddAssetPageProps) {
   const [saving, setSaving] = useState(false);
   // Catalog from localStorage (optional)
   const [catalog, setCatalog] = useState<UiCategory[] | null>(null);
+  const [locationsList, setLocationsList] = useState<Array<{ id?: string; code?: string; name: string; address?: string; zipcode?: string }>>([]);
   // CIA Evaluation state
   const [cia, setCia] = useState<{ c: number; i: number; a: number }>({ c: 1, i: 1, a: 1 });
   const ciaTotal = useMemo(() => (cia.c || 0) + (cia.i || 0) + (cia.a || 0), [cia]);
@@ -170,7 +172,31 @@ export function AddAssetPage({ onNavigate, onSearch }: AddAssetPageProps) {
       })();
     };
     window.addEventListener('assetflow:catalog-cleared', onClear as EventListener);
+    const onLocations = () => {
+      try {
+        const raw = localStorage.getItem('assetflow:locations');
+        if (!raw) return setLocationsList([]);
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed)) setLocationsList(parsed.filter(Boolean));
+      } catch { setLocationsList([]); }
+    };
+    onLocations();
+    window.addEventListener('assetflow:locations-updated', onLocations as EventListener);
     return () => window.removeEventListener('assetflow:catalog-cleared', onClear as EventListener);
+    // note: not removing locations listener here intentionally due to early returns; cleaned up below
+  }, []);
+
+  useEffect(() => {
+    const handler = () => {
+      try {
+        const raw = localStorage.getItem('assetflow:locations');
+        if (!raw) return setLocationsList([]);
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed)) setLocationsList(parsed.filter(Boolean));
+      } catch { setLocationsList([]); }
+    };
+    window.addEventListener('assetflow:locations-updated', handler as EventListener);
+    return () => window.removeEventListener('assetflow:locations-updated', handler as EventListener);
   }, []);
 
   const categoryList = useMemo(() => {
@@ -331,12 +357,9 @@ export function AddAssetPage({ onNavigate, onSearch }: AddAssetPageProps) {
       {/* Header */}
       <div className="flex items-center justify-between mb-8">
         <div className="flex items-center gap-4">
-          <button
-            onClick={() => onNavigate?.('assets')}
-            className="p-2 rounded-lg hover:bg-white border border-transparent hover:border-[rgba(0,0,0,0.1)] transition-all duration-200"
-          >
+          <Button variant="ghost" size="sm" onClick={() => onNavigate?.('assets')}>
             <ArrowLeft className="h-5 w-5 text-[#64748b]" />
-          </button>
+          </Button>
           <div>
             <h1 className="text-3xl font-bold text-[#1a1d2e] mb-2">Add New Asset</h1>
             <p className="text-[#64748b]">Register a new IT asset in the system</p>
@@ -522,14 +545,17 @@ export function AddAssetPage({ onNavigate, onSearch }: AddAssetPageProps) {
                   <label className="block text-sm font-medium text-[#1a1d2e] mb-2">
                     Location *
                   </label>
-                  <input
-                    type="text"
+                  <select
                     required
-                    value={formData.location}
+                    value={formData.location ?? ''}
                     onChange={(e) => handleInputChange('location', e.target.value)}
-                    placeholder="e.g., Building A - Floor 3"
                     className="w-full px-4 py-2.5 rounded-lg bg-[#f8f9ff] border border-[rgba(0,0,0,0.05)] text-[#1a1d2e] placeholder:text-[#a0a4b8] focus:outline-none focus:ring-2 focus:ring-[#6366f1]/20 focus:border-[#6366f1] transition-all duration-200"
-                  />
+                  >
+                    <option value="">Select location</option>
+                    {locationsList.map(l => (
+                      <option key={l.id ?? l.code} value={l.code ?? l.name}>{l.code ?? l.name}{l.name ? ` — ${l.name}` : ''}</option>
+                    ))}
+                  </select>
                 </div>
               </div>
             </motion.div>
@@ -580,7 +606,7 @@ export function AddAssetPage({ onNavigate, onSearch }: AddAssetPageProps) {
                   <span className="p-2 text-base font-semibold text-[#1a1d2e]">{ciaTotal}</span>
                 </div>
                 <div className="p-3 m-4 rounded-lg bg-[#f8f9ff] border border-[rgba(0,0,0,0.05)] flex items-center justify-between">
-                  <span className="p-2 text-sm text-[#64748b]">Average</span>
+                  <span className="p-2 text-sm text-[#64748b]">CIA Score</span>
                   <span className="p-2 text-base font-semibold text-[#1a1d2e]">{(ciaAvg).toFixed(2)}</span>
                 </div>
               </div>
@@ -815,22 +841,22 @@ export function AddAssetPage({ onNavigate, onSearch }: AddAssetPageProps) {
               </div>
 
               <div className="space-y-3">
-                <button
+                <Button
                   type="submit"
                   disabled={!assetType || saving}
-                  className={`w-full flex items-center justify-center gap-2 px-4 py-3 bg-white text-[#6366f1] rounded-lg font-semibold transition-all duration-200 ${(!assetType || saving) ? 'opacity-50 cursor-not-allowed' : 'hover:shadow-lg'}`}
+                  className={`${(!assetType || saving) ? 'opacity-50 cursor-not-allowed' : 'hover:shadow-lg'}`}
                 >
                   <Save className="h-4 w-4" />
                   {saving ? 'Saving…' : 'Save Asset'}
-                </button>
-                <button
+                </Button>
+                <Button
                   type="button"
+                  variant="ghost"
                   onClick={() => { try { localStorage.removeItem(ADD_ASSET_DRAFT_KEY); } catch {}; onNavigate?.('assets'); }}
-                  className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-white/10 text-white rounded-lg font-semibold hover:bg-white/20 transition-all duration-200"
                 >
                   <X className="h-4 w-4" />
                   Cancel
-                </button>
+                </Button>
               </div>
 
               <div className="mt-6 pt-6 border-t border-white/20">

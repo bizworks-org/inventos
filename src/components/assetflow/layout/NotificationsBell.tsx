@@ -2,6 +2,7 @@
 
 import { Bell, Check, Loader2 } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
+import NotificationsPopup from './NotificationsPopup';
 
 export type NotificationItem = {
   id: number;
@@ -115,42 +116,17 @@ export function NotificationsBell() {
           </span>
         )}
       </button>
-      {mounted && open && ( // avoid SSR rendering of popup entirely
-        <div className="absolute right-0 mt-2 h-1/2 bg-white border border-[rgba(0,0,0,0.08)] rounded-xl shadow-lg overflow-hidden z-50 flex flex-col"> {/* wider + fixed height */}
-          <div className="flex items-center justify-between px-4 py-2 border-b shrink-0">
-            <span className="text-sm font-semibold text-[#1a1d2e]">Notifications</span>
-            <button disabled={markingAll || unreadCount === 0} onClick={markAllRead} className={`text-xs flex items-center gap-1 px-2 py-1 rounded ${unreadCount === 0 ? 'text-[#94a3b8] cursor-not-allowed' : 'text-[#10b981] hover:bg-[#ecfdf5]' }`}>
-              {markingAll ? <Loader2 className="h-3.5 w-3.5 animate-spin"/> : <Check className="h-3.5 w-3.5"/>}
-              Mark all read
-            </button>
-          </div>
-          <div className="flex-1 overflow-y-auto divide-y"> {/* fixed-height container, scrolling list */}
-            {loading ? (
-              <div className="p-4 text-sm text-[#64748b]">Loading…</div>
-            ) : error ? (
-              <div className="p-4 text-sm text-[#ef4444]">{error}</div>
-            ) : items.length === 0 ? (
-              <div className="p-4 text-sm text-[#64748b]">No notifications</div>
-            ) : (
-              items.map(i => (
-                <div key={i.id} className={`p-4 hover:bg-[#f8f9ff] ${i.read_at ? '' : 'bg-white'}`}>
-                  <div className="flex items-start justify-between gap-3">
-                    <div>
-                      <p className="text-sm font-medium text-[#111827]">{i.title}</p>
-                      <p className="text-xs text-[#6b7280] mt-0.5">{i.body}</p>
-                      <p className="text-[11px] text-[#9ca3af] mt-1" suppressHydrationWarning>
-                        {new Date(i.created_at).toLocaleString()}
-                      </p>
-                    </div>
-                    {!i.read_at && (
-                      <button onClick={() => markOneRead(i.id)} className="text-xs w-10 text-[#10b981] hover:underline">Mark read</button>
-                    )}
-                  </div>
-                </div>
-              ))
-            )}
-          </div>
-        </div>
+      {mounted && open && (
+        <NotificationsPopup
+          items={items}
+          loading={loading}
+          error={error}
+          markingAll={markingAll}
+          unreadCount={unreadCount}
+          onMarkAll={markAllRead}
+          onMarkOne={markOneRead}
+          onClose={() => setOpen(false)}
+        />
       )}
     </div>
   );
