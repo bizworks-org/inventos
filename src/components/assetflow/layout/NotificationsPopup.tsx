@@ -2,6 +2,8 @@
 
 import { Check, Loader2 } from "lucide-react";
 import { useEffect, useRef } from "react";
+import { Button } from '@/components/ui/button';
+
 
 export type NotificationItem = {
   id: number;
@@ -51,14 +53,15 @@ export default function NotificationsPopup({ items, loading, error, markingAll, 
     >
       <div className="flex items-center justify-between px-4 py-2 border-b shrink-0">
         <span className="text-sm font-semibold text-[#1a1d2e]">Notifications</span>
-        <button
+        <Button
           disabled={markingAll || unreadCount === 0}
+          variant="destructive"
           onClick={onMarkAll}
           className={`text-xs flex items-center gap-1 px-2 py-1 rounded ${unreadCount === 0 ? 'text-[#94a3b8] cursor-not-allowed' : 'text-[#10b981] hover:bg-[#ecfdf5]' }`}
         >
           {markingAll ? <Loader2 className="h-3.5 w-3.5 animate-spin"/> : <Check className="h-3.5 w-3.5"/>}
           Mark all read
-        </button>
+        </Button>
       </div>
 
       <div className="flex-1 overflow-y-auto divide-y">
@@ -80,7 +83,9 @@ export default function NotificationsPopup({ items, loading, error, markingAll, 
                   </p>
                 </div>
                 {!i.read_at && (
-                  <button onClick={() => onMarkOne(i.id)} className="text-xs w-10 text-[#10b981] hover:underline">Mark read</button>
+                  <Button onClick={() => onMarkOne(i.id)} 
+                  variant="destructive"
+                  className="text-xs w-10 text-[#10b981] hover:underline">Mark read</Button>
                 )}
               </div>
             </div>

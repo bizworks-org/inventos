@@ -6,7 +6,10 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '../../ui/tabs';
 import { Button } from '../../ui/button';
 import { Input } from '../../ui/input';
 import { Label } from '../../ui/label';
-import { Card } from '../../ui/card';
+import { Card, CardContent, CardHeader, CardDescription, CardTitle } from '../../ui/card';
+import type { AssetFieldDef, AssetFieldType } from '../../../lib/data';
+import { saveSettings } from '../../../lib/api';
+import CatalogAdmin from './CatalogAdmin';
 
 interface Props {
   onNavigate?: (page: string) => void;
@@ -14,7 +17,56 @@ interface Props {
 }
 
 export function CustomizationPage({ onNavigate, onSearch }: Props) {
-  const [active, setActive] = useState<'locations' | 'catalog'>('locations');
+  const [active, setActive] = useState<'locations' | 'catalog' | 'fields'>('locations');
+
+  // Custom field definitions (moved here from Settings page)
+  const [assetFields, setAssetFields] = useState<AssetFieldDef[]>([]);
+  const [vendorFields, setVendorFields] = useState<AssetFieldDef[]>([]);
+  const [licenseFields, setLicenseFields] = useState<AssetFieldDef[]>([]);
+  const [customTarget, setCustomTarget] = useState<'asset' | 'vendor' | 'license'>('asset');
+
+  const addCurrentField = () => {
+    const def: AssetFieldDef = { key: '', label: '', required: false, placeholder: '', type: 'text' };
+    if (customTarget === 'asset') setAssetFields((arr) => [...arr, def]);
+    if (customTarget === 'vendor') setVendorFields((arr) => [...arr, def]);
+    if (customTarget === 'license') setLicenseFields((arr) => [...arr, def]);
+  };
+  const removeCurrentField = (idx: number) => {
+    if (customTarget === 'asset') setAssetFields((arr) => arr.filter((_, i) => i !== idx));
+    if (customTarget === 'vendor') setVendorFields((arr) => arr.filter((_, i) => i !== idx));
+    if (customTarget === 'license') setLicenseFields((arr) => arr.filter((_, i) => i !== idx));
+  };
+  const updateCurrentField = (idx: number, patch: Partial<AssetFieldDef>) => {
+    if (customTarget === 'asset') setAssetFields((arr) => arr.map((f, i) => i === idx ? { ...f, ...patch } : f));
+    if (customTarget === 'vendor') setVendorFields((arr) => arr.map((f, i) => i === idx ? { ...f, ...patch } : f));
+    if (customTarget === 'license') setLicenseFields((arr) => arr.map((f, i) => i === idx ? { ...f, ...patch } : f));
+  };
+
+  const handleSaveFields = async () => {
+    try {
+      // Try to preserve existing settings stored locally (name/email/prefs)
+      const raw = localStorage.getItem('assetflow:settings');
+      const base = raw ? JSON.parse(raw) : {};
+      const payload: any = {
+        user_email: base.email || base.user_email || '',
+        name: base.name || '',
+        prefs: base.prefs || {},
+        notify: base.notify || {},
+        mode: base.mode || 'system',
+        events: base.events || {},
+        integrations: base.integrations || {},
+        assetFields,
+        vendorFields,
+        licenseFields,
+      };
+      await saveSettings(payload);
+      localStorage.setItem('assetflow:settings', JSON.stringify({ ...base, assetFields, vendorFields, licenseFields }));
+      try { window.dispatchEvent(new Event('assetflow:settings-saved')); } catch {}
+      try { alert('Fields saved'); } catch {}
+    } catch (e) {
+      try { alert('Failed to save fields'); } catch {}
+    }
+  };
 
   // Locations stored locally (and optionally pushed to server if endpoint exists)
   const [locations, setLocations] = useState<Array<{ id?: string; code?: string; name: string; address?: string; zipcode?: string }>>([]);
@@ -132,7 +184,7 @@ export function CustomizationPage({ onNavigate, onSearch }: Props) {
           <h1 className="text-3xl font-bold text-[#1a1d2e] mb-1">Customization</h1>
           <p className="text-[#64748b]">Create and manage locations used by assets, and inspect the catalog.</p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 hidden">
           <Button onClick={() => setActive('locations')} className={`${active === 'locations' ? 'bg-gradient-to-r from-[#6366f1] to-[#8b5cf6] text-white hover:shadow-lg' : ''}`}>Locations</Button>
           <Button onClick={() => setActive('catalog')} className={`${active === 'catalog' ? 'bg-gradient-to-r from-[#6366f1] to-[#8b5cf6] text-white hover:shadow-lg' : ''}`}>Catalog</Button>
         </div>
@@ -140,9 +192,10 @@ export function CustomizationPage({ onNavigate, onSearch }: Props) {
 
       <div className="bg-white rounded-2xl border border-[rgba(0,0,0,0.08)] p-6 shadow-sm">
         <Tabs value={active} onValueChange={(v) => setActive(v as any)}>
-          <TabsList className="mb-4">
-            <TabsTrigger value="locations">Locations</TabsTrigger>
-            <TabsTrigger value="catalog">Catalog</TabsTrigger>
+          <TabsList className="flex w-full flex-wrap gap-2 rounded-xl border border-[rgba(0,0,0,0.08)] bg-[#f8f9ff] p-2 mb-4">
+            <TabsTrigger value="locations" className={`${active === 'locations' ? 'bg-white border border-[rgba(0,0,0,0.12)] shadow-md text-[#1a1d2e] font-semibold' : ''} flex items-center gap-2 px-3 py-2 rounded-xl`}>Locations</TabsTrigger>
+            <TabsTrigger value="catalog" className={`${active === 'catalog' ? 'bg-white border border-[rgba(0,0,0,0.12)] shadow-md text-[#1a1d2e] font-semibold' : ''} flex items-center gap-2 px-3 py-2 rounded-xl`}>Catalog</TabsTrigger>
+            <TabsTrigger value="fields" className={`${active === 'fields' ? 'bg-white border border-[rgba(0,0,0,0.12)] shadow-md text-[#1a1d2e] font-semibold' : ''} flex items-center gap-2 px-3 py-2 rounded-xl`}>Fields</TabsTrigger>
           </TabsList>
 
           <TabsContent value="locations">
@@ -202,8 +255,8 @@ export function CustomizationPage({ onNavigate, onSearch }: Props) {
                                 </td>
                                 <td className="px-3 py-2 align-top">
                                   <div className="flex items-center gap-2">
-                                    <Button variant="ghost" onClick={() => updateLocation(idx, {})}>Save</Button>
-                                    <Button variant="outline" onClick={() => removeLocation(idx)}>Remove</Button>
+                                    <Button variant="default" size="sm" onClick={() => updateLocation(idx, {})}>Save</Button>
+                                    <Button variant="outline" size="sm" onClick={() => removeLocation(idx)}>Remove</Button>
                                   </div>
                                 </td>
                               </tr>
@@ -227,27 +280,125 @@ export function CustomizationPage({ onNavigate, onSearch }: Props) {
           </TabsContent>
 
           <TabsContent value="catalog">
-            <div className="space-y-4">
-              <div className="flex items-center gap-2">
-                <Button onClick={loadCatalog}>Refresh Catalog</Button>
-                <Button variant="outline" onClick={() => { try { localStorage.removeItem('catalog.categories'); setCatalog([]); setCatalogMsg('Cache cleared'); setTimeout(() => setCatalogMsg(null), 2000); } catch {} }}>Clear Cache</Button>
-                {catalogMsg && <span className="text-sm text-[#64748b]">{catalogMsg}</span>}
-              </div>
+            <CatalogAdmin />
+          </TabsContent>
 
-              <div className="grid grid-cols-1 gap-3">
-                {catalog.length === 0 && <p className="text-sm text-[#64748b]">No catalog entries available. Use Refresh to fetch from server.</p>}
-                {catalog.map((c: any, idx: number) => (
-                  <div key={idx} className="rounded-lg border p-3">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <div className="font-semibold">{c.name ?? c.title ?? 'Unnamed'}</div>
-                        <div className="text-sm text-[#64748b]">{Array.isArray(c.types) ? `${c.types.length} types` : ''}</div>
+          <TabsContent value="fields">
+            <Card>
+              <CardHeader>
+                <CardTitle>Custom Fields</CardTitle>
+                <CardDescription>Define custom fields that appear on Add/Edit pages. Choose which page the field applies to: Assets, Vendors or Licenses. Values are stored under specifications.customFields by key on the respective object.</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-3 pb-4 border-b">
+                  <div className="flex items-center gap-4 mb-3">
+                    <label className={`px-3 py-2 rounded-lg cursor-pointer ${customTarget === 'asset' ? 'bg-white border border-[rgba(0,0,0,0.08)] shadow-sm' : 'bg-[#f8f9ff]'}`}>
+                      <input type="radio" name="customTarget" value="asset" checked={customTarget === 'asset'} onChange={() => setCustomTarget('asset')} className="mr-2" /> Assets
+                    </label>
+                    <label className={`px-3 py-2 rounded-lg cursor-pointer ${customTarget === 'vendor' ? 'bg-white border border-[rgba(0,0,0,0.08)] shadow-sm' : 'bg-[#f8f9ff]'}`}>
+                      <input type="radio" name="customTarget" value="vendor" checked={customTarget === 'vendor'} onChange={() => setCustomTarget('vendor')} className="mr-2" /> Vendors
+                    </label>
+                    <label className={`px-3 py-2 rounded-lg cursor-pointer ${customTarget === 'license' ? 'bg-white border border-[rgba(0,0,0,0.08)] shadow-sm' : 'bg-[#f8f9ff]'}`}>
+                      <input type="radio" name="customTarget" value="license" checked={customTarget === 'license'} onChange={() => setCustomTarget('license')} className="mr-2" /> Licenses
+                    </label>
+                  </div>
+
+                  {(() => {
+                    const fields = customTarget === 'asset' ? assetFields : customTarget === 'vendor' ? vendorFields : licenseFields;
+                    if (!fields || fields.length === 0) {
+                      return <p className="text-sm text-[#64748b]">No custom fields defined for {customTarget === 'asset' ? 'Assets' : customTarget === 'vendor' ? 'Vendors' : 'Licenses'} yet.</p>;
+                    }
+                    return fields.map((f, idx) => (
+                      <div key={idx} className="space-y-3">
+                        <div className="grid grid-cols-1 md:grid-cols-4 gap-3 items-start">
+                          <div>
+                            <Label className="mb-1 block">Label</Label>
+                            <Input value={f.label} onChange={(e) => updateCurrentField(idx, { label: e.target.value })} placeholder="e.g., Asset Tag" />
+                          </div>
+                          <div>
+                            <Label className="mb-1 block">Key</Label>
+                            <Input value={f.key} onChange={(e) => updateCurrentField(idx, { key: e.target.value.trim() })} placeholder="e.g., assetTag" />
+                            <p className="text-xs text-[#94a3b8] mt-1">Used in export/import and API as specifications.customFields[key]</p>
+                          </div>
+                          <div>
+                            <Label className="mb-1 block">Placeholder</Label>
+                            <Input value={(f.placeholder ?? '') as string} onChange={(e) => updateCurrentField(idx, { placeholder: e.target.value })} placeholder="e.g., TAG-00123" />
+                          </div>
+                          <div>
+                            <Label className="mb-1 block">Type</Label>
+                            <select
+                              className="w-full px-3 py-2 rounded-lg bg-[#f8f9ff] border border-[rgba(0,0,0,0.08)]"
+                              value={f.type ?? 'text'}
+                              onChange={(e) => updateCurrentField(idx, { type: e.target.value as AssetFieldType })}
+                            >
+                              {([
+                                'text', 'textarea', 'number', 'date', 'datetime', 'phone', 'email', 'url', 'select', 'multiselect', 'boolean', 'currency', 'star'
+                              ] as AssetFieldType[]).map((t) => (
+                                <option key={t} value={t}>{t === 'star' ? 'Star Rating' : t.charAt(0).toUpperCase() + t.slice(1)}</option>
+                              ))}
+                            </select>
+                          </div>
+                        </div>
+
+                        {(f.type === 'select' || f.type === 'multiselect') && (
+                          <div>
+                            <Label className="mb-1 block">Options (comma separated)</Label>
+                            <Input
+                              value={(f.options || []).join(', ')}
+                              onChange={(e) => updateCurrentField(idx, { options: e.target.value.split(',').map(s => s.trim()).filter(Boolean) })}
+                              placeholder="Option1, Option2, Option3"
+                            />
+                            <p className="text-xs text-[#94a3b8] mt-1">Provide choices for select or multiselect fields.</p>
+                          </div>
+                        )}
+
+                        {f.type === 'star' && (
+                          <div>
+                            <Label className="mb-1 block">Max value</Label>
+                            <Input
+                              type="number"
+                              min={1}
+                              max={10}
+                              value={typeof f.max === 'number' ? String(f.max) : ''}
+                              onChange={(e) => {
+                                const v = e.target.value;
+                                const n = v === '' ? undefined : Math.max(1, Math.min(10, Number(v) || 1));
+                                updateCurrentField(idx, { max: n });
+                              }}
+                              placeholder="5"
+                            />
+                            <p className="text-xs text-[#94a3b8] mt-1">Max rating (1-10). Default 5.</p>
+                          </div>
+                        )}
+
+                        <div className="grid grid-cols-2 items-center">
+                          <label className="text-sm text-[#1a1d2e] flex items-center gap-2">
+                            <input type="checkbox" checked={!!f.required} onChange={(e) => updateCurrentField(idx, { required: e.target.checked })} /> Required
+                          </label>
+                          <div className="flex justify-end">
+                            <Button type="button" variant="outline" className="border-[#ef4444] text-[#ef4444] hover:bg-[#fee2e2]" onClick={() => removeCurrentField(idx)}>Remove</Button>
+                          </div>
+                        </div>
                       </div>
+                    ));
+                  })()}
+
+                  <div className="flex justify-between items-center mt-3 mb-3 mb-6">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      className="border-[#6366f1] text-[#6366f1] mb-3 hover:bg-[#eef2ff]"
+                      onClick={addCurrentField}
+                    >
+                      Add Field
+                    </Button>
+                    <div className="flex gap-2">
+                      <Button type="button" className="bg-gradient-to-r from-[#6366f1] to-[#8b5cf6] mb-3 text-white hover:shadow-lg hover:shadow-[#6366f1]/30" onClick={handleSaveFields}>Save Fields</Button>
                     </div>
                   </div>
-                ))}
-              </div>
-            </div>
+                </div>
+              </CardContent>
+            </Card>
           </TabsContent>
         </Tabs>
       </div>

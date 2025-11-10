@@ -445,7 +445,7 @@ export default function EditAssetPage({ assetId, onNavigate, onSearch }: Props) 
                   <label className="mb-2 block text-sm font-medium">Asset Category *</label>
                   <div className="grid grid-cols-2 gap-2 md:grid-cols-3">
                     {categoryOptions.map((catName) => (
-                      <button
+                      <Button
                         key={catName}
                         type="button"
                         onClick={() => {
@@ -460,7 +460,7 @@ export default function EditAssetPage({ assetId, onNavigate, onSearch }: Props) 
                         }`}
                       >
                         {catName}
-                      </button>
+                      </Button>
                     ))}
                   </div>
                 </div>
@@ -752,13 +752,13 @@ export default function EditAssetPage({ assetId, onNavigate, onSearch }: Props) 
             >
               <div className="mb-3 flex items-center justify-between">
                 <h3 className="text-lg font-semibold">Custom Fields</h3>
-                <button
+                <Button
                   type="button"
                   onClick={() => setExtraFields((previous) => [...previous, { key: '', value: '' }])}
                   className="rounded border px-3 py-1 text-sm font-medium text-primary hover:bg-primary/10"
                 >
                   Add Field
-                </button>
+                </Button>
               </div>
               <p className="mb-4 text-sm text-muted">Configured globally in Settings.</p>
 
@@ -812,7 +812,7 @@ export default function EditAssetPage({ assetId, onNavigate, onSearch }: Props) 
                         className="w-full rounded-lg border bg-card px-3 py-2 md:col-span-6"
                         placeholder="Value"
                       />
-                      <button
+                      <Button
                         type="button"
                         onClick={() =>
                           setExtraFields((previous) => previous.filter((_, idx) => idx !== index))
@@ -820,7 +820,7 @@ export default function EditAssetPage({ assetId, onNavigate, onSearch }: Props) 
                         className="rounded-lg border px-3 py-2 text-sm text-red-600 hover:bg-red-50 md:col-span-1"
                       >
                         Remove
-                      </button>
+                      </Button>
                     </div>
                   ))}
                 </div>

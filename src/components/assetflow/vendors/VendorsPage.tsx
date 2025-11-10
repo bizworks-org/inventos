@@ -12,6 +12,8 @@ import { exportVendorsToCSV } from '../../../lib/export';
 import { importVendors, parseVendorsFile } from '../../../lib/import';
 import { toast } from 'sonner@2.0.3';
 import { getMe, type ClientMe } from '../../../lib/auth/client';
+import { Button } from '@/components/ui/button';
+
 
 interface VendorsPageProps {
   onNavigate?: (page: string, vendorId?: string) => void;
@@ -106,10 +108,10 @@ export function VendorsPage({ onNavigate, onSearch }: VendorsPageProps) {
           transition={{ duration: 0.3 }}
           className="flex gap-3"
         >
-          <button onClick={() => document.getElementById('vendor-import-input')?.click()} className="flex items-center gap-2 px-4 py-2 rounded-lg bg-white border border-[rgba(0,0,0,0.1)] hover:bg-[#f8f9ff] transition-all duration-200 text-[#1a1d2e]">
+          <Button onClick={() => document.getElementById('vendor-import-input')?.click()} className="flex items-center gap-2 px-4 py-2 rounded-lg bg-white border border-[rgba(0,0,0,0.1)] hover:bg-[#f8f9ff] transition-all duration-200 text-[#1a1d2e]">
             <Upload className="h-4 w-4" />
             Import
-          </button>
+          </Button>
           <input id="vendor-import-input" type="file" accept=".csv,.json" className="hidden" onChange={async (e) => {
             const file = e.target.files?.[0];
             if (!file) return;
@@ -128,20 +130,20 @@ export function VendorsPage({ onNavigate, onSearch }: VendorsPageProps) {
               (e.target as HTMLInputElement).value = '';
             }
           }} />
-          <button 
+          <Button 
             onClick={() => exportVendorsToCSV(filteredVendors)}
             className="flex items-center gap-2 px-4 py-2 rounded-lg bg-white border border-[rgba(0,0,0,0.1)] hover:bg-[#f8f9ff] transition-all duration-200 text-[#1a1d2e]">
             <Download className="h-4 w-4" />
             Export
-          </button>
+          </Button>
           {canWriteVendors && (
-            <button 
+            <Button 
               onClick={() => onNavigate?.('vendors-add')}
               className="flex items-center gap-2 px-4 py-2 rounded-lg bg-gradient-to-r from-[#6366f1] to-[#8b5cf6] text-white hover:shadow-lg hover:shadow-[#6366f1]/30 transition-all duration-200"
             >
               <Plus className="h-4 w-4" />
               Add Vendor
-            </button>
+            </Button>
           )}
         </motion.div>
       </div>

@@ -1,9 +1,10 @@
 "use client";
 
-import { Search, User } from 'lucide-react';
-import { useState } from 'react';
-import { NotificationsBell } from './NotificationsBell';
-import { useMe } from './MeContext';
+import { Search, User } from "lucide-react";
+import { useState } from "react";
+import { NotificationsBell } from "./NotificationsBell";
+import { useMe } from "./MeContext";
+import { Button } from "@/components/ui/button";
 
 interface HeaderProps {
   breadcrumbs?: { label: string; href?: string }[];
@@ -11,7 +12,7 @@ interface HeaderProps {
 }
 
 export function Header({ breadcrumbs = [], onSearch }: HeaderProps) {
-  const [searchQuery, setSearchQuery] = useState('');
+  const [searchQuery, setSearchQuery] = useState("");
   const { me } = useMe();
 
   const handleSearch = (e: React.FormEvent) => {
@@ -31,14 +32,16 @@ export function Header({ breadcrumbs = [], onSearch }: HeaderProps) {
               <div key={index} className="flex items-center gap-2">
                 {index > 0 && <span className="text-[#a0a4b8]">/</span>}
                 {crumb.href ? (
-                  <a 
+                  <a
                     href={crumb.href}
                     className="text-[#6366f1] hover:text-[#8b5cf6] font-medium transition-colors"
                   >
                     {crumb.label}
                   </a>
                 ) : (
-                  <span className="text-[#1a1d2e] font-medium">{crumb.label}</span>
+                  <span className="text-[#1a1d2e] font-medium">
+                    {crumb.label}
+                  </span>
                 )}
               </div>
             ))
@@ -71,15 +74,21 @@ export function Header({ breadcrumbs = [], onSearch }: HeaderProps) {
           <NotificationsBell />
 
           {/* User Profile */}
-          <button className="flex items-center gap-2 p-2 rounded-lg hover:bg-[#f3f4f6] transition-colors">
+          <Button
+            variant="destructive"
+            className="flex items-center gap-2 p-2 rounded-lg hover:bg-[#f3f4f6] transition-colors"
+          >
             {/* User name next to avatar (hidden on small screens) */}
-            <span className="hidden md:block text-sm text-[#1a1d2e] font-medium max-w-[180px] truncate" title={me?.name || me?.email || undefined}>
-              {me?.name || me?.email || 'User'}
+            <span
+              className="hidden md:block text-sm text-[#1a1d2e] font-medium max-w-[180px] truncate"
+              title={me?.name || me?.email || undefined}
+            >
+              {me?.name || me?.email || "User"}
             </span>
             <div className="h-8 w-8 rounded-full bg-gradient-to-br from-[#6366f1] to-[#8b5cf6] flex items-center justify-center">
               <User className="h-4 w-4 text-white" />
             </div>
-          </button>
+          </Button>
         </div>
       </div>
     </header>

@@ -12,6 +12,8 @@ import { importLicenses, parseLicensesFile } from '../../../lib/import';
 import { toast } from 'sonner@2.0.3';
 import { usePrefs } from '../layout/PrefsContext';
 import { getMe, type ClientMe } from '../../../lib/auth/client';
+import { Button } from '@/components/ui/button';
+
 
 interface LicensesPageProps {
   onNavigate?: (page: string, licenseId?: string) => void;
@@ -107,10 +109,10 @@ export function LicensesPage({ onNavigate, onSearch }: LicensesPageProps) {
           transition={{ duration: 0.3 }}
           className="flex gap-3"
         >
-          <button onClick={() => document.getElementById('license-import-input')?.click()} className="flex items-center gap-2 px-4 py-2 rounded-lg bg-white border border-[rgba(0,0,0,0.1)] hover:bg-[#f8f9ff] transition-all duration-200 text-[#1a1d2e]">
+          <Button onClick={() => document.getElementById('license-import-input')?.click()} className="flex items-center gap-2 px-4 py-2 rounded-lg bg-white border border-[rgba(0,0,0,0.1)] hover:bg-[#f8f9ff] transition-all duration-200 text-[#1a1d2e]">
             <Upload className="h-4 w-4" />
             Import
-          </button>
+          </Button>
           <input id="license-import-input" type="file" accept=".csv,.json" className="hidden" onChange={async (e) => {
             const file = e.target.files?.[0];
             if (!file) return;
@@ -129,20 +131,20 @@ export function LicensesPage({ onNavigate, onSearch }: LicensesPageProps) {
               (e.target as HTMLInputElement).value = '';
             }
           }} />
-          <button 
+          <Button 
             onClick={() => exportLicensesToCSV(filteredLicenses)}
             className="flex items-center gap-2 px-4 py-2 rounded-lg bg-white border border-[rgba(0,0,0,0.1)] hover:bg-[#f8f9ff] transition-all duration-200 text-[#1a1d2e]">
             <Download className="h-4 w-4" />
             Export
-          </button>
+          </Button>
           {canWriteLicenses && (
-            <button 
+            <Button 
               onClick={() => onNavigate?.('licenses-add')}
               className="flex items-center gap-2 px-4 py-2 rounded-lg bg-gradient-to-r from-[#6366f1] to-[#8b5cf6] text-white hover:shadow-lg hover:shadow-[#6366f1]/30 transition-all duration-200"
             >
               <Plus className="h-4 w-4" />
               Add License
-            </button>
+            </Button>
           )}
         </motion.div>
       </div>

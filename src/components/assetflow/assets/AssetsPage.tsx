@@ -19,6 +19,8 @@ import { toast } from "sonner@2.0.3";
 import { AssetsTable } from "./AssetsTable";
 // removed unused Tabs import
 import { getMe, type ClientMe } from "../../../lib/auth/client";
+import { Button } from '@/components/ui/button';
+
 
 interface AssetsPageProps {
   onNavigate?: (page: string) => void;
@@ -241,7 +243,7 @@ export function AssetsPage({ onNavigate, onSearch }: AssetsPageProps) {
           transition={{ duration: 0.3 }}
           className="flex gap-3"
         >
-          <button
+          <Button
             onClick={() =>
               document.getElementById("asset-import-input")?.click()
             }
@@ -249,7 +251,7 @@ export function AssetsPage({ onNavigate, onSearch }: AssetsPageProps) {
           >
             <Upload className="h-4 w-4" />
             Import
-          </button>
+          </Button>
           <input
             id="asset-import-input"
             type="file"
@@ -278,21 +280,21 @@ export function AssetsPage({ onNavigate, onSearch }: AssetsPageProps) {
               }
             }}
           />
-          <button
+          <Button
             onClick={() => exportAssetsToCSV(filteredAssets)}
             className="flex items-center gap-2 px-4 py-2 rounded-lg bg-white border border-[rgba(0,0,0,0.1)] hover:bg-[#f8f9ff] transition-all duration-200 text-[#1a1d2e]"
           >
             <Download className="h-4 w-4" />
             Export
-          </button>
+          </Button>
           {canWriteAssets && (
-            <button
+            <Button
               onClick={() => onNavigate?.("assets-add")}
               className="flex items-center gap-2 px-4 py-2 rounded-lg bg-gradient-to-r from-[#6366f1] to-[#8b5cf6] text-white hover:shadow-lg hover:shadow-[#6366f1]/30 transition-all duration-200"
             >
               <Plus className="h-4 w-4" />
               Add Asset
-            </button>
+            </Button>
           )}
         </motion.div>
       </div>
@@ -338,7 +340,7 @@ export function AssetsPage({ onNavigate, onSearch }: AssetsPageProps) {
               </motion.button>
             ))}
           </div>
-          <button
+          <Button
             onClick={() => {
               try {
                 localStorage.removeItem("catalog.categories");
@@ -350,7 +352,7 @@ export function AssetsPage({ onNavigate, onSearch }: AssetsPageProps) {
             title="Refresh Catalog"
           >
             <RefreshCcw className="h-4 w-4" />
-          </button>
+          </Button>
         </div>
 
         {/* Search and Status */}

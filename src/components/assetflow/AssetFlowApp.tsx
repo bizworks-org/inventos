@@ -15,6 +15,8 @@ import { EditVendorPage } from './vendors/EditVendorPage';
 import { EventsPage } from './events/EventsPage';
 import SearchResultsPage from './search/SearchResultsPage';
 import { SettingsPage } from './settings/SettingsPage';
+import { Button } from '@/components/ui/button';
+
 
 export type AssetFlowPage = 
   | 'dashboard' 
@@ -131,12 +133,12 @@ export function AssetFlowApp() {
           <p className="text-[#64748b]">
             This page is under construction. Dashboard, IT Assets, Licenses, Vendors, and Events pages are fully functional!
           </p>
-          <button
+          <Button
             onClick={() => setCurrentPage('dashboard')}
             className="mt-4 px-6 py-2 bg-gradient-to-r from-[#6366f1] to-[#8b5cf6] text-white rounded-lg hover:shadow-lg transition-all duration-200"
           >
             Back to Dashboard
-          </button>
+          </Button>
         </div>
       </div>
     </AssetFlowLayout>

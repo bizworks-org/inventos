@@ -12,6 +12,8 @@ import { uploadWithProgress } from '../../../lib/upload';
 import { fetchVendorById, updateVendor } from '../../../lib/api';
 import { toast } from 'sonner@2.0.3';
 import { logVendorUpdated } from '../../../lib/events';
+import { Button } from '@/components/ui/button';
+
 
 interface EditVendorPageProps {
   vendorId: string;
@@ -358,13 +360,14 @@ export function EditVendorPage({ vendorId, onNavigate, onSearch }: EditVendorPag
         {/* Header: Back, Title, Save/Cancel */}
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center gap-4">
-            <button
+            <Button
+            variant='destructive'
               type="button"
               onClick={() => onNavigate?.('vendors')}
               className="p-2 rounded-lg hover:bg-white border border-transparent hover:border-[rgba(0,0,0,0.1)] transition-all duration-200"
             >
               <ArrowLeft className="h-5 w-5 text-[#64748b]" />
-            </button>
+            </Button>
             <div>
               <h1 className="text-3xl font-bold text-[#1a1d2e] mb-1">Edit Vendor</h1>
               <p className="text-[#64748b]">Modify vendor details and documents</p>
@@ -372,49 +375,53 @@ export function EditVendorPage({ vendorId, onNavigate, onSearch }: EditVendorPag
           </div>
 
           <div className="flex items-center gap-3">
-            <button type="submit" disabled={saving} className={`flex items-center justify-center gap-2 px-4 py-2 rounded-lg font-semibold transition-all duration-200 ${saving ? 'bg-gradient-to-r from-[#6366f1] to-[#8b5cf6] opacity-70 cursor-not-allowed' : 'bg-gradient-to-r from-[#6366f1] to-[#8b5cf6] text-white hover:shadow-lg hover:shadow-[#6366f1]/30'}`}>
+            <Button type="submit" disabled={saving} className={`flex items-center justify-center gap-2 px-4 py-2 rounded-lg font-semibold transition-all duration-200 ${saving ? 'bg-gradient-to-r from-[#6366f1] to-[#8b5cf6] opacity-70 cursor-not-allowed' : 'bg-gradient-to-r from-[#6366f1] to-[#8b5cf6] text-white hover:shadow-lg hover:shadow-[#6366f1]/30'}`}>
               <Save className="h-4 w-4" />{saving ? 'Saving…' : 'Save'}
-            </button>
-            <button type="button" onClick={() => onNavigate?.('vendors')} className="flex items-center justify-center gap-2 px-4 py-2 rounded-lg bg-white/10 text-[#111827] border border-[rgba(0,0,0,0.06)] font-semibold hover:bg-white/20 transition-all duration-200">
+            </Button>
+            <Button type="button" onClick={() => onNavigate?.('vendors')} className="flex items-center justify-center gap-2 px-4 py-2 rounded-lg bg-white/10 text-[#111827] border border-[rgba(0,0,0,0.06)] font-semibold hover:bg-white/20 transition-all duration-200">
               <X className="h-4 w-4" />Cancel
-            </button>
+            </Button>
           </div>
         </div>
 
         {/* Tabs (styled like Settings page) */}
         <div className="mb-4">
-          <nav
-            role="tablist"
-            aria-label="Edit vendor tabs"
-            className="flex w-full flex-wrap gap-2 rounded-xl border border-[rgba(0,0,0,0.08)] bg-[#f8f9ff] p-2"
-            onKeyDown={(e) => {
-              const idx = tabs.findIndex((t) => t.id === activeTab);
-              if (e.key === 'ArrowRight') {
-                const next = tabs[(idx + 1) % tabs.length];
-                setActiveTab(next.id);
-              } else if (e.key === 'ArrowLeft') {
-                const prev = tabs[(idx - 1 + tabs.length) % tabs.length];
-                setActiveTab(prev.id);
-              }
-            }}
-          >
-            {tabs.map((t) => (
-              <button
-                key={t.id}
-                id={`tab-${t.id}`}
-                role="tab"
-                type="button"
-                aria-selected={activeTab === t.id}
-                aria-controls={`panel-${t.id}`}
-                tabIndex={activeTab === t.id ? 0 : -1}
-                onClick={() => setActiveTab(t.id)}
-                className={`${activeTab === t.id ? 'bg-white border border-[rgba(0,0,0,0.12)] shadow-md text-[#1a1d2e] font-semibold' : ''} flex items-center gap-2 px-3 py-2 rounded-xl text-sm`}
-              >
-                {t.label}
-              </button>
-            ))}
-          </nav>
-        </div>
+  <nav
+    role="tablist"
+    aria-label="Edit vendor tabs"
+    className="flex w-full flex-wrap gap-2 rounded-xl border border-[rgba(0,0,0,0.08)] bg-[#f8f9ff] p-2"
+    onKeyDown={(e) => {
+      const idx = tabs.findIndex((t) => t.id === activeTab);
+      if (e.key === 'ArrowRight') {
+        const next = tabs[(idx + 1) % tabs.length];
+        setActiveTab(next.id);
+      } else if (e.key === 'ArrowLeft') {
+        const prev = tabs[(idx - 1 + tabs.length) % tabs.length];
+        setActiveTab(prev.id);
+      }
+    }}
+  >
+    {tabs.map((t) => (
+      <Button
+        key={t.id}
+        id={`tab-${t.id}`}
+        role="tab"
+        type="button"
+        aria-selected={activeTab === t.id}
+        aria-controls={`panel-${t.id}`}
+        tabIndex={activeTab === t.id ? 0 : -1}
+        onClick={() => setActiveTab(t.id)}
+        className={`flex-1 text-center ${
+          activeTab !== t.id
+            ? 'bg-white border border-[rgba(0,0,0,0.12)] shadow-md text-[#1a1d2e] font-semibold'
+            : ''
+        } flex items-center justify-center gap-2 px-3 py-2 rounded-xl text-sm`}
+      >
+        {t.label}
+      </Button>
+    ))}
+  </nav>
+</div>
 
         <div className="grid grid-cols-1 gap-6">
           <div className="space-y-6">
@@ -547,7 +554,7 @@ export function EditVendorPage({ vendorId, onNavigate, onSearch }: EditVendorPag
                   <div className="md:col-span-2">
                     <div className="flex items-center justify-between mb-2">
                       <h4 className="text-sm font-semibold text-[#1a1d2e]">Additional Contacts</h4>
-                      <button type="button" onClick={() => setFormData((f: any) => { const contacts = Array.isArray(f.contacts) ? [...f.contacts] : []; if (contacts.length >= 5) return f; contacts.push({}); return { ...f, contacts }; })} className="text-sm text-[#6366f1] hover:underline">Add Contact</button>
+                      <Button type="button" onClick={() => setFormData((f: any) => { const contacts = Array.isArray(f.contacts) ? [...f.contacts] : []; if (contacts.length >= 5) return f; contacts.push({}); return { ...f, contacts }; })} className="text-sm text-[#6366f1] hover:underline">Add Contact</Button>
                     </div>
 
                     <div className="space-y-4">
@@ -556,7 +563,7 @@ export function EditVendorPage({ vendorId, onNavigate, onSearch }: EditVendorPag
                           <div className="flex justify-between items-center mb-2">
                             <div className="text-sm font-medium">Contact #{idx + 1}</div>
                             <div className="flex items-center gap-2">
-                              <button type="button" onClick={() => setFormData((f: any) => ({ ...f, contacts: f.contacts.filter((_: any, i: number) => i !== idx) }))} className="text-xs text-red-600">Remove</button>
+                              <Button type="button" onClick={() => setFormData((f: any) => ({ ...f, contacts: f.contacts.filter((_: any, i: number) => i !== idx) }))} className="text-xs text-red-600">Remove</Button>
                             </div>
                           </div>
                           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
@@ -795,8 +802,8 @@ export function EditVendorPage({ vendorId, onNavigate, onSearch }: EditVendorPag
                             <div key={d.id} className="flex items-center justify-between bg-white p-2 rounded">
                               <div className="text-sm">{d.name}</div>
                               <div className="flex items-center gap-2">
-                                <button type="button" onClick={() => downloadDocument(d)} className="text-sm px-2 py-1 bg-white border rounded">Download</button>
-                                <button type="button" onClick={() => deleteDocument(d)} className="text-sm px-2 py-1 bg-red-50 text-red-700 border rounded">Delete</button>
+                                <Button type="button" onClick={() => downloadDocument(d)} className="text-sm px-2 py-1 bg-white border rounded">Download</Button>
+                                <Button type="button" onClick={() => deleteDocument(d)} className="text-sm px-2 py-1 bg-red-50 text-red-700 border rounded">Delete</Button>
                               </div>
                             </div>
                           ))}
@@ -877,7 +884,7 @@ export function EditVendorPage({ vendorId, onNavigate, onSearch }: EditVendorPag
                       />
                       {formData.gstCertificateName && (
                         <>
-                          <button type="button" onClick={async () => {
+                          <Button type="button" onClick={async () => {
                             if (!vendor) return;
                             try {
                               const res = await fetch(`/api/vendors/${vendorId}/gst-certificate`);
@@ -902,8 +909,8 @@ export function EditVendorPage({ vendorId, onNavigate, onSearch }: EditVendorPag
                               console.error(err);
                               toast.error('Failed to download certificate');
                             }
-                          }} className="px-3 py-2 bg-white text-[#111827] border rounded-lg">Download</button>
-                          <button type="button" onClick={async () => {
+                          }} className="px-3 py-2 bg-white text-[#111827] border rounded-lg">Download</Button>
+                          <Button type="button" onClick={async () => {
                             if (!vendor) return;
                             try {
                               const res = await fetch(`/api/vendors/${vendorId}/gst-certificate`, { method: 'DELETE' });
@@ -914,7 +921,7 @@ export function EditVendorPage({ vendorId, onNavigate, onSearch }: EditVendorPag
                               console.error(err);
                               toast.error('Failed to remove certificate');
                             }
-                          }} className="px-3 py-2 bg-red-50 text-red-700 border rounded-lg">Delete</button>
+                          }} className="px-3 py-2 bg-red-50 text-red-700 border rounded-lg">Delete</Button>
                         </>
                       )}
                     </div>

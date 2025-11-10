@@ -3,6 +3,8 @@
 import { Bell, Check, Loader2 } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import NotificationsPopup from './NotificationsPopup';
+import { Button } from '@/components/ui/button';
+
 
 export type NotificationItem = {
   id: number;
@@ -108,14 +110,18 @@ export function NotificationsBell() {
 
   return (
     <div className="relative" ref={ref}>
-      <button onClick={() => setOpen(o => !o)} className="relative p-2 rounded-lg hover:bg-[#f3f4f6] transition-colors" aria-label="Notifications">
+      <Button onClick={() => setOpen(o => !o)} 
+      variant="destructive"
+      //className="relative p-2 rounded-lg hover:bg-[#f3f4f6] transition-colors" 
+      className={`transition-all duration-200 group`}
+      aria-label="Notifications">
         <Bell className="h-5 w-5 text-[#1a1d2e]" />
         {mounted && unreadCount > 0 && ( // render badge only after mount to avoid SSR diff
           <span className="absolute -top-0.5 -right-0.5 min-w-4 h-4 px-1 text-[8px] leading-4 bg-[#ef4444] text-white rounded-full border-2 border-white flex items-center justify-center" suppressHydrationWarning>
             {unreadCount > 9 ? "9+" : unreadCount}
           </span>
         )}
-      </button>
+      </Button>
       {mounted && open && (
         <NotificationsPopup
           items={items}

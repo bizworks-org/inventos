@@ -3,6 +3,8 @@ import { Home, Package, FileText, Users, Activity, Settings, Shield } from 'luci
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useEffect, useMemo, useState } from 'react';
+import { Button } from '@/components/ui/button';
+
 
 type Role = 'admin' | 'user';
 
@@ -60,10 +62,10 @@ export function Sidebar({ currentPage = 'dashboard', me: meProp }: SidebarProps 
     admin: '/admin',
     admin_users: '/admin/users',
     admin_roles: '/admin/roles',
-    admin_catalog: '/admin/catalog',
+    // admin_catalog: '/admin/catalog',
     settings_events: '/events',
     settings_customization: '/settings/customization',
-    settings_catalog: '/admin/catalog',
+    settings_catalog: '/settings/customization',
     settings_general: '/settings',
     settings_configuration: '/settings/tech',
   };
@@ -128,11 +130,12 @@ export function Sidebar({ currentPage = 'dashboard', me: meProp }: SidebarProps 
       const children: NavItem[] = [
         { name: 'General', id: 'settings_general', icon: Settings, colorClass: 'text-violet-300' },
         { name: 'Events', id: 'settings_events', icon: Activity, colorClass: 'text-sky-300' },
-        { name: 'Customization', id: 'settings_customization', icon: Package, colorClass: 'text-rose-300' },
+        
       ];
       if (isAdminLike) {
-        children.push({ name: 'Configuration', id: 'settings_configuration', icon: Settings, colorClass: 'text-violet-300' });
-        children.push({ name: 'Catalog', id: 'settings_catalog', icon: Package, colorClass: 'text-red-300' });
+        children.push({ name: 'Customization', id: 'settings_customization', icon: Package, colorClass: 'text-rose-300' });
+        //children.push({ name: 'Configuration', id: 'settings_configuration', icon: Settings, colorClass: 'text-violet-300' });
+        //children.push({ name: 'Catalog', id: 'settings_catalog', icon: Package, colorClass: 'text-red-300' });
       }
       base.splice(idx + 1, 0, ...children);
     }
@@ -242,12 +245,12 @@ export function Sidebar({ currentPage = 'dashboard', me: meProp }: SidebarProps 
                   return role;
                 })()}</p>
               </div>
-              <button
+              <Button
                 onClick={async (e) => { e.preventDefault(); (await import('@/lib/auth/client')).signOut(); }}
                 className="ml-auto text-xs px-2 py-1 rounded bg-white/10 text-white hover:bg-white/20"
               >
                 Sign out
-              </button>
+              </Button>
             </div>
           )}
         </div>

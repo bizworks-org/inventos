@@ -9,6 +9,8 @@ import { License, AssetFieldDef } from '../../../lib/data';
 import { createLicense } from '../../../lib/api';
 import { logLicenseCreated } from '../../../lib/events';
 import FieldRenderer from '../assets/FieldRenderer';
+import { Button } from '@/components/ui/button';
+
 
 interface AddLicensePageProps {
   onNavigate?: (page: string) => void;
@@ -112,12 +114,12 @@ export function AddLicensePage({ onNavigate, onSearch }: AddLicensePageProps) {
       {/* Header */}
       <div className="flex items-center justify-between mb-8">
         <div className="flex items-center gap-4">
-          <button
+          <Button
             onClick={() => onNavigate?.('licenses')}
             className="p-2 rounded-lg hover:bg-white border border-transparent hover:border-[rgba(0,0,0,0.1)] transition-all duration-200"
           >
             <ArrowLeft className="h-5 w-5 text-[#64748b]" />
-          </button>
+          </Button>
           <div>
             <h1 className="text-3xl font-bold text-[#1a1d2e] mb-2">Add New License</h1>
             <p className="text-[#64748b]">Register a new software license or subscription</p>
@@ -357,21 +359,21 @@ export function AddLicensePage({ onNavigate, onSearch }: AddLicensePageProps) {
               </div>
 
               <div className="space-y-3">
-                <button
+                <Button
                   type="submit"
                   className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-white text-[#6366f1] rounded-lg font-semibold hover:shadow-lg transition-all duration-200"
                 >
                   <Save className="h-4 w-4" />
                   Save License
-                </button>
-                <button
+                </Button>
+                <Button
                   type="button"
                   onClick={() => onNavigate?.('licenses')}
                   className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-white/10 text-white rounded-lg font-semibold hover:bg-white/20 transition-all duration-200"
                 >
                   <X className="h-4 w-4" />
                   Cancel
-                </button>
+                </Button>
               </div>
 
               <div className="mt-6 pt-6 border-t border-white/20">

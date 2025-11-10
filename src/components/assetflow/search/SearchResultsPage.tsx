@@ -5,6 +5,8 @@ import { AssetFlowLayout } from '../layout/AssetFlowLayout';
 import type { Asset, Vendor, License } from '../../../lib/data';
 import { motion } from 'motion/react';
 import { Search } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+
 
 interface SearchResultsPageProps {
   query: string;
@@ -97,7 +99,7 @@ export default function SearchResultsPage({ query, onNavigate, onSearch }: Searc
                       <div className="text-sm text-[#64748b]">{a.type} • {a.serial_number ?? a.serialNumber} • {a.location}</div>
                     </div>
                     <div className="flex items-center gap-2">
-                      <button onClick={() => onNavigate?.('assets-edit', a.id)} className="px-3 py-2 rounded-lg bg-[#f8f9ff] border">Open</button>
+                      <Button onClick={() => onNavigate?.('assets-edit', a.id)} className="px-3 py-2 rounded-lg bg-[#f8f9ff] border">Open</Button>
                     </div>
                   </motion.div>
                 ))}
@@ -106,9 +108,9 @@ export default function SearchResultsPage({ query, onNavigate, onSearch }: Searc
             {/* Pagination */}
             {assetsTotal > perPage && (
               <div className="flex items-center gap-2 mt-3">
-                <button disabled={page <= 1} onClick={() => setPage(p => Math.max(1, p - 1))} className="px-3 py-1 rounded bg-white border">Prev</button>
+                <Button disabled={page <= 1} onClick={() => setPage(p => Math.max(1, p - 1))} className="px-3 py-1 rounded bg-white border">Prev</Button>
                 <div className="text-sm text-[#64748b]">Page {page}</div>
-                <button disabled={page * perPage >= assetsTotal} onClick={() => setPage(p => p + 1)} className="px-3 py-1 rounded bg-white border">Next</button>
+                <Button disabled={page * perPage >= assetsTotal} onClick={() => setPage(p => p + 1)} className="px-3 py-1 rounded bg-white border">Next</Button>
               </div>
             )}
           </section>
@@ -129,7 +131,7 @@ export default function SearchResultsPage({ query, onNavigate, onSearch }: Searc
                       <div className="text-sm text-[#64748b]">{v.contact_person ?? v.contactPerson} • {v.email}</div>
                     </div>
                     <div className="flex items-center gap-2">
-                      <button onClick={() => onNavigate?.('vendors-edit', v.id)} className="px-3 py-2 rounded-lg bg-[#f8f9ff] border">Open</button>
+                      <Button onClick={() => onNavigate?.('vendors-edit', v.id)} className="px-3 py-2 rounded-lg bg-[#f8f9ff] border">Open</Button>
                     </div>
                   </motion.div>
                 ))}
@@ -137,9 +139,9 @@ export default function SearchResultsPage({ query, onNavigate, onSearch }: Searc
             )}
             {vendorsTotal > perPage && (
               <div className="flex items-center gap-2 mt-3">
-                <button disabled={page <= 1} onClick={() => setPage(p => Math.max(1, p - 1))} className="px-3 py-1 rounded bg-white border">Prev</button>
+                <Button disabled={page <= 1} onClick={() => setPage(p => Math.max(1, p - 1))} className="px-3 py-1 rounded bg-white border">Prev</Button>
                 <div className="text-sm text-[#64748b]">Page {page}</div>
-                <button disabled={page * perPage >= vendorsTotal} onClick={() => setPage(p => p + 1)} className="px-3 py-1 rounded bg-white border">Next</button>
+                <Button disabled={page * perPage >= vendorsTotal} onClick={() => setPage(p => p + 1)} className="px-3 py-1 rounded bg-white border">Next</Button>
               </div>
             )}
           </section>
@@ -160,7 +162,7 @@ export default function SearchResultsPage({ query, onNavigate, onSearch }: Searc
                       <div className="text-sm text-[#64748b]">{l.vendor} • Owner: {l.owner}</div>
                     </div>
                     <div className="flex items-center gap-2">
-                      <button onClick={() => onNavigate?.('licenses-edit', l.id)} className="px-3 py-2 rounded-lg bg-[#f8f9ff] border">Open</button>
+                      <Button onClick={() => onNavigate?.('licenses-edit', l.id)} className="px-3 py-2 rounded-lg bg-[#f8f9ff] border">Open</Button>
                     </div>
                   </motion.div>
                 ))}
@@ -168,9 +170,9 @@ export default function SearchResultsPage({ query, onNavigate, onSearch }: Searc
             )}
             {licensesTotal > perPage && (
               <div className="flex items-center gap-2 mt-3">
-                <button disabled={page <= 1} onClick={() => setPage(p => Math.max(1, p - 1))} className="px-3 py-1 rounded bg-white border">Prev</button>
+                <Button disabled={page <= 1} onClick={() => setPage(p => Math.max(1, p - 1))} className="px-3 py-1 rounded bg-white border">Prev</Button>
                 <div className="text-sm text-[#64748b]">Page {page}</div>
-                <button disabled={page * perPage >= licensesTotal} onClick={() => setPage(p => p + 1)} className="px-3 py-1 rounded bg-white border">Next</button>
+                <Button disabled={page * perPage >= licensesTotal} onClick={() => setPage(p => p + 1)} className="px-3 py-1 rounded bg-white border">Next</Button>
               </div>
             )}
           </section>

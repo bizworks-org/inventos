@@ -3,6 +3,8 @@ import { Edit2, Trash2, AlertCircle, CheckCircle, AlertTriangle } from 'lucide-r
 import { License } from '../../../lib/data';
 import { useState } from 'react';
 import { usePrefs } from '../layout/PrefsContext';
+import { Button } from '@/components/ui/button';
+
 
 interface LicensesTableProps {
   licenses: License[];
@@ -105,12 +107,12 @@ export function LicensesTable({ licenses, onNavigate, onDelete, canWrite = true 
           <p className="text-[#64748b] mb-6">
             Try adjusting your filters or search query to find what you're looking for.
           </p>
-          <button
+          <Button
             onClick={() => onNavigate?.('licenses-add')}
             className="px-6 py-2 bg-gradient-to-r from-[#6366f1] to-[#8b5cf6] text-white rounded-lg hover:shadow-lg transition-all duration-200"
           >
             Add Your First License
-          </button>
+          </Button>
         </div>
       </motion.div>
     );
@@ -236,20 +238,20 @@ export function LicensesTable({ licenses, onNavigate, onDelete, canWrite = true 
                     <div className={`flex items-center ${density==='ultra-compact' ? 'gap-1.5' : 'gap-2'}`}>
                       {canWrite && (
                         <>
-                          <button
+                          <Button
                             onClick={() => handleEdit(license.id)}
                             className={`rounded-lg hover:bg-[#6366f1]/10 text-[#6366f1] transition-all duration-200 group ${density==='ultra-compact' ? 'p-1.5' : 'p-2'}`}
                             title="Edit license"
                           >
                             <Edit2 className={`${density==='ultra-compact' ? 'h-3.5 w-3.5' : 'h-4 w-4'} group-hover:scale-110 transition-transform`} />
-                          </button>
-                          <button
+                          </Button>
+                          <Button
                             onClick={() => handleDelete(license.id, license.name)}
                             className={`rounded-lg hover:bg-[#ef4444]/10 text-[#ef4444] transition-all duration-200 group ${density==='ultra-compact' ? 'p-1.5' : 'p-2'}`}
                             title="Delete license"
                           >
                             <Trash2 className={`${density==='ultra-compact' ? 'h-3.5 w-3.5' : 'h-4 w-4'} group-hover:scale-110 transition-transform`} />
-                          </button>
+                          </Button>
                         </>
                       )}
                     </div>

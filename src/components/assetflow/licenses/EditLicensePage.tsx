@@ -10,6 +10,8 @@ import FieldRenderer from '../assets/FieldRenderer';
 import { fetchLicenseById, updateLicense } from '../../../lib/api';
 import { toast } from 'sonner@2.0.3';
 import { logLicenseCreated, logLicenseExpiring } from '../../../lib/events';
+import { Button } from '@/components/ui/button';
+
 
 interface EditLicensePageProps {
   licenseId: string;
@@ -276,8 +278,8 @@ export function EditLicensePage({ licenseId, onNavigate, onSearch }: EditLicense
               </div>
 
               <div className="space-y-3">
-                <button type="submit" disabled={saving} className={`w-full flex items-center justify-center gap-2 px-4 py-3 rounded-lg font-semibold transition-all duration-200 ${saving ? 'bg-white/70 text-[#6366f1]/60 cursor-not-allowed' : 'bg-white text-[#6366f1] hover:shadow-lg'}`}><Save className="h-4 w-4" />{saving ? 'Saving…' : 'Save License'}</button>
-                <button type="button" onClick={() => onNavigate?.('licenses')} className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-white/10 text-white rounded-lg font-semibold hover:bg-white/20 transition-all duration-200"><X className="h-4 w-4" />Cancel</button>
+                <Button type="submit" disabled={saving} className={`w-full flex items-center justify-center gap-2 px-4 py-3 rounded-lg font-semibold transition-all duration-200 ${saving ? 'bg-white/70 text-[#6366f1]/60 cursor-not-allowed' : 'bg-white text-[#6366f1] hover:shadow-lg'}`}><Save className="h-4 w-4" />{saving ? 'Saving…' : 'Save License'}</Button>
+                <Button type="button" onClick={() => onNavigate?.('licenses')} className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-white/10 text-white rounded-lg font-semibold hover:bg-white/20 transition-all duration-200"><X className="h-4 w-4" />Cancel</Button>
               </div>
 
               <div className="mt-6 pt-6 border-t border-white/20"><p className="text-xs text-white/70">Fields marked with * are required</p></div>

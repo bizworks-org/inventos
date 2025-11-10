@@ -10,6 +10,8 @@ import { logVendorCreated } from '../../../lib/events';
 import FieldRenderer from '../assets/FieldRenderer';
 import FileDropzone from '../../ui/FileDropzone';
 import { uploadWithProgress } from '../../../lib/upload';
+import { Button } from '@/components/ui/button';
+
 
 interface AddVendorPageProps {
   onNavigate?: (page: string) => void;
@@ -233,24 +235,24 @@ export function AddVendorPage({ onNavigate, onSearch }: AddVendorPageProps) {
       {/* Header */}
       <div className="flex items-center justify-between mb-8">
         <div className="flex items-center gap-4">
-          <button
+          <Button
             onClick={() => onNavigate?.('vendors')}
             className="p-2 rounded-lg hover:bg-white border border-transparent hover:border-[rgba(0,0,0,0.1)] transition-all duration-200"
           >
             <ArrowLeft className="h-5 w-5 text-[#64748b]" />
-          </button>
+          </Button>
           <div>
             <h1 className="text-3xl font-bold text-[#1a1d2e] mb-2">Add New Vendor</h1>
             <p className="text-[#64748b]">Register a new vendor or partner</p>
           </div>
         </div>
         <div className="flex items-center gap-3">
-          <button type="submit" disabled={saving} className={`flex items-center justify-center gap-2 px-4 py-2 rounded-lg font-semibold transition-all duration-200 ${saving ? 'bg-gradient-to-r from-[#6366f1] to-[#8b5cf6] opacity-70 cursor-not-allowed' : 'bg-gradient-to-r from-[#6366f1] to-[#8b5cf6] text-white hover:shadow-lg hover:shadow-[#6366f1]/30'}`}>
+          <Button type="submit" disabled={saving} className={`flex items-center justify-center gap-2 px-4 py-2 rounded-lg font-semibold transition-all duration-200 ${saving ? 'bg-gradient-to-r from-[#6366f1] to-[#8b5cf6] opacity-70 cursor-not-allowed' : 'bg-gradient-to-r from-[#6366f1] to-[#8b5cf6] text-white hover:shadow-lg hover:shadow-[#6366f1]/30'}`}>
             <Save className="h-4 w-4" />{saving ? 'Saving…' : 'Save'}
-          </button>
-          <button type="button" onClick={() => onNavigate?.('vendors')} className="flex items-center justify-center gap-2 px-4 py-2 rounded-lg bg-white/10 text-[#111827] border border-[rgba(0,0,0,0.06)] font-semibold hover:bg-white/20 transition-all duration-200">
+          </Button>
+          <Button type="button" onClick={() => onNavigate?.('vendors')} className="flex items-center justify-center gap-2 px-4 py-2 rounded-lg bg-white/10 text-[#111827] border border-[rgba(0,0,0,0.06)] font-semibold hover:bg-white/20 transition-all duration-200">
             <X className="h-4 w-4" />Cancel
-          </button>
+          </Button>
         </div>
       </div>
 
@@ -273,7 +275,7 @@ export function AddVendorPage({ onNavigate, onSearch }: AddVendorPageProps) {
             }}
           >
             {tabs.map((t) => (
-              <button
+              <Button
                 key={t.id}
                 id={`tab-${t.id}`}
                 role="tab"
@@ -285,7 +287,7 @@ export function AddVendorPage({ onNavigate, onSearch }: AddVendorPageProps) {
                 className={`${activeTab === t.id ? 'bg-white border border-[rgba(0,0,0,0.12)] shadow-md text-[#1a1d2e] font-semibold' : ''} flex items-center gap-2 px-3 py-2 rounded-xl text-sm`}
               >
                 {t.label}
-              </button>
+              </Button>
             ))}
           </nav>
         </div>
@@ -534,14 +536,14 @@ export function AddVendorPage({ onNavigate, onSearch }: AddVendorPageProps) {
               <div className="mt-4">
                 <div className="flex items-center justify-between mb-2">
                   <h4 className="text-sm font-semibold text-[#1a1d2e]">Additional Contacts</h4>
-                  <button type="button" onClick={() => {
+                  <Button type="button" onClick={() => {
                     setFormData((f: any) => {
                       const contacts = Array.isArray(f.contacts) ? [...f.contacts] : [];
                       if (contacts.length >= 5) return f;
                       contacts.push({});
                       return { ...f, contacts };
                     });
-                  }} className="text-sm text-[#6366f1] hover:underline">Add Contact</button>
+                  }} className="text-sm text-[#6366f1] hover:underline">Add Contact</Button>
                 </div>
                 <div className="space-y-4">
                   {((formData as any).contacts || []).map((c: any, idx: number) => (
@@ -549,7 +551,7 @@ export function AddVendorPage({ onNavigate, onSearch }: AddVendorPageProps) {
                       <div className="flex justify-between items-center mb-2">
                         <div className="text-sm font-medium">Contact #{idx + 1}</div>
                         <div className="flex items-center gap-2">
-                          <button type="button" onClick={() => setFormData((f: any) => ({ ...f, contacts: f.contacts.filter((_: any, i: number) => i !== idx) }))} className="text-xs text-red-600">Remove</button>
+                          <Button type="button" onClick={() => setFormData((f: any) => ({ ...f, contacts: f.contacts.filter((_: any, i: number) => i !== idx) }))} className="text-xs text-red-600">Remove</Button>
                         </div>
                       </div>
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">

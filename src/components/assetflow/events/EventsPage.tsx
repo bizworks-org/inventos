@@ -7,6 +7,8 @@ import { AssetFlowLayout } from '../layout/AssetFlowLayout';
 import { SystemEvent, EventSeverity, EntityType } from '../../../lib/events';
 import { fetchEvents } from '../../../lib/api';
 import { EventsTimeline } from './EventsTimeline';
+import { Button } from '@/components/ui/button';
+
 
 interface EventsPageProps {
   onNavigate?: (page: string) => void;
@@ -121,17 +123,17 @@ export function EventsPage({ onNavigate, onSearch }: EventsPageProps) {
           transition={{ duration: 0.3 }}
           className="flex gap-3"
         >
-          <button 
+          <Button 
             onClick={handleRefresh}
             className="flex items-center gap-2 px-4 py-2 rounded-lg bg-white border border-[rgba(0,0,0,0.1)] hover:bg-[#f8f9ff] transition-all duration-200 text-[#1a1d2e]"
           >
             <RefreshCw className={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
             Refresh
-          </button>
-          <button className="flex items-center gap-2 px-4 py-2 rounded-lg bg-gradient-to-r from-[#6366f1] to-[#8b5cf6] text-white hover:shadow-lg hover:shadow-[#6366f1]/30 transition-all duration-200">
+          </Button>
+          <Button className="flex items-center gap-2 px-4 py-2 rounded-lg bg-gradient-to-r from-[#6366f1] to-[#8b5cf6] text-white hover:shadow-lg hover:shadow-[#6366f1]/30 transition-all duration-200">
             <Download className="h-4 w-4" />
             Export Log
-          </button>
+          </Button>
         </motion.div>
       </div>
 

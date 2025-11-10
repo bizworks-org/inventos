@@ -5,6 +5,8 @@ import { useEffect, useState, useMemo } from 'react';
 import { usePrefs } from '../layout/PrefsContext';
 import { sendAssetConsent } from '../../../lib/api';
 import { toast } from 'sonner@2.0.3';
+import { Button } from '@/components/ui/button';
+
 
 interface AssetsTableProps {
   assets: Asset[];
@@ -163,6 +165,24 @@ export function AssetsTable({ assets, onNavigate, onDelete, canWrite = true }: A
     } catch {}
   }, []);
 
+  // DEBUG: log classNames of delete buttons so we can verify variant classes are applied at runtime
+  useEffect(() => {
+    try {
+      // delay slightly to allow React to commit DOM
+      setTimeout(() => {
+        const els = Array.from(document.querySelectorAll('[data-test^="asset-delete-"]')) as HTMLElement[];
+        if (els.length) {
+          console.info('DEBUG: Found delete buttons:', els.length);
+          els.forEach((el) => console.info('DEBUG: delete-button classList ->', el.getAttribute('class')));
+        } else {
+          console.info('DEBUG: No delete buttons found (yet)');
+        }
+      }, 250);
+    } catch (e) {
+      // ignore
+    }
+  }, [assets]);
+
   const cellPad = density === 'ultra-compact' ? 'px-3 py-1.5' : density === 'compact' ? 'px-4 py-2' : 'px-6 py-4';
   const headPad = density === 'ultra-compact' ? 'px-3 py-2' : density === 'compact' ? 'px-4 py-2.5' : 'px-6 py-4';
   const iconBox = density === 'ultra-compact' ? 'h-8 w-8 text-[10px]' : density === 'compact' ? 'h-9 w-9 text-[11px]' : 'h-10 w-10 text-xs';
@@ -195,12 +215,12 @@ export function AssetsTable({ assets, onNavigate, onDelete, canWrite = true }: A
           <p className="text-[#64748b] mb-6">
             Try adjusting your filters or search query to find what you're looking for.
           </p>
-          <button
+          <Button
             onClick={() => onNavigate?.('assets-add')}
             className="px-6 py-2 bg-gradient-to-r from-[#6366f1] to-[#8b5cf6] text-white rounded-lg hover:shadow-lg transition-all duration-200"
           >
             Add Your First Asset
-          </button>
+          </Button>
         </div>
       </motion.div>
     );
@@ -361,7 +381,7 @@ export function AssetsTable({ assets, onNavigate, onDelete, canWrite = true }: A
                     {canWrite && (
                       <>
                         {consentRequired && (
-                          <button
+                          <Button
                           onClick={async () => {
                             try {
                               if (!asset.assignedEmail) {
@@ -380,22 +400,27 @@ export function AssetsTable({ assets, onNavigate, onDelete, canWrite = true }: A
                           title="Resend consent"
                           >
                           <Mail className={`${density==='ultra-compact' ? 'h-3.5 w-3.5' : 'h-4 w-4'} group-hover:scale-110 transition-transform`} />
-                          </button>
+                          </Button>
                         )}
-                        <button
+                        <Button
                           onClick={() => handleEdit(asset.id)}
-                          className={`rounded-lg text-[#6366f1] transition-all duration-200 group ${density==='ultra-compact' ? 'p-1.5' : 'p-2'} hover:bg-[#6366f1]/10`}
+                          variant="outline"
+                          size="sm"
+                          className={`transition-all duration-200 group ${density==='ultra-compact' ? 'p-1.5' : 'p-2'}`}
                           title="Edit asset"
                         >
                           <Edit2 className={`${density==='ultra-compact' ? 'h-3.5 w-3.5' : 'h-4 w-4'} group-hover:scale-110 transition-transform`} />
-                        </button>
-                        <button
+                        </Button>
+                        <Button
+                          data-test={`asset-delete-${asset.id}`}
                           onClick={() => handleDelete(asset.id, asset.name)}
-                          className={`rounded-lg text-[#ef4444] transition-all duration-200 group ${density==='ultra-compact' ? 'p-1.5' : 'p-2'} hover:bg-[#ef4444]/10`}
+                          variant="red"
+                          size="sm"
+                          className={`transition-all duration-200 group ${density==='ultra-compact' ? 'p-1.5' : 'p-2'}`}
                           title="Delete asset"
                         >
                           <Trash2 className={`${density==='ultra-compact' ? 'h-3.5 w-3.5' : 'h-4 w-4'} group-hover:scale-110 transition-transform`} />
-                        </button>
+                        </Button>
                       </>
                     )}
                   </div>

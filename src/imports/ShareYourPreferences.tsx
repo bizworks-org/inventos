@@ -1,4 +1,6 @@
 import { imgGroup7, imgVector, imgVector94, imgSun, imgVector1, imgVector2, imgVector3, imgVector4, imgVector5, imgVector6, imgVector7, imgVector8, imgVector9, imgGroup, imgGroup101, imgGroup8 } from "./svg-j9919";
+import { Button } from '@/components/ui/button';
+
 
 interface ShareYourPreferencesProps {
   onBack?: () => void;
@@ -353,7 +355,7 @@ export default function ShareYourPreferences({ onBack, onNavigateToWaiting }: Sh
 
         {/* Finish Button */}
         <div className="flex justify-end">
-          <button 
+          <Button 
             onClick={onNavigateToWaiting}
             className="bg-[#b282e5] rounded-[26.25px] w-[140px] h-[56.121px] flex items-center justify-center gap-[13.696px] cursor-pointer hover:bg-[#9f70d9] transition-colors"
           >
@@ -363,7 +365,7 @@ export default function ShareYourPreferences({ onBack, onNavigateToWaiting }: Sh
             <span className="font-['Space_Grotesk'] font-bold text-[#f6f8ff] text-[15.978px] tracking-[-0.8788px]">
               Finish
             </span>
-          </button>
+          </Button>
         </div>
       </div>
     </div>

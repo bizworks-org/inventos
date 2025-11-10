@@ -388,7 +388,7 @@ export function AddAssetPage({ onNavigate, onSearch }: AddAssetPageProps) {
                   </label>
                   <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
                     {categoryList.map(cat => (
-                      <button
+                      <Button
                         key={cat}
                         type="button"
                         onClick={() => {
@@ -414,7 +414,7 @@ export function AddAssetPage({ onNavigate, onSearch }: AddAssetPageProps) {
                         `}
                       >
                         {cat}
-                      </button>
+                      </Button>
                     ))}
                   </div>
                 </div>
@@ -804,7 +804,7 @@ export function AddAssetPage({ onNavigate, onSearch }: AddAssetPageProps) {
                           onChange={(e) => setExtraFields((arr) => arr.map((it, i) => i === idx ? { ...it, value: e.target.value } : it))}
                           className="md:col-span-6 w-full px-3 py-2 rounded-lg bg-[#f8f9ff] border border-[rgba(0,0,0,0.08)]"
                         />
-                        <button type="button" onClick={() => setExtraFields((arr) => arr.filter((_, i) => i !== idx))} className="md:col-span-1 px-3 py-2 rounded-lg bg-white border border-[rgba(0,0,0,0.08)] hover:bg-[#fee2e2] text-[#ef4444]">Remove</button>
+                        <Button type="button" onClick={() => setExtraFields((arr) => arr.filter((_, i) => i !== idx))} className="md:col-span-1 px-3 py-2 rounded-lg bg-white border border-[rgba(0,0,0,0.08)] hover:bg-[#fee2e2] text-[#ef4444]">Remove</Button>
                       </div>
                     ))}
                   </div>
