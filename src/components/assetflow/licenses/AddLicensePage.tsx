@@ -115,6 +115,7 @@ export function AddLicensePage({ onNavigate, onSearch }: AddLicensePageProps) {
       <div className="flex items-center justify-between mb-8">
         <div className="flex items-center gap-4">
           <Button
+            variant='outline'
             onClick={() => onNavigate?.('licenses')}
             className="p-2 rounded-lg hover:bg-white border border-transparent hover:border-[rgba(0,0,0,0.1)] transition-all duration-200"
           >

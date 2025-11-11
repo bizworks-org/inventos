@@ -428,13 +428,17 @@ export function AssetsPage({ onNavigate, onSearch }: AssetsPageProps) {
               <span className="font-semibold text-[#1a1d2e]">{filteredAssets.length}</span> assets
             </p>
             <div className="flex items-center gap-3">
-              <label className="text-sm text-[#64748b]">Items per page</label>
-              <select value={perPage} onChange={(e) => setPerPage(Number(e.target.value))} className="px-2 py-1 rounded-lg bg-white border">
-                <option value={10}>10</option>
-                <option value={20}>20</option>
-                <option value={50}>50</option>
-                <option value={100}>100</option>
-              </select>
+              {filteredAssets.length >= 30 && (
+                <>
+                  <label className="text-sm text-[#64748b]">Items per page</label>
+                  <select value={perPage} onChange={(e) => setPerPage(Number(e.target.value))} className="px-2 py-1 rounded-lg bg-white border">
+                    <option value={10}>10</option>
+                    <option value={20}>20</option>
+                    <option value={50}>50</option>
+                    <option value={100}>100</option>
+                  </select>
+                </>
+              )}
             </div>
           </div>
         </div>
