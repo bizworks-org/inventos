@@ -75,7 +75,7 @@ export default function BrandingTab({ brandName, setBrandName, logoUrl, setLogoU
                 </Button>
               </div>
             </div>
-            <p className="text-xs text-[#94a3b8] mt-1">PNG/SVG/JPG/WebP up to a few MB. Stored under /public/brand.</p>
+            <p className="text-xs text-[#94a3b8] mt-1">PNG/SVG/JPG/WebP up to a 5 MB</p>
           </div>
         </div>
         <div className="flex justify-end mt-6">

@@ -53,6 +53,15 @@ export function LicensesPage({ onNavigate, onSearch }: LicensesPageProps) {
     return matchesType && matchesCompliance && matchesSearch;
   }), [licenses, selectedType, selectedCompliance, searchQuery]);
 
+  // Pagination
+  const [page, setPage] = useState<number>(1);
+  const [perPage, setPerPage] = useState<number>(20);
+  useEffect(() => { setPage(1); }, [searchQuery, selectedType, selectedCompliance, perPage]);
+  const paginatedLicenses = useMemo(() => {
+    const start = (page - 1) * perPage;
+    return filteredLicenses.slice(start, start + perPage);
+  }, [filteredLicenses, page, perPage]);
+
   const licenseTypes: LicenseTypeFilter[] = ['All', 'Software', 'SaaS', 'Cloud'];
   const canWriteLicenses = !!me?.permissions?.includes('licenses_write') || me?.role === 'admin';
 
@@ -301,16 +310,32 @@ export function LicensesPage({ onNavigate, onSearch }: LicensesPageProps) {
         </div>
 
         {/* Results Count */}
-        <div className="mt-4 pt-4 border-t border-[rgba(0,0,0,0.05)]">
+        <div className="mt-4 pt-4 border-t border-[rgba(0,0,0,0.05)] flex items-center justify-between">
           <p className="text-sm text-[#64748b]">
-            Showing <span className="font-semibold text-[#1a1d2e]">{filteredLicenses.length}</span> of{' '}
-            <span className="font-semibold text-[#1a1d2e]">{licenses.length}</span> licenses
+            Showing <span className="font-semibold text-[#1a1d2e]">{Math.min(filteredLicenses.length, perPage)}</span> of{' '}
+            <span className="font-semibold text-[#1a1d2e]">{filteredLicenses.length}</span> licenses
           </p>
+          <div className="flex items-center gap-3">
+            <label className="text-sm text-[#64748b]">Items per page</label>
+            <select value={perPage} onChange={(e) => setPerPage(Number(e.target.value))} className="px-2 py-1 rounded-lg bg-white border">
+              <option value={10}>10</option>
+              <option value={20}>20</option>
+              <option value={50}>50</option>
+              <option value={100}>100</option>
+            </select>
+          </div>
         </div>
       </motion.div>
 
   {/* Licenses Table */}
-  <LicensesTable licenses={filteredLicenses} onNavigate={onNavigate} onDelete={canWriteLicenses ? handleDelete : undefined} />
+  <LicensesTable licenses={paginatedLicenses} onNavigate={onNavigate} onDelete={canWriteLicenses ? handleDelete : undefined} />
+  {filteredLicenses.length > 20 && (
+    <div className="flex items-center gap-2 mt-4 justify-center">
+      <Button disabled={page <= 1} onClick={() => setPage(p => Math.max(1, p - 1))} className="px-3 py-1 rounded bg-white border">Prev</Button>
+      <div className="text-sm text-[#64748b]">Page {page}</div>
+      <Button disabled={page * perPage >= filteredLicenses.length} onClick={() => setPage(p => p + 1)} className="px-3 py-1 rounded bg-white border">Next</Button>
+    </div>
+  )}
     </AssetFlowLayout>
   );
 }

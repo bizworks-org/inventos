@@ -11,6 +11,7 @@ import { Asset, AssetFieldDef, AssetFieldType } from '../../../lib/data';
 import { createAsset, sendAssetConsent } from '../../../lib/api';
 import { logAssetCreated } from '../../../lib/events';
 import FieldRenderer from './FieldRenderer';
+import Barcode from '../../ui/Barcode';
 
 interface AddAssetPageProps {
   onNavigate?: (page: string) => void;
@@ -810,6 +811,18 @@ export function AddAssetPage({ onNavigate, onSearch }: AddAssetPageProps) {
                   </div>
                 </div>
               )}
+              {/* Barcode Section */}
+              <div className="mt-8 border-t border-[rgba(0,0,0,0.06)] pt-6">
+                <h4 className="text-sm font-semibold text-[#1a1d2e] mb-3">Barcode</h4>
+                <p className="text-xs text-[#64748b] mb-3">A scannable barcode is generated automatically from the Serial Number. Ensure the Serial Number is unique and final before printing.</p>
+                <Barcode
+                  value={formData.serialNumber.trim()}
+                  displayValue={false}
+                  height={70}
+                  width={2}
+                  label={formData.serialNumber ? undefined : 'Waiting for Serial Number'}
+                />
+              </div>
             </motion.div>
           </div>
 

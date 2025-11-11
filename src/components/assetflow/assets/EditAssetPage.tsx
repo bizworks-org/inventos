@@ -1041,19 +1041,19 @@ export default function EditAssetPage({
               )}
             </div>
 
-            <div className="flex gap-4">
+            <div className="gap-4">
               <Button
                 type="submit"
                 disabled={saving}
                 className={`${
                   saving ? "cursor-not-allowed" : ""
-                } gap-2 px-4 py-3 bg-white text-[#6366f1] rounded-lg font-semibold hover:shadow-lg transition-all duration-200`}
+                } gap-2 px-4 w-full py-3 bg-white text-[#6366f1] rounded-lg font-semibold hover:shadow-lg transition-all duration-200`}
               >
                 <Save className="h-4 w-4" />
                 {saving ? "Saving..." : "Save Changes"}
               </Button>
               <Button
-                className="gap-2 px-8 py-3 mr-4 bg-white/10 text-white rounded-lg font-semibold hover:bg-white/20 transition-all duration-200"
+                className="gap-2 w-full px-8 py-3 mt-4 bg-white/10 text-white rounded-lg font-semibold hover:bg-white/20 transition-all duration-200"
                 onClick={() => onNavigate?.("assets")}
               >
                 <X className="h-4 w-4" />

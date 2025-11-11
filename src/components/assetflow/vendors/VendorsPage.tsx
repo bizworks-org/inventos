@@ -53,6 +53,15 @@ export function VendorsPage({ onNavigate, onSearch }: VendorsPageProps) {
     return matchesType && matchesStatus && matchesSearch;
   }), [vendors, selectedType, selectedStatus, searchQuery]);
 
+  // Pagination
+  const [page, setPage] = useState<number>(1);
+  const [perPage, setPerPage] = useState<number>(20);
+  useEffect(() => { setPage(1); }, [searchQuery, selectedType, selectedStatus, perPage]);
+  const paginatedVendors = useMemo(() => {
+    const start = (page - 1) * perPage;
+    return filteredVendors.slice(start, start + perPage);
+  }, [filteredVendors, page, perPage]);
+
   const vendorTypes: VendorTypeFilter[] = ['All', 'Hardware', 'Software', 'Services', 'Cloud'];
   const canWriteVendors = !!me?.permissions?.includes('vendors_write') || me?.role === 'admin';
 
@@ -307,16 +316,32 @@ export function VendorsPage({ onNavigate, onSearch }: VendorsPageProps) {
         </div>
 
         {/* Results Count */}
-        <div className="mt-4 pt-4 border-t border-[rgba(0,0,0,0.05)]">
+        <div className="mt-4 pt-4 border-t border-[rgba(0,0,0,0.05)] flex items-center justify-between">
           <p className="text-sm text-[#64748b]">
-            Showing <span className="font-semibold text-[#1a1d2e]">{filteredVendors.length}</span> of{' '}
-            <span className="font-semibold text-[#1a1d2e]">{vendors.length}</span> vendors
+            Showing <span className="font-semibold text-[#1a1d2e]">{Math.min(filteredVendors.length, perPage)}</span> of{' '}
+            <span className="font-semibold text-[#1a1d2e]">{filteredVendors.length}</span> vendors
           </p>
+          <div className="flex items-center gap-3">
+            <label className="text-sm text-[#64748b]">Items per page</label>
+            <select value={perPage} onChange={(e) => setPerPage(Number(e.target.value))} className="px-2 py-1 rounded-lg bg-white border">
+              <option value={10}>10</option>
+              <option value={20}>20</option>
+              <option value={50}>50</option>
+              <option value={100}>100</option>
+            </select>
+          </div>
         </div>
       </motion.div>
 
   {/* Vendors Table */}
-  <VendorsTable vendors={filteredVendors} onNavigate={onNavigate} onDelete={canWriteVendors ? (id, _name) => handleDelete(id) : undefined} />
+  <VendorsTable vendors={paginatedVendors} onNavigate={onNavigate} onDelete={canWriteVendors ? (id, _name) => handleDelete(id) : undefined} />
+  {filteredVendors.length > 20 && (
+    <div className="flex items-center gap-2 mt-4 justify-center">
+      <Button disabled={page <= 1} onClick={() => setPage(p => Math.max(1, p - 1))} className="px-3 py-1 rounded bg-white border">Prev</Button>
+      <div className="text-sm text-[#64748b]">Page {page}</div>
+      <Button disabled={page * perPage >= filteredVendors.length} onClick={() => setPage(p => p + 1)} className="px-3 py-1 rounded bg-white border">Next</Button>
+    </div>
+  )}
     </AssetFlowLayout>
   );
 }

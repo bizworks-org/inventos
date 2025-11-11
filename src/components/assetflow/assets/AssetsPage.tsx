@@ -196,6 +196,20 @@ export function AssetsPage({ onNavigate, onSearch }: AssetsPageProps) {
     });
   }, [assets, selectedCategory, selectedStatus, searchQuery]);
 
+  // Pagination state (show pagination when > 20 items)
+  const [page, setPage] = useState<number>(1);
+  const [perPage, setPerPage] = useState<number>(20);
+
+  // Reset page when filters/search change or perPage changes
+  useEffect(() => {
+    setPage(1);
+  }, [searchQuery, selectedCategory, selectedStatus, perPage]);
+
+  const paginatedAssets = useMemo(() => {
+    const start = (page - 1) * perPage;
+    return filteredAssets.slice(start, start + perPage);
+  }, [filteredAssets, page, perPage]);
+
   const assetCategories: AssetCategory[] = useMemo(() => {
     if (catalog && catalog.length)
       return ["All", ...catalog.map((c) => c.name)];
@@ -408,28 +422,41 @@ export function AssetsPage({ onNavigate, onSearch }: AssetsPageProps) {
 
         {/* Results Count */}
         <div className="mt-4 pt-4 border-t border-[rgba(0,0,0,0.05)]">
-          <p className="text-sm text-[#64748b]">
-            Showing{" "}
-            <span className="font-semibold text-[#1a1d2e]">
-              {filteredAssets.length}
-            </span>{" "}
-            of{" "}
-            <span className="font-semibold text-[#1a1d2e]">
-              {assets.length}
-            </span>{" "}
-            assets
-          </p>
+          <div className="mt-4 pt-4 border-t border-[rgba(0,0,0,0.05)] flex items-center justify-between">
+            <p className="text-sm text-[#64748b]">
+              Showing <span className="font-semibold text-[#1a1d2e]">{Math.min(filteredAssets.length, perPage)}</span> of{' '}
+              <span className="font-semibold text-[#1a1d2e]">{filteredAssets.length}</span> assets
+            </p>
+            <div className="flex items-center gap-3">
+              <label className="text-sm text-[#64748b]">Items per page</label>
+              <select value={perPage} onChange={(e) => setPerPage(Number(e.target.value))} className="px-2 py-1 rounded-lg bg-white border">
+                <option value={10}>10</option>
+                <option value={20}>20</option>
+                <option value={50}>50</option>
+                <option value={100}>100</option>
+              </select>
+            </div>
+          </div>
         </div>
       </motion.div>
 
       {/* Assets Table */}
       {error && <div className="mb-4 text-sm text-red-600">{error}</div>}
       <AssetsTable
-        assets={filteredAssets}
+        assets={paginatedAssets}
         onNavigate={onNavigate}
         onDelete={canWriteAssets ? handleDelete : undefined}
         canWrite={canWriteAssets}
       />
+
+      {/* Pagination controls */}
+      {filteredAssets.length > 20 && (
+        <div className="flex items-center gap-2 mt-4 justify-center">
+          <Button disabled={page <= 1} onClick={() => setPage(p => Math.max(1, p - 1))} className="px-3 py-1 rounded bg-white border">Prev</Button>
+          <div className="text-sm text-[#64748b]">Page {page}</div>
+          <Button disabled={page * perPage >= filteredAssets.length} onClick={() => setPage(p => p + 1)} className="px-3 py-1 rounded bg-white border">Next</Button>
+        </div>
+      )}
     </AssetFlowLayout>
   );
 }

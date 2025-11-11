@@ -1,10 +1,15 @@
-import { motion } from 'motion/react';
-import { Edit2, Trash2, AlertCircle, CheckCircle, AlertTriangle } from 'lucide-react';
-import { License } from '../../../lib/data';
-import { useState } from 'react';
-import { usePrefs } from '../layout/PrefsContext';
-import { Button } from '@/components/ui/button';
-
+import { motion } from "motion/react";
+import {
+  Edit2,
+  Trash2,
+  AlertCircle,
+  CheckCircle,
+  AlertTriangle,
+} from "lucide-react";
+import { License } from "../../../lib/data";
+import { useState } from "react";
+import { usePrefs } from "../layout/PrefsContext";
+import { Button } from "@/components/ui/button";
 
 interface LicensesTableProps {
   licenses: License[];
@@ -13,52 +18,58 @@ interface LicensesTableProps {
   canWrite?: boolean;
 }
 
-function getComplianceColor(compliance: License['compliance']) {
+function getComplianceColor(compliance: License["compliance"]) {
   const colors = {
-    'Compliant': 'bg-[#10b981]/10 text-[#10b981] border-[#10b981]/20',
-    'Warning': 'bg-[#f59e0b]/10 text-[#f59e0b] border-[#f59e0b]/20',
-    'Non-Compliant': 'bg-[#ef4444]/10 text-[#ef4444] border-[#ef4444]/20'
+    Compliant: "bg-[#10b981]/10 text-[#10b981] border-[#10b981]/20",
+    Warning: "bg-[#f59e0b]/10 text-[#f59e0b] border-[#f59e0b]/20",
+    "Non-Compliant": "bg-[#ef4444]/10 text-[#ef4444] border-[#ef4444]/20",
   };
   return colors[compliance];
 }
 
-function getComplianceIcon(compliance: License['compliance']) {
+function getComplianceIcon(compliance: License["compliance"]) {
   switch (compliance) {
-    case 'Compliant':
+    case "Compliant":
       return <CheckCircle className="h-3.5 w-3.5" />;
-    case 'Warning':
+    case "Warning":
       return <AlertTriangle className="h-3.5 w-3.5" />;
-    case 'Non-Compliant':
+    case "Non-Compliant":
       return <AlertCircle className="h-3.5 w-3.5" />;
   }
 }
 
-function getTypeColor(type: License['type']) {
+function getTypeColor(type: License["type"]) {
   const colors = {
-    'Software': 'bg-[#6366f1]/10 text-[#6366f1]',
-    'SaaS': 'bg-[#8b5cf6]/10 text-[#8b5cf6]',
-    'Cloud': 'bg-[#ec4899]/10 text-[#ec4899]'
+    Software: "bg-[#6366f1]/10 text-[#6366f1]",
+    SaaS: "bg-[#8b5cf6]/10 text-[#8b5cf6]",
+    Cloud: "bg-[#ec4899]/10 text-[#ec4899]",
   };
   return colors[type];
 }
 
 function useCurrencyFormatter() {
   const { formatCurrency } = usePrefs();
-  return (amount: number) => formatCurrency(amount, { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+  return (amount: number) =>
+    formatCurrency(amount, {
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0,
+    });
 }
 
 function formatDate(dateString: string): string {
-  return new Date(dateString).toLocaleDateString('en-US', {
-    year: 'numeric',
-    month: 'short',
-    day: 'numeric'
+  return new Date(dateString).toLocaleDateString("en-US", {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
   });
 }
 
 function getDaysUntilExpiry(dateString: string): number {
   const expiryDate = new Date(dateString);
   const now = new Date();
-  return Math.floor((expiryDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+  return Math.floor(
+    (expiryDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)
+  );
 }
 
 function isExpiringSoon(dateString: string): boolean {
@@ -73,16 +84,31 @@ function isExpired(dateString: string): boolean {
 
 // Seat UI removed from table; helper functions removed
 
-export function LicensesTable({ licenses, onNavigate, onDelete, canWrite = true }: LicensesTableProps) {
+export function LicensesTable({
+  licenses,
+  onNavigate,
+  onDelete,
+  canWrite = true,
+}: LicensesTableProps) {
   const [hoveredRow, setHoveredRow] = useState<string | null>(null);
   const formatCurrency = useCurrencyFormatter();
   const { density } = usePrefs();
-  const cellPad = density === 'ultra-compact' ? 'px-3 py-1.5' : density === 'compact' ? 'px-4 py-2' : 'px-6 py-4';
-  const headPad = density === 'ultra-compact' ? 'px-3 py-2' : density === 'compact' ? 'px-4 py-2.5' : 'px-6 py-4';
-  const subText = density === 'ultra-compact' ? 'text-[11px]' : 'text-xs';
+  const cellPad =
+    density === "ultra-compact"
+      ? "px-3 py-1.5"
+      : density === "compact"
+      ? "px-4 py-2"
+      : "px-6 py-4";
+  const headPad =
+    density === "ultra-compact"
+      ? "px-3 py-2"
+      : density === "compact"
+      ? "px-4 py-2.5"
+      : "px-6 py-4";
+  const subText = density === "ultra-compact" ? "text-[11px]" : "text-xs";
 
   const handleEdit = (licenseId: string) => {
-    onNavigate?.('licenses-edit', licenseId);
+    onNavigate?.("licenses-edit", licenseId);
   };
 
   const handleDelete = (licenseId: string, licenseName: string) => {
@@ -103,12 +129,15 @@ export function LicensesTable({ licenses, onNavigate, onDelete, canWrite = true 
           <div className="h-16 w-16 rounded-full bg-[#f8f9ff] flex items-center justify-center mx-auto mb-4">
             <AlertCircle className="h-8 w-8 text-[#6366f1]" />
           </div>
-          <h3 className="text-xl font-semibold text-[#1a1d2e] mb-2">No licenses found</h3>
+          <h3 className="text-xl font-semibold text-[#1a1d2e] mb-2">
+            No licenses found
+          </h3>
           <p className="text-[#64748b] mb-6">
-            Try adjusting your filters or search query to find what you're looking for.
+            Try adjusting your filters or search query to find what you're
+            looking for.
           </p>
           <Button
-            onClick={() => onNavigate?.('licenses-add')}
+            onClick={() => onNavigate?.("licenses-add")}
             className="px-6 py-2 bg-gradient-to-r from-[#6366f1] to-[#8b5cf6] text-white rounded-lg hover:shadow-lg transition-all duration-200"
           >
             Add Your First License
@@ -129,36 +158,51 @@ export function LicensesTable({ licenses, onNavigate, onDelete, canWrite = true 
         <table className="w-full">
           <thead>
             <tr className="bg-gradient-to-r from-[#f8f9ff] to-[#f0f4ff] border-b border-[rgba(0,0,0,0.05)]">
-              <th className={`${headPad} text-left text-xs font-semibold text-[#64748b] uppercase tracking-wider`}>
+              <th
+                className={`${headPad} text-left text-xs font-semibold text-[#64748b] uppercase tracking-wider`}
+              >
                 License
               </th>
-              <th className={`${headPad} text-left text-xs font-semibold text-[#64748b] uppercase tracking-wider`}>
+              <th
+                className={`${headPad} text-left text-xs font-semibold text-[#64748b] uppercase tracking-wider`}
+              >
                 Vendor
               </th>
-              <th className={`${headPad} text-left text-xs font-semibold text-[#64748b] uppercase tracking-wider`}>
+              <th
+                className={`${headPad} text-left text-xs font-semibold text-[#64748b] uppercase tracking-wider`}
+              >
                 Owner
               </th>
               {/* Seats column removed */}
-              <th className={`${headPad} text-left text-xs font-semibold text-[#64748b] uppercase tracking-wider`}>
+              <th
+                className={`${headPad} text-left text-xs font-semibold text-[#64748b] uppercase tracking-wider`}
+              >
                 Expiration
               </th>
-              <th className={`${headPad} text-left text-xs font-semibold text-[#64748b] uppercase tracking-wider`}>
+              <th
+                className={`${headPad} text-left text-xs font-semibold text-[#64748b] uppercase tracking-wider`}
+              >
                 Compliance
               </th>
-              <th className={`${headPad} text-left text-xs font-semibold text-[#64748b] uppercase tracking-wider`}>
+              <th
+                className={`${headPad} text-left text-xs font-semibold text-[#64748b] uppercase tracking-wider`}
+              >
                 Annual Cost
               </th>
-              <th className={`${headPad} text-left text-xs font-semibold text-[#64748b] uppercase tracking-wider`}>
+              <th
+                className={`${headPad} text-left text-xs font-semibold text-[#64748b] uppercase tracking-wider`}
+              >
                 Actions
               </th>
             </tr>
           </thead>
           <tbody>
             {licenses.map((license, index) => {
-              const daysUntilExpiry = getDaysUntilExpiry(license.expirationDate);
+              const daysUntilExpiry = getDaysUntilExpiry(
+                license.expirationDate
+              );
               const expired = isExpired(license.expirationDate);
               const expiringSoon = isExpiringSoon(license.expirationDate);
-              
 
               return (
                 <motion.tr
@@ -170,14 +214,24 @@ export function LicensesTable({ licenses, onNavigate, onDelete, canWrite = true 
                   onMouseLeave={() => setHoveredRow(null)}
                   className={`
                     border-b border-[rgba(0,0,0,0.05)] transition-all duration-200
-                    ${hoveredRow === license.id ? 'bg-gradient-to-r from-[#f8f9ff] to-transparent' : ''}
+                    ${
+                      hoveredRow === license.id
+                        ? "bg-gradient-to-r from-[#f8f9ff] to-transparent"
+                        : ""
+                    }
                   `}
                 >
                   {/* License Name & Type */}
                   <td className={`${cellPad}`}>
                     <div>
-                      <p className="font-semibold text-[#1a1d2e] mb-1">{license.name}</p>
-                      <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold ${getTypeColor(license.type)}`}>
+                      <p className="font-semibold text-[#1a1d2e] mb-1">
+                        {license.name}
+                      </p>
+                      <span
+                        className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold ${getTypeColor(
+                          license.type
+                        )}`}
+                      >
                         {license.type}
                       </span>
                     </div>
@@ -185,12 +239,24 @@ export function LicensesTable({ licenses, onNavigate, onDelete, canWrite = true 
 
                   {/* Vendor */}
                   <td className={`${cellPad}`}>
-                    <p className={`text-sm text-[#64748b] ${density==='ultra-compact' ? 'text-[12px]' : ''}`}>{license.vendor}</p>
+                    <p
+                      className={`text-sm text-[#64748b] ${
+                        density === "ultra-compact" ? "text-[12px]" : ""
+                      }`}
+                    >
+                      {license.vendor}
+                    </p>
                   </td>
 
                   {/* Owner */}
                   <td className={`${cellPad}`}>
-                    <p className={`text-sm text-[#1a1d2e] font-medium ${density==='ultra-compact' ? 'text-[12px]' : ''}`}>{license.owner}</p>
+                    <p
+                      className={`text-sm text-[#1a1d2e] font-medium ${
+                        density === "ultra-compact" ? "text-[12px]" : ""
+                      }`}
+                    >
+                      {license.owner}
+                    </p>
                   </td>
 
                   {/* Seats column removed from table */}
@@ -198,28 +264,40 @@ export function LicensesTable({ licenses, onNavigate, onDelete, canWrite = true 
                   {/* Expiration */}
                   <td className={`${cellPad}`}>
                     <div>
-                      <p className={`text-sm font-medium ${
-                        expired ? 'text-[#ef4444]' : 
-                        expiringSoon ? 'text-[#f59e0b]' : 
-                        'text-[#64748b]'
-                      } ${density==='ultra-compact' ? 'text-[12px]' : ''}`}>
+                      <p
+                        className={`text-sm font-medium ${
+                          expired
+                            ? "text-[#ef4444]"
+                            : expiringSoon
+                            ? "text-[#f59e0b]"
+                            : "text-[#64748b]"
+                        } ${density === "ultra-compact" ? "text-[12px]" : ""}`}
+                      >
                         {formatDate(license.expirationDate)}
                       </p>
                       {expired && (
-                        <p className={`${subText} text-[#ef4444] font-semibold mt-0.5`}>Expired!</p>
+                        <p
+                          className={`${subText} text-[#ef4444] font-semibold mt-0.5`}
+                        >
+                          Expired!
+                        </p>
                       )}
                       {!expired && expiringSoon && (
-                        <p className={`${subText} text-[#f59e0b] mt-0.5`}>{daysUntilExpiry} days left</p>
+                        <p className={`${subText} text-[#f59e0b] mt-0.5`}>
+                          {daysUntilExpiry} days left
+                        </p>
                       )}
                     </div>
                   </td>
 
                   {/* Compliance */}
                   <td className={`${cellPad}`}>
-                    <span className={`
+                    <span
+                      className={`
                       inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold border
                       ${getComplianceColor(license.compliance)}
-                    `}>
+                    `}
+                    >
                       {getComplianceIcon(license.compliance)}
                       {license.compliance}
                     </span>
@@ -227,7 +305,13 @@ export function LicensesTable({ licenses, onNavigate, onDelete, canWrite = true 
 
                   {/* Annual Cost */}
                   <td className={`${cellPad}`}>
-                    <p className={`text-sm font-semibold text-[#1a1d2e] ${density==='ultra-compact' ? 'text-[12px]' : ''}`}>{formatCurrency(license.cost)}</p>
+                    <p
+                      className={`text-sm font-semibold text-[#1a1d2e] ${
+                        density === "ultra-compact" ? "text-[12px]" : ""
+                      }`}
+                    >
+                      {formatCurrency(license.cost)}
+                    </p>
                     <p className={`${subText} text-[#94a3b8] mt-0.5`}>
                       {formatCurrency(license.cost / 12)}/mo
                     </p>
@@ -235,22 +319,46 @@ export function LicensesTable({ licenses, onNavigate, onDelete, canWrite = true 
 
                   {/* Actions */}
                   <td className={`${cellPad}`}>
-                    <div className={`flex items-center ${density==='ultra-compact' ? 'gap-1.5' : 'gap-2'}`}>
+                    <div
+                      className={`flex items-center ${
+                        density === "ultra-compact" ? "gap-1.5" : "gap-2"
+                      }`}
+                    >
                       {canWrite && (
                         <>
                           <Button
+                            variant="outline"
                             onClick={() => handleEdit(license.id)}
-                            className={`rounded-lg hover:bg-[#6366f1]/10 text-[#6366f1] transition-all duration-200 group ${density==='ultra-compact' ? 'p-1.5' : 'p-2'}`}
+                            className={`rounded-lg hover:bg-[#6366f1]/10 text-[#6366f1] transition-all duration-200 group ${
+                              density === "ultra-compact" ? "p-1.5" : "p-2"
+                            }`}
                             title="Edit license"
                           >
-                            <Edit2 className={`${density==='ultra-compact' ? 'h-3.5 w-3.5' : 'h-4 w-4'} group-hover:scale-110 transition-transform`} />
+                            <Edit2
+                              className={`${
+                                density === "ultra-compact"
+                                  ? "h-3.5 w-3.5"
+                                  : "h-4 w-4"
+                              } group-hover:scale-110 transition-transform`}
+                            />
                           </Button>
                           <Button
-                            onClick={() => handleDelete(license.id, license.name)}
-                            className={`rounded-lg hover:bg-[#ef4444]/10 text-[#ef4444] transition-all duration-200 group ${density==='ultra-compact' ? 'p-1.5' : 'p-2'}`}
+                            variant="outline"
+                            onClick={() =>
+                              handleDelete(license.id, license.name)
+                            }
+                            className={`rounded-lg hover:bg-[#ef4444]/10 text-[#ef4444] transition-all duration-200 group ${
+                              density === "ultra-compact" ? "p-1.5" : "p-2"
+                            }`}
                             title="Delete license"
                           >
-                            <Trash2 className={`${density==='ultra-compact' ? 'h-3.5 w-3.5' : 'h-4 w-4'} group-hover:scale-110 transition-transform`} />
+                            <Trash2
+                              className={`${
+                                density === "ultra-compact"
+                                  ? "h-3.5 w-3.5"
+                                  : "h-4 w-4"
+                              } group-hover:scale-110 transition-transform`}
+                            />
                           </Button>
                         </>
                       )}
