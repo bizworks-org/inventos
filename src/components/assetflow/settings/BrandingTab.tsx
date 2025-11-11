@@ -1,7 +1,6 @@
 "use client";
 
-import React from 'react';
-import FileDropzone from '../../ui/FileDropzone';
+import React, { useRef } from 'react';
 import { Button } from '../../ui/button';
 import { uploadWithProgress } from '../../../lib/upload';
 
@@ -15,6 +14,28 @@ interface Props {
 }
 
 export default function BrandingTab({ brandName, setBrandName, logoUrl, setLogoUrl, brandingMsg, setBrandingMsg }: Props) {
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    const f = files?.[0];
+    if (!f) return;
+    setBrandingMsg(null);
+    try {
+      const { promise } = uploadWithProgress('/api/branding/logo', f, {}, (pct) => {
+        setBrandingMsg(`Uploading… ${pct}%`);
+      });
+      const data = await promise;
+      setLogoUrl(data.logoUrl || null);
+      setBrandingMsg('OK: Logo uploaded');
+      try { document.documentElement.setAttribute('data-brand-logo', data.logoUrl || ''); } catch { }
+    } catch (e: any) {
+      setBrandingMsg(`Error: ${e?.message || e}`);
+    } finally {
+      // reset input so same file can be selected again if needed
+      try { if (fileInputRef.current) fileInputRef.current.value = ''; } catch {}
+    }
+  };
   return (
     <div className="space-y-6">
       <div>
@@ -41,22 +62,17 @@ export default function BrandingTab({ brandName, setBrandName, logoUrl, setLogoU
                 )}
               </div>
               <div>
-                <FileDropzone id="branding-logo-dropzone" accept="image/*" multiple={false} onFilesAdded={async (arr) => {
-                  const f = arr?.[0];
-                  if (!f) return;
-                  setBrandingMsg(null);
-                  try {
-                    const { promise } = uploadWithProgress('/api/branding/logo', f, {}, (pct) => {
-                      setBrandingMsg(`Uploading… ${pct}%`);
-                    });
-                    const data = await promise;
-                    setLogoUrl(data.logoUrl || null);
-                    setBrandingMsg('OK: Logo uploaded');
-                    try { document.documentElement.setAttribute('data-brand-logo', data.logoUrl || ''); } catch { }
-                  } catch (e: any) {
-                    setBrandingMsg(`Error: ${e?.message || e}`);
-                  }
-                }} />
+                <input
+                  ref={fileInputRef}
+                  id="branding-logo-input"
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={handleFileChange}
+                />
+                <Button type="button" onClick={() => fileInputRef.current?.click()} className="px-3 py-1">
+                  Upload logo
+                </Button>
               </div>
             </div>
             <p className="text-xs text-[#94a3b8] mt-1">PNG/SVG/JPG/WebP up to a few MB. Stored under /public/brand.</p>

@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { query } from '@/lib/db';
+import { readMeFromCookie } from '@/lib/auth/permissions';
+import { dbFindUserById } from '@/lib/auth/db-users';
 
 export async function GET(req: NextRequest) {
   const email = req.nextUrl.searchParams.get('email');
@@ -40,7 +42,23 @@ export async function GET(req: NextRequest) {
 export async function PUT(req: NextRequest) {
   const body = await req.json();
   const { user_email, name, prefs, notify, mode, events, integrations, assetFields, vendorFields, licenseFields } = body;
-  if (!user_email) return NextResponse.json({ error: 'user_email required' }, { status: 400 });
+  let email = user_email;
+  // If client did not provide user_email, try to resolve from session cookie/token
+  if (!email) {
+    try {
+      const me = await readMeFromCookie();
+      if (me?.email) email = me.email;
+      else if (me?.id) {
+        // try to load email from DB by id as a last resort
+        try {
+          const dbUser = await dbFindUserById(me.id);
+          if (dbUser?.email) email = dbUser.email;
+        } catch {}
+      }
+    } catch {}
+  }
+
+  if (!email) return NextResponse.json({ error: 'user_email required' }, { status: 400 });
 
   // Try to persist into explicit columns (vendor_fields, license_fields) if they exist.
   // The SQL will include the new columns; if DB schema is older and lacks the columns, this query may fail.
@@ -51,7 +69,7 @@ export async function PUT(req: NextRequest) {
 
   try {
     await query(sql, {
-      user_email,
+      user_email: email,
       name,
       prefs: JSON.stringify(prefs ?? {}),
       notify: JSON.stringify(notify ?? {}),
@@ -71,7 +89,7 @@ export async function PUT(req: NextRequest) {
     // Merge existing stored asset_fields JSON to include vendor & license fields under a unified shape
     // Load existing row to merge if present
     try {
-      const existing = await query('SELECT asset_fields FROM user_settings WHERE user_email = :email', { email: user_email });
+      const existing = await query('SELECT asset_fields FROM user_settings WHERE user_email = :email', { email });
       let merged = {} as any;
       if (existing && existing.length) {
         try { merged = JSON.parse(existing[0].asset_fields || '{}'); } catch { merged = existing[0].asset_fields || {}; }
@@ -83,7 +101,7 @@ export async function PUT(req: NextRequest) {
       merged.licenseFields = licenseFields ?? merged.licenseFields ?? [];
 
       await query(fallbackSql, {
-        user_email,
+        user_email: email,
         name,
         prefs: JSON.stringify(prefs ?? {}),
         notify: JSON.stringify(notify ?? {}),

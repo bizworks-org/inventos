@@ -25,6 +25,38 @@ export function CustomizationPage({ onNavigate, onSearch }: Props) {
   const [licenseFields, setLicenseFields] = useState<AssetFieldDef[]>([]);
   const [customTarget, setCustomTarget] = useState<'asset' | 'vendor' | 'license'>('asset');
 
+  // Load saved custom fields from localStorage on mount so changes made elsewhere are reflected
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem('assetflow:settings');
+      if (!raw) return;
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed?.assetFields)) setAssetFields(parsed.assetFields as AssetFieldDef[]);
+      if (Array.isArray(parsed?.vendorFields)) setVendorFields(parsed.vendorFields as AssetFieldDef[]);
+      if (Array.isArray(parsed?.licenseFields)) setLicenseFields(parsed.licenseFields as AssetFieldDef[]);
+    } catch (e) {
+      // ignore invalid cached settings
+    }
+
+    const handler = () => {
+      try {
+        const raw = localStorage.getItem('assetflow:settings');
+        if (!raw) return;
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed?.assetFields)) setAssetFields(parsed.assetFields as AssetFieldDef[]);
+        if (Array.isArray(parsed?.vendorFields)) setVendorFields(parsed.vendorFields as AssetFieldDef[]);
+        if (Array.isArray(parsed?.licenseFields)) setLicenseFields(parsed.licenseFields as AssetFieldDef[]);
+      } catch {}
+    };
+
+    window.addEventListener('assetflow:settings-saved', handler as EventListener);
+    window.addEventListener('storage', handler as any);
+    return () => {
+      window.removeEventListener('assetflow:settings-saved', handler as EventListener);
+      window.removeEventListener('storage', handler as any);
+    };
+  }, []);
+
   const addCurrentField = () => {
     const def: AssetFieldDef = { key: '', label: '', required: false, placeholder: '', type: 'text' };
     if (customTarget === 'asset') setAssetFields((arr) => [...arr, def]);
@@ -47,8 +79,20 @@ export function CustomizationPage({ onNavigate, onSearch }: Props) {
       // Try to preserve existing settings stored locally (name/email/prefs)
       const raw = localStorage.getItem('assetflow:settings');
       const base = raw ? JSON.parse(raw) : {};
+      // Always try to resolve the currently signed-in user from the server first
+      let serverEmail = '';
+      try {
+        const res = await fetch('/api/auth/me', { cache: 'no-store' });
+        if (res.ok) {
+          const json = await res.json();
+          serverEmail = json?.user?.email || '';
+        }
+      } catch (e) {
+        // ignore network errors — we'll fall back to local storage value
+      }
+
       const payload: any = {
-        user_email: base.email || base.user_email || '',
+        user_email: serverEmail || base.email || base.user_email || '',
         name: base.name || '',
         prefs: base.prefs || {},
         notify: base.notify || {},
@@ -59,8 +103,21 @@ export function CustomizationPage({ onNavigate, onSearch }: Props) {
         vendorFields,
         licenseFields,
       };
+
+      // Persist the resolved email back into localStorage so future saves don't need server lookup
+      try {
+        const nextStored = { ...base, assetFields, vendorFields, licenseFields };
+        if (payload.user_email) nextStored.user_email = payload.user_email;
+        localStorage.setItem('assetflow:settings', JSON.stringify(nextStored));
+      } catch {}
+
+      // If we still don't have an email and server couldn't resolve it, abort to avoid 400
+      if (!payload.user_email) {
+        try { alert('Unable to determine your account email. Please sign in or ensure your settings are present in the browser before saving.'); } catch {}
+        return;
+      }
+
       await saveSettings(payload);
-      localStorage.setItem('assetflow:settings', JSON.stringify({ ...base, assetFields, vendorFields, licenseFields }));
       try { window.dispatchEvent(new Event('assetflow:settings-saved')); } catch {}
       try { alert('Fields saved'); } catch {}
     } catch (e) {
@@ -220,11 +277,11 @@ export function CustomizationPage({ onNavigate, onSearch }: Props) {
                         <Label className="mb-1 block">ZipCode (6 digits)</Label>
                         <Input value={newLocation.zipcode} onChange={(e) => setNewLocation({ ...newLocation, zipcode: e.target.value })} placeholder="e.g., 560001" />
                       </div>
-                      <div className="md:col-span-4">
+                      <div className="md:col-span-4 pt-4">
                         <Button onClick={addLocation}>Add Location</Button>
                       </div>
                     </div>
-                    <div className="overflow-x-auto">
+                    <div className="overflow-x-auto pt-4">
                       {locations.length === 0 ? (
                         <p className="text-sm text-[#64748b]">No locations defined yet.</p>
                       ) : (

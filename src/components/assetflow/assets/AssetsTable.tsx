@@ -414,7 +414,7 @@ export function AssetsTable({ assets, onNavigate, onDelete, canWrite = true }: A
                         <Button
                           data-test={`asset-delete-${asset.id}`}
                           onClick={() => handleDelete(asset.id, asset.name)}
-                          variant="red"
+                          variant="outline"
                           size="sm"
                           className={`transition-all duration-200 group ${density==='ultra-compact' ? 'p-1.5' : 'p-2'}`}
                           title="Delete asset"

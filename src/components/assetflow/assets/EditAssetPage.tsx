@@ -1,18 +1,18 @@
 "use client";
 
-import React, { useEffect, useMemo, useState } from 'react';
-import { motion } from 'motion/react';
-import { ArrowLeft, Save, X } from 'lucide-react';
-import { Button } from '../../ui/button';
-import { toast } from 'sonner';
+import React, { useEffect, useMemo, useState } from "react";
+import { motion } from "motion/react";
+import { ArrowLeft, Save, X } from "lucide-react";
+import { Button } from "../../ui/button";
+import { toast } from "sonner";
 
-import { usePrefs } from '../layout/PrefsContext';
-import { AssetFlowLayout } from '../layout/AssetFlowLayout';
-import FieldRenderer from './FieldRenderer';
+import { usePrefs } from "../layout/PrefsContext";
+import { AssetFlowLayout } from "../layout/AssetFlowLayout";
+import FieldRenderer from "./FieldRenderer";
 
-import { Asset, AssetFieldDef } from '../../../lib/data';
-import { fetchAssetById, updateAsset } from '../../../lib/api';
-import { logAssetUpdated } from '../../../lib/events';
+import { Asset, AssetFieldDef } from "../../../lib/data";
+import { fetchAssetById, updateAsset } from "../../../lib/api";
+import { logAssetUpdated } from "../../../lib/events";
 
 type UiCategory = {
   id: number;
@@ -33,7 +33,7 @@ interface Props {
 
 const typesByCategoryFromCatalog = (
   cats: UiCategory[] | null,
-  catName: string,
+  catName: string
 ): Array<{ id?: number; name: string }> => {
   if (!cats) return [];
   const found = cats.find((category) => category.name === catName);
@@ -43,30 +43,38 @@ const typesByCategoryFromCatalog = (
 
 const categoryOfTypeIdFromCatalog = (
   cats: UiCategory[] | null,
-  id: number | string | null | undefined,
+  id: number | string | null | undefined
 ): string | null => {
   if (!cats || id == null) return null;
   const targetId = String(id);
   for (const category of cats) {
-    if (category.types.some((type) => type.id != null && String(type.id) === targetId)) {
+    if (
+      category.types.some(
+        (type) => type.id != null && String(type.id) === targetId
+      )
+    ) {
       return category.name;
     }
   }
   return null;
 };
 
-const assetStatuses: Asset['status'][] = [
-  'In Store (New)',
-  'In Store (Used)',
-  'Allocated',
-  'In Repair (In Store)',
-  'In Repair (Allocated)',
-  'Faulty – To Be Scrapped',
-  'Scrapped / Disposed',
-  'Lost / Missing',
+const assetStatuses: Asset["status"][] = [
+  "In Store (New)",
+  "In Store (Used)",
+  "Allocated",
+  "In Repair (In Store)",
+  "In Repair (Allocated)",
+  "Faulty – To Be Scrapped",
+  "Scrapped / Disposed",
+  "Lost / Missing",
 ];
 
-export default function EditAssetPage({ assetId, onNavigate, onSearch }: Props) {
+export default function EditAssetPage({
+  assetId,
+  onNavigate,
+  onSearch,
+}: Props) {
   const { currencySymbol, formatCurrency } = usePrefs();
 
   const [asset, setAsset] = useState<Asset | null>(null);
@@ -75,53 +83,86 @@ export default function EditAssetPage({ assetId, onNavigate, onSearch }: Props) 
   const [saveSuccess, setSaveSuccess] = useState(false);
 
   const [catalog, setCatalog] = useState<UiCategory[] | null>(null);
-  const [category, setCategory] = useState<AssetCategory>('');
-  const [assetTypeId, setAssetTypeId] = useState<string>('');
+  const [category, setCategory] = useState<AssetCategory>("");
+  const [assetTypeId, setAssetTypeId] = useState<string>("");
 
   const [formData, setFormData] = useState({
-    name: '',
-    serialNumber: '',
-    assignedTo: '',
-    department: '',
-    status: 'In Store (New)' as Asset['status'],
-    purchaseDate: '',
-    eosDate: '',
-    eolDate: '',
-    cost: '',
-    location: '',
-    processor: '',
-    ram: '',
-    storage: '',
-    os: '',
+    name: "",
+    serialNumber: "",
+    assignedTo: "",
+    department: "",
+    status: "In Store (New)" as Asset["status"],
+    purchaseDate: "",
+    eosDate: "",
+    eolDate: "",
+    cost: "",
+    location: "",
+    processor: "",
+    ram: "",
+    storage: "",
+    os: "",
   });
 
-  const [locationsList, setLocationsList] = useState<Array<{ id?: string; code?: string; name: string; address?: string; zipcode?: string }>>([]);
+  const [locationsList, setLocationsList] = useState<
+    Array<{
+      id?: string;
+      code?: string;
+      name: string;
+      address?: string;
+      zipcode?: string;
+    }>
+  >([]);
 
   useEffect(() => {
     const load = () => {
       try {
-        const raw = localStorage.getItem('assetflow:locations');
+        const raw = localStorage.getItem("assetflow:locations");
         if (!raw) return setLocationsList([]);
         const parsed = JSON.parse(raw);
         if (Array.isArray(parsed)) setLocationsList(parsed.filter(Boolean));
-      } catch { setLocationsList([]); }
+      } catch {
+        setLocationsList([]);
+      }
     };
     load();
-    const handler = (ev: any) => { try { load(); } catch {} };
-    window.addEventListener('assetflow:locations-updated', handler as EventListener);
-    return () => window.removeEventListener('assetflow:locations-updated', handler as EventListener);
+    const handler = (ev: any) => {
+      try {
+        load();
+      } catch {}
+    };
+    window.addEventListener(
+      "assetflow:locations-updated",
+      handler as EventListener
+    );
+    return () =>
+      window.removeEventListener(
+        "assetflow:locations-updated",
+        handler as EventListener
+      );
   }, []);
 
   const [fieldDefs, setFieldDefs] = useState<AssetFieldDef[]>([]);
-  const [customFieldValues, setCustomFieldValues] = useState<Record<string, string>>({});
-  const [extraFields, setExtraFields] = useState<Array<{ key: string; value: string }>>([]);
-  const [assignedEmail, setAssignedEmail] = useState('');
-  const [consentStatus, setConsentStatus] = useState<Asset['consentStatus']>('none');
+  const [customFieldValues, setCustomFieldValues] = useState<
+    Record<string, string>
+  >({});
+  const [extraFields, setExtraFields] = useState<
+    Array<{ key: string; value: string }>
+  >([]);
+  const [assignedEmail, setAssignedEmail] = useState("");
+  const [consentStatus, setConsentStatus] =
+    useState<Asset["consentStatus"]>("none");
   const [consentRequired, setConsentRequired] = useState(true);
   // CIA Evaluation state
-  const [cia, setCia] = useState<{ c: number; i: number; a: number }>({ c: 1, i: 1, a: 1 });
-  const ciaTotal = useMemo(() => (cia.c || 0) + (cia.i || 0) + (cia.a || 0), [cia]);
-  const ciaAvg = useMemo(() => (ciaTotal / 3), [ciaTotal]);
+  const [cia, setCia] = useState<{ c: number; i: number; a: number }>({
+    c: 1,
+    i: 1,
+    a: 1,
+  });
+  const ciaTotal = useMemo(
+    () => (cia.c || 0) + (cia.i || 0) + (cia.a || 0),
+    [cia]
+  );
+  const ciaAvg = useMemo(() => ciaTotal / 3, [ciaTotal]);
 
   useEffect(() => {
     let cancelled = false;
@@ -129,12 +170,12 @@ export default function EditAssetPage({ assetId, onNavigate, onSearch }: Props) 
 
     fetchAssetById(assetId)
       .then((record) => {
-        console.log('Fetched asset record:', record);
+        console.log("Fetched asset record:", record);
         if (!cancelled) setAsset(record);
       })
       .catch((error) => {
-        console.error('Failed to load asset', error);
-        if (!cancelled) toast.error('Failed to load asset');
+        console.error("Failed to load asset", error);
+        if (!cancelled) toast.error("Failed to load asset");
       })
       .finally(() => {
         if (!cancelled) setLoading(false);
@@ -147,19 +188,19 @@ export default function EditAssetPage({ assetId, onNavigate, onSearch }: Props) 
 
   const fetchCatalog = async () => {
     try {
-      const response = await fetch('/api/catalog', { cache: 'no-store' });
-      if (!response.ok) throw new Error('Failed to load catalog');
+      const response = await fetch("/api/catalog", { cache: "no-store" });
+      if (!response.ok) throw new Error("Failed to load catalog");
       const payload = await response.json();
       const categories = Array.isArray(payload)
         ? payload
         : Array.isArray(payload?.categories)
-          ? payload.categories
-          : null;
+        ? payload.categories
+        : null;
       if (categories) {
         setCatalog(categories as UiCategory[]);
       }
     } catch (error) {
-      console.error('Failed to refresh catalog', error);
+      console.error("Failed to refresh catalog", error);
     }
   };
 
@@ -168,15 +209,21 @@ export default function EditAssetPage({ assetId, onNavigate, onSearch }: Props) 
     const handler = () => {
       fetchCatalog();
     };
-    window.addEventListener('assetflow:catalog-cleared', handler as EventListener);
+    window.addEventListener(
+      "assetflow:catalog-cleared",
+      handler as EventListener
+    );
     return () => {
-      window.removeEventListener('assetflow:catalog-cleared', handler as EventListener);
+      window.removeEventListener(
+        "assetflow:catalog-cleared",
+        handler as EventListener
+      );
     };
   }, []);
 
   useEffect(() => {
     try {
-      const stored = localStorage.getItem('assetflow:settings');
+      const stored = localStorage.getItem("assetflow:settings");
       if (stored) {
         const parsed = JSON.parse(stored);
         if (Array.isArray(parsed?.assetFields)) {
@@ -188,8 +235,10 @@ export default function EditAssetPage({ assetId, onNavigate, onSearch }: Props) 
     }
 
     try {
-      const attr = document?.documentElement?.getAttribute('data-consent-required');
-      if (attr === 'false' || attr === '0') {
+      const attr = document?.documentElement?.getAttribute(
+        "data-consent-required"
+      );
+      if (attr === "false" || attr === "0") {
         setConsentRequired(false);
       }
     } catch {
@@ -205,12 +254,15 @@ export default function EditAssetPage({ assetId, onNavigate, onSearch }: Props) 
     if (serverTypeId != null && Number(serverTypeId) > 0) {
       const idAsString = String(serverTypeId);
       setAssetTypeId(idAsString);
-      const inferredCategory = categoryOfTypeIdFromCatalog(catalog, serverTypeId);
+      const inferredCategory = categoryOfTypeIdFromCatalog(
+        catalog,
+        serverTypeId
+      );
       if (inferredCategory) setCategory(inferredCategory as AssetCategory);
     } else {
-      setAssetTypeId('');
+      setAssetTypeId("");
       // keep category empty until a valid type is inferred or user selects
-      setCategory('');
+      setCategory("");
     }
 
     setFormData({
@@ -220,27 +272,27 @@ export default function EditAssetPage({ assetId, onNavigate, onSearch }: Props) 
       department: asset.department,
       status: asset.status,
       purchaseDate: asset.purchaseDate,
-      eosDate: (asset as any).eosDate || '',
-      eolDate: (asset as any).eolDate || '',
-      cost: asset.cost != null ? String(asset.cost) : '',
+      eosDate: (asset as any).eosDate || "",
+      eolDate: (asset as any).eolDate || "",
+      cost: asset.cost != null ? String(asset.cost) : "",
       location: asset.location,
-      processor: asset.specifications?.processor ?? '',
-      ram: asset.specifications?.ram ?? '',
-      storage: asset.specifications?.storage ?? '',
-      os: asset.specifications?.os ?? '',
+      processor: asset.specifications?.processor ?? "",
+      ram: asset.specifications?.ram ?? "",
+      storage: asset.specifications?.storage ?? "",
+      os: asset.specifications?.os ?? "",
     });
 
-    setAssignedEmail((asset as any).assignedEmail || '');
-    setConsentStatus((asset as any).consentStatus || 'none');
+    setAssignedEmail((asset as any).assignedEmail || "");
+    setConsentStatus((asset as any).consentStatus || "none");
 
     const customFields = asset.specifications?.customFields || {};
     // Exclude CIA-related legacy keys from being shown as custom fields
     const EXCLUDE_CF_KEYS = new Set([
-      'cia_confidentiality',
-      'cia_integrity',
-      'cia_availability',
-      'cia_total',
-      'cia_average',
+      "cia_confidentiality",
+      "cia_integrity",
+      "cia_availability",
+      "cia_total",
+      "cia_average",
     ]);
     const configuredKeys = new Set(fieldDefs.map((def) => def.key));
     const nextValues: Record<string, string> = {};
@@ -249,26 +301,33 @@ export default function EditAssetPage({ assetId, onNavigate, onSearch }: Props) 
     Object.entries(customFields).forEach(([key, value]) => {
       if (EXCLUDE_CF_KEYS.has(key)) return; // never surface CIA fields as custom fields
       if (configuredKeys.has(key)) {
-        if (!EXCLUDE_CF_KEYS.has(key)) nextValues[key] = String(value ?? '');
+        if (!EXCLUDE_CF_KEYS.has(key)) nextValues[key] = String(value ?? "");
       } else {
-        orphanFields.push({ key, value: String(value ?? '') });
+        orphanFields.push({ key, value: String(value ?? "") });
       }
     });
 
-  // Initialize CIA strictly from dedicated columns; default to 1..5 range
-  const cCol = (asset as any).ciaConfidentiality;
-  const iCol = (asset as any).ciaIntegrity;
-  const aCol = (asset as any).ciaAvailability;
-  const c = Number(cCol ?? 1);
-  const i = Number(iCol ?? 1);
-  const a = Number(aCol ?? 1);
-    setCia({ c: Number.isFinite(c) && c >= 1 && c <= 5 ? c : 1, i: Number.isFinite(i) && i >= 1 && i <= 5 ? i : 1, a: Number.isFinite(a) && a >= 1 && a <= 5 ? a : 1 });
+    // Initialize CIA strictly from dedicated columns; default to 1..5 range
+    const cCol = (asset as any).ciaConfidentiality;
+    const iCol = (asset as any).ciaIntegrity;
+    const aCol = (asset as any).ciaAvailability;
+    const c = Number(cCol ?? 1);
+    const i = Number(iCol ?? 1);
+    const a = Number(aCol ?? 1);
+    setCia({
+      c: Number.isFinite(c) && c >= 1 && c <= 5 ? c : 1,
+      i: Number.isFinite(i) && i >= 1 && i <= 5 ? i : 1,
+      a: Number.isFinite(a) && a >= 1 && a <= 5 ? a : 1,
+    });
 
     setCustomFieldValues(nextValues);
     setExtraFields(orphanFields);
   }, [asset, catalog, fieldDefs]);
 
-  const categoryOptions = useMemo(() => (catalog ? catalog.map((c) => c.name) : []), [catalog]);
+  const categoryOptions = useMemo(
+    () => (catalog ? catalog.map((c) => c.name) : []),
+    [catalog]
+  );
 
   const catalogMaps = useMemo(() => {
     const idToName = new Map<string, string>();
@@ -291,8 +350,12 @@ export default function EditAssetPage({ assetId, onNavigate, onSearch }: Props) 
     return catalog.flatMap((cat) => cat.types);
   }, [catalog, category]);
 
-  const resolvedTypeName = assetTypeId ? catalogMaps.idToName.get(assetTypeId) : undefined;
-  const showSpecifications = resolvedTypeName ? ['Laptop', 'Desktop', 'Server'].includes(resolvedTypeName) : false;
+  const resolvedTypeName = assetTypeId
+    ? catalogMaps.idToName.get(assetTypeId)
+    : undefined;
+  const showSpecifications = resolvedTypeName
+    ? ["Laptop", "Desktop", "Server"].includes(resolvedTypeName)
+    : false;
 
   const handleInputChange = (field: keyof typeof formData, value: string) => {
     setFormData((previous) => ({ ...previous, [field]: value }));
@@ -302,8 +365,8 @@ export default function EditAssetPage({ assetId, onNavigate, onSearch }: Props) 
     event.preventDefault();
 
     if (!asset) {
-      toast.error('Asset not found');
-      onNavigate?.('assets');
+      toast.error("Asset not found");
+      onNavigate?.("assets");
       return;
     }
 
@@ -311,11 +374,13 @@ export default function EditAssetPage({ assetId, onNavigate, onSearch }: Props) 
     setSaveSuccess(false);
 
     const customFieldsPayload = {
-      ...Object.fromEntries(fieldDefs.map((def) => [def.key, customFieldValues[def.key] ?? ''])),
+      ...Object.fromEntries(
+        fieldDefs.map((def) => [def.key, customFieldValues[def.key] ?? ""])
+      ),
       ...Object.fromEntries(
         extraFields
-          .filter((entry) => entry.key.trim() !== '')
-          .map((entry) => [entry.key.trim(), entry.value]),
+          .filter((entry) => entry.key.trim() !== "")
+          .map((entry) => [entry.key.trim(), entry.value])
       ),
     };
 
@@ -326,7 +391,7 @@ export default function EditAssetPage({ assetId, onNavigate, onSearch }: Props) 
     nextAsset.serialNumber = formData.serialNumber;
     nextAsset.assignedTo = formData.assignedTo;
     nextAsset.assignedEmail = assignedEmail || undefined;
-    nextAsset.consentStatus = consentRequired ? consentStatus : 'none';
+    nextAsset.consentStatus = consentRequired ? consentStatus : "none";
     nextAsset.department = formData.department;
     nextAsset.status = formData.status;
     nextAsset.purchaseDate = formData.purchaseDate;
@@ -343,15 +408,15 @@ export default function EditAssetPage({ assetId, onNavigate, onSearch }: Props) 
       customFields: customFieldsPayload,
     };
 
-  // CIA dedicated fields (persist only components; compute total/avg in UI)
-  nextAsset.ciaConfidentiality = cia.c;
-  nextAsset.ciaIntegrity = cia.i;
-  nextAsset.ciaAvailability = cia.a;
+    // CIA dedicated fields (persist only components; compute total/avg in UI)
+    nextAsset.ciaConfidentiality = cia.c;
+    nextAsset.ciaIntegrity = cia.i;
+    nextAsset.ciaAvailability = cia.a;
 
     // Robust resolution of outgoing type_id: prefer current selection; fallback to existing asset's type_id if valid
     let nextTypeId: number | null = null;
-    const selectedIdStr = (assetTypeId ?? '').toString().trim();
-    if (selectedIdStr !== '') {
+    const selectedIdStr = (assetTypeId ?? "").toString().trim();
+    if (selectedIdStr !== "") {
       const n = Number(selectedIdStr);
       if (Number.isFinite(n) && n > 0) nextTypeId = n;
     }
@@ -360,14 +425,14 @@ export default function EditAssetPage({ assetId, onNavigate, onSearch }: Props) 
       const m = Number(existing);
       if (existing != null && Number.isFinite(m) && m > 0) nextTypeId = m;
     }
-    console.log('Resolved type ID for submission:', nextTypeId);
+    console.log("Resolved type ID for submission:", nextTypeId);
     if (nextTypeId !== null) {
       nextAsset.type_id = nextTypeId;
     } else {
       delete nextAsset.type_id;
     }
-    console.log('Outgoing asset payload type_id:', nextAsset.type_id);
-    logAssetUpdated(nextAsset.id, nextAsset.name, 'admin@company.com', {
+    console.log("Outgoing asset payload type_id:", nextAsset.type_id);
+    logAssetUpdated(nextAsset.id, nextAsset.name, "admin@company.com", {
       name: [asset.name, nextAsset.name],
       type: [(asset as any).type_id ?? null, nextAsset.type_id ?? null],
       status: [asset.status, nextAsset.status],
@@ -375,12 +440,12 @@ export default function EditAssetPage({ assetId, onNavigate, onSearch }: Props) 
 
     try {
       await updateAsset(nextAsset.id, nextAsset);
-      toast.success('Asset updated successfully');
+      toast.success("Asset updated successfully");
       setSaveSuccess(true);
-      setTimeout(() => onNavigate?.('assets'), 600);
+      setTimeout(() => onNavigate?.("assets"), 600);
     } catch (error) {
-      console.error('Failed to update asset', error);
-      toast.error('Failed to update asset');
+      console.error("Failed to update asset", error);
+      toast.error("Failed to update asset");
     } finally {
       setSaving(false);
     }
@@ -390,9 +455,9 @@ export default function EditAssetPage({ assetId, onNavigate, onSearch }: Props) 
     return (
       <AssetFlowLayout
         breadcrumbs={[
-          { label: 'Home', href: '#' },
-          { label: 'IT Assets', href: '#' },
-          { label: 'Edit Asset' },
+          { label: "Home", href: "#" },
+          { label: "IT Assets", href: "#" },
+          { label: "Edit Asset" },
         ]}
         currentPage="assets"
         onSearch={onSearch}
@@ -405,9 +470,9 @@ export default function EditAssetPage({ assetId, onNavigate, onSearch }: Props) 
   return (
     <AssetFlowLayout
       breadcrumbs={[
-        { label: 'Home', href: '#' },
-        { label: 'IT Assets', href: '#' },
-        { label: asset ? asset.name : 'Edit Asset' },
+        { label: "Home", href: "#" },
+        { label: "IT Assets", href: "#" },
+        { label: asset ? asset.name : "Edit Asset" },
       ]}
       currentPage="assets"
       onSearch={onSearch}
@@ -418,18 +483,26 @@ export default function EditAssetPage({ assetId, onNavigate, onSearch }: Props) 
         </div>
       )}
 
-        <div className="mb-8 flex items-center gap-4">
-        <Button variant="ghost" size="sm" onClick={() => onNavigate?.('assets')}>
+      <div className="mb-8 flex items-center gap-4">
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => onNavigate?.("assets")}
+        >
           <ArrowLeft className="h-5 w-5 text-muted" />
         </Button>
         <div>
-          <h1 className="mb-1 text-3xl font-bold text-foreground">Edit Asset</h1>
-          <p className="text-muted">Update details for {asset?.name ?? 'selected asset'}</p>
+          <h1 className="mb-1 text-3xl font-bold text-foreground">
+            Edit Asset
+          </h1>
+          <p className="text-muted">
+            Update details for {asset?.name ?? "selected asset"}
+          </p>
         </div>
       </div>
 
       <form onSubmit={handleSubmit}>
-        <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-3 items-start lg:items-stretch">
           <div className="space-y-6 lg:col-span-2">
             {/* Basic Information */}
             <motion.div
@@ -442,7 +515,9 @@ export default function EditAssetPage({ assetId, onNavigate, onSearch }: Props) 
 
               <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                 <div className="md:col-span-2">
-                  <label className="mb-2 block text-sm font-medium">Asset Category *</label>
+                  <label className="mb-2 block text-sm font-medium">
+                    Asset Category *
+                  </label>
                   <div className="grid grid-cols-2 gap-2 md:grid-cols-3">
                     {categoryOptions.map((catName) => (
                       <Button
@@ -450,13 +525,18 @@ export default function EditAssetPage({ assetId, onNavigate, onSearch }: Props) 
                         type="button"
                         onClick={() => {
                           setCategory(catName);
-                          const firstType = typesByCategoryFromCatalog(catalog, catName)[0];
-                          setAssetTypeId(firstType?.id != null ? String(firstType.id) : '');
+                          const firstType = typesByCategoryFromCatalog(
+                            catalog,
+                            catName
+                          )[0];
+                          setAssetTypeId(
+                            firstType?.id != null ? String(firstType.id) : ""
+                          );
                         }}
                         className={`rounded-lg px-4 py-2 text-sm font-medium transition ${
                           category === catName
-                            ? 'bg-gradient-to-r from-[#6366f1] to-[#8b5cf6] text-white shadow'
-                            : 'bg-card text-muted hover:bg-card/95 hover:text-primary'
+                            ? "bg-gradient-to-r from-[#6366f1] to-[#8b5cf6] text-white shadow"
+                            : "bg-card text-muted hover:bg-card/95 hover:text-primary"
                         }`}
                       >
                         {catName}
@@ -466,7 +546,9 @@ export default function EditAssetPage({ assetId, onNavigate, onSearch }: Props) 
                 </div>
 
                 <div>
-                  <label className="mb-2 block text-sm font-medium">Asset Type *</label>
+                  <label className="mb-2 block text-sm font-medium">
+                    Asset Type *
+                  </label>
                   <select
                     required
                     value={assetTypeId}
@@ -474,7 +556,10 @@ export default function EditAssetPage({ assetId, onNavigate, onSearch }: Props) 
                       const value = event.target.value;
                       setAssetTypeId(value);
                       if (value) {
-                        const inferred = categoryOfTypeIdFromCatalog(catalog, value);
+                        const inferred = categoryOfTypeIdFromCatalog(
+                          catalog,
+                          value
+                        );
                         if (inferred) setCategory(inferred as AssetCategory);
                       }
                     }}
@@ -492,33 +577,45 @@ export default function EditAssetPage({ assetId, onNavigate, onSearch }: Props) 
                 </div>
 
                 <div className="md:col-span-2">
-                  <label className="mb-2 block text-sm font-medium">Asset Name *</label>
+                  <label className="mb-2 block text-sm font-medium">
+                    Asset Name *
+                  </label>
                   <input
                     required
                     value={formData.name}
-                    onChange={(event) => handleInputChange('name', event.target.value)}
+                    onChange={(event) =>
+                      handleInputChange("name", event.target.value)
+                    }
                     className="w-full rounded-lg border bg-card px-4 py-2.5"
                     placeholder={'e.g., MacBook Pro 16"'}
                   />
                 </div>
 
                 <div>
-                  <label className="mb-2 block text-sm font-medium">Serial Number *</label>
+                  <label className="mb-2 block text-sm font-medium">
+                    Serial Number *
+                  </label>
                   <input
                     required
                     value={formData.serialNumber}
-                    onChange={(event) => handleInputChange('serialNumber', event.target.value)}
+                    onChange={(event) =>
+                      handleInputChange("serialNumber", event.target.value)
+                    }
                     className="w-full rounded-lg border bg-card px-4 py-2.5"
                     placeholder="e.g., MBP-2024-001"
                   />
                 </div>
 
                 <div>
-                  <label className="mb-2 block text-sm font-medium">Status *</label>
+                  <label className="mb-2 block text-sm font-medium">
+                    Status *
+                  </label>
                   <select
                     required
                     value={formData.status}
-                    onChange={(event) => handleInputChange('status', event.target.value)}
+                    onChange={(event) =>
+                      handleInputChange("status", event.target.value)
+                    }
                     className="w-full rounded-lg border bg-card px-4 py-2.5"
                   >
                     {assetStatuses.map((status) => (
@@ -530,18 +627,23 @@ export default function EditAssetPage({ assetId, onNavigate, onSearch }: Props) 
                 </div>
 
                 <div>
-                  <label className="mb-2 block text-sm font-medium">Assigned To *</label>
+                  <label className="mb-2 block text-sm font-medium">
+                    Assigned To *
+                  </label>
                   <input
                     required
                     value={formData.assignedTo}
-                    onChange={(event) => handleInputChange('assignedTo', event.target.value)}
+                    onChange={(event) =>
+                      handleInputChange("assignedTo", event.target.value)
+                    }
                     className="w-full rounded-lg border bg-card px-4 py-2.5"
                   />
                 </div>
 
                 <div>
                   <label className="mb-2 block text-sm font-medium">
-                    Assigned Email{formData.assignedTo.trim() ? ' *' : ' (optional)'}
+                    Assigned Email
+                    {formData.assignedTo.trim() ? " *" : " (optional)"}
                   </label>
                   <input
                     type="email"
@@ -553,31 +655,42 @@ export default function EditAssetPage({ assetId, onNavigate, onSearch }: Props) 
                   <p className="mt-1 text-xs text-muted">
                     {consentRequired
                       ? "We'll email this person to accept or reject if provided."
-                      : 'Stored with the asset; consent email disabled.'}
+                      : "Stored with the asset; consent email disabled."}
                   </p>
                 </div>
 
                 <div>
-                  <label className="mb-2 block text-sm font-medium">Department *</label>
+                  <label className="mb-2 block text-sm font-medium">
+                    Department *
+                  </label>
                   <input
                     required
                     value={formData.department}
-                    onChange={(event) => handleInputChange('department', event.target.value)}
+                    onChange={(event) =>
+                      handleInputChange("department", event.target.value)
+                    }
                     className="w-full rounded-lg border bg-card px-4 py-2.5"
                   />
                 </div>
 
                 <div className="md:col-span-2">
-                  <label className="mb-2 block text-sm font-medium">Location *</label>
+                  <label className="mb-2 block text-sm font-medium">
+                    Location *
+                  </label>
                   <select
                     required
-                    value={formData.location ?? ''}
-                    onChange={(event) => handleInputChange('location', event.target.value)}
+                    value={formData.location ?? ""}
+                    onChange={(event) =>
+                      handleInputChange("location", event.target.value)
+                    }
                     className="w-full rounded-lg border bg-card px-4 py-2.5"
                   >
                     <option value="">Select location</option>
                     {locationsList.map((l) => (
-                      <option key={l.id ?? l.code} value={l.code ?? l.name}>{l.code ?? l.name}{l.name ? ` — ${l.name}` : ''}</option>
+                      <option key={l.id ?? l.code} value={l.code ?? l.name}>
+                        {l.code ?? l.name}
+                        {l.name ? ` — ${l.name}` : ""}
+                      </option>
                     ))}
                   </select>
                 </div>
@@ -591,11 +704,15 @@ export default function EditAssetPage({ assetId, onNavigate, onSearch }: Props) 
               transition={{ duration: 0.3, delay: 0.05 }}
               className="rounded-2xl border bg-card p-6"
             >
-              <h3 className="mb-4 text-lg font-semibold">Financial & Lifecycle</h3>
+              <h3 className="mb-4 text-lg font-semibold">
+                Financial & Lifecycle
+              </h3>
 
               <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
                 <div>
-                  <label className="mb-2 block text-sm font-medium">Purchase Cost *</label>
+                  <label className="mb-2 block text-sm font-medium">
+                    Purchase Cost *
+                  </label>
                   <div className="relative">
                     <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-muted">
                       {currencySymbol}
@@ -606,39 +723,53 @@ export default function EditAssetPage({ assetId, onNavigate, onSearch }: Props) 
                       step="0.01"
                       required
                       value={formData.cost}
-                      onChange={(event) => handleInputChange('cost', event.target.value)}
+                      onChange={(event) =>
+                        handleInputChange("cost", event.target.value)
+                      }
                       className="w-full rounded-lg border bg-card px-8 py-2.5"
                     />
                   </div>
                 </div>
 
                 <div>
-                  <label className="mb-2 block text-sm font-medium">Purchase Date *</label>
+                  <label className="mb-2 block text-sm font-medium">
+                    Purchase Date *
+                  </label>
                   <input
                     type="date"
                     required
                     value={formData.purchaseDate}
-                    onChange={(event) => handleInputChange('purchaseDate', event.target.value)}
+                    onChange={(event) =>
+                      handleInputChange("purchaseDate", event.target.value)
+                    }
                     className="w-full rounded-lg border bg-card px-4 py-2.5"
                   />
                 </div>
 
                 <div>
-                  <label className="mb-2 block text sm font-medium">End of Support</label>
+                  <label className="mb-2 block text sm font-medium">
+                    End of Support
+                  </label>
                   <input
                     type="date"
                     value={formData.eosDate}
-                    onChange={(event) => handleInputChange('eosDate', event.target.value)}
+                    onChange={(event) =>
+                      handleInputChange("eosDate", event.target.value)
+                    }
                     className="w-full rounded-lg border bg-card px-4 py-2.5"
                   />
                 </div>
 
                 <div>
-                  <label className="mb-2 block text-sm font-medium">End of Life</label>
+                  <label className="mb-2 block text-sm font-medium">
+                    End of Life
+                  </label>
                   <input
                     type="date"
                     value={formData.eolDate}
-                    onChange={(event) => handleInputChange('eolDate', event.target.value)}
+                    onChange={(event) =>
+                      handleInputChange("eolDate", event.target.value)
+                    }
                     className="w-full rounded-lg border bg-card px-4 py-2.5"
                   />
                 </div>
@@ -653,37 +784,55 @@ export default function EditAssetPage({ assetId, onNavigate, onSearch }: Props) 
                 transition={{ duration: 0.3, delay: 0.1 }}
                 className="rounded-2xl border bg-card p-6"
               >
-                <h3 className="mb-4 text-lg font-semibold">Technical Specifications</h3>
+                <h3 className="mb-4 text-lg font-semibold">
+                  Technical Specifications
+                </h3>
                 <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                   <div>
-                    <label className="mb-2 block text-sm font-medium">Processor</label>
+                    <label className="mb-2 block text-sm font-medium">
+                      Processor
+                    </label>
                     <input
                       value={formData.processor}
-                      onChange={(event) => handleInputChange('processor', event.target.value)}
+                      onChange={(event) =>
+                        handleInputChange("processor", event.target.value)
+                      }
                       className="w-full rounded-lg border bg-card px-4 py-2.5"
                     />
                   </div>
                   <div>
-                    <label className="mb-2 block text-sm font-medium">RAM</label>
+                    <label className="mb-2 block text-sm font-medium">
+                      RAM
+                    </label>
                     <input
                       value={formData.ram}
-                      onChange={(event) => handleInputChange('ram', event.target.value)}
+                      onChange={(event) =>
+                        handleInputChange("ram", event.target.value)
+                      }
                       className="w-full rounded-lg border bg-card px-4 py-2.5"
                     />
                   </div>
                   <div>
-                    <label className="mb-2 block text-sm font-medium">Storage</label>
+                    <label className="mb-2 block text-sm font-medium">
+                      Storage
+                    </label>
                     <input
                       value={formData.storage}
-                      onChange={(event) => handleInputChange('storage', event.target.value)}
+                      onChange={(event) =>
+                        handleInputChange("storage", event.target.value)
+                      }
                       className="w-full rounded-lg border bg-card px-4 py-2.5"
                     />
                   </div>
                   <div>
-                    <label className="mb-2 block text-sm font-medium">Operating System</label>
+                    <label className="mb-2 block text-sm font-medium">
+                      Operating System
+                    </label>
                     <input
                       value={formData.os}
-                      onChange={(event) => handleInputChange('os', event.target.value)}
+                      onChange={(event) =>
+                        handleInputChange("os", event.target.value)
+                      }
                       className="w-full rounded-lg border bg-card px-4 py-2.5"
                     />
                   </div>
@@ -701,33 +850,57 @@ export default function EditAssetPage({ assetId, onNavigate, onSearch }: Props) 
               <h3 className="mb-4 text-lg font-semibold">CIA Evaluation</h3>
               <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
                 <div>
-                  <label className="mb-2 block text-sm font-medium">Confidentiality</label>
+                  <label className="mb-2 block text-sm font-medium">
+                    Confidentiality
+                  </label>
                   <select
                     value={String(cia.c)}
-                    onChange={(e) => setCia((v) => ({ ...v, c: Number(e.target.value) }))}
+                    onChange={(e) =>
+                      setCia((v) => ({ ...v, c: Number(e.target.value) }))
+                    }
                     className="w-full rounded-lg border bg-card px-4 py-2.5"
                   >
-                    {[1,2,3,4,5].map(n => (<option key={n} value={n}>{n}</option>))}
+                    {[1, 2, 3, 4, 5].map((n) => (
+                      <option key={n} value={n}>
+                        {n}
+                      </option>
+                    ))}
                   </select>
                 </div>
                 <div>
-                  <label className="mb-2 block text-sm font-medium">Integrity</label>
+                  <label className="mb-2 block text-sm font-medium">
+                    Integrity
+                  </label>
                   <select
                     value={String(cia.i)}
-                    onChange={(e) => setCia((v) => ({ ...v, i: Number(e.target.value) }))}
+                    onChange={(e) =>
+                      setCia((v) => ({ ...v, i: Number(e.target.value) }))
+                    }
                     className="w-full rounded-lg border bg-card px-4 py-2.5"
                   >
-                    {[1,2,3,4,5].map(n => (<option key={n} value={n}>{n}</option>))}
+                    {[1, 2, 3, 4, 5].map((n) => (
+                      <option key={n} value={n}>
+                        {n}
+                      </option>
+                    ))}
                   </select>
                 </div>
                 <div>
-                  <label className="mb-2 block text-sm font-medium">Availability</label>
+                  <label className="mb-2 block text-sm font-medium">
+                    Availability
+                  </label>
                   <select
                     value={String(cia.a)}
-                    onChange={(e) => setCia((v) => ({ ...v, a: Number(e.target.value) }))}
+                    onChange={(e) =>
+                      setCia((v) => ({ ...v, a: Number(e.target.value) }))
+                    }
                     className="w-full rounded-lg border bg-card px-4 py-2.5"
                   >
-                    {[1,2,3,4,5].map(n => (<option key={n} value={n}>{n}</option>))}
+                    {[1, 2, 3, 4, 5].map((n) => (
+                      <option key={n} value={n}>
+                        {n}
+                      </option>
+                    ))}
                   </select>
                 </div>
               </div>
@@ -738,7 +911,9 @@ export default function EditAssetPage({ assetId, onNavigate, onSearch }: Props) 
                 </div>
                 <div className="flex items-center justify-between rounded-lg border bg-card px-4 py-2.5">
                   <span className="text-sm text-muted">CIA Score</span>
-                  <span className="text-base font-semibold">{ciaAvg.toFixed(2)}</span>
+                  <span className="text-base font-semibold">
+                    {ciaAvg.toFixed(2)}
+                  </span>
                 </div>
               </div>
             </motion.div>
@@ -750,33 +925,33 @@ export default function EditAssetPage({ assetId, onNavigate, onSearch }: Props) 
               transition={{ duration: 0.3, delay: 0.15 }}
               className="rounded-2xl border bg-card p-6"
             >
-              <div className="mb-3 flex items-center justify-between">
+              <div className="mb-3">
                 <h3 className="text-lg font-semibold">Custom Fields</h3>
-                <Button
-                  type="button"
-                  onClick={() => setExtraFields((previous) => [...previous, { key: '', value: '' }])}
-                  className="rounded border px-3 py-1 text-sm font-medium text-primary hover:bg-primary/10"
-                >
-                  Add Field
-                </Button>
               </div>
-              <p className="mb-4 text-sm text-muted">Configured globally in Settings.</p>
+              <p className="mb-4 text-sm text-muted">
+                Configured globally in Settings.
+              </p>
 
               <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                 {fieldDefs.length === 0 && (
-                  <p className="text-sm text-muted md:col-span-2">No custom fields configured.</p>
+                  <p className="text-sm text-muted md:col-span-2">
+                    No custom fields configured.
+                  </p>
                 )}
                 {fieldDefs.map((def) => (
                   <div key={def.key}>
                     <label className="mb-2 block text-sm font-medium">
                       {def.label}
-                      {def.required ? ' *' : ''}
+                      {def.required ? " *" : ""}
                     </label>
                     <FieldRenderer
                       def={def}
-                      value={customFieldValues[def.key] ?? ''}
+                      value={customFieldValues[def.key] ?? ""}
                       onChange={(value) =>
-                        setCustomFieldValues((previous) => ({ ...previous, [def.key]: value }))
+                        setCustomFieldValues((previous) => ({
+                          ...previous,
+                          [def.key]: value,
+                        }))
                       }
                     />
                   </div>
@@ -787,14 +962,19 @@ export default function EditAssetPage({ assetId, onNavigate, onSearch }: Props) 
                 <div className="mt-6 space-y-3">
                   <h4 className="text-sm font-semibold">Additional Fields</h4>
                   {extraFields.map((entry, index) => (
-                    <div key={index} className="grid grid-cols-1 items-center gap-3 md:grid-cols-12">
+                    <div
+                      key={index}
+                      className="grid grid-cols-1 items-center gap-3 md:grid-cols-12"
+                    >
                       <input
                         value={entry.key}
                         onChange={(event) =>
                           setExtraFields((previous) =>
                             previous.map((item, idx) =>
-                              idx === index ? { ...item, key: event.target.value } : item,
-                            ),
+                              idx === index
+                                ? { ...item, key: event.target.value }
+                                : item
+                            )
                           )
                         }
                         className="w-full rounded-lg border bg-card px-3 py-2 md:col-span-5"
@@ -805,8 +985,10 @@ export default function EditAssetPage({ assetId, onNavigate, onSearch }: Props) 
                         onChange={(event) =>
                           setExtraFields((previous) =>
                             previous.map((item, idx) =>
-                              idx === index ? { ...item, value: event.target.value } : item,
-                            ),
+                              idx === index
+                                ? { ...item, value: event.target.value }
+                                : item
+                            )
                           )
                         }
                         className="w-full rounded-lg border bg-card px-3 py-2 md:col-span-6"
@@ -815,7 +997,9 @@ export default function EditAssetPage({ assetId, onNavigate, onSearch }: Props) 
                       <Button
                         type="button"
                         onClick={() =>
-                          setExtraFields((previous) => previous.filter((_, idx) => idx !== index))
+                          setExtraFields((previous) =>
+                            previous.filter((_, idx) => idx !== index)
+                          )
                         }
                         className="rounded-lg border px-3 py-2 text-sm text-red-600 hover:bg-red-50 md:col-span-1"
                       >
@@ -833,13 +1017,15 @@ export default function EditAssetPage({ assetId, onNavigate, onSearch }: Props) 
             initial={{ opacity: 0, x: 20 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.3, delay: 0.1 }}
-            className="sticky top-24 h-fit rounded-2xl bg-gradient-to-br from-[#6366f1] to-[#8b5cf6] p-6 text-white"
+            className="bg-gradient-to-br from-[#6366f1] to-[#8b5cf6] rounded-2xl p-6 text-white sticky top-24 shadow-lg self-stretch"
           >
             <h3 className="mb-4 text-lg font-semibold">Asset Summary</h3>
             <div className="mb-6 space-y-3">
               <div className="flex items-center justify-between border-b border-white/20 pb-2 text-sm">
                 <span className="text-white/80">Type</span>
-                <span className="font-semibold">{resolvedTypeName ?? '--'}</span>
+                <span className="font-semibold">
+                  {resolvedTypeName ?? "--"}
+                </span>
               </div>
               <div className="flex items-center justify-between border-b border-white/20 pb-2 text-sm">
                 <span className="text-white/80">Status</span>
@@ -848,27 +1034,36 @@ export default function EditAssetPage({ assetId, onNavigate, onSearch }: Props) 
               {formData.cost && (
                 <div className="flex items-center justify-between border-b border-white/20 pb-2 text-sm">
                   <span className="text-white/80">Cost</span>
-                  <span className="font-semibold">{formatCurrency(Number(formData.cost || '0'))}</span>
+                  <span className="font-semibold">
+                    {formatCurrency(Number(formData.cost || "0"))}
+                  </span>
                 </div>
               )}
             </div>
 
-            <div className="space-y-3">
+            <div className="flex gap-4">
               <Button
                 type="submit"
                 disabled={saving}
-                className={`${saving ? 'cursor-not-allowed' : ''}`}
+                className={`${
+                  saving ? "cursor-not-allowed" : ""
+                } gap-2 px-4 py-3 bg-white text-[#6366f1] rounded-lg font-semibold hover:shadow-lg transition-all duration-200`}
               >
                 <Save className="h-4 w-4" />
-                {saving ? 'Saving...' : 'Save Changes'}
+                {saving ? "Saving..." : "Save Changes"}
               </Button>
-              <Button variant="ghost" onClick={() => onNavigate?.('assets')}>
+              <Button
+                className="gap-2 px-8 py-3 mr-4 bg-white/10 text-white rounded-lg font-semibold hover:bg-white/20 transition-all duration-200"
+                onClick={() => onNavigate?.("assets")}
+              >
                 <X className="h-4 w-4" />
                 Cancel
               </Button>
             </div>
 
-            <p className="mt-6 text-xs text-white/70">Fields marked with * are required.</p>
+            <p className="mt-6 text-xs text-white/70">
+              Fields marked with * are required.
+            </p>
           </motion.div>
         </div>
       </form>
@@ -878,4 +1073,3 @@ export default function EditAssetPage({ assetId, onNavigate, onSearch }: Props) 
 
 // Also export a named export for compatibility with sites using `import { EditAssetPage } from ...`.
 export { EditAssetPage };
-
