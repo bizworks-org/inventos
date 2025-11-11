@@ -15,6 +15,23 @@ export async function POST() {
         const payload = verifyToken(token);
         if (payload?.id) {
           await query('UPDATE sessions SET revoked_at = CURRENT_TIMESTAMP WHERE user_id = :uid AND revoked_at IS NULL', { uid: payload.id });
+          // Log auth.logout event (best-effort)
+          try {
+            await query(
+              `INSERT INTO events (id, ts, severity, entity_type, entity_id, action, user, details, metadata)
+               VALUES (:id, CURRENT_TIMESTAMP, :severity, :entity_type, :entity_id, :action, :user, :details, :metadata)`,
+              {
+                id: `EVT-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+                severity: 'info',
+                entity_type: 'user',
+                entity_id: payload.id,
+                action: 'auth.logout',
+                user: payload.email || 'unknown',
+                details: 'User logout',
+                metadata: JSON.stringify({ sessionUserId: payload.id }),
+              }
+            );
+          } catch {}
         }
       } catch {}
     }

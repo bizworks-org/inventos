@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { motion } from 'motion/react';
-import { Download, Search, Filter, RefreshCw, Activity } from 'lucide-react';
+import { Download, Search, Filter, RefreshCw, Activity, LogIn, LogOut } from 'lucide-react';
 import { AssetFlowLayout } from '../layout/AssetFlowLayout';
 import { SystemEvent, EventSeverity, EntityType } from '../../../lib/events';
 import { fetchEvents } from '../../../lib/api';
@@ -19,7 +19,7 @@ export type TimeFilter = 'all' | 'today' | 'week' | 'month';
 
 export function EventsPage({ onNavigate, onSearch }: EventsPageProps) {
   const [events, setEvents] = useState<SystemEvent[]>([]);
-  const [selectedEntityType, setSelectedEntityType] = useState<EntityType | 'all'>('all');
+  const [selectedEntityType, setSelectedEntityType] = useState<EntityType | 'all' | 'auth'>('all');
   const [selectedSeverity, setSelectedSeverity] = useState<EventSeverity | 'all'>('all');
   const [selectedTimeFilter, setSelectedTimeFilter] = useState<TimeFilter>('all');
   const [searchQuery, setSearchQuery] = useState('');
@@ -50,7 +50,9 @@ export function EventsPage({ onNavigate, onSearch }: EventsPageProps) {
   // Filter events
   const filteredEvents = events.filter(event => {
     // Entity type filter
-    const matchesEntityType = selectedEntityType === 'all' || event.entityType === selectedEntityType;
+    const matchesEntityType = selectedEntityType === 'all'
+      || event.entityType === selectedEntityType
+      || (selectedEntityType === 'auth' && (event.action === 'auth.login' || event.action === 'auth.logout'));
     
     // Severity filter
     const matchesSeverity = selectedSeverity === 'all' || event.severity === selectedSeverity;
@@ -87,11 +89,12 @@ export function EventsPage({ onNavigate, onSearch }: EventsPageProps) {
   };
 
   // Count by entity type
-  const countByEntityType = (entityType: EntityType) => {
+  const countByEntityType = (entityType: EntityType | 'auth') => {
+    if (entityType === 'auth') return events.filter(e => e.action === 'auth.login' || e.action === 'auth.logout').length;
     return events.filter(e => e.entityType === entityType).length;
   };
 
-  const entityTypes: (EntityType | 'all')[] = ['all', 'asset', 'license', 'vendor', 'user'];
+  const entityTypes: (EntityType | 'all' | 'auth')[] = ['all', 'asset', 'license', 'vendor', 'user', 'auth'];
   const severityLevels: (EventSeverity | 'all')[] = ['all', 'info', 'warning', 'error', 'critical'];
   const timeFilters: { value: TimeFilter; label: string }[] = [
     { value: 'all', label: 'All Time' },
@@ -214,7 +217,7 @@ export function EventsPage({ onNavigate, onSearch }: EventsPageProps) {
         {/* Entity Type Tabs */}
         <div className="flex items-center gap-2 mb-4 overflow-x-auto pb-2">
           {entityTypes.map((type, index) => {
-            const count = type === 'all' ? events.length : countByEntityType(type as EntityType);
+            const count = type === 'all' ? events.length : countByEntityType(type as any);
             return (
               <motion.button
                 key={type}
@@ -316,8 +319,86 @@ export function EventsPage({ onNavigate, onSearch }: EventsPageProps) {
         </div>
       </motion.div>
 
-      {/* Events Timeline */}
-      <EventsTimeline events={filteredEvents} />
+      {/* Events Timeline or Auth Sessions */}
+      {selectedEntityType === 'auth' ? (
+        <AuthSessions events={filteredEvents} />
+      ) : (
+        <EventsTimeline events={filteredEvents} />
+      )}
     </AssetFlowLayout>
   );
+}
+
+interface AuthSessionsProps { events: SystemEvent[] }
+function AuthSessions({ events }: AuthSessionsProps) {
+  // Build session durations by pairing login/logout of same user
+  const sessions = (() => {
+    const map: { login?: SystemEvent; logout?: SystemEvent }[] = [];
+    const chronological = [...events].sort((a,b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
+    for (const ev of chronological) {
+      if (ev.action === 'auth.login') {
+        map.push({ login: ev });
+      } else if (ev.action === 'auth.logout') {
+        const candidate = map.slice().reverse().find(s => s.login && !s.logout && s.login.user === ev.user);
+        if (candidate) candidate.logout = ev; else map.push({ logout: ev });
+      }
+    }
+    return map.map(s => {
+      const durationMs = s.login && s.logout ? (new Date(s.logout.timestamp).getTime() - new Date(s.login.timestamp).getTime()) : null;
+      return { ...s, durationMs };
+    }).sort((a,b) => {
+      const tA = a.login ? new Date(a.login.timestamp).getTime() : (a.logout ? new Date(a.logout.timestamp).getTime() : 0);
+      const tB = b.login ? new Date(b.login.timestamp).getTime() : (b.logout ? new Date(b.logout.timestamp).getTime() : 0);
+      return tB - tA;
+    });
+  })();
+
+  return (
+    <motion.div initial={{ opacity:0, y:20 }} animate={{ opacity:1, y:0 }} transition={{ duration:0.4 }} className="bg-white rounded-2xl border border-[rgba(0,0,0,0.08)] p-6 shadow-sm">
+      <h3 className="text-lg font-semibold text-[#1a1d2e] mb-4 flex items-center gap-2"><LogIn className="h-5 w-5 text-[#6366f1]" /> Auth Sessions</h3>
+      <div className="overflow-x-auto">
+        <table className="w-full text-sm">
+          <thead>
+            <tr className="text-left bg-[#f8f9ff]">
+              <th className="px-4 py-2 font-medium text-[#64748b]">User</th>
+              <th className="px-4 py-2 font-medium text-[#64748b]">Login Time</th>
+              <th className="px-4 py-2 font-medium text-[#64748b]">Logout Time</th>
+              <th className="px-4 py-2 font-medium text-[#64748b]">Duration</th>
+              <th className="px-4 py-2 font-medium text-[#64748b]">IP</th>
+              <th className="px-4 py-2 font-medium text-[#64748b]">User Agent</th>
+            </tr>
+          </thead>
+          <tbody>
+            {sessions.length === 0 && (
+              <tr><td colSpan={6} className="px-4 py-6 text-center text-[#94a3b8]">No authentication events recorded yet.</td></tr>
+            )}
+            {sessions.map((s,i) => {
+              const ip = s.login?.metadata?.ip || s.logout?.metadata?.ip || s.login?.metadata?.ip_address || '';
+              const ua = s.login?.metadata?.userAgent || s.logout?.metadata?.userAgent || '';
+              return (
+                <tr key={i} className="border-t border-[rgba(0,0,0,0.05)]">
+                  <td className="px-4 py-2 font-medium text-[#1a1d2e]">{s.login?.user || s.logout?.user || '—'}</td>
+                  <td className="px-4 py-2 text-[#64748b]">{s.login ? new Date(s.login.timestamp).toLocaleString() : '—'}</td>
+                  <td className="px-4 py-2 text-[#64748b]">{s.logout ? new Date(s.logout.timestamp).toLocaleString() : '—'}</td>
+                  <td className="px-4 py-2 text-[#1a1d2e]">{s.durationMs !== null ? formatDuration(s.durationMs) : '—'}</td>
+                  <td className="px-4 py-2 text-[#64748b]">{ip || '—'}</td>
+                  <td className="px-4 py-2 text-[#64748b] truncate max-w-[240px]" title={ua}>{ua ? ua.substring(0,120) : '—'}</td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+    </motion.div>
+  );
+}
+
+function formatDuration(ms: number): string {
+  const sec = Math.floor(ms / 1000);
+  const h = Math.floor(sec / 3600);
+  const m = Math.floor((sec % 3600) / 60);
+  const s = sec % 60;
+  if (h) return `${h}h ${m}m ${s}s`;
+  if (m) return `${m}m ${s}s`;
+  return `${s}s`;
 }

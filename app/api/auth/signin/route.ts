@@ -3,6 +3,7 @@ import { dbFindUserByEmail } from '@/lib/auth/db-users';
 import { signToken, verifyPassword } from '@/lib/auth/server';
 import { query } from '@/lib/db';
 import { randomUUID, createHash } from 'node:crypto';
+import { query as dbQuery } from '@/lib/db';
 
 export async function POST(req: NextRequest) {
   const { email, password } = await req.json().catch(() => ({}));
@@ -55,6 +56,23 @@ export async function POST(req: NextRequest) {
        VALUES (:id, :user_id, :token_hash, CURRENT_TIMESTAMP, :expires_at, :user_agent, :ip_address)`,
       { id: sessionId, user_id: user.id, token_hash: hash, expires_at: expires, user_agent: ua, ip_address: ip }
     );
+    // Log auth.login event into events table
+    try {
+      await query(
+        `INSERT INTO events (id, ts, severity, entity_type, entity_id, action, user, details, metadata)
+         VALUES (:id, CURRENT_TIMESTAMP, :severity, :entity_type, :entity_id, :action, :user, :details, :metadata)`,
+        {
+          id: `EVT-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+          severity: 'info',
+          entity_type: 'user',
+          entity_id: user.id,
+          action: 'auth.login',
+          user: user.email,
+          details: `User login`,
+          metadata: JSON.stringify({ sessionId, ip, userAgent: ua }),
+        }
+      );
+    } catch {}
   } catch {}
   // Update last_login_at asynchronously (best-effort)
   try {
