@@ -853,19 +853,19 @@ export function AddAssetPage({ onNavigate, onSearch }: AddAssetPageProps) {
                 )}
               </div>
 
-              <div className="space-y-3">
+              <div>
                 <Button
                   type="submit"
                   disabled={!assetType || saving}
-                  className={`${(!assetType || saving) ? 'opacity-50 cursor-not-allowed' : 'hover:shadow-lg'}`}
+                  className={`gap-2 w-full px-8 py-3 bg-white text-[#6366f1] rounded-lg font-semibold transition-all duration-200 ${(!assetType || saving) ? 'opacity-50 cursor-not-allowed' : 'hover:shadow-lg'}`}
                 >
                   <Save className="h-4 w-4" />
                   {saving ? 'Saving…' : 'Save Asset'}
                 </Button>
                 <Button
                   type="button"
-                  variant="ghost"
                   onClick={() => { try { localStorage.removeItem(ADD_ASSET_DRAFT_KEY); } catch {}; onNavigate?.('assets'); }}
+                  className="gap-2 w-full px-8 py-3 mt-4 bg-white/10 text-white rounded-lg font-semibold hover:bg-white/20 transition-all duration-200"
                 >
                   <X className="h-4 w-4" />
                   Cancel
