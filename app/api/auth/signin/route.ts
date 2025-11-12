@@ -62,7 +62,7 @@ export async function POST(req: NextRequest) {
         `INSERT INTO events (id, ts, severity, entity_type, entity_id, action, user, details, metadata)
          VALUES (:id, CURRENT_TIMESTAMP, :severity, :entity_type, :entity_id, :action, :user, :details, :metadata)`,
         {
-          id: `EVT-${Date.now()}-${secureId('', 4)}`,
+          id: `EVT-${Date.now()}-${secureId('', 16)}`,
           severity: 'info',
           entity_type: 'user',
           entity_id: user.id,
