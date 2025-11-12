@@ -58,7 +58,7 @@ export async function POST(req: NextRequest) {
     );
     // Log auth.login event into events table
     try {
-        await query(
+      await query(
         `INSERT INTO events (id, ts, severity, entity_type, entity_id, action, user, details, metadata)
          VALUES (:id, CURRENT_TIMESTAMP, :severity, :entity_type, :entity_id, :action, :user, :details, :metadata)`,
         {
