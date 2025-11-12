@@ -30,7 +30,7 @@ class EventBus {
     metadata: Record<string, any> = {}
   ): SystemEvent {
     const event: SystemEvent = {
-      id: `EVT-${Date.now()}-${secureId('', 5)}`,
+      id: `EVT-${Date.now()}-${secureId('', 16)}`,
       timestamp: new Date().toISOString(),
       severity,
       entityType,
