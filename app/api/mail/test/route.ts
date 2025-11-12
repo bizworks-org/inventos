@@ -31,7 +31,7 @@ export async function POST(req: NextRequest) {
   // required, implement a safe whitelist-based sanitizer or use a server-side
   // template rendered from trusted templates only.
   const rawHtml = body?.html;
-  const html = rawHtml ? `<div>${escapeHtml(String(rawHtml))}</div>` : `<p>This is a <b>test email</b> from AssetFlow to verify your SMTP settings.</p>`;
+  const html = rawHtml ? `<pre>${escapeHtml(String(rawHtml))}</pre>` : `<p>This is a <b>test email</b> from AssetFlow to verify your SMTP settings.</p>`;
 
   await transport.sendMail({ from, to, subject, text, html });
     return NextResponse.json({ ok: true });
