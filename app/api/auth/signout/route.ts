@@ -18,7 +18,7 @@ export async function POST() {
           await query('UPDATE sessions SET revoked_at = CURRENT_TIMESTAMP WHERE user_id = :uid AND revoked_at IS NULL', { uid: payload.id });
           // Log auth.logout event (best-effort)
           try {
-                await query(
+            await query(
               `INSERT INTO events (id, ts, severity, entity_type, entity_id, action, user, details, metadata)
                VALUES (:id, CURRENT_TIMESTAMP, :severity, :entity_type, :entity_id, :action, :user, :details, :metadata)`,
               {
