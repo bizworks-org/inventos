@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { query } from '@/lib/db';
+import { secureId } from '@/lib/secure';
 import { requirePermission, readMeFromCookie } from '@/lib/auth/permissions';
 import { notify } from '@/lib/notifications';
 
@@ -73,7 +74,7 @@ export async function POST(req: NextRequest) {
           `INSERT INTO activities (id, ts, user, action, entity, entity_id, details, severity)
            VALUES (:id, NOW(), :user, :action, 'Asset', :entity_id, :details, :severity)`,
           {
-            id: `ACT-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`,
+            id: `ACT-${Date.now()}-${secureId('', 5)}`,
             user: me?.email || 'system',
             action: 'Created',
             entity_id: String(body.id),

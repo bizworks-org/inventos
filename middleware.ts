@@ -15,10 +15,18 @@ export function middleware(req: NextRequest) {
 
   const token = req.cookies.get('auth_token')?.value;
   if (!token) {
-    const url = req.nextUrl.clone();
-    url.pathname = '/login';
-    url.searchParams.set('next', pathname);
-    return NextResponse.redirect(url);
+    // Safely construct redirect to the internal login route and
+    // validate the `next` target so we don't introduce an open redirect.
+    // Only allow relative paths (that start with a single '/').
+    // Optionally, allow absolute hosts if listed in REDIRECT_ALLOWLIST env var.
+    // Reject protocol-relative paths ("//evil.com") which browsers treat as external.
+    const safeNext = !pathname || !pathname.startsWith('/') || pathname.startsWith('//') ? '/' : pathname;
+
+    // Build an absolute login URL using the current request origin to avoid leaking to other hosts.
+    const loginUrl = new URL('/login', req.url);
+    loginUrl.searchParams.set('next', safeNext);
+
+    return NextResponse.redirect(loginUrl);
   }
   return NextResponse.next();
 }
