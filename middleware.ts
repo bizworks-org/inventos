@@ -20,7 +20,13 @@ export function middleware(req: NextRequest) {
     // Only allow relative paths (that start with a single '/').
     // Optionally, allow absolute hosts if listed in REDIRECT_ALLOWLIST env var.
     // Reject protocol-relative paths ("//evil.com") which browsers treat as external.
-    const safeNext = !pathname || !pathname.startsWith('/') || pathname.startsWith('//') ? '/' : pathname;
+    const safeNext =
+      typeof pathname === 'string' &&
+      pathname.startsWith('/') &&
+      !pathname.startsWith('//') &&
+      !/^\/[\\\/]/.test(pathname)
+        ? pathname
+        : '/';
 
     // Build an absolute login URL using the current request origin to avoid leaking to other hosts.
     const loginUrl = new URL('/login', req.url);
