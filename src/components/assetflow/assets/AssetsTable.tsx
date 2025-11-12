@@ -170,7 +170,7 @@ export function AssetsTable({ assets, onNavigate, onDelete, canWrite = true }: A
     try {
       // delay slightly to allow React to commit DOM
       setTimeout(() => {
-        const els = Array.from(document.querySelectorAll('[data-test^="asset-delete-"]')) as HTMLElement[];
+        const els = Array.from(document.querySelectorAll('[data-test^="asset-delete-"]'));
         if (els.length) {
           console.info('DEBUG: Found delete buttons:', els.length);
           els.forEach((el) => console.info('DEBUG: delete-button classList ->', el.getAttribute('class')));
