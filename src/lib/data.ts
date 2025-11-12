@@ -821,7 +821,7 @@ export function initializeSampleEvents() {
     
     // Manually create event to preserve custom timestamp
     (eventBus as any).events.unshift({
-      id: `EVT-${Date.now()}-${secureId('', 5)}`,
+      id: `EVT-${Date.now()}-${secureId('', 16)}`,
       ...eventWithTimestamp
     });
   });
