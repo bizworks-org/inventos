@@ -406,7 +406,7 @@ export function AssetsTable({ assets, onNavigate, onDelete, canWrite = true }: A
                           onClick={() => handleEdit(asset.id)}
                           variant="outline"
                           size="sm"
-                          className={`transition-all duration-200 group rounded-lg hover:bg-[#6366f1]/10 text-[#6366f1] ${density==='ultra-compact' ? 'p-1.5' : 'p-2'}`}
+                          className={`transition-all duration-200 group rounded-lg hover:bg-[#6366f1]/10 text-[#6366f1] ${density==='ultra-compact' ? 'p-1.5 border-0' : 'p-2'}`}
                           title="Edit asset"
                         >
                           <Edit2 className={`${density==='ultra-compact' ? 'h-3.5 w-3.5' : 'h-4 w-4'} text-[#44ef44] group-hover:scale-110 transition-transform`} />
@@ -416,7 +416,7 @@ export function AssetsTable({ assets, onNavigate, onDelete, canWrite = true }: A
                           onClick={() => handleDelete(asset.id, asset.name)}
                           variant="outline"
                           size="sm"
-                          className={`transition-all duration-200 group ${density==='ultra-compact' ? 'p-1.5' : 'p-2'}`}
+                          className={`transition-all duration-200 group ${density==='ultra-compact' ? 'p-1.5 border-0' : 'p-2'}`}
                           title="Delete asset"
                         >
                           <Trash2 className={`${density==='ultra-compact' ? 'h-3.5 w-3.5' : 'h-4 w-4'} text-[#ef4444] group-hover:scale-110 transition-transform`} />
