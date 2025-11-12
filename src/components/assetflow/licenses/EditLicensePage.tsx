@@ -5,9 +5,9 @@ import { usePrefs } from '../layout/PrefsContext';
 import { motion } from 'motion/react';
 import { ArrowLeft, Save, X, Calendar, DollarSign } from 'lucide-react';
 import { AssetFlowLayout } from '../layout/AssetFlowLayout';
-import { License, AssetFieldDef } from '../../../lib/data';
+import { License, AssetFieldDef, Vendor } from '../../../lib/data';
 import FieldRenderer from '../assets/FieldRenderer';
-import { fetchLicenseById, updateLicense } from '../../../lib/api';
+import { fetchLicenseById, updateLicense, fetchVendors } from '../../../lib/api';
 import { toast } from 'sonner@2.0.3';
 import { logLicenseCreated, logLicenseExpiring } from '../../../lib/events';
 import { Button } from '@/components/ui/button';
@@ -54,6 +54,8 @@ export function EditLicensePage({ licenseId, onNavigate, onSearch }: EditLicense
   // License custom fields
   const [fieldDefs, setFieldDefs] = useState<AssetFieldDef[]>([]);
   const [customFieldValues, setCustomFieldValues] = useState<Record<string, string>>({});
+  const [vendors, setVendors] = useState<Vendor[]>([]);
+  const [vendorManual, setVendorManual] = useState<string>('');
 
   useEffect(() => {
     try {
@@ -70,7 +72,29 @@ export function EditLicensePage({ licenseId, onNavigate, onSearch }: EditLicense
     if ((license as any).customFields && typeof (license as any).customFields === 'object') {
       setCustomFieldValues({ ...(license as any).customFields });
     }
+    // If license vendor exists and vendors already loaded, ensure vendor selection reflects available list
+    try {
+      const found = vendors.find(v => v.name === license.vendor);
+      if (found) {
+        setFormData((prev) => ({ ...prev, vendor: found.name }));
+        setVendorManual('');
+      } else {
+        // mark as manual entry if not present in vendors list
+        setFormData((prev) => ({ ...prev, vendor: '__other__' }));
+        setVendorManual(license.vendor || '');
+      }
+    } catch {}
   }, [license]);
+
+  // fetch vendors list for dropdown
+  useEffect(() => {
+    (async () => {
+      try {
+        const vs = await fetchVendors();
+        setVendors(vs || []);
+      } catch {}
+    })();
+  }, []);
 
   // Sync form with loaded license
   useEffect(() => {
@@ -101,7 +125,7 @@ export function EditLicensePage({ licenseId, onNavigate, onSearch }: EditLicense
     const updated: License = {
       ...license,
       name: formData.name,
-      vendor: formData.vendor,
+      vendor: formData.vendor === '__other__' ? vendorManual.trim() || '' : formData.vendor,
       type: formData.type,
       // Seats editing removed from UI; preserve existing values
       seats: license.seats,
@@ -172,7 +196,35 @@ export function EditLicensePage({ licenseId, onNavigate, onSearch }: EditLicense
 
                 <div>
                   <label className="block text-sm font-medium text-[#1a1d2e] mb-2">Vendor *</label>
-                  <input type="text" required value={formData.vendor} onChange={(e) => handleInputChange('vendor', e.target.value)} placeholder="e.g., Microsoft" className="w-full px-4 py-2.5 rounded-lg bg-[#f8f9ff] border border-[rgba(0,0,0,0.05)] text-[#1a1d2e] placeholder:text-[#a0a4b8] focus:outline-none focus:ring-2 focus:ring-[#6366f1]/20 focus:border-[#6366f1] transition-all duration-200" />
+                  <select
+                    required
+                    value={formData.vendor}
+                    onChange={(e) => {
+                      const v = e.target.value;
+                      handleInputChange('vendor', v);
+                      if (v !== '__other__') setVendorManual('');
+                    }}
+                    className="w-full px-4 py-2.5 rounded-lg bg-[#f8f9ff] border border-[rgba(0,0,0,0.05)] text-[#1a1d2e] placeholder:text-[#a0a4b8] focus:outline-none focus:ring-2 focus:ring-[#6366f1]/20 focus:border-[#6366f1] transition-all duration-200 cursor-pointer"
+                  >
+                    <option value="">Select vendor</option>
+                    {/* include current vendor name as option if it's not in vendors list and not the __other__ marker */}
+                    {formData.vendor && formData.vendor !== '__other__' && !vendors.find(v => v.name === formData.vendor) && (
+                      <option value={formData.vendor}>{formData.vendor}</option>
+                    )}
+                    {vendors.map(v => (
+                      <option key={v.id} value={v.name}>{v.name}</option>
+                    ))}
+                    <option value="__other__">Other / Manual entry</option>
+                  </select>
+                  {formData.vendor === '__other__' && (
+                    <input
+                      type="text"
+                      value={vendorManual}
+                      onChange={(e) => setVendorManual(e.target.value)}
+                      placeholder="Enter vendor name"
+                      className="mt-2 w-full px-4 py-2.5 rounded-lg bg-white border border-[rgba(0,0,0,0.08)] text-[#1a1d2e]"
+                    />
+                  )}
                 </div>
 
                 <div>

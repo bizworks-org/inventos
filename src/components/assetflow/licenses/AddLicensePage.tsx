@@ -5,8 +5,8 @@ import { motion } from 'motion/react';
 import { ArrowLeft, Save, X, Calendar, DollarSign } from 'lucide-react';
 import { AssetFlowLayout } from '../layout/AssetFlowLayout';
 import { usePrefs } from '../layout/PrefsContext';
-import { License, AssetFieldDef } from '../../../lib/data';
-import { createLicense } from '../../../lib/api';
+import { License, AssetFieldDef, Vendor } from '../../../lib/data';
+import { createLicense, fetchVendors } from '../../../lib/api';
 import { logLicenseCreated } from '../../../lib/events';
 import FieldRenderer from '../assets/FieldRenderer';
 import { Button } from '@/components/ui/button';
@@ -36,6 +36,8 @@ export function AddLicensePage({ onNavigate, onSearch }: AddLicensePageProps) {
   // License custom field defs (from Settings)
   const [fieldDefs, setFieldDefs] = useState<AssetFieldDef[]>([]);
   const [customFieldValues, setCustomFieldValues] = useState<Record<string, string>>({});
+  const [vendors, setVendors] = useState<Vendor[]>([]);
+  const [vendorManual, setVendorManual] = useState<string>('');
 
   useEffect(() => {
     try {
@@ -45,6 +47,13 @@ export function AddLicensePage({ onNavigate, onSearch }: AddLicensePageProps) {
         if (Array.isArray(parsed.licenseFields)) setFieldDefs(parsed.licenseFields as AssetFieldDef[]);
       }
     } catch { }
+    // fetch vendors for vendor dropdown
+    (async () => {
+      try {
+        const vs = await fetchVendors();
+        setVendors(vs || []);
+      } catch { /* ignore */ }
+    })();
   }, []);
 
   const handleInputChange = (field: string, value: string) => {
@@ -66,7 +75,7 @@ export function AddLicensePage({ onNavigate, onSearch }: AddLicensePageProps) {
     const newLicense: License = {
       id: `LIC-${Date.now()}`,
       name: formData.name,
-      vendor: formData.vendor,
+      vendor: formData.vendor === '__other__' ? vendorManual.trim() || '' : formData.vendor,
       type: formData.type,
       // Seats management removed from UI; default to 0 on create
       seats: 0,
@@ -162,14 +171,32 @@ export function AddLicensePage({ onNavigate, onSearch }: AddLicensePageProps) {
                   <label className="block text-sm font-medium text-[#1a1d2e] mb-2">
                     Vendor *
                   </label>
-                  <input
-                    type="text"
+                  <select
                     required
                     value={formData.vendor}
-                    onChange={(e) => handleInputChange('vendor', e.target.value)}
-                    placeholder="e.g., Microsoft"
-                    className="w-full px-4 py-2.5 rounded-lg bg-[#f8f9ff] border border-[rgba(0,0,0,0.05)] text-[#1a1d2e] placeholder:text-[#a0a4b8] focus:outline-none focus:ring-2 focus:ring-[#6366f1]/20 focus:border-[#6366f1] transition-all duration-200"
-                  />
+                    onChange={(e) => {
+                      const v = e.target.value;
+                      handleInputChange('vendor', v);
+                      // clear manual entry when switching away
+                      if (v !== '__other__') setVendorManual('');
+                    }}
+                    className="w-full px-4 py-2.5 rounded-lg bg-[#f8f9ff] border border-[rgba(0,0,0,0.05)] text-[#1a1d2e] placeholder:text-[#a0a4b8] focus:outline-none focus:ring-2 focus:ring-[#6366f1]/20 focus:border-[#6366f1] transition-all duration-200 cursor-pointer"
+                  >
+                    <option value="">Select vendor</option>
+                    {vendors.map(v => (
+                      <option key={v.id} value={v.name}>{v.name}</option>
+                    ))}
+                    <option value="__other__">Other / Manual entry</option>
+                  </select>
+                  {formData.vendor === '__other__' && (
+                    <input
+                      type="text"
+                      value={vendorManual}
+                      onChange={(e) => setVendorManual(e.target.value)}
+                      placeholder="Enter vendor name"
+                      className="mt-2 w-full px-4 py-2.5 rounded-lg bg-white border border-[rgba(0,0,0,0.08)] text-[#1a1d2e]"
+                    />
+                  )}
                 </div>
 
                 {/* License Type */}
