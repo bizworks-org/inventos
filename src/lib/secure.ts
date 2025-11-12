@@ -38,17 +38,26 @@ export function secureRandomInt(max: number): number {
   // Browser: use getRandomValues
   const gw: any = (globalThis as any).window;
   if (gw?.crypto?.getRandomValues) {
-    const uint32 = new Uint32Array(1);
-    gw.crypto.getRandomValues(uint32);
-    return uint32[0] % max;
+    const range = Math.floor(0x100000000 / max) * max;
+    let val: number;
+    do {
+      const uint32 = new Uint32Array(1);
+      gw.crypto.getRandomValues(uint32);
+      val = uint32[0];
+    } while (val >= range);
+    return val % max;
   }
 
   // Node fallback
   try {
     // eslint-disable-next-line @typescript-eslint/no-var-requires
     const { randomBytes } = require('node:crypto');
-    const buf = randomBytes(4);
-    const val = buf.readUInt32BE(0);
+    const range = Math.floor(0x100000000 / max) * max;
+    let val: number;
+    do {
+      const buf = randomBytes(4);
+      val = buf.readUInt32BE(0);
+    } while (val >= range);
     return val % max;
   } catch {
     // Last-resort non-crypto fallback
