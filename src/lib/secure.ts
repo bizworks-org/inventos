@@ -6,6 +6,9 @@
 /* eslint-disable @typescript-eslint/no-var-requires */
 
 export function secureId(prefix = '', bytes = 16): string {
+  if (!Number.isInteger(bytes) || bytes <= 0) {
+    throw new Error('secureId: bytes must be a positive integer');
+  }
   // Prefer the standard randomUUID when available (gives a UUID v4 string).
   // globalThis.crypto may exist in both browser and recent Node versions.
   const anyCrypto: any = (globalThis as any).crypto;
