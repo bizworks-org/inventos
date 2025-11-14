@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { readAuthToken, verifyToken } from '@/lib/auth/server';
 import { query } from '@/lib/db';
 import { createHash } from 'node:crypto';
+import { secureId } from '@/lib/secure';
 
 export async function POST() {
   // Best-effort revoke the current session
@@ -21,7 +22,7 @@ export async function POST() {
               `INSERT INTO events (id, ts, severity, entity_type, entity_id, action, user, details, metadata)
                VALUES (:id, CURRENT_TIMESTAMP, :severity, :entity_type, :entity_id, :action, :user, :details, :metadata)`,
               {
-                id: `EVT-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+                id: `EVT-${Date.now()}-${secureId('', 16)}`,
                 severity: 'info',
                 entity_type: 'user',
                 entity_id: payload.id,

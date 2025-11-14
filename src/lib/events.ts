@@ -1,4 +1,5 @@
 // Simple in-memory event bus for logging system activities
+import { secureId } from './secure';
 
 export type EventSeverity = 'info' | 'warning' | 'error' | 'critical';
 export type EntityType = 'asset' | 'license' | 'vendor' | 'user';
@@ -29,7 +30,7 @@ class EventBus {
     metadata: Record<string, any> = {}
   ): SystemEvent {
     const event: SystemEvent = {
-      id: `EVT-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+      id: `EVT-${Date.now()}-${secureId('', 16)}`,
       timestamp: new Date().toISOString(),
       severity,
       entityType,

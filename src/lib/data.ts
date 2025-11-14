@@ -1,4 +1,5 @@
 // Mock data for the IT Asset Management application
+import { secureId } from './secure';
 
 export interface Asset {
   id: string;
@@ -820,7 +821,7 @@ export function initializeSampleEvents() {
     
     // Manually create event to preserve custom timestamp
     (eventBus as any).events.unshift({
-      id: `EVT-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+      id: `EVT-${Date.now()}-${secureId('', 16)}`,
       ...eventWithTimestamp
     });
   });

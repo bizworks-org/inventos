@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { query } from '@/lib/db';
+import { secureId } from '@/lib/secure';
 import { readAuthToken, verifyToken } from '@/lib/auth/server';
 
 async function requireAdmin() {
@@ -43,7 +44,7 @@ export async function POST(req: NextRequest) {
     const address = (body?.address || '').toString();
     const zipcode = (body?.zipcode || '').toString();
     if (zipcode && !/^[0-9]{6}$/.test(zipcode)) return NextResponse.json({ error: 'ZipCode must be 6 digits' }, { status: 400 });
-    const id = `loc_${Date.now()}_${Math.floor(Math.random() * 9999)}`;
+  const id = `loc_${Date.now()}_${secureId('', 16)}`;
     await query('INSERT INTO locations (id, code, name, address, zipcode) VALUES (:id, :code, :name, :address, :zipcode)', {
       id,
       code,

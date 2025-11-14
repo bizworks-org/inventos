@@ -1,4 +1,5 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { secureId, secureChoice } from '../lib/secure';
 
 export interface User {
   id: string;
@@ -80,18 +81,18 @@ export function SessionProvider({ children }: SessionProviderProps) {
   }, [currentUser]);
 
   const generateUserId = () => {
-    return 'user_' + Math.random().toString(36).substr(2, 9);
+    return secureId('user_');
   };
 
   const generateSessionId = () => {
-    return 'session_' + Math.random().toString(36).substr(2, 9);
+    return secureId('session_');
   };
 
   const generateAnonymousName = () => {
     const adjectives = ['Happy', 'Sunny', 'Brave', 'Clever', 'Kind', 'Swift', 'Bright', 'Cool'];
     const nouns = ['Traveler', 'Explorer', 'Adventurer', 'Wanderer', 'Tourist', 'Nomad', 'Voyager', 'Guest'];
-    const adj = adjectives[Math.floor(Math.random() * adjectives.length)];
-    const noun = nouns[Math.floor(Math.random() * nouns.length)];
+    const adj = secureChoice(adjectives);
+    const noun = secureChoice(nouns);
     return `${adj} ${noun}`;
   };
 

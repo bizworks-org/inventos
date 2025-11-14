@@ -3,7 +3,7 @@ import { dbFindUserByEmail } from '@/lib/auth/db-users';
 import { signToken, verifyPassword } from '@/lib/auth/server';
 import { query } from '@/lib/db';
 import { randomUUID, createHash } from 'node:crypto';
-import { query as dbQuery } from '@/lib/db';
+import { secureId } from '@/lib/secure';
 
 export async function POST(req: NextRequest) {
   const { email, password } = await req.json().catch(() => ({}));
@@ -13,7 +13,7 @@ export async function POST(req: NextRequest) {
   const user = await dbFindUserByEmail(email);
   if (!user || !user.active || !user.password_hash || !verifyPassword(password, user.password_hash)) {
     // Do not leak which field failed; return a consistent unauthorized message
-    return NextResponse.json({ error: 'Not authorized' }, { status: 401 });
+    return NextResponse.json({ error: 'Invalid username or password' }, { status: 401 });
   }
 
   // Enforce single active session per user: if any active session exists, revoke it and continue
@@ -62,7 +62,7 @@ export async function POST(req: NextRequest) {
         `INSERT INTO events (id, ts, severity, entity_type, entity_id, action, user, details, metadata)
          VALUES (:id, CURRENT_TIMESTAMP, :severity, :entity_type, :entity_id, :action, :user, :details, :metadata)`,
         {
-          id: `EVT-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+          id: `EVT-${Date.now()}-${secureId('', 16)}`,
           severity: 'info',
           entity_type: 'user',
           entity_id: user.id,

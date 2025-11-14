@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { AssetFlowLayout } from '../layout/AssetFlowLayout';
 import type { Asset, Vendor, License } from '../../../lib/data';
 import { motion } from 'motion/react';
-import { Search } from 'lucide-react';
+import { Search, Edit2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 
@@ -42,7 +42,7 @@ export default function SearchResultsPage({ query, onNavigate, onSearch }: Searc
     setLoading(true);
     (async () => {
       try {
-        const res = await fetch(`/api/search?q=${encodeURIComponent(q)}&page=${page}&per_page=${perPage}`);
+        const res = await fetch(`/api/search?q=${encodeURIComponent(q)}&page=${page}&per_page=${perPage}`, { credentials: 'same-origin' });
         if (!res.ok) throw new Error(`Search failed: ${res.status}`);
         const json = await res.json();
         if (cancelled) return;
@@ -99,7 +99,15 @@ export default function SearchResultsPage({ query, onNavigate, onSearch }: Searc
                       <div className="text-sm text-[#64748b]">{a.type} • {a.serial_number ?? a.serialNumber} • {a.location}</div>
                     </div>
                     <div className="flex items-center gap-2">
-                      <Button onClick={() => onNavigate?.('assets-edit', a.id)} className="px-3 py-2 rounded-lg bg-[#f8f9ff] border">Open</Button>
+                      <Button
+                        onClick={() => onNavigate?.('assets-edit', a.id)}
+                        variant="outline"
+                        size="sm"
+                        className="transition-all duration-200 group rounded-lg hover:bg-[#6366f1]/10 text-[#6366f1] p-2"
+                        title="Edit asset"
+                      >
+                        <Edit2 className="h-4 w-4 text-[#6366f1] group-hover:scale-110 transition-transform" />
+                      </Button>
                     </div>
                   </motion.div>
                 ))}
@@ -131,7 +139,15 @@ export default function SearchResultsPage({ query, onNavigate, onSearch }: Searc
                       <div className="text-sm text-[#64748b]">{v.contact_person ?? v.contactPerson} • {v.email}</div>
                     </div>
                     <div className="flex items-center gap-2">
-                      <Button onClick={() => onNavigate?.('vendors-edit', v.id)} className="px-3 py-2 rounded-lg bg-[#f8f9ff] border">Open</Button>
+                      <Button
+                        onClick={() => onNavigate?.('vendors-edit', v.id)}
+                        variant="outline"
+                        size="sm"
+                        className="transition-all duration-200 group rounded-lg hover:bg-[#6366f1]/10 text-[#6366f1] p-2"
+                        title="Edit vendor"
+                      >
+                        <Edit2 className="h-4 w-4 text-[#6366f1] group-hover:scale-110 transition-transform" />
+                      </Button>
                     </div>
                   </motion.div>
                 ))}
@@ -162,7 +178,15 @@ export default function SearchResultsPage({ query, onNavigate, onSearch }: Searc
                       <div className="text-sm text-[#64748b]">{l.vendor} • Owner: {l.owner}</div>
                     </div>
                     <div className="flex items-center gap-2">
-                      <Button onClick={() => onNavigate?.('licenses-edit', l.id)} className="px-3 py-2 rounded-lg bg-[#f8f9ff] border">Open</Button>
+                      <Button
+                        onClick={() => onNavigate?.('licenses-edit', l.id)}
+                        variant="outline"
+                        size="sm"
+                        className="transition-all duration-200 group rounded-lg hover:bg-[#6366f1]/10 text-[#6366f1] p-2"
+                        title="Edit license"
+                      >
+                        <Edit2 className="h-4 w-4 text-[#6366f1] group-hover:scale-110 transition-transform" />
+                      </Button>
                     </div>
                   </motion.div>
                 ))}

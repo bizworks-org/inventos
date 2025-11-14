@@ -3,7 +3,6 @@ import { Home, Package, FileText, Users, Activity, Settings, Shield } from 'luci
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useEffect, useMemo, useState } from 'react';
-import { Button } from '@/components/ui/button';
 
 
 type Role = 'admin' | 'user';
@@ -245,12 +244,6 @@ export function Sidebar({ currentPage = 'dashboard', me: meProp }: SidebarProps 
                   return role;
                 })()}</p>
               </div>
-              <Button
-                onClick={async (e) => { e.preventDefault(); (await import('@/lib/auth/client')).signOut(); }}
-                className="ml-auto text-xs px-2 py-1 rounded bg-white/10 text-white hover:bg-white/20"
-              >
-                Sign out
-              </Button>
             </div>
           )}
         </div>

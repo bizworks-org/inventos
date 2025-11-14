@@ -1,5 +1,6 @@
 import { Asset, License, Vendor } from './data';
 import { createAsset, updateAsset, createLicense, updateLicense, createVendor, updateVendor } from './api';
+import { secureId } from './secure';
 
 export type ImportFormat = 'csv' | 'json';
 
@@ -12,7 +13,7 @@ export type ImportSummary = {
 };
 
 function generateId(prefix: string) {
-  return `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
+  return `${prefix}-${Date.now()}-${secureId('', 16)}`;
 }
 
 // Basic CSV parser supporting quoted fields and commas/newlines in quotes
