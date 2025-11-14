@@ -28,7 +28,7 @@ export async function GET(_req: NextRequest, ctx: any) {
     if ((rawTypeId === 0 || rawTypeId === '0' || rawTypeId === null || rawTypeId === undefined) && rec?.type) {
       try {
         const t = await query('SELECT id FROM asset_types WHERE name = :name LIMIT 1', { name: rec.type });
-        if (t && t.length) {
+        if (t?.length) {
           rec.type_id = Number(t[0].id);
           console.warn(`GET /api/assets/${id}: resolved missing type_id from legacy type='${rec.type}' -> ${rec.type_id}`);
         }
@@ -51,25 +51,23 @@ export async function PUT(req: NextRequest, ctx: any) {
     const body = await req.json();
     // Resolve incoming type -> id if necessary, and avoid overwriting with 0 or empty
     let typeId: number | undefined = undefined;
-    if (body && (body.type_id !== undefined && body.type_id !== null)) {
+    if (body?.type_id != null) {
       const raw = String(body.type_id).trim();
       const n = Number(raw);
       if (raw !== '' && Number.isFinite(n) && n > 0) {
         typeId = n;
       }
     }
-    if (typeId === undefined && body && body.type) {
+    if (typeId === undefined && body?.type) {
       try {
         const rows = await query('SELECT id FROM asset_types WHERE name = :name LIMIT 1', { name: body.type });
-        if (rows && rows.length) typeId = Number(rows[0].id);
-      } catch (e) {
-        // ignore lookup failures
-      }
+        if (rows?.length) typeId = Number(rows?.[0]?.id);
+      } catch { }
     }
     // If still undefined, preserve existing DB value so we don't clobber it to 0
     if (typeId === undefined) {
       const existing = await query('SELECT type_id FROM assets WHERE id = :id LIMIT 1', { id });
-      if (!existing || !existing.length) {
+      if (!existing?.length) {
         return NextResponse.json({ error: 'Not found' }, { status: 404 });
       }
       typeId = Number(existing[0].type_id);
@@ -78,11 +76,8 @@ export async function PUT(req: NextRequest, ctx: any) {
     delete body.type;
 
     // Extract CIA values strictly from body; clamp 1..5; default to 1
-    const clamp = (n: number) => Math.max(1, Math.min(5, n));
-    const cia_c = Number.isFinite(Number(body?.cia_confidentiality)) ? clamp(Number(body?.cia_confidentiality)) : 1;
-    const cia_i = Number.isFinite(Number(body?.cia_integrity)) ? clamp(Number(body?.cia_integrity)) : 1;
-    const cia_a = Number.isFinite(Number(body?.cia_availability)) ? clamp(Number(body?.cia_availability)) : 1;
-  // Do not persist total/average; UI will compute as needed
+    const { cia_c, cia_i, cia_a } = computeCIA(body);
+    // Do not persist total/average; UI will compute as needed
 
     if (body && typeof body.specifications === 'object') {
       body.specifications = JSON.stringify(body.specifications);
@@ -93,7 +88,7 @@ export async function PUT(req: NextRequest, ctx: any) {
     try {
       const cur = await query<any>('SELECT status FROM assets WHERE id = :id LIMIT 1', { id });
       prevStatus = cur?.[0]?.status ?? null;
-    } catch {}
+    } catch { }
 
     const sql = `UPDATE assets SET name=:name, type_id=:type_id, serial_number=:serial_number, assigned_to=:assigned_to, assigned_email=:assigned_email, consent_status=:consent_status, department=:department, status=:status,
       purchase_date=:purchase_date, end_of_support_date=:end_of_support_date, end_of_life_date=:end_of_life_date, warranty_expiry=:warranty_expiry, cost=:cost, location=:location, specifications=:specifications,
@@ -142,7 +137,7 @@ export async function PUT(req: NextRequest, ctx: any) {
            WHERE r.name = 'admin'`
         );
         for (const a of admins) if (a?.email) recipients.push(String(a.email));
-      } catch {}
+      } catch { }
       if (recipients.length) {
         await notify({
           type: 'asset.updated',
@@ -153,12 +148,20 @@ export async function PUT(req: NextRequest, ctx: any) {
           metadata: { id, changes: body },
         });
       }
-    } catch {}
+    } catch { }
     return NextResponse.json({ ok: true });
   } catch (e: any) {
     console.error(`PUT /api/assets failed:`, e);
     return NextResponse.json({ error: e?.message || 'Database error' }, { status: 500 });
   }
+}
+
+function computeCIA(body: any) {
+  const clamp = (n: number) => Math.max(1, Math.min(5, n));
+  const cia_c = Number.isFinite(Number(body?.cia_confidentiality)) ? clamp(Number(body?.cia_confidentiality)) : 1;
+  const cia_i = Number.isFinite(Number(body?.cia_integrity)) ? clamp(Number(body?.cia_integrity)) : 1;
+  const cia_a = Number.isFinite(Number(body?.cia_availability)) ? clamp(Number(body?.cia_availability)) : 1;
+  return { cia_c, cia_i, cia_a };
 }
 
 export async function DELETE(_req: NextRequest, ctx: any) {

@@ -391,7 +391,34 @@ export function SettingsPage({ onNavigate, onSearch, view = 'general' }: Setting
     try {
       setSaving(true);
       await saveSettings(payload);
-      localStorage.setItem('assetflow:settings', JSON.stringify({ name, email, prefs, notify, mode, events, integrations: connected, assetFields, vendorFields, licenseFields }));
+      // Do NOT persist secrets or passwords to localStorage. Build a sanitized
+      // object that explicitly omits sensitive fields (passwords, webhook secrets,
+      // kafka passwords, etc.) before saving client-side settings.
+      const safeEvents = {
+        ...events,
+        // remove sensitive credentials
+        kafkaPassword: undefined,
+        webhookSecret: undefined,
+      } as any;
+
+      const safeForLocal = {
+        name,
+        email,
+        prefs,
+        notify,
+        mode,
+        events: safeEvents,
+        integrations: connected,
+        assetFields,
+        vendorFields,
+        licenseFields,
+      };
+
+      try {
+        localStorage.setItem('assetflow:settings', JSON.stringify(safeForLocal));
+      } catch {
+        // ignore localStorage failures (e.g., in private mode)
+      }
       // Notify PrefsProvider listeners (density/language/currency can update live)
       window.dispatchEvent(new Event('assetflow:prefs-updated'));
       setServerError(null);

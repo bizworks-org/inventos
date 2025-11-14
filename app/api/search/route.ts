@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { query } from '@/lib/db';
 import { readMeFromCookie } from '@/lib/auth/permissions';
 import { dbGetUserPermissions } from '@/lib/auth/db-users';
+import { readAuthToken, verifyToken } from '@/lib/auth/server';
 
 export async function GET(req: NextRequest) {
   const url = new URL(req.url);
@@ -9,13 +10,48 @@ export async function GET(req: NextRequest) {
   const page = Math.max(1, parseInt(url.searchParams.get('page') || '1', 10));
   const perPage = Math.min(100, Math.max(5, parseInt(url.searchParams.get('per_page') || '10', 10)));
 
-  const me = await readMeFromCookie();
-  if (!me || !me.id) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  // Allow testing with an Authorization header: Bearer <token>
+  let me = await readMeFromCookie();
+  if ((!me || !me.id) && req.headers.get('authorization')) {
+    try {
+      const auth = String(req.headers.get('authorization') || '');
+      const m = auth.match(/^Bearer\s+(.+)$/i);
+      if (m) {
+        const token = m[1];
+        const payload = verifyToken(token as any);
+        if (payload && (payload as any).id) {
+          me = { id: (payload as any).id, email: (payload as any).email, name: (payload as any).name, role: (payload as any).role };
+          console.error('Search route: using Authorization header for test auth; user=', me.id);
+        }
+      }
+    } catch (e) {
+      console.error('Search route: failed to parse Authorization header', e);
+    }
+  }
+  if (!me || !me.id) {
+    try {
+      const raw = await readAuthToken();
+      const parsed = verifyToken(raw as any);
+      console.error('Search route auth failed: no me; token present?', !!raw, 'verify ok?', !!parsed);
+    } catch (e) {
+      console.error('Search route auth failed and logging failed', e);
+    }
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
   const perms = await dbGetUserPermissions(me.id);
-  const canAssets = perms.includes('assets_read');
-  const canVendors = perms.includes('vendors_read');
-  const canLicenses = perms.includes('licenses_read');
-  if (!canAssets && !canVendors && !canLicenses) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+  // Accept both naming styles for permissions to be tolerant of role config differences.
+  const canAssets = perms.includes('assets_read') || perms.includes('read_assets');
+  const canVendors = perms.includes('vendors_read') || perms.includes('read_vendors');
+  const canLicenses = perms.includes('licenses_read') || perms.includes('read_licenses');
+  if (!canAssets && !canVendors && !canLicenses) {
+    try {
+      const perms = await dbGetUserPermissions(me.id);
+      console.error('Search route forbidden: user=', me.id, 'computed perms=', perms);
+    } catch (e) {
+      console.error('Search route forbidden and failed to read perms', e);
+    }
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+  }
 
   const like = `%${q}%`;
   const offset = (page - 1) * perPage;
@@ -30,7 +66,7 @@ export async function GET(req: NextRequest) {
       );
       const total = countRows[0]?.total ?? 0;
       const rows = await query(
-        `SELECT id, name, type, serial_number, assigned_to, assigned_email, location FROM assets WHERE name LIKE :q OR serial_number LIKE :q OR assigned_to LIKE :q OR assigned_email LIKE :q OR location LIKE :q ORDER BY name LIMIT :limit OFFSET :offset`,
+        `SELECT id, name, type_id, serial_number, assigned_to, assigned_email, location FROM assets WHERE name LIKE :q OR serial_number LIKE :q OR assigned_to LIKE :q OR assigned_email LIKE :q OR location LIKE :q ORDER BY name LIMIT :limit OFFSET :offset`,
         { q: like, limit: perPage, offset }
       );
       out.assets = { total, results: rows };

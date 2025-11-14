@@ -13,7 +13,7 @@ export async function POST(req: NextRequest) {
   const user = await dbFindUserByEmail(email);
   if (!user || !user.active || !user.password_hash || !verifyPassword(password, user.password_hash)) {
     // Do not leak which field failed; return a consistent unauthorized message
-    return NextResponse.json({ error: 'Not authorized' }, { status: 401 });
+    return NextResponse.json({ error: 'Invalid username or password' }, { status: 401 });
   }
 
   // Enforce single active session per user: if any active session exists, revoke it and continue

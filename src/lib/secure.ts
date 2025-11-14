@@ -21,11 +21,19 @@ export function secureId(prefix = '', bytes = 16): string {
     return prefix + Array.from(arr).map((b) => b.toString(16).padStart(2, '0')).join('');
   }
 
-  // Node fallback: require node:crypto.randomBytes
+  // Node fallback: attempt to require Node's crypto at runtime without using
+  // a static "node:crypto" import so bundlers don't try to resolve it for client builds.
   try {
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
-    const { randomBytes } = require('node:crypto');
-    return prefix + randomBytes(bytes).toString('hex');
+    // Avoid static analysis by using an indirect require via eval.
+    // eslint-disable-next-line no-eval, @typescript-eslint/no-var-requires
+    let req: any = null;
+    if ((globalThis as any).process !== undefined) {
+      req = eval('require');
+    }
+    const nodeCrypto = req ? req('crypto') : null;
+    if (nodeCrypto && typeof nodeCrypto.randomBytes === 'function') {
+      return prefix + nodeCrypto.randomBytes(bytes).toString('hex');
+    }
   } catch {
     // Last-resort fallback (non-cryptographic). Should not happen in properly provisioned environments.
     return prefix + Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
@@ -43,13 +51,19 @@ export function secureRandomInt(max: number): number {
     return uint32[0] % max;
   }
 
-  // Node fallback
+  // Node fallback: require at runtime without bundler-visible literal
   try {
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
-    const { randomBytes } = require('node:crypto');
-    const buf = randomBytes(4);
-    const val = buf.readUInt32BE(0);
-    return val % max;
+    // eslint-disable-next-line no-eval, @typescript-eslint/no-var-requires
+    let req: any = null;
+    if ((globalThis as any).process !== undefined) {
+      req = eval('require');
+    }
+    const nodeCrypto = req ? req('crypto') : null;
+    if (nodeCrypto && typeof nodeCrypto.randomBytes === 'function') {
+      const buf = nodeCrypto.randomBytes(4);
+      const val = buf.readUInt32BE(0);
+      return val % max;
+    }
   } catch {
     // Last-resort non-crypto fallback
     return Math.floor(Math.random() * max);
