@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { dbFindUserById, dbUpdateUserPassword } from '@/lib/auth/db-users';
-import { readAuthToken, verifyToken, hashPassword } from '@/lib/auth/server';
+import { dbFindUserById, dbFindUserByEmail, dbUpdateUserPassword } from '@/lib/auth/db-users';
+import { readAuthToken, verifyToken, hashPassword, verifyPassword } from '@/lib/auth/server';
 
 async function requireAdmin() {
   const token = await readAuthToken();
@@ -38,5 +38,19 @@ export async function POST(req: NextRequest) {
   const password = generatePassword(12);
   const password_hash = hashPassword(password);
   await dbUpdateUserPassword(userId, password_hash);
+
+  // Verify the stored hash actually matches the generated password (sanity check)
+  try {
+    const reloaded = await dbFindUserByEmail(user.email);
+    if (!reloaded || !reloaded.password_hash || !verifyPassword(password, reloaded.password_hash)) {
+      console.error('Password reset verification failed for user', user.email);
+      return NextResponse.json({ error: 'Failed to verify password reset. Try again.' }, { status: 500 });
+    }
+    // Log success (non-sensitive): indicate reset completed for this user
+    try { if (process.env.NODE_ENV !== 'production') console.info('Password reset completed for', user.email, { userId: userId }); } catch(e) {}
+  } catch (e) {
+    console.error('Error verifying reset password for', user.email, e);
+    return NextResponse.json({ error: 'Failed to verify password reset. Try again.' }, { status: 500 });
+  }
   return NextResponse.json({ ok: true, password });
 }

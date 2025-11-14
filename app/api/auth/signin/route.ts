@@ -13,6 +13,17 @@ export async function POST(req: NextRequest) {
   const user = await dbFindUserByEmail(email);
   if (!user || !user.active || !user.password_hash || !verifyPassword(password, user.password_hash)) {
     // Do not leak which field failed; return a consistent unauthorized message
+    // Add debug logging in non-production to help diagnose reset/login mismatches
+    try {
+      if (process.env.NODE_ENV !== 'production') {
+        console.warn('Auth signin failed', {
+          email,
+          found: !!user,
+          active: !!user?.active,
+          hasPasswordHash: !!user?.password_hash,
+        });
+      }
+    } catch (e) {}
     return NextResponse.json({ error: 'Invalid username or password' }, { status: 401 });
   }
 

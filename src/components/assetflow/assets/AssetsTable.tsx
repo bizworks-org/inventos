@@ -483,7 +483,12 @@ function renderAssetRow(asset: Asset, index: number, setHoveredRow, hoveredRow: 
               try {
                 if (typeof specsRaw === 'string') specs = JSON.parse(specsRaw);
                 else if (typeof specsRaw === 'object') specs = specsRaw;
-              } catch (e) { specs = null; }
+              } catch (e) {
+                // If parsing fails, log details for debugging and fall back to null
+                // eslint-disable-next-line no-console
+                console.warn('Failed to parse asset specifications:', e);
+                specs = null;
+              }
 
               // CIA values
               const cia_c = Number((asset as any).ciaConfidentiality ?? (asset as any).cia_confidentiality ?? 0);
