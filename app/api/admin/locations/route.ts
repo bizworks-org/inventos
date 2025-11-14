@@ -44,7 +44,7 @@ export async function POST(req: NextRequest) {
     const address = (body?.address || '').toString();
     const zipcode = (body?.zipcode || '').toString();
     if (zipcode && !/^[0-9]{6}$/.test(zipcode)) return NextResponse.json({ error: 'ZipCode must be 6 digits' }, { status: 400 });
-  const id = `loc_${Date.now()}_${secureId('', 2)}`;
+  const id = `loc_${Date.now()}_${secureId('', 16)}`;
     await query('INSERT INTO locations (id, code, name, address, zipcode) VALUES (:id, :code, :name, :address, :zipcode)', {
       id,
       code,

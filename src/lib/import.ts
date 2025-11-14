@@ -13,7 +13,7 @@ export type ImportSummary = {
 };
 
 function generateId(prefix: string) {
-  return `${prefix}-${Date.now()}-${secureId('', 3)}`;
+  return `${prefix}-${Date.now()}-${secureId('', 16)}`;
 }
 
 // Basic CSV parser supporting quoted fields and commas/newlines in quotes

@@ -6,6 +6,9 @@
 /* eslint-disable @typescript-eslint/no-var-requires */
 
 export function secureId(prefix = '', bytes = 16): string {
+  if (!Number.isInteger(bytes) || bytes <= 0) {
+    throw new Error('secureId: bytes must be a positive integer');
+  }
   // Prefer the standard randomUUID when available (gives a UUID v4 string).
   // globalThis.crypto may exist in both browser and recent Node versions.
   const anyCrypto: any = (globalThis as any).crypto;
@@ -46,9 +49,14 @@ export function secureRandomInt(max: number): number {
   // Browser: use getRandomValues
   const gw: any = (globalThis as any).window;
   if (gw?.crypto?.getRandomValues) {
-    const uint32 = new Uint32Array(1);
-    gw.crypto.getRandomValues(uint32);
-    return uint32[0] % max;
+    const range = Math.floor(0x100000000 / max) * max;
+    let val: number;
+    do {
+      const uint32 = new Uint32Array(1);
+      gw.crypto.getRandomValues(uint32);
+      val = uint32[0];
+    } while (val >= range);
+    return val % max;
   }
 
   // Node fallback: require at runtime without bundler-visible literal

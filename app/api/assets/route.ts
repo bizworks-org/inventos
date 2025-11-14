@@ -127,11 +127,65 @@ export async function POST(req: NextRequest) {
       :cia_confidentiality, :cia_integrity, :cia_availability)`;
 
     await query(sql, { ...body, cia_confidentiality: cia_c, cia_integrity: cia_i, cia_availability: cia_a });
+<<<<<<< HEAD
 
     // Record status and activity (best-effort) and notify recipients (best-effort)
     await recordInitialStatusAndActivity(body);
     await notifyOnCreate(body);
 
+=======
+    // Record initial status in history for new asset
+    try {
+      const me = await readMeFromCookie();
+      if (body?.status) {
+        await query(
+          `INSERT INTO asset_status_history (asset_id, from_status, to_status, changed_by) VALUES (:asset_id, :from_status, :to_status, :changed_by)`,
+          { asset_id: body.id, from_status: null, to_status: body.status, changed_by: me?.email || null }
+        );
+        // Also add activity
+        await query(
+          `INSERT INTO activities (id, ts, user, action, entity, entity_id, details, severity)
+           VALUES (:id, NOW(), :user, :action, 'Asset', :entity_id, :details, :severity)`,
+          {
+            id: `ACT-${Date.now()}-${secureId('', 16)}`,
+            user: me?.email || 'system',
+            action: 'Created',
+            entity_id: String(body.id),
+            details: `Asset created with status "${body.status}"`,
+            severity: 'success',
+          }
+        );
+      }
+    } catch (e) {
+      console.warn('Failed to record initial asset status/activity', e);
+    }
+    // Fire-and-forget in-app/email notifications
+    try {
+      const me = await readMeFromCookie();
+      const recipients: string[] = [];
+      if (body.assigned_email) recipients.push(String(body.assigned_email));
+      // Also notify admins
+      try {
+        const admins = await query<any>(
+          `SELECT u.email FROM users u
+           JOIN user_roles ur ON ur.user_id = u.id
+           JOIN roles r ON r.id = ur.role_id
+           WHERE r.name = 'admin'`
+        );
+        for (const a of admins) if (a?.email) recipients.push(String(a.email));
+      } catch {}
+      if (recipients.length) {
+        await notify({
+          type: 'asset.created',
+          title: `Asset created: ${body.name || body.id}`,
+          body: `${me?.email || 'system'} created asset ${body.name || body.id}`,
+          recipients,
+          entity: { type: 'asset', id: String(body.id) },
+          metadata: { id: body.id, name: body.name },
+        });
+      }
+    } catch {}
+>>>>>>> 73816c3e2f40ec6ab900e9a6d962ed1115313881
     return NextResponse.json({ ok: true }, { status: 201 });
   } catch (e: any) {
     console.error('POST /api/assets failed:', e);

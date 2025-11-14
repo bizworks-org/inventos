@@ -109,7 +109,7 @@ export async function PUT(req: NextRequest, ctx: any) {
           `INSERT INTO activities (id, ts, user, action, entity, entity_id, details, severity)
            VALUES (:id, NOW(), :user, :action, 'Asset', :entity_id, :details, :severity)`,
           {
-            id: `ACT-${Date.now()}-${secureId('', 5)}`,
+            id: `ACT-${Date.now()}-${secureId('', 16)}`,
             user: me?.email || 'system',
             action: 'Status Changed',
             entity_id: String(id),
