@@ -28,23 +28,30 @@ export function Header({ breadcrumbs = [], onSearch }: HeaderProps) {
         {/* Breadcrumbs */}
         <div className="flex items-center gap-2 text-sm">
           {breadcrumbs.length > 0 ? (
-            breadcrumbs.map((crumb, index) => (
-              <div key={index} className="flex items-center gap-2">
-                {index > 0 && <span className="text-[#a0a4b8]">/</span>}
-                {crumb.href ? (
-                  <a
-                    href={crumb.href}
-                    className="text-[#6366f1] hover:text-[#8b5cf6] font-medium transition-colors"
-                  >
-                    {crumb.label}
-                  </a>
-                ) : (
-                  <span className="text-[#1a1d2e] font-medium">
-                    {crumb.label}
-                  </span>
-                )}
-              </div>
-            ))
+            breadcrumbs.map((crumb, index) => {
+              const isHome = String(crumb.label).toLowerCase() === "home";
+              const href =
+                isHome && (crumb.href === "#" || !crumb.href)
+                  ? "/dashboard"
+                  : crumb.href;
+              return (
+                <div key={index} className="flex items-center gap-2">
+                  {index > 0 && <span className="text-[#a0a4b8]">/</span>}
+                  {href ? (
+                    <a
+                      href={href}
+                      className="text-[#6366f1] hover:text-[#8b5cf6] font-medium transition-colors"
+                    >
+                      {crumb.label}
+                    </a>
+                  ) : (
+                    <span className="text-[#1a1d2e] font-medium">
+                      {crumb.label}
+                    </span>
+                  )}
+                </div>
+              );
+            })
           ) : (
             <span className="text-[#1a1d2e] font-medium">Dashboard</span>
           )}
@@ -93,10 +100,16 @@ export function Header({ breadcrumbs = [], onSearch }: HeaderProps) {
             </button>
 
             {profileOpen && (
-              <div ref={profileRef} className="absolute right-0 mt-2 w-44 bg-white rounded-lg shadow-lg border border-[#e6e9f2] z-50">
+              <div
+                ref={profileRef}
+                className="absolute right-0 mt-2 w-44 bg-white rounded-lg shadow-lg border border-[#e6e9f2] z-50"
+              >
                 <div className="flex flex-col py-2">
                   <button
-                    onClick={async (e) => { e.preventDefault(); (await import('@/lib/auth/client')).signOut(); }}
+                    onClick={async (e) => {
+                      e.preventDefault();
+                      (await import("@/lib/auth/client")).signOut();
+                    }}
                     className="text-left px-4 py-2 text-sm text-[#1a1d2e] hover:bg-[#f3f4f6]"
                   >
                     Logout
@@ -122,9 +135,13 @@ function useProfileMenu() {
       if (!el) return;
       if (e.target instanceof Node && !el.contains(e.target)) setOpen(false);
     }
-    if (open) document.addEventListener('click', onDoc);
-    return () => document.removeEventListener('click', onDoc);
+    if (open) document.addEventListener("click", onDoc);
+    return () => document.removeEventListener("click", onDoc);
   }, [open]);
 
-  return { profileOpen: open, setProfileOpen: setOpen, profileRef: ref } as const;
+  return {
+    profileOpen: open,
+    setProfileOpen: setOpen,
+    profileRef: ref,
+  } as const;
 }

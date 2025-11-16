@@ -5,9 +5,10 @@ import {
   AlertCircle,
   CheckCircle,
   AlertTriangle,
+  Eye,
 } from "lucide-react";
 import { License } from "../../../lib/data";
-import { useState } from "react";
+import { useState, Fragment } from "react";
 import { usePrefs } from "../layout/PrefsContext";
 import { Button } from "@/components/ui/button";
 
@@ -91,6 +92,7 @@ export function LicensesTable({
   canWrite = true,
 }: LicensesTableProps) {
   const [hoveredRow, setHoveredRow] = useState<string | null>(null);
+  const [expandedId, setExpandedId] = useState<string | null>(null);
   const formatCurrency = useCurrencyFormatter();
   const { density } = usePrefs();
   const cellPad =
@@ -115,6 +117,10 @@ export function LicensesTable({
     if (confirm(`Are you sure you want to delete ${licenseName}?`)) {
       onDelete?.(licenseId, licenseName);
     }
+  };
+
+  const toggleView = (licenseId: string) => {
+    setExpandedId((prev) => (prev === licenseId ? null : licenseId));
   };
 
   if (licenses.length === 0) {
@@ -205,14 +211,15 @@ export function LicensesTable({
               const expiringSoon = isExpiringSoon(license.expirationDate);
 
               return (
-                <motion.tr
-                  key={license.id}
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.3, delay: 0.45 + index * 0.05 }}
-                  onMouseEnter={() => setHoveredRow(license.id)}
-                  onMouseLeave={() => setHoveredRow(null)}
-                  className={`
+                <Fragment key={license.id}>
+                  <motion.tr
+                    key={license.id}
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.3, delay: 0.45 + index * 0.05 }}
+                    onMouseEnter={() => setHoveredRow(license.id)}
+                    onMouseLeave={() => setHoveredRow(null)}
+                    className={`
                     border-b border-[rgba(0,0,0,0.05)] transition-all duration-200
                     ${
                       hoveredRow === license.id
@@ -220,151 +227,240 @@ export function LicensesTable({
                         : ""
                     }
                   `}
-                >
-                  {/* License Name & Type */}
-                  <td className={`${cellPad}`}>
-                    <div>
-                      <p className="font-semibold text-[#1a1d2e] mb-1">
-                        {license.name}
-                      </p>
-                      <span
-                        className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold ${getTypeColor(
-                          license.type
-                        )}`}
-                      >
-                        {license.type}
-                      </span>
-                    </div>
-                  </td>
-
-                  {/* Vendor */}
-                  <td className={`${cellPad}`}>
-                    <p
-                      className={`text-sm text-[#64748b] ${
-                        density === "ultra-compact" ? "text-[12px]" : ""
-                      }`}
-                    >
-                      {license.vendor}
-                    </p>
-                  </td>
-
-                  {/* Owner */}
-                  <td className={`${cellPad}`}>
-                    <p
-                      className={`text-sm text-[#1a1d2e] font-medium ${
-                        density === "ultra-compact" ? "text-[12px]" : ""
-                      }`}
-                    >
-                      {license.owner}
-                    </p>
-                  </td>
-
-                  {/* Seats column removed from table */}
-
-                  {/* Expiration */}
-                  <td className={`${cellPad}`}>
-                    <div>
-                      <p
-                        className={`text-sm font-medium ${
-                          expired
-                            ? "text-[#ef4444]"
-                            : expiringSoon
-                            ? "text-[#f59e0b]"
-                            : "text-[#64748b]"
-                        } ${density === "ultra-compact" ? "text-[12px]" : ""}`}
-                      >
-                        {formatDate(license.expirationDate)}
-                      </p>
-                      {expired && (
-                        <p
-                          className={`${subText} text-[#ef4444] font-semibold mt-0.5`}
+                  >
+                    {/* License Name & Type */}
+                    <td className={`${cellPad}`}>
+                      <div>
+                        <p className="font-semibold text-[#1a1d2e] mb-1">
+                          {license.name}
+                        </p>
+                        <span
+                          className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold ${getTypeColor(
+                            license.type
+                          )}`}
                         >
-                          Expired!
-                        </p>
-                      )}
-                      {!expired && expiringSoon && (
-                        <p className={`${subText} text-[#f59e0b] mt-0.5`}>
-                          {daysUntilExpiry} days left
-                        </p>
-                      )}
-                    </div>
-                  </td>
+                          {license.type}
+                        </span>
+                      </div>
+                    </td>
 
-                  {/* Compliance */}
-                  <td className={`${cellPad}`}>
-                    <span
-                      className={`
+                    {/* Vendor */}
+                    <td className={`${cellPad}`}>
+                      <p
+                        className={`text-sm text-[#64748b] ${
+                          density === "ultra-compact" ? "text-[12px]" : ""
+                        }`}
+                      >
+                        {license.vendor}
+                      </p>
+                    </td>
+
+                    {/* Owner */}
+                    <td className={`${cellPad}`}>
+                      <p
+                        className={`text-sm text-[#1a1d2e] font-medium ${
+                          density === "ultra-compact" ? "text-[12px]" : ""
+                        }`}
+                      >
+                        {license.owner}
+                      </p>
+                    </td>
+
+                    {/* Seats column removed from table */}
+
+                    {/* Expiration */}
+                    <td className={`${cellPad}`}>
+                      <div>
+                        <p
+                          className={`text-sm font-medium ${
+                            expired
+                              ? "text-[#ef4444]"
+                              : expiringSoon
+                              ? "text-[#f59e0b]"
+                              : "text-[#64748b]"
+                          } ${
+                            density === "ultra-compact" ? "text-[12px]" : ""
+                          }`}
+                        >
+                          {formatDate(license.expirationDate)}
+                        </p>
+                        {expired && (
+                          <p
+                            className={`${subText} text-[#ef4444] font-semibold mt-0.5`}
+                          >
+                            Expired!
+                          </p>
+                        )}
+                        {!expired && expiringSoon && (
+                          <p className={`${subText} text-[#f59e0b] mt-0.5`}>
+                            {daysUntilExpiry} days left
+                          </p>
+                        )}
+                      </div>
+                    </td>
+
+                    {/* Compliance */}
+                    <td className={`${cellPad}`}>
+                      <span
+                        className={`
                       inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold border
                       ${getComplianceColor(license.compliance)}
                     `}
-                    >
-                      {getComplianceIcon(license.compliance)}
-                      {license.compliance}
-                    </span>
-                  </td>
+                      >
+                        {getComplianceIcon(license.compliance)}
+                        {license.compliance}
+                      </span>
+                    </td>
 
-                  {/* Annual Cost */}
-                  <td className={`${cellPad}`}>
-                    <p
-                      className={`text-sm font-semibold text-[#1a1d2e] ${
-                        density === "ultra-compact" ? "text-[12px]" : ""
-                      }`}
-                    >
-                      {formatCurrency(license.cost)}
-                    </p>
-                    <p className={`${subText} text-[#94a3b8] mt-0.5`}>
-                      {formatCurrency(license.cost / 12)}/mo
-                    </p>
-                  </td>
+                    {/* Annual Cost */}
+                    <td className={`${cellPad}`}>
+                      <p
+                        className={`text-sm font-semibold text-[#1a1d2e] ${
+                          density === "ultra-compact" ? "text-[12px]" : ""
+                        }`}
+                      >
+                        {formatCurrency(license.cost)}
+                      </p>
+                      <p className={`${subText} text-[#94a3b8] mt-0.5`}>
+                        {formatCurrency(license.cost / 12)}/mo
+                      </p>
+                    </td>
 
-                  {/* Actions */}
-                  <td className={`${cellPad}`}>
-                    <div
-                      className={`flex items-center ${
-                        density === "ultra-compact" ? "gap-1.5" : "gap-2"
-                      }`}
+                    {/* Actions */}
+                    <td className={`${cellPad}`}>
+                      <div
+                        className={`flex items-center ${
+                          density === "ultra-compact" ? "gap-1.5" : "gap-2"
+                        }`}
+                      >
+                        {canWrite && (
+                          <>
+                            <Button
+                              onClick={() => toggleView(license.id)}
+                              variant="outline"
+                              className={`transition-all duration-200 group rounded-lg hover:bg-[#f3f4f6] text-[#475569] ${
+                                density === "ultra-compact"
+                                  ? "p-1.5 border-0"
+                                  : "p-2"
+                              }`}
+                              title={
+                                expandedId === license.id
+                                  ? "Hide details"
+                                  : "View details"
+                              }
+                            >
+                              <Eye
+                                className={`${
+                                  density === "ultra-compact"
+                                    ? "h-3.5 w-3.5"
+                                    : "h-4 w-4"
+                                } group-hover:scale-110 transition-transform`}
+                              />
+                            </Button>
+                            <Button
+                              variant="outline"
+                              onClick={() => handleEdit(license.id)}
+                              className={`rounded-lg hover:bg-[#6366f1]/10 text-[#6366f1] transition-all duration-200 group ${
+                                density === "ultra-compact" ? "p-1.5" : "p-2"
+                              }`}
+                              title="Edit license"
+                            >
+                              <Edit2
+                                className={`${
+                                  density === "ultra-compact"
+                                    ? "h-3.5 w-3.5"
+                                    : "h-4 w-4"
+                                } group-hover:scale-110 transition-transform`}
+                              />
+                            </Button>
+                            <Button
+                              variant="outline"
+                              onClick={() =>
+                                handleDelete(license.id, license.name)
+                              }
+                              className={`rounded-lg hover:bg-[#ef4444]/10 text-[#ef4444] transition-all duration-200 group ${
+                                density === "ultra-compact" ? "p-1.5" : "p-2"
+                              }`}
+                              title="Delete license"
+                            >
+                              <Trash2
+                                className={`${
+                                  density === "ultra-compact"
+                                    ? "h-3.5 w-3.5"
+                                    : "h-4 w-4"
+                                } group-hover:scale-110 transition-transform`}
+                              />
+                            </Button>
+                          </>
+                        )}
+                      </div>
+                    </td>
+                  </motion.tr>
+                  {expandedId === license.id && (
+                    <motion.tr
+                      key={`${license.id}-details`}
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      transition={{ duration: 0.15 }}
                     >
-                      {canWrite && (
-                        <>
-                          <Button
-                            variant="outline"
-                            onClick={() => handleEdit(license.id)}
-                            className={`rounded-lg hover:bg-[#6366f1]/10 text-[#6366f1] transition-all duration-200 group ${
-                              density === "ultra-compact" ? "p-1.5" : "p-2"
-                            }`}
-                            title="Edit license"
-                          >
-                            <Edit2
-                              className={`${
-                                density === "ultra-compact"
-                                  ? "h-3.5 w-3.5"
-                                  : "h-4 w-4"
-                              } group-hover:scale-110 transition-transform`}
-                            />
-                          </Button>
-                          <Button
-                            variant="outline"
-                            onClick={() =>
-                              handleDelete(license.id, license.name)
-                            }
-                            className={`rounded-lg hover:bg-[#ef4444]/10 text-[#ef4444] transition-all duration-200 group ${
-                              density === "ultra-compact" ? "p-1.5" : "p-2"
-                            }`}
-                            title="Delete license"
-                          >
-                            <Trash2
-                              className={`${
-                                density === "ultra-compact"
-                                  ? "h-3.5 w-3.5"
-                                  : "h-4 w-4"
-                              } group-hover:scale-110 transition-transform`}
-                            />
-                          </Button>
-                        </>
-                      )}
-                    </div>
-                  </td>
-                </motion.tr>
+                      <td
+                        colSpan={7}
+                        className={`${
+                          density === "ultra-compact"
+                            ? "px-4 py-4"
+                            : density === "compact"
+                            ? "px-5 py-6"
+                            : "px-6 py-8"
+                        } border-t border-[rgba(0,0,0,0.04)] text-sm text-[#374151] bg-gradient-to-r from-[#eef2ff] via-[#f8fbff] to-white rounded-b-2xl shadow-sm`}
+                      >
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                          <div>
+                            <div className="text-xs text-[#64748b]">ID</div>
+                            <div className="font-medium text-[#1a1d2e]">
+                              {license.id}
+                            </div>
+                          </div>
+                          <div>
+                            <div className="text-xs text-[#64748b]">Vendor</div>
+                            <div className="font-medium text-[#1a1d2e]">
+                              {license.vendor}
+                            </div>
+                          </div>
+                          <div>
+                            <div className="text-xs text-[#64748b]">Owner</div>
+                            <div className="font-medium text-[#1a1d2e]">
+                              {license.owner}
+                            </div>
+                          </div>
+                          <div>
+                            <div className="text-xs text-[#64748b]">
+                              Expiration
+                            </div>
+                            <div className="font-medium text-[#1a1d2e]">
+                              {formatDate(license.expirationDate)}
+                            </div>
+                          </div>
+                          <div>
+                            <div className="text-xs text-[#64748b]">
+                              Compliance
+                            </div>
+                            <div className="font-medium text-[#1a1d2e]">
+                              {license.compliance}
+                            </div>
+                          </div>
+                          <div>
+                            <div className="text-xs text-[#64748b]">
+                              Annual Cost
+                            </div>
+                            <div className="font-medium text-[#1a1d2e]">
+                              {formatCurrency(license.cost)}
+                            </div>
+                          </div>
+                        </div>
+                      </td>
+                    </motion.tr>
+                  )}
+                </Fragment>
               );
             })}
           </tbody>

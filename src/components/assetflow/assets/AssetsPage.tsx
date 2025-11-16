@@ -14,13 +14,13 @@ import { AssetFlowLayout } from "../layout/AssetFlowLayout";
 import { Asset } from "../../../lib/data";
 import { fetchAssets, deleteAsset } from "../../../lib/api";
 import { exportAssetsToCSV } from "../../../lib/export";
-import { importAssets, parseAssetsFile } from "../../../lib/import";
+import { importAssets, parseAssetsFile, parseCSV } from "../../../lib/import";
+import AssetImportModal from "./AssetImportModal";
 import { toast } from "sonner@2.0.3";
 import { AssetsTable } from "./AssetsTable";
 // removed unused Tabs import
 import { getMe, type ClientMe } from "../../../lib/auth/client";
-import { Button } from '@/components/ui/button';
-
+import { Button } from "@/components/ui/button";
 
 interface AssetsPageProps {
   onNavigate?: (page: string) => void;
@@ -39,95 +39,75 @@ export function AssetsPage({ onNavigate, onSearch }: AssetsPageProps) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [me, setMe] = useState<ClientMe>(null);
-
-  useEffect(() => {
-    let cancelled = false;
-    // Fetch current user for UI gating
-    getMe()
-      .then(setMe)
-      .catch(() => setMe(null));
-    setLoading(true);
-    fetchAssets()
-      .then((rows) => {
-        if (!cancelled) {
-          setAssets(rows);
-          setError(null);
-        }
-      })
-      .catch((e) => {
-        if (!cancelled) setError(e.message || "Failed to load assets");
-      })
-      .finally(() => {
-        if (!cancelled) setLoading(false);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, []);
-
-  // Try reading catalog from localStorage to build a dynamic mapping from type -> category
+  // Catalog UI type and cached catalog state (used to map types -> categories)
   type UiCategory = {
     id: number;
     name: string;
-    types: Array<{ id?: number; name: string }>;
+    sort?: number;
+    types: Array<{ id?: number; name: string; sort?: number }>;
   };
   const [catalog, setCatalog] = useState<UiCategory[] | null>(null);
-  const fetchAndCacheCatalog = async () => {
-    // Preferred flow: read from localStorage first. If not present, fetch from API and cache.
-    try {
-      const raw = localStorage.getItem("catalog.categories");
-      if (raw) {
-        const parsed = JSON.parse(raw);
-        if (Array.isArray(parsed)) {
-          setCatalog(parsed as UiCategory[]);
-          return;
-        }
-      }
-    } catch {}
-
-    try {
-      const res = await fetch("/api/catalog", { cache: "no-store" });
-      if (!res.ok) throw new Error("Failed to fetch catalog");
-      const data = await res.json();
-      const cats = Array.isArray(data) ? data : data?.categories;
-      if (Array.isArray(cats)) {
-        try {
-          localStorage.setItem("catalog.categories", JSON.stringify(cats));
-        } catch {}
-        setCatalog(cats as UiCategory[]);
-      }
-    } catch (e) {
-      // no-op; leave catalog null
-    }
-  };
 
   useEffect(() => {
-    fetchAndCacheCatalog();
-    const onClear = () => {
-      (async () => {
-        try {
-          const res = await fetch("/api/catalog", { cache: "no-store" });
-          if (!res.ok) return;
-          const data = await res.json();
-          const cats = Array.isArray(data) ? data : data?.categories;
-          if (Array.isArray(cats)) {
-            try {
-              localStorage.setItem("catalog.categories", JSON.stringify(cats));
-            } catch {}
-            setCatalog(cats as UiCategory[]);
-          }
-        } catch {}
-      })();
+    let cancelled = false;
+
+    const load = async () => {
+      try {
+        const [meRes, assetsRes] = await Promise.all([getMe(), fetchAssets()]);
+        if (!cancelled) {
+          setMe(meRes as any);
+          setAssets(assetsRes || []);
+        }
+      } catch (e: any) {
+        if (!cancelled) setError(e?.message || String(e));
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
     };
+    load();
+
+    const loadFromStorage = () => {
+      try {
+        const raw = localStorage.getItem("catalog.categories");
+        if (!raw) return false;
+        const parsed = JSON.parse(raw);
+        if (!Array.isArray(parsed)) return false;
+        setCatalog(parsed as UiCategory[]);
+        return true;
+      } catch {
+        return false;
+      }
+    };
+
+    const fetchAndStore = async () => {
+      try {
+        const res = await fetch("/api/catalog", { cache: "no-store" });
+        if (!res.ok) return;
+        const data = await res.json();
+        const cats = Array.isArray(data) ? data : data?.categories;
+        if (Array.isArray(cats)) {
+          try {
+            localStorage.setItem("catalog.categories", JSON.stringify(cats));
+          } catch {}
+          setCatalog(cats as UiCategory[]);
+        }
+      } catch {}
+    };
+
+    if (!loadFromStorage()) fetchAndStore();
+    const onClear = () => fetchAndStore();
     window.addEventListener(
       "assetflow:catalog-cleared",
       onClear as EventListener
     );
-    return () =>
+
+    return () => {
+      cancelled = true;
       window.removeEventListener(
         "assetflow:catalog-cleared",
         onClear as EventListener
       );
+    };
   }, []);
 
   // Build fast lookup maps from the catalog: by type id and by type name.
@@ -235,6 +215,26 @@ export function AssetsPage({ onNavigate, onSearch }: AssetsPageProps) {
     }
   };
 
+  // Import preview state for assets
+  const [assetPreviewOpen, setAssetPreviewOpen] = useState(false);
+  const [assetPreviewItems, setAssetPreviewItems] = useState<Asset[]>([]);
+  const [assetPreviewHeaders, setAssetPreviewHeaders] = useState<string[]>([]);
+  const [assetPreviewMissingHeaders, setAssetPreviewMissingHeaders] = useState<
+    string[]
+  >([]);
+
+  const requiredAssetColumns = [
+    "name",
+    "type",
+    "serial number",
+    "assigned to",
+    "department",
+    "status",
+    "purchase date",
+    "warranty expiry",
+    "location",
+  ];
+
   return (
     <AssetFlowLayout
       breadcrumbs={[{ label: "Home", href: "#" }, { label: "IT Assets" }]}
@@ -266,6 +266,16 @@ export function AssetsPage({ onNavigate, onSearch }: AssetsPageProps) {
             <Upload className="h-4 w-4" />
             Import
           </Button>
+          <a
+            href="/assets/assets-sample.csv"
+            download
+            title="Download sample CSV"
+          >
+            <Button className="flex items-center gap-2 px-4 py-2 rounded-lg bg-white border border-[rgba(0,0,0,0.1)] hover:bg-[#f8f9ff] transition-all duration-200 text-[#1a1d2e]">
+              <Download className="h-4 w-4" />
+              Download Sample CSV
+            </Button>
+          </a>
           <input
             id="asset-import-input"
             type="file"
@@ -274,21 +284,68 @@ export function AssetsPage({ onNavigate, onSearch }: AssetsPageProps) {
             onChange={async (e) => {
               const file = e.target.files?.[0];
               if (!file) return;
+              // open preview immediately so overlay/inline UI can render
+              setAssetPreviewOpen(true);
+              // clear previous preview state while parsing
+              setAssetPreviewItems([]);
+              setAssetPreviewHeaders([]);
+              setAssetPreviewMissingHeaders([]);
               try {
                 const text = await file.text();
-                const items = parseAssetsFile(file.name, text);
-                const doing = toast.loading(
-                  `Importing ${items.length} assets…`
-                );
-                const res = await importAssets(items);
-                toast.dismiss(doing);
-                toast.success(
-                  `Imported ${res.created} created, ${res.updated} updated, ${res.failed} failed`
-                );
-                // refresh list
-                setAssets(await fetchAssets());
+                // parse on next tick so the UI gets a chance to render the overlay
+                setTimeout(() => {
+                  try {
+                    const isCSV = file.name.toLowerCase().endsWith(".csv");
+                    let headers: string[] = [];
+                    if (isCSV) {
+                      const rows = parseCSV(text);
+                      if (rows.length > 0)
+                        headers = rows[0].map((h) => String(h).trim());
+                    }
+
+                    const items = parseAssetsFile(file.name, text);
+
+                    const lowerHeaders = new Set(
+                      headers.map((h) => h.toLowerCase())
+                    );
+                    const missing = requiredAssetColumns.filter(
+                      (c) => !lowerHeaders.has(c)
+                    );
+
+                    console.log("asset-import: headers=", headers);
+                    console.log("asset-import: parsed items=", items.length);
+                    setAssetPreviewHeaders(headers);
+                    setAssetPreviewItems(items.slice(0, 200));
+                    setAssetPreviewMissingHeaders(missing);
+                    // toast after parsing
+                    try {
+                      toast?.(
+                        `Preview ready — ${Math.min(
+                          items.length,
+                          200
+                        )} rows parsed`
+                      );
+                    } catch {
+                      try {
+                        toast.loading?.(
+                          `Preview ready — ${Math.min(
+                            items.length,
+                            200
+                          )} rows parsed`
+                        );
+                      } catch {}
+                    }
+                  } catch (innerErr: any) {
+                    console.error("asset-import parse error", innerErr);
+                    toast.error?.(
+                      `Import parse failed: ${innerErr?.message || innerErr}`
+                    );
+                    setAssetPreviewOpen(false);
+                  }
+                }, 0);
               } catch (err: any) {
                 toast.error(`Import failed: ${err?.message || err}`);
+                setAssetPreviewOpen(false);
               } finally {
                 (e.target as HTMLInputElement).value = "";
               }
@@ -424,14 +481,27 @@ export function AssetsPage({ onNavigate, onSearch }: AssetsPageProps) {
         <div className="mt-4 pt-4 border-t border-[rgba(0,0,0,0.05)]">
           <div className="mt-4 pt-4 border-t border-[rgba(0,0,0,0.05)] flex items-center justify-between">
             <p className="text-sm text-[#64748b]">
-              Showing <span className="font-semibold text-[#1a1d2e]">{Math.min(filteredAssets.length, perPage)}</span> of{' '}
-              <span className="font-semibold text-[#1a1d2e]">{filteredAssets.length}</span> assets
+              Showing{" "}
+              <span className="font-semibold text-[#1a1d2e]">
+                {Math.min(filteredAssets.length, perPage)}
+              </span>{" "}
+              of{" "}
+              <span className="font-semibold text-[#1a1d2e]">
+                {filteredAssets.length}
+              </span>{" "}
+              assets
             </p>
             <div className="flex items-center gap-3">
               {filteredAssets.length >= 30 && (
                 <>
-                  <label className="text-sm text-[#64748b]">Items per page</label>
-                  <select value={perPage} onChange={(e) => setPerPage(Number(e.target.value))} className="px-2 py-1 rounded-lg bg-white border">
+                  <label className="text-sm text-[#64748b]">
+                    Items per page
+                  </label>
+                  <select
+                    value={perPage}
+                    onChange={(e) => setPerPage(Number(e.target.value))}
+                    className="px-2 py-1 rounded-lg bg-white border"
+                  >
                     <option value={10}>10</option>
                     <option value={20}>20</option>
                     <option value={50}>50</option>
@@ -453,12 +523,58 @@ export function AssetsPage({ onNavigate, onSearch }: AssetsPageProps) {
         canWrite={canWriteAssets}
       />
 
+      <AssetImportModal
+        open={assetPreviewOpen}
+        onClose={() => setAssetPreviewOpen(false)}
+        items={assetPreviewItems}
+        missingHeaders={assetPreviewMissingHeaders}
+        onConfirm={async (edited) => {
+          try {
+            setAssetPreviewOpen(false);
+            const doing = toast.loading(`Importing ${edited.length} assets…`);
+            const res = await importAssets(edited);
+            toast.dismiss(doing);
+            if (res.failed > 0)
+              toast.error(`Imported with ${res.failed} failures`);
+            else
+              toast.success(
+                `Imported ${res.created} created, ${res.updated} updated`
+              );
+            setAssets(await fetchAssets());
+          } catch (err: any) {
+            toast.error(`Import failed: ${err?.message || err}`);
+          }
+        }}
+      />
+
       {/* Pagination controls */}
       {filteredAssets.length > 20 && (
         <div className="flex items-center gap-2 mt-4 justify-center">
-          <Button disabled={page <= 1} onClick={() => setPage(p => Math.max(1, p - 1))} className="px-3 py-1 rounded bg-white border">Prev</Button>
+          <Button
+            disabled={page <= 1}
+            aria-disabled={page <= 1}
+            onClick={() => setPage((p) => Math.max(1, p - 1))}
+            className={`px-3 py-1 rounded bg-white border ${
+              page <= 1
+                ? "text-[#94a3b8] pointer-events-none opacity-60"
+                : "text-[#1a1d2e]"
+            }`}
+          >
+            Prev
+          </Button>
           <div className="text-sm text-[#64748b]">Page {page}</div>
-          <Button disabled={page * perPage >= filteredAssets.length} onClick={() => setPage(p => p + 1)} className="px-3 py-1 rounded bg-white border">Next</Button>
+          <Button
+            disabled={page * perPage >= filteredAssets.length}
+            aria-disabled={page * perPage >= filteredAssets.length}
+            onClick={() => setPage((p) => p + 1)}
+            className={`px-3 py-1 rounded bg-white border ${
+              page * perPage >= filteredAssets.length
+                ? "text-[#94a3b8] pointer-events-none opacity-60"
+                : "text-[#1a1d2e]"
+            }`}
+          >
+            Next
+          </Button>
         </div>
       )}
     </AssetFlowLayout>

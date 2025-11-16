@@ -1,0 +1,2 @@
+id,name,type,serial number,assigned to,assigned_email,department,status,purchase date,end of support,end of life,warranty expiry,cost,location,processor,ram,storage,os,consent_status,cia_confidentiality,cia_integrity,cia_availability
+AST-0001,Test Laptop,1,SN-1001,alice@example.com,alice@example.com,Engineering,In Store (New),2025-11-14,2027-11-14,2030-11-14,2026-11-14,1200.00,Head Office,Intel i7,16GB,512GB,Windows 11,none,3,3,3
