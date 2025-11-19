@@ -222,6 +222,7 @@ export function AssetsPage({ onNavigate, onSearch }: AssetsPageProps) {
   const [assetPreviewMissingHeaders, setAssetPreviewMissingHeaders] = useState<
     string[]
   >([]);
+  const [assetPreviewLoading, setAssetPreviewLoading] = useState(false);
 
   const requiredAssetColumns = [
     "name",
@@ -286,69 +287,69 @@ export function AssetsPage({ onNavigate, onSearch }: AssetsPageProps) {
               if (!file) return;
               // open preview immediately so overlay/inline UI can render
               setAssetPreviewOpen(true);
+              setAssetPreviewLoading(true);
               // clear previous preview state while parsing
               setAssetPreviewItems([]);
               setAssetPreviewHeaders([]);
               setAssetPreviewMissingHeaders([]);
-              try {
-                const text = await file.text();
-                // parse on next tick so the UI gets a chance to render the overlay
-                setTimeout(() => {
+              // schedule parsing on the next macrotask so React can render the modal and spinner
+              setTimeout(async () => {
+                try {
+                  const text = await file.text();
+                  const isCSV = file.name.toLowerCase().endsWith(".csv");
+                  let headers: string[] = [];
+                  if (isCSV) {
+                    const rows = parseCSV(text);
+                    if (rows.length > 0)
+                      headers = rows[0].map((h) => String(h).trim());
+                  }
+
+                  const items = parseAssetsFile(file.name, text);
+
+                  const lowerHeaders = new Set(
+                    headers.map((h) => h.toLowerCase())
+                  );
+                  const missing = requiredAssetColumns.filter(
+                    (c) => !lowerHeaders.has(c)
+                  );
+
+                  console.log("asset-import: headers=", headers);
+                  console.log("asset-import: parsed items=", items.length);
+                  setAssetPreviewHeaders(headers);
+                  setAssetPreviewItems(items.slice(0, 200));
+                  setAssetPreviewMissingHeaders(missing);
+                  setAssetPreviewLoading(false);
+
                   try {
-                    const isCSV = file.name.toLowerCase().endsWith(".csv");
-                    let headers: string[] = [];
-                    if (isCSV) {
-                      const rows = parseCSV(text);
-                      if (rows.length > 0)
-                        headers = rows[0].map((h) => String(h).trim());
-                    }
-
-                    const items = parseAssetsFile(file.name, text);
-
-                    const lowerHeaders = new Set(
-                      headers.map((h) => h.toLowerCase())
+                    toast?.(
+                      `Preview ready — ${Math.min(
+                        items.length,
+                        200
+                      )} rows parsed`
                     );
-                    const missing = requiredAssetColumns.filter(
-                      (c) => !lowerHeaders.has(c)
-                    );
-
-                    console.log("asset-import: headers=", headers);
-                    console.log("asset-import: parsed items=", items.length);
-                    setAssetPreviewHeaders(headers);
-                    setAssetPreviewItems(items.slice(0, 200));
-                    setAssetPreviewMissingHeaders(missing);
-                    // toast after parsing
+                  } catch {
                     try {
-                      toast?.(
+                      toast.loading?.(
                         `Preview ready — ${Math.min(
                           items.length,
                           200
                         )} rows parsed`
                       );
-                    } catch {
-                      try {
-                        toast.loading?.(
-                          `Preview ready — ${Math.min(
-                            items.length,
-                            200
-                          )} rows parsed`
-                        );
-                      } catch {}
-                    }
-                  } catch (innerErr: any) {
-                    console.error("asset-import parse error", innerErr);
-                    toast.error?.(
-                      `Import parse failed: ${innerErr?.message || innerErr}`
-                    );
-                    setAssetPreviewOpen(false);
+                    } catch {}
                   }
-                }, 0);
-              } catch (err: any) {
-                toast.error(`Import failed: ${err?.message || err}`);
-                setAssetPreviewOpen(false);
-              } finally {
-                (e.target as HTMLInputElement).value = "";
-              }
+                } catch (innerErr: any) {
+                  console.error("asset-import parse error", innerErr);
+                  toast.error?.(
+                    `Import parse failed: ${innerErr?.message || innerErr}`
+                  );
+                  setAssetPreviewOpen(false);
+                  setAssetPreviewLoading(false);
+                } finally {
+                  try {
+                    (e.target as HTMLInputElement).value = "";
+                  } catch {}
+                }
+              }, 50);
             }}
           />
           <Button
@@ -525,6 +526,7 @@ export function AssetsPage({ onNavigate, onSearch }: AssetsPageProps) {
 
       <AssetImportModal
         open={assetPreviewOpen}
+        loading={assetPreviewLoading}
         onClose={() => setAssetPreviewOpen(false)}
         items={assetPreviewItems}
         missingHeaders={assetPreviewMissingHeaders}

@@ -4,6 +4,7 @@ import React, { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { Asset } from "../../../lib/data";
 import { Button } from "@/components/ui/button";
+import AssetImportLoadingOverlay from "./AssetImportLoadingOverlay";
 
 interface Props {
   open: boolean;
@@ -11,6 +12,7 @@ interface Props {
   items: Asset[];
   onConfirm: (items: Asset[]) => Promise<void> | void;
   missingHeaders?: string[];
+  loading?: boolean;
 }
 
 export default function AssetImportModal({
@@ -19,6 +21,7 @@ export default function AssetImportModal({
   items,
   onConfirm,
   missingHeaders = [],
+  loading = false,
 }: Props) {
   const [localItems, setLocalItems] = useState<Asset[]>([]);
   useEffect(() => {
@@ -43,6 +46,45 @@ export default function AssetImportModal({
       };
     }
     return;
+  }, [open]);
+
+  useEffect(() => {
+    // Lower other fixed/sticky/absolute positioned elements that might overlay the modal
+    if (!open) return;
+    const modalZ = 100000;
+    const adjusted: HTMLElement[] = [];
+    try {
+      const all = Array.from(document.querySelectorAll<HTMLElement>("body *"));
+      for (const el of all) {
+        try {
+          const cs = window.getComputedStyle(el);
+          if (!cs) continue;
+          const pos = cs.position;
+          const z = parseInt(cs.zIndex || "0", 10);
+          if (
+            (pos === "fixed" || pos === "sticky" || pos === "absolute") &&
+            !isNaN(z) &&
+            z >= modalZ
+          ) {
+            // save previous inline z-index so we can restore
+            el.dataset.__prevInlineZ = el.style.zIndex || "";
+            el.style.zIndex = String(modalZ - 1);
+            adjusted.push(el);
+          }
+        } catch {}
+      }
+    } catch {}
+
+    return () => {
+      for (const el of adjusted) {
+        try {
+          const prev = el.dataset.__prevInlineZ ?? "";
+          if (prev === "") el.style.removeProperty("z-index");
+          else el.style.zIndex = prev;
+          delete el.dataset.__prevInlineZ;
+        } catch {}
+      }
+    };
   }, [open]);
 
   if (!open) return null;
@@ -90,8 +132,8 @@ export default function AssetImportModal({
         aria-label="Asset Import Preview"
         style={{
           position: "relative",
-          width: "min(100%,1100px)",
-          maxHeight: "80vh",
+          width: "min(100%,1400px)",
+          maxHeight: "90vh",
           overflow: "hidden",
           borderRadius: 12,
           background: "#ffffff",
@@ -246,11 +288,19 @@ export default function AssetImportModal({
                 await onConfirm(localItems);
               }}
             >
-              Confirm Import
+              Import
             </Button>
           </div>
         </div>
       </div>
+      {/* render the loading overlay as a sibling so it reliably sits above the panel */}
+      {loading && (
+        <AssetImportLoadingOverlay
+          loading={loading}
+          text="Parsing file…"
+          style={{ position: "absolute", inset: 0, zIndex: 100001 }}
+        />
+      )}
     </div>
   );
 

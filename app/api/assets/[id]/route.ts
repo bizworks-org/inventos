@@ -97,20 +97,22 @@ export async function PUT(req: NextRequest, ctx: any) {
         if (rows?.length) typeId = Number(rows?.[0]?.id);
       } catch {}
     }
-    // If still undefined, preserve existing DB value so we don't clobber it to 0
+    // If still undefined, try to preserve existing DB value so we don't clobber it to 0.
+    // Do NOT return 404 here — allow the later upsert-on-PUT logic to handle missing
+    // rows (insert when asset doesn't exist). If an existing row is present, use
+    // its type_id; otherwise leave `typeId` undefined so the upsert branch runs.
     if (typeId === undefined) {
-      const existing = await query(
-        "SELECT type_id FROM assets WHERE id = :id LIMIT 1",
-        { id }
-      );
-      if (!existing?.length) {
-        console.warn(`PUT /api/assets: asset not found: ${id}`);
-        return NextResponse.json(
-          { error: `Asset not found: ${id}` },
-          { status: 404 }
+      try {
+        const existing = await query(
+          "SELECT type_id FROM assets WHERE id = :id LIMIT 1",
+          { id }
         );
+        if (existing?.length) {
+          typeId = Number(existing[0].type_id);
+        }
+      } catch (e) {
+        // ignore DB errors here; downstream code will surface failures appropriately
       }
-      typeId = Number(existing[0].type_id);
     }
     body.type_id = typeId;
     delete body.type;
