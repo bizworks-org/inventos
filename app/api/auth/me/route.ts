@@ -11,12 +11,14 @@ export async function GET() {
   if (!me?.id) return NextResponse.json({ user: null }, { status: 200 });
   const user = await dbFindUserById(me.id);
   if (!user) return NextResponse.json({ user: null }, { status: 200 });
-  const role: "admin" | "user" =
-    Array.isArray(user.roles) && user.roles.includes("admin")
+  const role: "admin" | "user" | "superadmin" =
+    Array.isArray(user.roles) && user.roles.includes("superadmin")
+      ? "superadmin"
+      : Array.isArray(user.roles) && user.roles.includes("admin")
       ? "admin"
       : "user";
   let permissions: string[] = [];
-  if (role === "admin") {
+  if (role === "admin" || role === "superadmin") {
     // Admins should have all permissions (UI and API should treat admins as unrestricted)
     try {
       permissions = await dbListPermissions();

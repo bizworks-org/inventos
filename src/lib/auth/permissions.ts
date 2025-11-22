@@ -50,14 +50,18 @@ export async function requirePermission(
   const me = await readMeFromCookie();
   if (!me?.id) return { ok: false, status: 401 };
   // Admin shortcut
-  let isAdmin = me.role === "admin" || (me.roles || []).includes("admin");
+  let isAdmin =
+    me.role === "admin" ||
+    me.role === "superadmin" ||
+    (me.roles || []).includes("admin") ||
+    (me.roles || []).includes("superadmin");
   if (!isAdmin) {
     try {
       const dbUser = await dbFindUserById(me.id);
       isAdmin =
         !!dbUser &&
         Array.isArray(dbUser.roles) &&
-        dbUser.roles.includes("admin");
+        (dbUser.roles.includes("admin") || dbUser.roles.includes("superadmin"));
     } catch {}
   }
   if (isAdmin) return { ok: true, me };

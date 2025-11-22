@@ -238,9 +238,9 @@ export async function PUT(req: NextRequest, ctx: any) {
       try {
         const admins = await query<any>(
           `SELECT u.email FROM users u
-           JOIN user_roles ur ON ur.user_id = u.id
-           JOIN roles r ON r.id = ur.role_id
-           WHERE r.name = 'admin'`
+             JOIN user_roles ur ON ur.user_id = u.id
+             JOIN roles r ON r.id = ur.role_id
+             WHERE r.name IN ('admin','superadmin')`
         );
         for (const a of admins) if (a?.email) recipients.push(String(a.email));
       } catch {}

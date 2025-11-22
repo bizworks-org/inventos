@@ -1,25 +1,29 @@
+"use client";
 
-'use client';
-
-import { Sidebar } from './Sidebar';
-import { Header } from './Header';
-import { Toaster } from '@/components/ui/sonner';
-import { useMe } from './MeContext';
+import { Sidebar } from "./Sidebar";
+import { Header } from "./Header";
+import { Toaster } from "@/components/ui/sonner";
+import { useMe } from "./MeContext";
 
 interface AssetFlowLayoutProps {
   children: React.ReactNode;
   breadcrumbs?: { label: string; href?: string }[];
   currentPage?: string;
   onSearch?: (query: string) => void;
-  me?: { id: string; email: string; role: 'admin' | 'user'; name?: string } | null;
+  me?: {
+    id: string;
+    email: string;
+    role: "admin" | "user" | "superadmin";
+    name?: string;
+  } | null;
 }
 
-export function AssetFlowLayout({ 
-  children, 
-  breadcrumbs, 
+export function AssetFlowLayout({
+  children,
+  breadcrumbs,
   currentPage,
   onSearch,
-  me
+  me,
 }: AssetFlowLayoutProps) {
   // Prefer SSR-provided me from MeContext; accepts prop override when explicitly passed.
   const { me: ctxMe } = useMe();
@@ -31,9 +35,7 @@ export function AssetFlowLayout({
         <Header breadcrumbs={breadcrumbs} onSearch={onSearch} />
         {/* Global toaster for success/error notifications */}
         <Toaster position="top-right" richColors />
-        <main className="p-8">
-          {children}
-        </main>
+        <main className="p-8">{children}</main>
       </div>
     </div>
   );

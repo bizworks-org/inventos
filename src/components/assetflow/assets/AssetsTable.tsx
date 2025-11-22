@@ -590,6 +590,21 @@ function renderAssetRow(
               density === "ultra-compact" ? "gap-1.5" : "gap-2"
             }`}
           >
+            <Button
+              onClick={() => toggleView(asset.id)}
+              variant="outline"
+              size="sm"
+              className={`transition-all duration-200 group rounded-lg hover:bg-[#f3f4f6] text-[#475569] ${
+                density === "ultra-compact" ? "p-1.5 border-0" : "p-2"
+              }`}
+              title={expandedId === asset.id ? "Hide details" : "View details"}
+            >
+              <Eye
+                className={`${
+                  density === "ultra-compact" ? "h-3.5 w-3.5" : "h-4 w-4"
+                } group-hover:scale-110 transition-transform`}
+              />
+            </Button>
             {canWrite && (
               <>
                 {consentRequired && (
@@ -625,23 +640,6 @@ function renderAssetRow(
                   </Button>
                 )}
 
-                <Button
-                  onClick={() => toggleView(asset.id)}
-                  variant="outline"
-                  size="sm"
-                  className={`transition-all duration-200 group rounded-lg hover:bg-[#f3f4f6] text-[#475569] ${
-                    density === "ultra-compact" ? "p-1.5 border-0" : "p-2"
-                  }`}
-                  title={
-                    expandedId === asset.id ? "Hide details" : "View details"
-                  }
-                >
-                  <Eye
-                    className={`${
-                      density === "ultra-compact" ? "h-3.5 w-3.5" : "h-4 w-4"
-                    } group-hover:scale-110 transition-transform`}
-                  />
-                </Button>
                 <Button
                   onClick={() => handleEdit(asset.id)}
                   variant="outline"

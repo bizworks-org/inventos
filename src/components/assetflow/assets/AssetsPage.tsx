@@ -258,15 +258,94 @@ export function AssetsPage({ onNavigate, onSearch }: AssetsPageProps) {
           transition={{ duration: 0.3 }}
           className="flex gap-3"
         >
-          <Button
-            onClick={() =>
-              document.getElementById("asset-import-input")?.click()
-            }
-            className="flex items-center gap-2 px-4 py-2 rounded-lg bg-white border border-[rgba(0,0,0,0.1)] hover:bg-[#f8f9ff] transition-all duration-200 text-[#1a1d2e]"
-          >
-            <Upload className="h-4 w-4" />
-            Import
-          </Button>
+          {canWriteAssets && (
+            <>
+              <Button
+                onClick={() =>
+                  document.getElementById("asset-import-input")?.click()
+                }
+                className="flex items-center gap-2 px-4 py-2 rounded-lg bg-white border border-[rgba(0,0,0,0.1)] hover:bg-[#f8f9ff] transition-all duration-200 text-[#1a1d2e]"
+              >
+                <Upload className="h-4 w-4" />
+                Import
+              </Button>
+              <input
+                id="asset-import-input"
+                type="file"
+                accept=".csv,.json"
+                className="hidden"
+                onChange={async (e) => {
+                  const file = e.target.files?.[0];
+                  if (!file) return;
+                  // open preview immediately so overlay/inline UI can render
+                  setAssetPreviewOpen(true);
+                  setAssetPreviewLoading(true);
+                  // clear previous preview state while parsing
+                  setAssetPreviewItems([]);
+                  setAssetPreviewHeaders([]);
+                  setAssetPreviewMissingHeaders([]);
+                  // schedule parsing on the next macrotask so React can render the modal and spinner
+                  setTimeout(async () => {
+                    try {
+                      const text = await file.text();
+                      const isCSV = file.name.toLowerCase().endsWith(".csv");
+                      let headers: string[] = [];
+                      if (isCSV) {
+                        const rows = parseCSV(text);
+                        if (rows.length > 0)
+                          headers = rows[0].map((h) => String(h).trim());
+                      }
+
+                      const items = parseAssetsFile(file.name, text);
+
+                      const lowerHeaders = new Set(
+                        headers.map((h) => h.toLowerCase())
+                      );
+                      const missing = requiredAssetColumns.filter(
+                        (c) => !lowerHeaders.has(c)
+                      );
+
+                      console.log("asset-import: headers=", headers);
+                      console.log("asset-import: parsed items=", items.length);
+                      setAssetPreviewHeaders(headers);
+                      setAssetPreviewItems(items.slice(0, 200));
+                      setAssetPreviewMissingHeaders(missing);
+                      setAssetPreviewLoading(false);
+
+                      try {
+                        toast?.(
+                          `Preview ready — ${Math.min(
+                            items.length,
+                            200
+                          )} rows parsed`
+                        );
+                      } catch {
+                        try {
+                          toast.loading?.(
+                            `Preview ready — ${Math.min(
+                              items.length,
+                              200
+                            )} rows parsed`
+                          );
+                        } catch {}
+                      }
+                    } catch (innerErr: any) {
+                      console.error("asset-import parse error", innerErr);
+                      toast.error?.(
+                        `Import parse failed: ${innerErr?.message || innerErr}`
+                      );
+                      setAssetPreviewOpen(false);
+                      setAssetPreviewLoading(false);
+                    } finally {
+                      try {
+                        (e.target as HTMLInputElement).value = "";
+                      } catch {}
+                    }
+                  }, 50);
+                }}
+              />
+            </>
+          )}
           <a
             href="/assets/assets-sample.csv"
             download
@@ -277,81 +356,6 @@ export function AssetsPage({ onNavigate, onSearch }: AssetsPageProps) {
               Download Sample CSV
             </Button>
           </a>
-          <input
-            id="asset-import-input"
-            type="file"
-            accept=".csv,.json"
-            className="hidden"
-            onChange={async (e) => {
-              const file = e.target.files?.[0];
-              if (!file) return;
-              // open preview immediately so overlay/inline UI can render
-              setAssetPreviewOpen(true);
-              setAssetPreviewLoading(true);
-              // clear previous preview state while parsing
-              setAssetPreviewItems([]);
-              setAssetPreviewHeaders([]);
-              setAssetPreviewMissingHeaders([]);
-              // schedule parsing on the next macrotask so React can render the modal and spinner
-              setTimeout(async () => {
-                try {
-                  const text = await file.text();
-                  const isCSV = file.name.toLowerCase().endsWith(".csv");
-                  let headers: string[] = [];
-                  if (isCSV) {
-                    const rows = parseCSV(text);
-                    if (rows.length > 0)
-                      headers = rows[0].map((h) => String(h).trim());
-                  }
-
-                  const items = parseAssetsFile(file.name, text);
-
-                  const lowerHeaders = new Set(
-                    headers.map((h) => h.toLowerCase())
-                  );
-                  const missing = requiredAssetColumns.filter(
-                    (c) => !lowerHeaders.has(c)
-                  );
-
-                  console.log("asset-import: headers=", headers);
-                  console.log("asset-import: parsed items=", items.length);
-                  setAssetPreviewHeaders(headers);
-                  setAssetPreviewItems(items.slice(0, 200));
-                  setAssetPreviewMissingHeaders(missing);
-                  setAssetPreviewLoading(false);
-
-                  try {
-                    toast?.(
-                      `Preview ready — ${Math.min(
-                        items.length,
-                        200
-                      )} rows parsed`
-                    );
-                  } catch {
-                    try {
-                      toast.loading?.(
-                        `Preview ready — ${Math.min(
-                          items.length,
-                          200
-                        )} rows parsed`
-                      );
-                    } catch {}
-                  }
-                } catch (innerErr: any) {
-                  console.error("asset-import parse error", innerErr);
-                  toast.error?.(
-                    `Import parse failed: ${innerErr?.message || innerErr}`
-                  );
-                  setAssetPreviewOpen(false);
-                  setAssetPreviewLoading(false);
-                } finally {
-                  try {
-                    (e.target as HTMLInputElement).value = "";
-                  } catch {}
-                }
-              }, 50);
-            }}
-          />
           <Button
             onClick={() => exportAssetsToCSV(filteredAssets)}
             className="flex items-center gap-2 px-4 py-2 rounded-lg bg-white border border-[rgba(0,0,0,0.1)] hover:bg-[#f8f9ff] transition-all duration-200 text-[#1a1d2e]"

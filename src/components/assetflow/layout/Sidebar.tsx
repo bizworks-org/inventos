@@ -1,11 +1,18 @@
 "use client";
-import { Home, Package, FileText, Users, Activity, Settings, Shield } from 'lucide-react';
-import Link from 'next/link';
-import { usePathname } from 'next/navigation';
-import { useEffect, useMemo, useState } from 'react';
+import {
+  Home,
+  Package,
+  FileText,
+  Users,
+  Activity,
+  Settings,
+  Shield,
+} from "lucide-react";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+import { useEffect, useMemo, useState } from "react";
 
-
-type Role = 'admin' | 'user';
+type Role = "admin" | "user" | "superadmin";
 
 interface NavItem {
   name: string;
@@ -15,11 +22,31 @@ interface NavItem {
 }
 
 const navItems: NavItem[] = [
-  { name: 'Dashboard', id: 'dashboard', icon: Home, colorClass: 'text-indigo-400' },
-  { name: 'IT Assets', id: 'assets', icon: Package, colorClass: 'text-emerald-400' },
-  { name: 'Licenses', id: 'licenses', icon: FileText, colorClass: 'text-pink-400' },
-  { name: 'Vendors', id: 'vendors', icon: Users, colorClass: 'text-amber-400' },
-  { name: 'Settings', id: 'settings', icon: Settings, colorClass: 'text-violet-400' },
+  {
+    name: "Dashboard",
+    id: "dashboard",
+    icon: Home,
+    colorClass: "text-indigo-400",
+  },
+  {
+    name: "IT Assets",
+    id: "assets",
+    icon: Package,
+    colorClass: "text-emerald-400",
+  },
+  {
+    name: "Licenses",
+    id: "licenses",
+    icon: FileText,
+    colorClass: "text-pink-400",
+  },
+  { name: "Vendors", id: "vendors", icon: Users, colorClass: "text-amber-400" },
+  {
+    name: "Settings",
+    id: "settings",
+    icon: Settings,
+    colorClass: "text-violet-400",
+  },
 ];
 
 interface SidebarProps {
@@ -27,56 +54,67 @@ interface SidebarProps {
   onNavigate?: (page: string) => void; // legacy; no longer used
 }
 
-export function Sidebar({ currentPage = 'dashboard', me: meProp }: SidebarProps & { me?: { id: string; email: string; role: Role; name?: string } | null }) {
+export function Sidebar({
+  currentPage = "dashboard",
+  me: meProp,
+}: SidebarProps & {
+  me?: { id: string; email: string; role: Role; name?: string } | null;
+}) {
   const pathname = usePathname();
   // Use server-provided user to avoid client fetch; fall back to undefined for SSR
-  const [me, setMe] = useState<typeof meProp | undefined>(meProp === undefined ? undefined : meProp);
+  const [me, setMe] = useState<typeof meProp | undefined>(
+    meProp === undefined ? undefined : meProp
+  );
   // Branding state (SSR-provided to avoid flicker)
   const [brandLogo, setBrandLogo] = useState<string | null>(() => {
-    if (typeof document === 'undefined') return null;
-    const v = document.documentElement.getAttribute('data-brand-logo') || '';
+    if (typeof document === "undefined") return null;
+    const v = document.documentElement.getAttribute("data-brand-logo") || "";
     return v || null;
   });
   const [brandName, setBrandName] = useState<string>(() => {
-    if (typeof document === 'undefined') return 'Inventos';
-    return document.documentElement.getAttribute('data-brand-name') || 'Inventos';
+    if (typeof document === "undefined") return "Inventos";
+    return (
+      document.documentElement.getAttribute("data-brand-name") || "Inventos"
+    );
   });
   // Persist admin visibility once detected in the client session
   const [everAdmin, setEverAdmin] = useState<boolean>(() => {
-    if (typeof document === 'undefined') return false;
-    return document.documentElement.getAttribute('data-admin') === 'true';
+    if (typeof document === "undefined") return false;
+    return document.documentElement.getAttribute("data-admin") === "true";
   });
   // Track server-provided admin hint and react to changes immediately (e.g., right after login)
   const [serverAdminHint, setServerAdminHint] = useState<boolean>(() => {
-    if (typeof document === 'undefined') return false;
-    return document.documentElement.getAttribute('data-admin') === 'true';
+    if (typeof document === "undefined") return false;
+    return document.documentElement.getAttribute("data-admin") === "true";
   });
   const pathById: Record<string, string> = {
-    dashboard: '/dashboard',
-    assets: '/assets',
-    licenses: '/licenses',
-    vendors: '/vendors',
-    events: '/events',
-    settings: '/settings',
-    admin: '/admin',
-    admin_users: '/admin/users',
-    admin_roles: '/admin/roles',
+    dashboard: "/dashboard",
+    assets: "/assets",
+    licenses: "/licenses",
+    vendors: "/vendors",
+    events: "/events",
+    settings: "/settings",
+    admin: "/admin",
+    admin_users: "/admin/users",
+    admin_roles: "/admin/roles",
     // admin_catalog: '/admin/catalog',
-    settings_events: '/events',
-    settings_customization: '/settings/customization',
-    settings_catalog: '/settings/customization',
-    settings_general: '/settings',
-    settings_configuration: '/settings/tech',
+    settings_events: "/events",
+    settings_customization: "/settings/customization",
+    settings_catalog: "/settings/customization",
+    settings_general: "/settings",
+    settings_configuration: "/settings/tech",
   };
 
-  useEffect(() => { setMe(meProp === undefined ? me : meProp); }, [meProp]);
+  useEffect(() => {
+    setMe(meProp === undefined ? me : meProp);
+  }, [meProp]);
 
   // Lazy-fetch branding if not provided by SSR
   useEffect(() => {
     if (brandLogo) return;
     (async () => {
       try {
-        const res = await fetch('/api/branding', { cache: 'no-store' });
+        const res = await fetch("/api/branding", { cache: "no-store" });
         if (res.ok) {
           const data = await res.json();
           if (data?.logoUrl) setBrandLogo(data.logoUrl);
@@ -88,51 +126,76 @@ export function Sidebar({ currentPage = 'dashboard', me: meProp }: SidebarProps 
 
   // When we know the user is admin (from me or server hint), latch everAdmin=true for this session
   useEffect(() => {
-    const serverIsAdmin = typeof document !== 'undefined' ? document.documentElement.getAttribute('data-admin') === 'true' : false;
+    const serverIsAdmin =
+      typeof document !== "undefined"
+        ? document.documentElement.getAttribute("data-admin") === "true"
+        : false;
     setServerAdminHint(serverIsAdmin);
-    if (serverIsAdmin || me?.role === 'admin') setEverAdmin(true);
+    if (serverIsAdmin || me?.role === "admin" || me?.role === "superadmin")
+      setEverAdmin(true);
   }, [me]);
 
   // Observe mutations to <html data-admin="…"> so admin links appear instantly after login without refresh
   useEffect(() => {
-    if (typeof document === 'undefined') return;
+    if (typeof document === "undefined") return;
     const el = document.documentElement;
     const update = () => {
-      const adminV = el.getAttribute('data-admin') === 'true';
+      const adminV = el.getAttribute("data-admin") === "true";
       setServerAdminHint(adminV);
       if (adminV) setEverAdmin(true);
-      const logoV = el.getAttribute('data-brand-logo') || '';
+      const logoV = el.getAttribute("data-brand-logo") || "";
       setBrandLogo(logoV || null);
-      const nameV = el.getAttribute('data-brand-name') || 'Inventos';
+      const nameV = el.getAttribute("data-brand-name") || "Inventos";
       setBrandName(nameV);
     };
     update();
     const obs = new MutationObserver((mutations) => {
       for (const m of mutations) {
-        if (m.type === 'attributes') {
+        if (m.type === "attributes") {
           update();
         }
       }
     });
-    obs.observe(el, { attributes: true, attributeFilter: ['data-admin', 'data-brand-logo', 'data-brand-name'] });
+    obs.observe(el, {
+      attributes: true,
+      attributeFilter: ["data-admin", "data-brand-logo", "data-brand-name"],
+    });
     return () => obs.disconnect();
   }, []);
 
   const itemsToRender = useMemo(() => {
     // Prefer server hint if present to avoid waiting for client fetch
-    const isAdminLike = serverAdminHint || everAdmin || me?.role === 'admin';
+    const isAdminLike =
+      serverAdminHint ||
+      everAdmin ||
+      me?.role === "admin" ||
+      me?.role === "superadmin";
 
     // Start with base items
     const base: NavItem[] = [...navItems];
-    const idx = base.findIndex((i) => i.id === 'settings');
+    const idx = base.findIndex((i) => i.id === "settings");
     if (idx !== -1) {
       const children: NavItem[] = [
-        { name: 'General', id: 'settings_general', icon: Settings, colorClass: 'text-violet-300' },
-        { name: 'Events', id: 'settings_events', icon: Activity, colorClass: 'text-sky-300' },
-        
+        {
+          name: "General",
+          id: "settings_general",
+          icon: Settings,
+          colorClass: "text-violet-300",
+        },
+        {
+          name: "Events",
+          id: "settings_events",
+          icon: Activity,
+          colorClass: "text-sky-300",
+        },
       ];
       if (isAdminLike) {
-        children.push({ name: 'Customization', id: 'settings_customization', icon: Package, colorClass: 'text-rose-300' });
+        children.push({
+          name: "Customization",
+          id: "settings_customization",
+          icon: Package,
+          colorClass: "text-rose-300",
+        });
         //children.push({ name: 'Configuration', id: 'settings_configuration', icon: Settings, colorClass: 'text-violet-300' });
         //children.push({ name: 'Catalog', id: 'settings_catalog', icon: Package, colorClass: 'text-red-300' });
       }
@@ -141,21 +204,36 @@ export function Sidebar({ currentPage = 'dashboard', me: meProp }: SidebarProps 
 
     if (isAdminLike) {
       base.push(
-        { name: 'Admin', id: 'admin', icon: Shield, colorClass: 'text-red-400' } as NavItem,
-        { name: 'Users', id: 'admin_users', icon: Users, colorClass: 'text-red-300' } as NavItem,
-        { name: 'Roles', id: 'admin_roles', icon: Shield, colorClass: 'text-red-300' } as NavItem,
+        {
+          name: "Admin",
+          id: "admin",
+          icon: Shield,
+          colorClass: "text-red-400",
+        } as NavItem,
+        {
+          name: "Users",
+          id: "admin_users",
+          icon: Users,
+          colorClass: "text-red-300",
+        } as NavItem,
+        {
+          name: "Roles",
+          id: "admin_roles",
+          icon: Shield,
+          colorClass: "text-red-300",
+        } as NavItem
       );
     }
     return base;
   }, [serverAdminHint, everAdmin, me?.role]);
 
   const initials = useMemo(() => {
-    const name = me?.name || '';
+    const name = me?.name || "";
     const parts = name.trim().split(/\s+/);
-    if (!parts.length) return 'US';
-    const first = parts[0]?.[0] || '';
-    const second = parts[1]?.[0] || '';
-    return (first + second).toUpperCase() || 'US';
+    if (!parts.length) return "US";
+    const first = parts[0]?.[0] || "";
+    const second = parts[1]?.[0] || "";
+    return (first + second).toUpperCase() || "US";
   }, [me]);
 
   // Keep non-admin items static even if me is unknown; avoid indefinite loading states
@@ -165,15 +243,24 @@ export function Sidebar({ currentPage = 'dashboard', me: meProp }: SidebarProps 
     <aside className="fixed left-0 top-0 z-40 h-screen w-64 bg-gradient-to-b from-[#1a1d2e] to-[#0f1218] border-r border-[rgba(255,255,255,0.1)]">
       {/* Logo */}
       <div className="flex h-16 items-center px-6 border-b border-[rgba(255,255,255,0.1)]">
-        <Link href={pathById.dashboard} className="flex items-center gap-3 focus:outline-none focus:ring-2 focus:ring-[#6366f1]/40 rounded">
+        <Link
+          href={pathById.dashboard}
+          className="flex items-center gap-3 focus:outline-none focus:ring-2 focus:ring-[#6366f1]/40 rounded"
+        >
           {brandLogo ? (
-            <img src={brandLogo} alt={brandName || 'Logo'} className="h-8 w-8 rounded-lg object-contain bg-white" />
+            <img
+              src={brandLogo}
+              alt={brandName || "Logo"}
+              className="h-8 w-8 rounded-lg object-contain bg-white"
+            />
           ) : (
             <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-[#6366f1] to-[#8b5cf6] flex items-center justify-center">
               <Package className="h-5 w-5 text-white" />
             </div>
           )}
-          <span className="font-bold text-xl text-white">{brandName || 'Inventos'}</span>
+          <span className="font-bold text-xl text-white">
+            {brandName || "Inventos"}
+          </span>
         </Link>
       </div>
 
@@ -185,10 +272,10 @@ export function Sidebar({ currentPage = 'dashboard', me: meProp }: SidebarProps 
           // Ensure Admin isn't highlighted when Users is active.
           let isActive = false;
           if (pathname) {
-            if (item.id === 'settings') {
+            if (item.id === "settings") {
               // Do not highlight the parent Settings item; only highlight its children
               isActive = false;
-            } else if (item.id.startsWith('settings_') || item.id === 'admin') {
+            } else if (item.id.startsWith("settings_") || item.id === "admin") {
               // Exact match for Settings sub-items and Admin root
               isActive = pathname === href || pathname === `${href}/`;
             } else {
@@ -204,17 +291,29 @@ export function Sidebar({ currentPage = 'dashboard', me: meProp }: SidebarProps 
               key={item.name}
               href={href}
               prefetch
-              aria-current={isActive ? 'page' : undefined}
+              aria-current={isActive ? "page" : undefined}
               className={`
-                flex items-center gap-3 ${item.id.startsWith('admin_') || item.id.startsWith('settings_') ? 'pl-10 pr-4' : 'px-4'} py-3 rounded-lg transition-colors duration-200 ease-out text-left w-full cursor-pointer
-                ${isActive
-                  ? 'bg-gradient-to-r from-[#6366f1] to-[#8b5cf6] text-white shadow-lg shadow-[#6366f1]/20'
-                  : 'text-[#a0a4b8] hover:bg-[rgba(255,255,255,0.05)] hover:text-white'
+                flex items-center gap-3 ${
+                  item.id.startsWith("admin_") ||
+                  item.id.startsWith("settings_")
+                    ? "pl-10 pr-4"
+                    : "px-4"
+                } py-3 rounded-lg transition-colors duration-200 ease-out text-left w-full cursor-pointer
+                ${
+                  isActive
+                    ? "bg-gradient-to-r from-[#6366f1] to-[#8b5cf6] text-white shadow-lg shadow-[#6366f1]/20"
+                    : "text-[#a0a4b8] hover:bg-[rgba(255,255,255,0.05)] hover:text-white"
                 }
               `}
             >
-              <Icon className={`h-5 w-5 transition-colors duration-200 ease-out ${isActive ? 'text-white' : item.colorClass ?? ''}`} />
-              <span className="font-medium transition-colors duration-200 ease-out">{item.name}</span>
+              <Icon
+                className={`h-5 w-5 transition-colors duration-200 ease-out ${
+                  isActive ? "text-white" : item.colorClass ?? ""
+                }`}
+              />
+              <span className="font-medium transition-colors duration-200 ease-out">
+                {item.name}
+              </span>
             </Link>
           );
         })}
@@ -238,11 +337,21 @@ export function Sidebar({ currentPage = 'dashboard', me: meProp }: SidebarProps 
                 <span className="text-white font-semibold">{initials}</span>
               </div>
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-white truncate">{me?.name || me?.email || 'User'}</p>
-                <p className="text-xs text-[#a0a4b8] truncate">{(() => {
-                  const role = (serverAdminHint || everAdmin || me?.role === 'admin') ? 'Administrator' : 'User';
-                  return role;
-                })()}</p>
+                <p className="text-sm font-medium text-white truncate">
+                  {me?.name || me?.email || "User"}
+                </p>
+                <p className="text-xs text-[#a0a4b8] truncate">
+                  {(() => {
+                    const role =
+                      serverAdminHint ||
+                      everAdmin ||
+                      me?.role === "admin" ||
+                      me?.role === "superadmin"
+                        ? "Administrator"
+                        : "User";
+                    return role;
+                  })()}
+                </p>
               </div>
             </div>
           )}

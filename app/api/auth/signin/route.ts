@@ -58,7 +58,9 @@ export async function POST(req: NextRequest) {
     }
   } catch {}
   const role =
-    Array.isArray(user.roles) && user.roles.includes("admin")
+    Array.isArray(user.roles) && user.roles.includes("superadmin")
+      ? "superadmin"
+      : Array.isArray(user.roles) && user.roles.includes("admin")
       ? "admin"
       : "user";
   const token = signToken({
@@ -91,8 +93,8 @@ export async function POST(req: NextRequest) {
     // Cache permissions for this user in the session row to avoid frequent permission lookups.
     let perms: string[] = [];
     try {
-      if (role === "admin") {
-        // Admin should have all permissions where available
+      if (role === "admin" || role === "superadmin") {
+        // Admin or Superadmin should have all permissions where available
         perms = await dbListPermissions();
       } else {
         perms = await dbGetUserPermissions(user.id);
