@@ -4,7 +4,7 @@ import React, { useEffect, useMemo, useState } from "react";
 import { motion } from "motion/react";
 import { ArrowLeft, Save, X } from "lucide-react";
 import { Button } from "../../ui/button";
-import { toast } from "sonner";
+import { toast } from "@/components/ui/sonner";
 
 import { usePrefs } from "../layout/PrefsContext";
 import { AssetFlowLayout } from "../layout/AssetFlowLayout";

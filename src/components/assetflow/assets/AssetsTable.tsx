@@ -4,7 +4,7 @@ import { Asset } from "../../../lib/data";
 import { useEffect, useState, useMemo, Fragment } from "react";
 import { usePrefs } from "../layout/PrefsContext";
 import { sendAssetConsent } from "../../../lib/api";
-import { toast } from "sonner@2.0.3";
+import { toast } from "@/components/ui/sonner";
 import { Button } from "@/components/ui/button";
 
 interface AssetsTableProps {
@@ -267,16 +267,16 @@ export function AssetsTable({
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.4, delay: 0.2 }}
-        className="bg-white rounded-2xl border border-[rgba(0,0,0,0.08)] p-12 text-center shadow-sm"
+        className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 p-12 text-center shadow-sm"
       >
         <div className="max-w-md mx-auto">
-          <div className="h-16 w-16 rounded-full bg-[#f8f9ff] flex items-center justify-center mx-auto mb-4">
+          <div className="h-16 w-16 rounded-full bg-gray-50 dark:bg-gray-900 flex items-center justify-center mx-auto mb-4">
             <ExternalLink className="h-8 w-8 text-[#6366f1]" />
           </div>
-          <h3 className="text-xl font-semibold text-[#1a1d2e] mb-2">
+          <h3 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-2">
             No assets found
           </h3>
-          <p className="text-[#64748b] mb-6">
+          <p className="text-gray-600 dark:text-gray-400 mb-6">
             Try adjusting your filters or search query to find what you're
             looking for.
           </p>
@@ -296,61 +296,61 @@ export function AssetsTable({
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.4, delay: 0.2 }}
-      className="bg-white rounded-2xl border border-[rgba(0,0,0,0.08)] overflow-hidden shadow-sm"
+      className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 overflow-hidden shadow-sm"
     >
       <div className="overflow-x-auto">
         <table className="w-full">
           <thead>
-            <tr className="bg-gradient-to-r from-[#f8f9ff] to-[#f0f4ff] border-b border-[rgba(0,0,0,0.05)]">
+            <tr className="bg-gradient-to-r from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800 border-b border-gray-100 dark:border-gray-800">
               <th
-                className={`${headPad} text-left text-xs font-semibold text-[#64748b] uppercase tracking-wider`}
+                className={`${headPad} text-left text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wider`}
               >
                 Asset
               </th>
               <th
-                className={`${headPad} text-left text-xs font-semibold text-[#64748b] uppercase tracking-wider`}
+                className={`${headPad} text-left text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wider`}
               >
                 Serial Number
               </th>
               <th
-                className={`${headPad} text-left text-xs font-semibold text-[#64748b] uppercase tracking-wider`}
+                className={`${headPad} text-left text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wider`}
               >
                 Assigned To
               </th>
               <th
-                className={`${headPad} text-left text-xs font-semibold text-[#64748b] uppercase tracking-wider`}
+                className={`${headPad} text-left text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wider`}
               >
                 Department
               </th>
               {consentRequired && (
                 <th
-                  className={`${headPad} text-left text-xs font-semibold text-[#64748b] uppercase tracking-wider`}
+                  className={`${headPad} text-left text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wider`}
                 >
                   Consent
                 </th>
               )}
               <th
-                className={`${headPad} text-left text-xs font-semibold text-[#64748b] uppercase tracking-wider`}
+                className={`${headPad} text-left text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wider`}
               >
                 Status
               </th>
               <th
-                className={`${headPad} text-left text-xs font-semibold text-[#64748b] uppercase tracking-wider`}
+                className={`${headPad} text-left text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wider`}
               >
                 End of Support
               </th>
               <th
-                className={`${headPad} text-left text-xs font-semibold text-[#64748b] uppercase tracking-wider`}
+                className={`${headPad} text-left text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wider`}
               >
                 End of Life
               </th>
               <th
-                className={`${headPad} text-left text-xs font-semibold text-[#64748b] uppercase tracking-wider`}
+                className={`${headPad} text-left text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wider`}
               >
                 Cost
               </th>
               <th
-                className={`${headPad} text-left text-xs font-semibold text-[#64748b] uppercase tracking-wider`}
+                className={`${headPad} text-left text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wider`}
               >
                 Actions
               </th>
@@ -414,10 +414,10 @@ function renderAssetRow(
         onMouseEnter={() => setHoveredRow(asset.id)}
         onMouseLeave={() => setHoveredRow(null)}
         className={`
-                    border-b border-[rgba(0,0,0,0.05)] transition-all duration-200 ease-in-out
+                    border-b border-gray-100 dark:border-gray-800 transition-all duration-200 ease-in-out
                     ${
                       hoveredRow === asset.id
-                        ? "bg-gradient-to-r from-[#f8f9ff] to-transparent"
+                        ? "bg-gradient-to-r from-gray-50 to-transparent dark:from-gray-900 dark:to-transparent"
                         : ""
                     }
                     ${
@@ -459,10 +459,12 @@ function renderAssetRow(
               })()}
             </div>
             <div>
-              <p className={`font-semibold text-[#1a1d2e] ${nameText}`}>
+              <p
+                className={`font-semibold text-gray-900 dark:text-gray-100 ${nameText}`}
+              >
                 {asset.name}
               </p>
-              <p className={`${subText} text-[#94a3b8]`}>
+              <p className={`${subText} text-gray-500 dark:text-gray-400`}>
                 {resolveTypeName(asset)}
               </p>
             </div>
@@ -472,7 +474,7 @@ function renderAssetRow(
         {/* Serial Number */}
         <td className={`${cellPad}`}>
           <p
-            className={`text-sm text-[#64748b] font-mono ${
+            className={`text-sm text-gray-600 dark:text-gray-400 font-mono ${
               density === "ultra-compact" ? "text-[12px]" : ""
             }`}
           >
@@ -483,7 +485,7 @@ function renderAssetRow(
         {/* Assigned To */}
         <td className={`${cellPad}`}>
           <p
-            className={`text-sm text-[#1a1d2e] font-medium ${
+            className={`text-sm text-gray-900 dark:text-gray-100 font-medium ${
               density === "ultra-compact" ? "text-[12px]" : ""
             }`}
           >
@@ -494,7 +496,7 @@ function renderAssetRow(
         {/* Department */}
         <td className={`${cellPad}`}>
           <p
-            className={`text-sm text-[#64748b] ${
+            className={`text-sm text-gray-600 dark:text-gray-400 ${
               density === "ultra-compact" ? "text-[12px]" : ""
             }`}
           >
@@ -539,7 +541,7 @@ function renderAssetRow(
               className={`text-sm font-medium ${
                 isDateExpiring((asset as any).eosDate || "")
                   ? "text-[#f59e0b]"
-                  : "text-[#64748b]"
+                  : "text-gray-600 dark:text-gray-400"
               } ${density === "ultra-compact" ? "text-[12px]" : ""}`}
             >
               {(asset as any).eosDate
@@ -559,7 +561,7 @@ function renderAssetRow(
               className={`text-sm font-medium ${
                 isDateExpiring((asset as any).eolDate || "")
                   ? "text-[#f59e0b]"
-                  : "text-[#64748b]"
+                  : "text-gray-600 dark:text-gray-400"
               } ${density === "ultra-compact" ? "text-[12px]" : ""}`}
             >
               {(asset as any).eolDate
@@ -575,7 +577,7 @@ function renderAssetRow(
         {/* Cost */}
         <td className={`${cellPad}`}>
           <p
-            className={`text-sm font-semibold text-[#1a1d2e] ${
+            className={`text-sm font-semibold text-gray-900 dark:text-gray-100 ${
               density === "ultra-compact" ? "text-[12px]" : ""
             }`}
           >
@@ -594,7 +596,7 @@ function renderAssetRow(
               onClick={() => toggleView(asset.id)}
               variant="outline"
               size="sm"
-              className={`transition-all duration-200 group rounded-lg hover:bg-[#f3f4f6] text-[#475569] ${
+              className={`transition-all duration-200 group rounded-lg hover:bg-[#f3f4f6] dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 ${
                 density === "ultra-compact" ? "p-1.5 border-0" : "p-2"
               }`}
               title={expandedId === asset.id ? "Hide details" : "View details"}
@@ -692,7 +694,7 @@ function renderAssetRow(
                 : density === "compact"
                 ? "px-5 py-6 p-4"
                 : "px-6 py-8 p-4"
-            } border-t border-[rgba(0,0,0,0.04)] text-sm text-[#374151] bg-gradient-to-r from-[#eef2ff] via-[#f8fbff] to-white rounded-b-2xl shadow-sm`}
+            } border-t border-gray-100 dark:border-gray-800 text-sm text-gray-700 dark:text-gray-300 bg-gradient-to-r from-gray-50 via-gray-50 to-white dark:from-gray-900 dark:via-gray-900 dark:to-gray-800 rounded-b-2xl shadow-sm`}
           >
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               {(() => {
@@ -742,8 +744,10 @@ function renderAssetRow(
                 const push = (label: string, content: React.ReactNode) =>
                   nodes.push(
                     <div key={label}>
-                      <div className="text-xs text-[#64748b]">{label}</div>
-                      <div className="font-medium text-[#1a1d2e]">
+                      <div className="text-xs text-gray-600 dark:text-gray-400">
+                        {label}
+                      </div>
+                      <div className="font-medium text-gray-900 dark:text-gray-100">
                         {content}
                       </div>
                     </div>
@@ -830,9 +834,12 @@ function renderAssetRow(
                 // Specifications - render separate key/value rows when available
                 if (specs && Object.keys(specs).length) {
                   const specNodes = Object.entries(specs).map(([k, val]) => (
-                    <div key={k} className="text-sm text-[#1a1d2e]">
+                    <div
+                      key={k}
+                      className="text-sm text-gray-900 dark:text-gray-100"
+                    >
                       {" "}
-                      <span className="text-xs text-[#64748b] mr-2">
+                      <span className="text-xs text-gray-600 dark:text-gray-400 mr-2">
                         {k}:
                       </span>{" "}
                       {String(val)}

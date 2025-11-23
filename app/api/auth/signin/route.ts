@@ -8,6 +8,7 @@ import { secureId } from "@/lib/secure";
 
 export async function POST(req: NextRequest) {
   const { email, password } = await req.json().catch(() => ({}));
+  console.log(email, password);
   if (!email || !password) {
     return NextResponse.json(
       { error: "Email and password are required" },
@@ -15,6 +16,18 @@ export async function POST(req: NextRequest) {
     );
   }
   const user = await dbFindUserByEmail(email);
+  // Defensive logging: avoid dereferencing `user` when null to prevent runtime errors.
+  let passwordMatches = false;
+  try {
+    passwordMatches = !!(
+      user &&
+      user.password_hash &&
+      verifyPassword(password, user.password_hash)
+    );
+  } catch (e) {
+    passwordMatches = false;
+  }
+
   if (
     !user ||
     !user.active ||

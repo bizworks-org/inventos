@@ -129,16 +129,16 @@ export function LicensesTable({
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.4, delay: 0.4 }}
-        className="bg-white rounded-2xl border border-[rgba(0,0,0,0.08)] p-12 text-center shadow-sm"
+        className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 p-12 text-center shadow-sm"
       >
         <div className="max-w-md mx-auto">
-          <div className="h-16 w-16 rounded-full bg-[#f8f9ff] flex items-center justify-center mx-auto mb-4">
+          <div className="h-16 w-16 rounded-full bg-gray-50 dark:bg-gray-900 flex items-center justify-center mx-auto mb-4">
             <AlertCircle className="h-8 w-8 text-[#6366f1]" />
           </div>
-          <h3 className="text-xl font-semibold text-[#1a1d2e] mb-2">
+          <h3 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-2">
             No licenses found
           </h3>
-          <p className="text-[#64748b] mb-6">
+          <p className="text-gray-600 dark:text-gray-400 mb-6">
             Try adjusting your filters or search query to find what you're
             looking for.
           </p>
@@ -158,45 +158,45 @@ export function LicensesTable({
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.4, delay: 0.4 }}
-      className="bg-white rounded-2xl border border-[rgba(0,0,0,0.08)] overflow-hidden shadow-sm"
+      className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 overflow-hidden shadow-sm"
     >
       <div className="overflow-x-auto">
         <table className="w-full">
           <thead>
-            <tr className="bg-gradient-to-r from-[#f8f9ff] to-[#f0f4ff] border-b border-[rgba(0,0,0,0.05)]">
+            <tr className="bg-gradient-to-r from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800 border-b border-gray-100 dark:border-gray-800">
               <th
-                className={`${headPad} text-left text-xs font-semibold text-[#64748b] uppercase tracking-wider`}
+                className={`${headPad} text-left text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wider`}
               >
                 License
               </th>
               <th
-                className={`${headPad} text-left text-xs font-semibold text-[#64748b] uppercase tracking-wider`}
+                className={`${headPad} text-left text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wider`}
               >
                 Vendor
               </th>
               <th
-                className={`${headPad} text-left text-xs font-semibold text-[#64748b] uppercase tracking-wider`}
+                className={`${headPad} text-left text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wider`}
               >
                 Owner
               </th>
               {/* Seats column removed */}
               <th
-                className={`${headPad} text-left text-xs font-semibold text-[#64748b] uppercase tracking-wider`}
+                className={`${headPad} text-left text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wider`}
               >
                 Expiration
               </th>
               <th
-                className={`${headPad} text-left text-xs font-semibold text-[#64748b] uppercase tracking-wider`}
+                className={`${headPad} text-left text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wider`}
               >
                 Compliance
               </th>
               <th
-                className={`${headPad} text-left text-xs font-semibold text-[#64748b] uppercase tracking-wider`}
+                className={`${headPad} text-left text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wider`}
               >
                 Annual Cost
               </th>
               <th
-                className={`${headPad} text-left text-xs font-semibold text-[#64748b] uppercase tracking-wider`}
+                className={`${headPad} text-left text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wider`}
               >
                 Actions
               </th>
@@ -220,10 +220,10 @@ export function LicensesTable({
                     onMouseEnter={() => setHoveredRow(license.id)}
                     onMouseLeave={() => setHoveredRow(null)}
                     className={`
-                    border-b border-[rgba(0,0,0,0.05)] transition-all duration-200
+                    border-b border-gray-100 dark:border-gray-800 transition-all duration-200
                     ${
                       hoveredRow === license.id
-                        ? "bg-gradient-to-r from-[#f8f9ff] to-transparent"
+                        ? "bg-gradient-to-r from-gray-50 to-transparent dark:from-gray-900 dark:to-transparent"
                         : ""
                     }
                   `}
@@ -231,7 +231,7 @@ export function LicensesTable({
                     {/* License Name & Type */}
                     <td className={`${cellPad}`}>
                       <div>
-                        <p className="font-semibold text-[#1a1d2e] mb-1">
+                        <p className="font-semibold text-gray-900 dark:text-gray-100 mb-1">
                           {license.name}
                         </p>
                         <span
@@ -247,7 +247,7 @@ export function LicensesTable({
                     {/* Vendor */}
                     <td className={`${cellPad}`}>
                       <p
-                        className={`text-sm text-[#64748b] ${
+                        className={`text-sm text-gray-600 dark:text-gray-400 ${
                           density === "ultra-compact" ? "text-[12px]" : ""
                         }`}
                       >
@@ -258,7 +258,7 @@ export function LicensesTable({
                     {/* Owner */}
                     <td className={`${cellPad}`}>
                       <p
-                        className={`text-sm text-[#1a1d2e] font-medium ${
+                        className={`text-sm text-gray-900 dark:text-gray-100 font-medium ${
                           density === "ultra-compact" ? "text-[12px]" : ""
                         }`}
                       >
@@ -277,7 +277,7 @@ export function LicensesTable({
                               ? "text-[#ef4444]"
                               : expiringSoon
                               ? "text-[#f59e0b]"
-                              : "text-[#64748b]"
+                              : "text-gray-600 dark:text-gray-400"
                           } ${
                             density === "ultra-compact" ? "text-[12px]" : ""
                           }`}
@@ -315,13 +315,15 @@ export function LicensesTable({
                     {/* Annual Cost */}
                     <td className={`${cellPad}`}>
                       <p
-                        className={`text-sm font-semibold text-[#1a1d2e] ${
+                        className={`text-sm font-semibold text-gray-900 dark:text-gray-100 ${
                           density === "ultra-compact" ? "text-[12px]" : ""
                         }`}
                       >
                         {formatCurrency(license.cost)}
                       </p>
-                      <p className={`${subText} text-[#94a3b8] mt-0.5`}>
+                      <p
+                        className={`${subText} text-gray-500 dark:text-gray-400 mt-0.5`}
+                      >
                         {formatCurrency(license.cost / 12)}/mo
                       </p>
                     </td>
@@ -338,7 +340,7 @@ export function LicensesTable({
                             <Button
                               onClick={() => toggleView(license.id)}
                               variant="outline"
-                              className={`transition-all duration-200 group rounded-lg hover:bg-[#f3f4f6] text-[#475569] ${
+                              className={`transition-all duration-200 group rounded-lg hover:bg-[#f3f4f6] dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 ${
                                 density === "ultra-compact"
                                   ? "p-1.5 border-0"
                                   : "p-2"
@@ -411,48 +413,54 @@ export function LicensesTable({
                             : density === "compact"
                             ? "px-5 py-6"
                             : "px-6 py-8"
-                        } border-t border-[rgba(0,0,0,0.04)] text-sm text-[#374151] bg-gradient-to-r from-[#eef2ff] via-[#f8fbff] to-white rounded-b-2xl shadow-sm`}
+                        } border-t border-gray-100 dark:border-gray-800 text-sm text-gray-700 dark:text-gray-300 bg-gradient-to-r from-gray-50 via-gray-50 to-white dark:from-gray-900 dark:via-gray-900 dark:to-gray-800 rounded-b-2xl shadow-sm`}
                       >
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                           <div>
-                            <div className="text-xs text-[#64748b]">ID</div>
-                            <div className="font-medium text-[#1a1d2e]">
+                            <div className="text-xs text-gray-600 dark:text-gray-400">
+                              ID
+                            </div>
+                            <div className="font-medium text-gray-900 dark:text-gray-100">
                               {license.id}
                             </div>
                           </div>
                           <div>
-                            <div className="text-xs text-[#64748b]">Vendor</div>
-                            <div className="font-medium text-[#1a1d2e]">
+                            <div className="text-xs text-gray-600 dark:text-gray-400">
+                              Vendor
+                            </div>
+                            <div className="font-medium text-gray-900 dark:text-gray-100">
                               {license.vendor}
                             </div>
                           </div>
                           <div>
-                            <div className="text-xs text-[#64748b]">Owner</div>
-                            <div className="font-medium text-[#1a1d2e]">
+                            <div className="text-xs text-gray-600 dark:text-gray-400">
+                              Owner
+                            </div>
+                            <div className="font-medium text-gray-900 dark:text-gray-100">
                               {license.owner}
                             </div>
                           </div>
                           <div>
-                            <div className="text-xs text-[#64748b]">
+                            <div className="text-xs text-gray-600 dark:text-gray-400">
                               Expiration
                             </div>
-                            <div className="font-medium text-[#1a1d2e]">
+                            <div className="font-medium text-gray-900 dark:text-gray-100">
                               {formatDate(license.expirationDate)}
                             </div>
                           </div>
                           <div>
-                            <div className="text-xs text-[#64748b]">
+                            <div className="text-xs text-gray-600 dark:text-gray-400">
                               Compliance
                             </div>
-                            <div className="font-medium text-[#1a1d2e]">
+                            <div className="font-medium text-gray-900 dark:text-gray-100">
                               {license.compliance}
                             </div>
                           </div>
                           <div>
-                            <div className="text-xs text-[#64748b]">
+                            <div className="text-xs text-gray-600 dark:text-gray-400">
                               Annual Cost
                             </div>
-                            <div className="font-medium text-[#1a1d2e]">
+                            <div className="font-medium text-gray-900 dark:text-gray-100">
                               {formatCurrency(license.cost)}
                             </div>
                           </div>

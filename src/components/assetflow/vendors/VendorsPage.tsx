@@ -29,7 +29,7 @@ import {
   DialogTrigger,
   DialogClose,
 } from "@/components/ui/dialog";
-import { toast } from "sonner@2.0.3";
+import { toast } from "@/components/ui/sonner";
 import { getMe, type ClientMe } from "../../../lib/auth/client";
 import { Button } from "@/components/ui/button";
 

@@ -88,7 +88,7 @@ function StarRating({ rating }: { rating: number }) {
           }`}
         />
       ))}
-      <span className="text-xs font-semibold text-[#64748b] ml-1">
+      <span className="text-xs font-semibold text-gray-600 dark:text-gray-400 ml-1">
         {rating.toFixed(1)}
       </span>
     </div>
@@ -139,16 +139,16 @@ export function VendorsTable({
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.4, delay: 0.4 }}
-        className="bg-white rounded-2xl border border-[rgba(0,0,0,0.08)] p-12 text-center shadow-sm"
+        className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 p-12 text-center shadow-sm"
       >
         <div className="max-w-md mx-auto">
-          <div className="h-16 w-16 rounded-full bg-[#f8f9ff] flex items-center justify-center mx-auto mb-4">
+          <div className="h-16 w-16 rounded-full bg-gray-50 dark:bg-gray-900 flex items-center justify-center mx-auto mb-4">
             <Building2 className="h-8 w-8 text-[#6366f1]" />
           </div>
-          <h3 className="text-xl font-semibold text-[#1a1d2e] mb-2">
+          <h3 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-2">
             No vendors found
           </h3>
-          <p className="text-[#64748b] mb-6">
+          <p className="text-gray-600 dark:text-gray-400 mb-6">
             Try adjusting your filters or search query to find what you're
             looking for.
           </p>
@@ -168,44 +168,44 @@ export function VendorsTable({
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.4, delay: 0.4 }}
-      className="bg-white rounded-2xl border border-[rgba(0,0,0,0.08)] overflow-hidden shadow-sm"
+      className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 overflow-hidden shadow-sm"
     >
       <div className="overflow-x-auto">
         <table className="w-full">
           <thead>
-            <tr className="bg-gradient-to-r from-[#f8f9ff] to-[#f0f4ff] border-b border-[rgba(0,0,0,0.05)]">
+            <tr className="bg-gradient-to-r from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800 border-b border-gray-100 dark:border-gray-800">
               <th
-                className={`${headPad} text-left text-xs font-semibold text-[#64748b] uppercase tracking-wider`}
+                className={`${headPad} text-left text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wider`}
               >
                 Vendor
               </th>
               <th
-                className={`${headPad} text-left text-xs font-semibold text-[#64748b] uppercase tracking-wider`}
+                className={`${headPad} text-left text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wider`}
               >
                 Contact
               </th>
               <th
-                className={`${headPad} text-left text-xs font-semibold text-[#64748b] uppercase tracking-wider`}
+                className={`${headPad} text-left text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wider`}
               >
                 Rating
               </th>
               <th
-                className={`${headPad} text-left text-xs font-semibold text-[#64748b] uppercase tracking-wider`}
+                className={`${headPad} text-left text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wider`}
               >
                 Status
               </th>
               <th
-                className={`${headPad} text-left text-xs font-semibold text-[#64748b] uppercase tracking-wider`}
+                className={`${headPad} text-left text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wider`}
               >
                 Contract Value
               </th>
               <th
-                className={`${headPad} text-left text-xs font-semibold text-[#64748b] uppercase tracking-wider`}
+                className={`${headPad} text-left text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wider`}
               >
                 Contract Expiry
               </th>
               <th
-                className={`${headPad} text-left text-xs font-semibold text-[#64748b] uppercase tracking-wider`}
+                className={`${headPad} text-left text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wider`}
               >
                 Actions
               </th>
@@ -227,10 +227,10 @@ export function VendorsTable({
                     onMouseEnter={() => setHoveredRow(vendor.id)}
                     onMouseLeave={() => setHoveredRow(null)}
                     className={`
-                    border-b border-[rgba(0,0,0,0.05)] transition-all duration-200
+                    border-b border-gray-100 dark:border-gray-800 transition-all duration-200
                     ${
                       hoveredRow === vendor.id
-                        ? "bg-gradient-to-r from-[#f8f9ff] to-transparent"
+                        ? "bg-gradient-to-r from-gray-50 to-transparent dark:from-gray-900 dark:to-transparent"
                         : ""
                     }
                   `}
@@ -238,7 +238,7 @@ export function VendorsTable({
                     {/* Vendor Name & Type */}
                     <td className={`${cellPad}`}>
                       <div>
-                        <p className="font-semibold text-[#1a1d2e] mb-1">
+                        <p className="font-semibold text-gray-900 dark:text-gray-100 mb-1">
                           {vendor.name}
                         </p>
                         <span
@@ -255,14 +255,14 @@ export function VendorsTable({
                     <td className={`${cellPad}`}>
                       <div className="space-y-1">
                         <p
-                          className={`text-sm font-medium text-[#1a1d2e] ${
+                          className={`text-sm font-medium text-gray-900 dark:text-gray-100 ${
                             density === "ultra-compact" ? "text-[12px]" : ""
                           }`}
                         >
                           {vendor.contactPerson}
                         </p>
                         <div
-                          className={`flex items-center gap-1 text-[#64748b] ${subText}`}
+                          className={`flex items-center gap-1 text-gray-600 dark:text-gray-400 ${subText}`}
                         >
                           <Mail className="h-3 w-3" />
                           <a
@@ -274,7 +274,7 @@ export function VendorsTable({
                           </a>
                         </div>
                         <div
-                          className={`flex items-center gap-1 text-[#64748b] ${subText}`}
+                          className={`flex items-center gap-1 text-gray-600 dark:text-gray-400 ${subText}`}
                         >
                           <Phone className="h-3 w-3" />
                           <a
@@ -311,13 +311,15 @@ export function VendorsTable({
                     {/* Contract Value */}
                     <td className={`${cellPad}`}>
                       <p
-                        className={`text-sm font-semibold text-[#1a1d2e] ${
+                        className={`text-sm font-semibold text-gray-900 dark:text-gray-100 ${
                           density === "ultra-compact" ? "text-[12px]" : ""
                         }`}
                       >
                         {formatCurrency(vendor.contractValue)}
                       </p>
-                      <p className={`${subText} text-[#94a3b8] mt-0.5`}>
+                      <p
+                        className={`${subText} text-gray-500 dark:text-gray-400 mt-0.5`}
+                      >
                         {formatCurrency(vendor.contractValue / 12)}/mo avg
                       </p>
                     </td>
@@ -331,7 +333,7 @@ export function VendorsTable({
                               ? "text-[#ef4444]"
                               : expiringSoon
                               ? "text-[#f59e0b]"
-                              : "text-[#64748b]"
+                              : "text-gray-600 dark:text-gray-400"
                           } ${
                             density === "ultra-compact" ? "text-[12px]" : ""
                           }`}
@@ -368,7 +370,7 @@ export function VendorsTable({
                             <Button
                               onClick={() => toggleView(vendor.id)}
                               variant="outline"
-                              className={`transition-all duration-200 group rounded-lg hover:bg-[#f3f4f6] text-[#475569] ${
+                              className={`transition-all duration-200 group rounded-lg hover:bg-[#f3f4f6] dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 ${
                                 density === "ultra-compact"
                                   ? "p-1.5 border-0"
                                   : "p-2"
@@ -441,26 +443,30 @@ export function VendorsTable({
                             : density === "compact"
                             ? "px-5 py-6"
                             : "px-6 py-8"
-                        } border-t border-[rgba(0,0,0,0.04)] text-sm text-[#374151] bg-gradient-to-r from-[#eef2ff] via-[#f8fbff] to-white rounded-b-2xl shadow-sm`}
+                        } border-t border-gray-100 dark:border-gray-800 text-sm text-gray-700 dark:text-gray-300 bg-gradient-to-r from-gray-50 via-gray-50 to-white dark:from-gray-900 dark:via-gray-900 dark:to-gray-800 rounded-b-2xl shadow-sm`}
                       >
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                           <div>
-                            <div className="text-xs text-[#64748b]">ID</div>
-                            <div className="font-medium text-[#1a1d2e]">
+                            <div className="text-xs text-gray-600 dark:text-gray-400">
+                              ID
+                            </div>
+                            <div className="font-medium text-gray-900 dark:text-gray-100">
                               {vendor.id}
                             </div>
                           </div>
                           <div>
-                            <div className="text-xs text-[#64748b]">
+                            <div className="text-xs text-gray-600 dark:text-gray-400">
                               Contact Person
                             </div>
-                            <div className="font-medium text-[#1a1d2e]">
+                            <div className="font-medium text-gray-900 dark:text-gray-100">
                               {vendor.contactPerson}
                             </div>
                           </div>
                           <div>
-                            <div className="text-xs text-[#64748b]">Email</div>
-                            <div className="font-medium text-[#1a1d2e]">
+                            <div className="text-xs text-gray-600 dark:text-gray-400">
+                              Email
+                            </div>
+                            <div className="font-medium text-gray-900 dark:text-gray-100">
                               <a
                                 href={`mailto:${vendor.email}`}
                                 className="hover:text-[#6366f1]"
@@ -470,8 +476,10 @@ export function VendorsTable({
                             </div>
                           </div>
                           <div>
-                            <div className="text-xs text-[#64748b]">Phone</div>
-                            <div className="font-medium text-[#1a1d2e]">
+                            <div className="text-xs text-gray-600 dark:text-gray-400">
+                              Phone
+                            </div>
+                            <div className="font-medium text-gray-900 dark:text-gray-100">
                               <a
                                 href={`tel:${vendor.phone}`}
                                 className="hover:text-[#6366f1]"
@@ -481,18 +489,18 @@ export function VendorsTable({
                             </div>
                           </div>
                           <div>
-                            <div className="text-xs text-[#64748b]">
+                            <div className="text-xs text-gray-600 dark:text-gray-400">
                               Contract Value
                             </div>
-                            <div className="font-medium text-[#1a1d2e]">
+                            <div className="font-medium text-gray-900 dark:text-gray-100">
                               {formatCurrency(vendor.contractValue)}
                             </div>
                           </div>
                           <div>
-                            <div className="text-xs text-[#64748b]">
+                            <div className="text-xs text-gray-600 dark:text-gray-400">
                               Contract Expiry
                             </div>
-                            <div className="font-medium text-[#1a1d2e]">
+                            <div className="font-medium text-gray-900 dark:text-gray-100">
                               {formatDate(vendor.contractExpiry)}
                             </div>
                           </div>

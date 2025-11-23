@@ -16,7 +16,7 @@ import { fetchAssets, deleteAsset } from "../../../lib/api";
 import { exportAssetsToCSV } from "../../../lib/export";
 import { importAssets, parseAssetsFile, parseCSV } from "../../../lib/import";
 import AssetImportModal from "./AssetImportModal";
-import { toast } from "sonner@2.0.3";
+import { toast } from "@/components/ui/sonner";
 import { AssetsTable } from "./AssetsTable";
 // removed unused Tabs import
 import { getMe, type ClientMe } from "../../../lib/auth/client";

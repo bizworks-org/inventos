@@ -23,7 +23,7 @@ export function Header({ breadcrumbs = [], onSearch }: HeaderProps) {
   };
 
   return (
-    <header className="sticky top-0 z-30 h-16 border-b border-[rgba(0,0,0,0.1)] bg-white/80 backdrop-blur-lg">
+    <header className="sticky top-0 z-30 h-16 border-b border-gray-200 dark:border-gray-700 bg-white/80 dark:bg-gray-800/80 backdrop-blur-lg">
       <div className="flex h-full items-center justify-between px-8">
         {/* Breadcrumbs */}
         <div className="flex items-center gap-2 text-sm">
@@ -45,7 +45,7 @@ export function Header({ breadcrumbs = [], onSearch }: HeaderProps) {
                       {crumb.label}
                     </a>
                   ) : (
-                    <span className="text-[#1a1d2e] font-medium">
+                    <span className="text-gray-900 dark:text-gray-100 font-medium">
                       {crumb.label}
                     </span>
                   )}
@@ -53,7 +53,9 @@ export function Header({ breadcrumbs = [], onSearch }: HeaderProps) {
               );
             })
           ) : (
-            <span className="text-[#1a1d2e] font-medium">Dashboard</span>
+            <span className="text-gray-900 dark:text-gray-100 font-medium">
+              Dashboard
+            </span>
           )}
         </div>
 
@@ -69,8 +71,8 @@ export function Header({ breadcrumbs = [], onSearch }: HeaderProps) {
               placeholder="Search assets, licenses, vendors..."
               className="
                 w-80 pl-10 pr-4 py-2 rounded-lg
-                bg-[#f3f4f6] border border-transparent
-                text-sm text-[#1a1d2e] placeholder:text-[#a0a4b8]
+                bg-gray-100 dark:bg-gray-800 border border-transparent
+                text-sm text-gray-900 dark:text-gray-100 placeholder:text-[#a0a4b8]
                 focus:outline-none focus:ring-2 focus:ring-[#6366f1]/20 focus:border-[#6366f1]
                 transition-all duration-200
               "
@@ -86,10 +88,10 @@ export function Header({ breadcrumbs = [], onSearch }: HeaderProps) {
               aria-haspopup="menu"
               aria-expanded={profileOpen}
               onClick={() => setProfileOpen((o) => !o)}
-              className="flex items-center gap-2 p-2 rounded-lg hover:bg-[#f3f4f6] transition-colors"
+              className="flex items-center gap-2 p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
             >
               <span
-                className="hidden md:block text-sm text-[#1a1d2e] font-medium max-w-[180px] truncate"
+                className="hidden md:block text-sm text-gray-900 dark:text-gray-100 font-medium max-w-[180px] truncate"
                 title={me?.name || me?.email || undefined}
               >
                 {me?.name || me?.email || "User"}
@@ -102,7 +104,7 @@ export function Header({ breadcrumbs = [], onSearch }: HeaderProps) {
             {profileOpen && (
               <div
                 ref={profileRef}
-                className="absolute right-0 mt-2 w-44 bg-white rounded-lg shadow-lg border border-[#e6e9f2] z-50"
+                className="absolute right-0 mt-2 w-44 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 z-50"
               >
                 <div className="flex flex-col py-2">
                   <button
@@ -110,7 +112,7 @@ export function Header({ breadcrumbs = [], onSearch }: HeaderProps) {
                       e.preventDefault();
                       (await import("@/lib/auth/client")).signOut();
                     }}
-                    className="text-left px-4 py-2 text-sm text-[#1a1d2e] hover:bg-[#f3f4f6]"
+                    className="text-left px-4 py-2 text-sm text-gray-900 dark:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-700"
                   >
                     Logout
                   </button>

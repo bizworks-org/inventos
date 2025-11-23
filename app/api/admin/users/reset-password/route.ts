@@ -64,7 +64,8 @@ export async function POST(req: NextRequest) {
     (user.roles || []).some(
       (r: string) => r === "admin" || r === "superadmin"
     ) &&
-    (me as any).id !== userId
+    (me as any).id !== userId &&
+    (me as any).role !== "superadmin"
   ) {
     return NextResponse.json(
       { error: "Cannot reset password for another administrator." },

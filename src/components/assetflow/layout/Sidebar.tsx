@@ -249,6 +249,7 @@ export function Sidebar({
         >
           {brandLogo ? (
             <img
+              key={brandLogo}
               src={brandLogo}
               alt={brandName || "Logo"}
               className="h-8 w-8 rounded-lg object-contain bg-white"
@@ -298,11 +299,11 @@ export function Sidebar({
                   item.id.startsWith("settings_")
                     ? "pl-10 pr-4"
                     : "px-4"
-                } py-3 rounded-lg transition-colors duration-200 ease-out text-left w-full cursor-pointer
+                } text-[#a0a4b8] py-3 rounded-lg transition-colors duration-200 ease-out text-left w-full cursor-pointer
                 ${
                   isActive
                     ? "bg-gradient-to-r from-[#6366f1] to-[#8b5cf6] text-white shadow-lg shadow-[#6366f1]/20"
-                    : "text-[#a0a4b8] hover:bg-[rgba(255,255,255,0.05)] hover:text-white"
+                    : "text-white hover:bg-gray-100 dark:hover:bg-gray-700 hover:text-gray-900 dark:hover:text-white"
                 }
               `}
             >
@@ -311,7 +312,7 @@ export function Sidebar({
                   isActive ? "text-white" : item.colorClass ?? ""
                 }`}
               />
-              <span className="font-medium transition-colors duration-200 ease-out">
+              <span className="font-medium text-white transition-colors duration-200 ease-out">
                 {item.name}
               </span>
             </Link>

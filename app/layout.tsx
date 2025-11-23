@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import "./globals.css";
 import { ThemeProvider } from "../src/components/ui/theme-provider";
+import { Toaster } from "@/components/ui/sonner";
 import { PrefsProvider } from "../src/components/assetflow/layout/PrefsContext";
 import { cookies } from "next/headers";
 import { verifyToken } from "@/lib/auth/server";
@@ -86,6 +87,8 @@ export default async function RootLayout({
             <MeProvider initialMe={me}>{children}</MeProvider>
           </PrefsProvider>
         </ThemeProvider>
+        {/* Global toaster - placed outside providers to ensure client-side hydration */}
+        <Toaster position="top-right" richColors />
       </body>
     </html>
   );

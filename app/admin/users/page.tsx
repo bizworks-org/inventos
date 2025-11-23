@@ -1,7 +1,7 @@
 "use client";
 // Refactored for readability: consolidated helpers & extracted rendering functions.
 import { useEffect, useMemo, useRef, useState } from "react";
-import { toast } from "sonner@2.0.3";
+import { toast } from "@/components/ui/sonner";
 import { useRouter } from "next/navigation";
 import { RoleChips } from "./components/RoleChips";
 import { UserActions } from "./components/UserActions";
@@ -46,6 +46,10 @@ export default function ManageUsersPage() {
     userName: string;
     nextRole?: Role;
   } | null>(null);
+  // Temporary visible passwords shown after a reset, kept in-memory for 60s
+  const [visiblePasswords, setVisiblePasswords] = useState<
+    Record<string, string>
+  >({});
   const [allRoles, setAllRoles] = useState<Role[]>([]);
   const router = useRouter();
 
@@ -256,6 +260,7 @@ export default function ManageUsersPage() {
     load();
   };
   const resetPassword = async (id: string) => {
+    console.debug("[users] resetPassword:start", { id });
     try {
       const res = await fetch("/api/admin/users/reset-password", {
         method: "POST",
@@ -263,15 +268,66 @@ export default function ManageUsersPage() {
         body: JSON.stringify({ userId: id }),
       });
       const d = await res.json();
+      console.debug("[users] resetPassword:response", {
+        status: res.status,
+        ok: res.ok,
+        data: d,
+      });
       if (!res.ok) throw new Error(d?.error || "Failed to reset password");
       const pwd = d?.password as string;
       if (pwd) {
+        let copied = false;
         try {
           await navigator.clipboard.writeText(pwd);
-        } catch {}
-        toast.success(`New password: ${pwd} (copied)`);
-      } else toast.success("Password reset");
+          copied = true;
+        } catch {
+          // Fallback: attempt legacy execCommand copy
+          try {
+            const ta = document.createElement("textarea");
+            ta.value = pwd;
+            ta.style.position = "fixed";
+            ta.style.top = "-1000px";
+            document.body.appendChild(ta);
+            ta.select();
+            document.execCommand("copy");
+            copied = true;
+            ta.remove();
+          } catch {}
+        }
+        console.debug("[users] resetPassword:about-to-toast", {
+          pwdPreview: pwd?.slice?.(0, 4) ?? "",
+          copied,
+          toastHasSuccess: !!(toast && (toast as any).success),
+        });
+        toast.success(`New password: ${pwd}${copied ? " (copied)" : ""}`);
+        // Show the password inline as well for 60s so it can be copied if toast was missed
+        try {
+          setVisiblePasswords((cur) => ({ ...cur, [id]: pwd }));
+          setTimeout(() => {
+            setVisiblePasswords((cur) => {
+              const copy = { ...cur };
+              delete copy[id];
+              return copy;
+            });
+          }, 60_000);
+        } catch (e) {
+          // no-op
+        }
+        if (!copied) {
+          // Surface the password in a second toast for clarity if copy failed
+          setTimeout(() => {
+            console.debug("[users] resetPassword:about-to-toast-info", {
+              pwdPreview: pwd?.slice?.(0, 6) ?? "",
+            });
+            toast.info(`Copy failed. Password: ${pwd}`);
+          }, 50);
+        }
+      } else {
+        console.debug("[users] resetPassword:about-to-toast-generic");
+        toast.success("Password reset");
+      }
     } catch (e: any) {
+      console.debug("[users] resetPassword:error", e);
       toast.error(e?.message || "Failed to reset password");
     }
   };
@@ -297,6 +353,21 @@ export default function ManageUsersPage() {
 
   return (
     <>
+      {/* DEBUG: Test toast button */}
+      {/* <div className="mb-4">
+        <button
+          onClick={() => {
+            console.log("[TEST] Toast button clicked", {
+              toast,
+              toastType: typeof toast,
+            });
+            toast.success("TEST TOAST - If you see this, toasts are working!");
+          }}
+          className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+        >
+          🔔 TEST TOAST (Click to verify toasts work)
+        </button>
+      </div> */}
       <div className="bg-white border border-[#e2e8f0] rounded-xl p-6 mb-6 max-w-3xl">
         <h2 className="text-lg font-semibold mb-3">
           {editing ? `Edit User: ${editing.name}` : "Add User"}
@@ -473,6 +544,7 @@ export default function ManageUsersPage() {
                         meId={me?.id}
                         meRole={me?.role}
                         activeAdminCount={activeAdminCount}
+                        visiblePassword={visiblePasswords[u.id]}
                         onEdit={(user) => {
                           setEditing(user);
                           setForm({

@@ -73,7 +73,12 @@ export async function PUT(req: NextRequest) {
       { id }
     );
     const isTargetAdmin = Number(adminRows?.[0]?.count || 0) > 0;
-    if (isTargetAdmin && (me as any).id !== id) {
+    // Superadmin may edit any administrator; regular admin only self
+    if (
+      isTargetAdmin &&
+      (me as any).id !== id &&
+      (me as any).role !== "superadmin"
+    ) {
       return NextResponse.json(
         { error: "Cannot edit another administrator." },
         { status: 403 }
@@ -100,7 +105,8 @@ export async function PUT(req: NextRequest) {
             WHERE u.active = 1 AND r.name IN ('admin','superadmin')`
         );
         const activeAdmins = Number(activeAdminsRows?.[0]?.count || 0);
-        if (activeAdmins <= 1) {
+        // Allow superadmin to deactivate even the last administrator
+        if (activeAdmins <= 1 && (me as any).role !== "superadmin") {
           return NextResponse.json(
             { error: "Cannot deactivate the last administrator." },
             { status: 400 }
@@ -136,7 +142,12 @@ export async function DELETE(req: NextRequest) {
       { id }
     );
     const isTargetAdmin = Number(adminRows?.[0]?.count || 0) > 0;
-    if (isTargetAdmin && (me as any).id !== id) {
+    // Superadmin may delete any administrator; regular admin only self
+    if (
+      isTargetAdmin &&
+      (me as any).id !== id &&
+      (me as any).role !== "superadmin"
+    ) {
       return NextResponse.json(
         { error: "Cannot delete another administrator." },
         { status: 403 }

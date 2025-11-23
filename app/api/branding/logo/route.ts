@@ -1,43 +1,77 @@
-import { NextRequest, NextResponse } from 'next/server';
-import path from 'path';
-import fs from 'fs';
-import { query } from '@/lib/db';
+import { NextRequest, NextResponse } from "next/server";
+import path from "path";
+import { put, del } from "@vercel/blob";
+import { query } from "@/lib/db";
 
-export const dynamic = 'force-dynamic'; // ensure Node.js runtime
+export const dynamic = "force-dynamic"; // ensure Node.js runtime
 
 export async function POST(req: NextRequest) {
   try {
+    // Check if Vercel Blob token is configured
+    if (!process.env.BLOB_READ_WRITE_TOKEN) {
+      console.error("BLOB_READ_WRITE_TOKEN is not configured");
+      return NextResponse.json(
+        {
+          error:
+            "Blob storage is not configured. Please set BLOB_READ_WRITE_TOKEN environment variable.",
+        },
+        { status: 500 }
+      );
+    }
+
     const form = await req.formData();
-    const file = form.get('file');
-    if (!file || typeof file === 'string') {
-      return NextResponse.json({ error: 'No file provided' }, { status: 400 });
+    const file = form.get("file");
+    if (!file || typeof file === "string") {
+      return NextResponse.json({ error: "No file provided" }, { status: 400 });
     }
     const blob = file as File;
-    const arrayBuffer = await blob.arrayBuffer();
-    const buffer = Buffer.from(arrayBuffer);
 
-    // Validate basic file type by extension and magic header when possible
-    const allowed = ['.png', '.jpg', '.jpeg', '.svg', '.webp'];
-    const origName = (blob as any).name || 'logo';
-    const ext = path.extname(origName).toLowerCase() || '.png';
+    // Validate basic file type by extension
+    const allowed = [".png", ".jpg", ".jpeg", ".svg", ".webp"];
+    const origName = (blob as any).name || "logo";
+    const ext = path.extname(origName).toLowerCase() || ".png";
     if (!allowed.includes(ext)) {
-      return NextResponse.json({ error: 'Unsupported file type' }, { status: 400 });
+      return NextResponse.json(
+        { error: "Unsupported file type" },
+        { status: 400 }
+      );
     }
 
-    // Ensure public/brand directory exists
-    const publicDir = path.join(process.cwd(), 'public');
-    const brandDir = path.join(publicDir, 'brand');
-    if (!fs.existsSync(brandDir)) fs.mkdirSync(brandDir, { recursive: true });
+    // Get the current logo URL from database to delete old blob
+    const rows = (await query(
+      "SELECT logo_url FROM site_settings WHERE id = 1"
+    )) as any[];
+    const oldLogoUrl = rows?.[0]?.logo_url;
 
-    const filename = `logo-${Date.now()}${ext}`;
-    const outPath = path.join(brandDir, filename);
-    fs.writeFileSync(outPath, buffer);
+    // Delete old blob if it exists and is from Vercel Blob storage
+    if (
+      oldLogoUrl &&
+      (oldLogoUrl.includes("vercel-storage.com") ||
+        oldLogoUrl.includes("blob.vercel-storage.com"))
+    ) {
+      try {
+        await del(oldLogoUrl);
+      } catch (e) {
+        console.warn("Failed to delete old logo blob:", e);
+      }
+    }
 
-    const urlPath = `/brand/${filename}`;
-    await query('UPDATE site_settings SET logo_url = :logo_url WHERE id = 1', { logo_url: urlPath });
+    // Upload new logo to Vercel Blob - always replaces the old one due to deletion above
+    const { url } = await put(`brand/logo${ext}`, blob, {
+      access: "public",
+    });
 
-    return NextResponse.json({ ok: true, logoUrl: urlPath });
+    // Update database with new URL
+    await query("UPDATE site_settings SET logo_url = :logo_url WHERE id = 1", {
+      logo_url: url,
+    });
+
+    return NextResponse.json({ ok: true, logoUrl: url });
   } catch (e: any) {
-    return NextResponse.json({ error: e?.message || 'Upload failed' }, { status: 500 });
+    console.error("Logo upload error:", e);
+    return NextResponse.json(
+      { error: e?.message || "Upload failed" },
+      { status: 500 }
+    );
   }
 }

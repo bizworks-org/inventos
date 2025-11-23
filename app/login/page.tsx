@@ -7,7 +7,7 @@ import { getMe } from "@/lib/auth/client";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("admin@inventos.io");
-  const [password, setPassword] = useState("O2rqvy0K9Lze");
+  const [password, setPassword] = useState("xbI80gepkxn9");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);

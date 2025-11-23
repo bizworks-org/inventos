@@ -2,7 +2,6 @@
 
 import { Sidebar } from "./Sidebar";
 import { Header } from "./Header";
-import { Toaster } from "@/components/ui/sonner";
 import { useMe } from "./MeContext";
 
 interface AssetFlowLayoutProps {
@@ -29,12 +28,10 @@ export function AssetFlowLayout({
   const { me: ctxMe } = useMe();
   const meEffective = me ?? ctxMe ?? null;
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#f8f9ff] to-[#f0f4ff]">
+    <div className="min-h-screen bg-gradient-to-br from-[#f8f9ff] to-[#f0f4ff] dark:from-gray-900 dark:to-gray-800">
       <Sidebar currentPage={currentPage} me={meEffective ?? undefined} />
       <div className="ml-64">
         <Header breadcrumbs={breadcrumbs} onSearch={onSearch} />
-        {/* Global toaster for success/error notifications */}
-        <Toaster position="top-right" richColors />
         <main className="p-8">{children}</main>
       </div>
     </div>
