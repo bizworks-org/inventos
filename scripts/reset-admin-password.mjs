@@ -21,7 +21,7 @@ function hash(password, N = 16384) {
 
 async function main() {
   const [, , emailArg, passwordArg] = process.argv;
-  const email = emailArg || 'admin@inventos.io';
+  const email = emailArg || 'vaseems@ai.com';
   const password = passwordArg || generatePassword(12);
 
   const MYSQL_HOST = 'srv1264.hstgr.io';
