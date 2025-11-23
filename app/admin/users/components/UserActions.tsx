@@ -129,8 +129,7 @@ export function UserActions({
               onClick={() => onResetPassword(user.id)}
               className="px-3 py-2 rounded-lg text-sm font-medium text-white shadow-sm hover:shadow-md focus:outline-none focus:ring-2 focus:ring-sky-500/40 transition-all"
               style={{
-                backgroundImage:
-                  "linear-gradient(to right, #06b6d4, #3b82f6)",
+                backgroundImage: "linear-gradient(to right, #06b6d4, #3b82f6)",
               }}
             >
               Reset Password
@@ -139,8 +138,7 @@ export function UserActions({
               onClick={() => onRemove(user.id)}
               className="px-3 py-2 rounded-lg text-sm font-medium text-white shadow-sm hover:shadow-md focus:outline-none focus:ring-2 focus:ring-[#ef4444]/40 transition-all"
               style={{
-                backgroundImage:
-                  "linear-gradient(to right, #ef4444, #b91c1c)",
+                backgroundImage: "linear-gradient(to right, #ef4444, #b91c1c)",
               }}
             >
               Delete

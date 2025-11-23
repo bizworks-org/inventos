@@ -23,7 +23,12 @@ export default function LoginPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, password }),
       });
-      const data = await res.json();
+      let data: any = {};
+      try {
+        data = await res.json();
+      } catch {
+        data = { error: "Some error occurred in the server" };
+      }
       if (!res.ok) throw new Error(data?.error || "Sign in failed");
       // Hydrate MeContext immediately so Sidebar can render admin links without a full refresh
       try {

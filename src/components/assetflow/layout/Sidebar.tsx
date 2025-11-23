@@ -215,13 +215,14 @@ export function Sidebar({
           id: "admin_users",
           icon: Users,
           colorClass: "text-red-300",
-        } as NavItem,
-        {
-          name: "Roles",
-          id: "admin_roles",
-          icon: Shield,
-          colorClass: "text-red-300",
         } as NavItem
+        // ,
+        // {
+        //   name: "Roles",
+        //   id: "admin_roles",
+        //   icon: Shield,
+        //   colorClass: "text-red-300 hidden",
+        // } as NavItem
       );
     }
     return base;

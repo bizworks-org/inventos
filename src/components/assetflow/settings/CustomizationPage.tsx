@@ -630,9 +630,7 @@ export function CustomizationPage({ onNavigate, onSearch }: Props) {
                     <h4 className="font-semibold">Usage</h4>
                     <p className="text-sm text-[#64748b] mt-2">
                       Locations you add here will be available to select when
-                      creating or editing assets. They are stored locally in
-                      your browser; the app will attempt to save them to the
-                      server if an endpoint exists.
+                      creating or editing assets.
                     </p>
                   </div>
                 </Card>
