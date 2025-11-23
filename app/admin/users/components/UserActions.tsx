@@ -1,11 +1,6 @@
 "use client";
 import { Pencil } from "lucide-react";
 import { toast } from "@/components/ui/sonner";
-import {
-  Tooltip,
-  TooltipTrigger,
-  TooltipContent,
-} from "@/components/ui/tooltip";
 import type { Role, User } from "../types";
 
 export function UserActions({
@@ -31,75 +26,44 @@ export function UserActions({
   meRole?: Role;
   visiblePassword?: string;
 }) {
-  // Debug: trace render and permissions to help diagnose missing handler execution
-  console.debug("[UserActions] render", {
-    userId: user.id,
-    meId,
-    meRole,
-    viewerIsSuper: meRole === "superadmin",
-    isSelf: meId === user.id,
-  });
-  const isTargetAdmin = (user.roles || []).includes("admin");
-  const isOtherAdmin = isTargetAdmin && meId !== user.id;
-  const viewerIsSuper = meRole === "superadmin";
   const isSelf = meId === user.id;
-  const isLastActiveAdmin =
-    user.active && isTargetAdmin && activeAdminCount === 1;
-  // If the current viewer is a Superadmin, allow acting on other Admins.
-  const disableEdit = isTargetAdmin && meId !== user.id && !viewerIsSuper;
-  const disableOthersAdmin =
-    isTargetAdmin && meId !== user.id && !viewerIsSuper;
   const targetIsSuper = (user.roles || []).includes("superadmin");
+  const targetIsAdmin = (user.roles || []).includes("admin");
+  const isLastActiveAdmin =
+    user.active && targetIsAdmin && activeAdminCount === 1;
 
-  // If viewer is not Superadmin and this is not their own row, hide all actions.
-  if (!viewerIsSuper && !isSelf) return null;
+  // Determine visibility based on role hierarchy
+  // SuperAdmin: sees all users
+  // Admin: sees self and all users (except other admins and superadmins)
+  // User: sees only self
+  const canViewActions = (() => {
+    if (meRole === "superadmin") return true; // SuperAdmin sees all
+    if (meRole === "admin") {
+      if (isSelf) return true; // Admin sees self
+      if (!targetIsAdmin && !targetIsSuper) return true; // Admin sees users
+      return false; // Admin doesn't see other admins or superadmins
+    }
+    if (meRole === "user") return isSelf; // User sees only self
+    return false;
+  })();
 
-  // If this row represents a Superadmin and the current viewer is not a Superadmin,
-  // hide action buttons entirely to prevent Admin/User viewers from operating on Superadmin.
-  if (targetIsSuper && meRole !== "superadmin") return null;
-  // If this row represents another Admin (not the current user), hide action buttons
-  // only for non-superadmin viewers. Superadmin should be able to act on all users.
-  if (isOtherAdmin && !viewerIsSuper) return null;
+  if (!canViewActions) return null;
 
   return (
     <div className="flex gap-2 items-center">
-      {/* Edit */}
-      {(() => {
-        const btn = (
-          <button
-            type="button"
-            onClick={() => {
-              if (disableEdit) return;
-              onEdit(user);
-            }}
-            disabled={disableEdit}
-            className={`px-3 py-2 rounded-lg text-sm font-medium transition-all ${
-              disableEdit
-                ? "bg-[#f3f4f6] text-[#9ca3af] cursor-not-allowed"
-                : "text-white shadow-sm hover:shadow-md focus:outline-none focus:ring-2 focus:ring-indigo-500/40"
-            }`}
-            style={
-              disableEdit
-                ? undefined
-                : {
-                    backgroundImage:
-                      "linear-gradient(to right, #6366f1, #8b5cf6)",
-                  }
-            }
-          >
-            <span className="inline-flex items-center gap-1">
-              <Pencil className="h-4 w-4" /> Edit
-            </span>
-          </button>
-        );
-        if (!disableEdit) return btn;
-        return (
-          <Tooltip>
-            <TooltipTrigger asChild>{btn}</TooltipTrigger>
-            <TooltipContent>Cannot edit another Admin</TooltipContent>
-          </Tooltip>
-        );
-      })()}
+      {/* Edit - always visible when canViewActions is true */}
+      <button
+        type="button"
+        onClick={() => onEdit(user)}
+        className="px-3 py-2 rounded-lg text-sm font-medium text-white shadow-sm hover:shadow-md focus:outline-none focus:ring-2 focus:ring-indigo-500/40 transition-all"
+        style={{
+          backgroundImage: "linear-gradient(to right, #6366f1, #8b5cf6)",
+        }}
+      >
+        <span className="inline-flex items-center gap-1">
+          <Pencil className="h-4 w-4" /> Edit
+        </span>
+      </button>
       {/* Activate */}
       {!user.active && (
         <button
@@ -114,20 +78,27 @@ export function UserActions({
       )}
       {/* Deactivate */}
       {(() => {
-        const disabled =
-          !user.active ||
-          (!viewerIsSuper && (isLastActiveAdmin || isOtherAdmin));
-        const btn = (
+        const shouldShow =
+          user.active &&
+          (isSelf ||
+            meRole === "superadmin" ||
+            (!targetIsAdmin && !targetIsSuper));
+        const shouldDisableDeactivate =
+          isSelf && targetIsAdmin && isLastActiveAdmin;
+
+        if (!shouldShow) return null;
+
+        return (
           <button
             onClick={() => onDeactivate(user.id)}
-            disabled={disabled}
+            disabled={shouldDisableDeactivate}
             className={`px-3 py-2 rounded-lg transition-all text-sm font-medium ${
-              disabled
+              shouldDisableDeactivate
                 ? "bg-[#f3f4f6] text-[#9ca3af] cursor-not-allowed"
                 : "text-white shadow-sm hover:shadow-md focus:outline-none focus:ring-2 focus:ring-[#f59e0b]/40"
             }`}
             style={
-              disabled
+              shouldDisableDeactivate
                 ? undefined
                 : {
                     backgroundImage:
@@ -138,94 +109,42 @@ export function UserActions({
             Deactivate
           </button>
         );
-        if (!(!viewerIsSuper && (isLastActiveAdmin || isOtherAdmin)))
-          return btn;
-        return (
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <span className="inline-block">{btn}</span>
-            </TooltipTrigger>
-            <TooltipContent>
-              {isLastActiveAdmin
-                ? "Cannot deactivate the last active Admin"
-                : "Cannot deactivate another Admin"}
-            </TooltipContent>
-          </Tooltip>
-        );
       })()}
       {/* Reset Password & Delete */}
       {(() => {
-        const resetBtn = (
-          <button
-            onClick={() => {
-              console.debug("[UserActions] reset-click", {
-                userId: user.id,
-                disableOthersAdmin,
-              });
-              if (!disableOthersAdmin) onResetPassword(user.id);
-            }}
-            disabled={disableOthersAdmin}
-            className={`px-3 py-2 rounded-lg text-sm font-medium transition-all ${
-              disableOthersAdmin
-                ? "bg-[#f3f4f6] text-[#9ca3af] cursor-not-allowed"
-                : "text-white shadow-sm hover:shadow-md focus:outline-none focus:ring-2 focus:ring-sky-500/40"
-            }`}
-            style={
-              disableOthersAdmin
-                ? undefined
-                : {
-                    backgroundImage:
-                      "linear-gradient(to right, #06b6d4, #3b82f6)",
-                  }
-            }
-          >
-            Reset Password
-          </button>
-        );
-        const deleteBtn = (
-          <button
-            onClick={() => !disableOthersAdmin && onRemove(user.id)}
-            disabled={disableOthersAdmin}
-            className={`px-3 py-2 rounded-lg text-sm font-medium transition-all ${
-              disableOthersAdmin
-                ? "bg-[#f3f4f6] text-[#9ca3af] cursor-not-allowed"
-                : "text-white shadow-sm hover:shadow-md focus:outline-none focus:ring-2 focus:ring-[#ef4444]/40"
-            }`}
-            style={
-              disableOthersAdmin
-                ? undefined
-                : {
-                    backgroundImage:
-                      "linear-gradient(to right, #ef4444, #b91c1c)",
-                  }
-            }
-          >
-            Delete
-          </button>
-        );
-        if (!disableOthersAdmin)
-          return (
-            <>
-              {resetBtn}
-              {deleteBtn}
-            </>
-          );
+        // Show Reset Password and Delete only when:
+        // 1. Viewing self, OR
+        // 2. SuperAdmin viewing any user, OR
+        // 3. Admin viewing a regular user (not admin/superadmin)
+        const shouldShow =
+          isSelf ||
+          meRole === "superadmin" ||
+          (meRole === "admin" && !targetIsAdmin && !targetIsSuper);
+
+        if (!shouldShow) return null;
+
         return (
           <>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <span className="inline-block">{resetBtn}</span>
-              </TooltipTrigger>
-              <TooltipContent>
-                Cannot reset password for another Admin
-              </TooltipContent>
-            </Tooltip>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <span className="inline-block">{deleteBtn}</span>
-              </TooltipTrigger>
-              <TooltipContent>Cannot delete another Admin</TooltipContent>
-            </Tooltip>
+            <button
+              onClick={() => onResetPassword(user.id)}
+              className="px-3 py-2 rounded-lg text-sm font-medium text-white shadow-sm hover:shadow-md focus:outline-none focus:ring-2 focus:ring-sky-500/40 transition-all"
+              style={{
+                backgroundImage:
+                  "linear-gradient(to right, #06b6d4, #3b82f6)",
+              }}
+            >
+              Reset Password
+            </button>
+            <button
+              onClick={() => onRemove(user.id)}
+              className="px-3 py-2 rounded-lg text-sm font-medium text-white shadow-sm hover:shadow-md focus:outline-none focus:ring-2 focus:ring-[#ef4444]/40 transition-all"
+              style={{
+                backgroundImage:
+                  "linear-gradient(to right, #ef4444, #b91c1c)",
+              }}
+            >
+              Delete
+            </button>
           </>
         );
       })()}

@@ -4,11 +4,11 @@ import { useRouter } from "next/navigation";
 import styles from "./login.module.css";
 import { useMe } from "@/components/assetflow/layout/MeContext";
 import { getMe } from "@/lib/auth/client";
+import { toast } from "@/components/ui/sonner";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("admin@inventos.io");
   const [password, setPassword] = useState("xbI80gepkxn9");
-  const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const router = useRouter();
@@ -17,7 +17,6 @@ export default function LoginPage() {
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    setError(null);
     try {
       const res = await fetch("/api/auth/signin", {
         method: "POST",
@@ -52,7 +51,7 @@ export default function LoginPage() {
       } catch {}
       router.replace("/dashboard");
     } catch (e: any) {
-      setError(e.message || "Sign in failed");
+      toast.error(e.message || "Sign in failed");
     } finally {
       setLoading(false);
     }
@@ -109,8 +108,6 @@ export default function LoginPage() {
             </button>
           </div>
         </div>
-
-        {error && <div className={styles.error}>{error}</div>}
 
         <div className={styles.actions}>
           <button disabled={loading} type="submit" className={styles.button}>
