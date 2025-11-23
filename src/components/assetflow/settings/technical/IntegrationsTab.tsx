@@ -1,11 +1,5 @@
 import React from 'react';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '../../ui/card';
-import { Button } from '../../ui/button';
-import { Badge } from '../../ui/badge';
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '../../ui/dialog';
-import { Label } from '../../ui/label';
-import { Input } from '../../ui/input';
-import { Check } from 'lucide-react';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../../../ui/card';
 import IntegrationCard from './IntegrationCard';
 
 type IntegrationId = 'ad' | 'aws' | 'azure' | 'mdm';

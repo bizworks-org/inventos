@@ -195,8 +195,7 @@ export function AssetsPage({ onNavigate, onSearch }: AssetsPageProps) {
       return ["All", ...catalog.map((c) => c.name)];
     return ["All"];
   }, [catalog]);
-  const canWriteAssets =
-    !!me?.permissions?.includes("assets_write") || me?.role === "admin";
+  const canWriteAssets = me?.role === "admin" || me?.role === "superadmin";
 
   const getCategoryCount = (cat: AssetCategory) => {
     if (cat === "All") return assets.length;

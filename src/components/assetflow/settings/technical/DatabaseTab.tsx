@@ -6,10 +6,10 @@ import {
   CardTitle,
   CardDescription,
   CardFooter,
-} from "../../ui/card";
-import { Label } from "../../ui/label";
-import { Input } from "../../ui/input";
-import { Button } from "../../ui/button";
+} from "../../../ui/card";
+import { Label } from "../../../ui/label";
+import { Input } from "../../../ui/input";
+import { Button } from "../../../ui/button";
 
 export default function DatabaseTab(props: {
   techTabsDisabled: boolean;

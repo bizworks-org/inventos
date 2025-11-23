@@ -5,7 +5,7 @@ import {
   CardHeader,
   CardTitle,
   CardDescription,
-} from "../../ui/card";
+} from "../../../ui/card";
 
 export function DisabledCard({
   title,

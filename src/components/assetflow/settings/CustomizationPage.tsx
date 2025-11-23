@@ -1,15 +1,23 @@
 "use client";
 
-import { useEffect, useMemo, useState } from 'react';
-import { AssetFlowLayout } from '../layout/AssetFlowLayout';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '../../ui/tabs';
-import { Button } from '../../ui/button';
-import { Input } from '../../ui/input';
-import { Label } from '../../ui/label';
-import { Card, CardContent, CardHeader, CardDescription, CardTitle } from '../../ui/card';
-import type { AssetFieldDef, AssetFieldType } from '../../../lib/data';
-import { saveSettings } from '../../../lib/api';
-import CatalogAdmin from './CatalogAdmin';
+import { useEffect, useMemo, useState } from "react";
+import { AssetFlowLayout } from "../layout/AssetFlowLayout";
+import { useMe } from "../layout/MeContext";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "../../ui/tabs";
+import { Button } from "../../ui/button";
+import { Input } from "../../ui/input";
+import { Label } from "../../ui/label";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardDescription,
+  CardTitle,
+} from "../../ui/card";
+import type { AssetFieldDef, AssetFieldType } from "../../../lib/data";
+import { saveSettings } from "../../../lib/api";
+import CatalogAdmin from "./customization/CatalogAdmin";
+import BrandingTab from "./customization/BrandingTab";
 
 interface Props {
   onNavigate?: (page: string) => void;
@@ -17,86 +25,154 @@ interface Props {
 }
 
 export function CustomizationPage({ onNavigate, onSearch }: Props) {
-  const [active, setActive] = useState<'locations' | 'catalog' | 'fields'>('locations');
+  const { me } = useMe();
+  const isSuperAdmin = me?.role === "superadmin";
+
+  const [active, setActive] = useState<
+    "locations" | "catalog" | "fields" | "branding"
+  >("locations");
+
+  // Branding state
+  const [brandName, setBrandName] = useState<string>("Inventos");
+  const [logoUrl, setLogoUrl] = useState<string | null>(null);
+  const [brandingMsg, setBrandingMsg] = useState<string | null>(null);
 
   // Custom field definitions (moved here from Settings page)
   const [assetFields, setAssetFields] = useState<AssetFieldDef[]>([]);
   const [vendorFields, setVendorFields] = useState<AssetFieldDef[]>([]);
   const [licenseFields, setLicenseFields] = useState<AssetFieldDef[]>([]);
-  const [customTarget, setCustomTarget] = useState<'asset' | 'vendor' | 'license'>('asset');
+  const [customTarget, setCustomTarget] = useState<
+    "asset" | "vendor" | "license"
+  >("asset");
 
   // Load saved custom fields from localStorage on mount so changes made elsewhere are reflected
   useEffect(() => {
     try {
-      const raw = localStorage.getItem('assetflow:settings');
+      const raw = localStorage.getItem("assetflow:settings");
       if (!raw) return;
       const parsed = JSON.parse(raw);
-      if (Array.isArray(parsed?.assetFields)) setAssetFields(parsed.assetFields as AssetFieldDef[]);
-      if (Array.isArray(parsed?.vendorFields)) setVendorFields(parsed.vendorFields as AssetFieldDef[]);
-      if (Array.isArray(parsed?.licenseFields)) setLicenseFields(parsed.licenseFields as AssetFieldDef[]);
+      if (Array.isArray(parsed?.assetFields))
+        setAssetFields(parsed.assetFields as AssetFieldDef[]);
+      if (Array.isArray(parsed?.vendorFields))
+        setVendorFields(parsed.vendorFields as AssetFieldDef[]);
+      if (Array.isArray(parsed?.licenseFields))
+        setLicenseFields(parsed.licenseFields as AssetFieldDef[]);
     } catch (e) {
       // ignore invalid cached settings
     }
 
     const handler = () => {
       try {
-        const raw = localStorage.getItem('assetflow:settings');
+        const raw = localStorage.getItem("assetflow:settings");
         if (!raw) return;
         const parsed = JSON.parse(raw);
-        if (Array.isArray(parsed?.assetFields)) setAssetFields(parsed.assetFields as AssetFieldDef[]);
-        if (Array.isArray(parsed?.vendorFields)) setVendorFields(parsed.vendorFields as AssetFieldDef[]);
-        if (Array.isArray(parsed?.licenseFields)) setLicenseFields(parsed.licenseFields as AssetFieldDef[]);
+        if (Array.isArray(parsed?.assetFields))
+          setAssetFields(parsed.assetFields as AssetFieldDef[]);
+        if (Array.isArray(parsed?.vendorFields))
+          setVendorFields(parsed.vendorFields as AssetFieldDef[]);
+        if (Array.isArray(parsed?.licenseFields))
+          setLicenseFields(parsed.licenseFields as AssetFieldDef[]);
       } catch {}
     };
 
-    window.addEventListener('assetflow:settings-saved', handler as EventListener);
-    window.addEventListener('storage', handler as any);
+    window.addEventListener(
+      "assetflow:settings-saved",
+      handler as EventListener
+    );
+    window.addEventListener("storage", handler as any);
     return () => {
-      window.removeEventListener('assetflow:settings-saved', handler as EventListener);
-      window.removeEventListener('storage', handler as any);
+      window.removeEventListener(
+        "assetflow:settings-saved",
+        handler as EventListener
+      );
+      window.removeEventListener("storage", handler as any);
     };
   }, []);
 
+  // Load branding from API
+  useEffect(() => {
+    const loadBranding = async () => {
+      try {
+        // Load branding from server
+        const ssrName =
+          document.documentElement.getAttribute("data-brand-name");
+        const ssrLogo =
+          document.documentElement.getAttribute("data-brand-logo");
+        if (ssrName) setBrandName(ssrName);
+        if (ssrLogo) setLogoUrl(ssrLogo);
+
+        // Also fetch from API
+        const res = await fetch("/api/branding/logo", { cache: "no-store" });
+        if (res.ok) {
+          const data = await res.json();
+          if (data?.brandName) setBrandName(data.brandName);
+          if (data?.logoUrl) setLogoUrl(data.logoUrl);
+        }
+      } catch (err) {
+        console.error("Failed to load branding:", err);
+      }
+    };
+    loadBranding();
+  }, []);
+
   const addCurrentField = () => {
-    const def: AssetFieldDef = { key: '', label: '', required: false, placeholder: '', type: 'text' };
-    if (customTarget === 'asset') setAssetFields((arr) => [...arr, def]);
-    if (customTarget === 'vendor') setVendorFields((arr) => [...arr, def]);
-    if (customTarget === 'license') setLicenseFields((arr) => [...arr, def]);
+    const def: AssetFieldDef = {
+      key: "",
+      label: "",
+      required: false,
+      placeholder: "",
+      type: "text",
+    };
+    if (customTarget === "asset") setAssetFields((arr) => [...arr, def]);
+    if (customTarget === "vendor") setVendorFields((arr) => [...arr, def]);
+    if (customTarget === "license") setLicenseFields((arr) => [...arr, def]);
   };
   const removeCurrentField = (idx: number) => {
-    if (customTarget === 'asset') setAssetFields((arr) => arr.filter((_, i) => i !== idx));
-    if (customTarget === 'vendor') setVendorFields((arr) => arr.filter((_, i) => i !== idx));
-    if (customTarget === 'license') setLicenseFields((arr) => arr.filter((_, i) => i !== idx));
+    if (customTarget === "asset")
+      setAssetFields((arr) => arr.filter((_, i) => i !== idx));
+    if (customTarget === "vendor")
+      setVendorFields((arr) => arr.filter((_, i) => i !== idx));
+    if (customTarget === "license")
+      setLicenseFields((arr) => arr.filter((_, i) => i !== idx));
   };
   const updateCurrentField = (idx: number, patch: Partial<AssetFieldDef>) => {
-    if (customTarget === 'asset') setAssetFields((arr) => arr.map((f, i) => i === idx ? { ...f, ...patch } : f));
-    if (customTarget === 'vendor') setVendorFields((arr) => arr.map((f, i) => i === idx ? { ...f, ...patch } : f));
-    if (customTarget === 'license') setLicenseFields((arr) => arr.map((f, i) => i === idx ? { ...f, ...patch } : f));
+    if (customTarget === "asset")
+      setAssetFields((arr) =>
+        arr.map((f, i) => (i === idx ? { ...f, ...patch } : f))
+      );
+    if (customTarget === "vendor")
+      setVendorFields((arr) =>
+        arr.map((f, i) => (i === idx ? { ...f, ...patch } : f))
+      );
+    if (customTarget === "license")
+      setLicenseFields((arr) =>
+        arr.map((f, i) => (i === idx ? { ...f, ...patch } : f))
+      );
   };
 
   const handleSaveFields = async () => {
     try {
       // Try to preserve existing settings stored locally (name/email/prefs)
-      const raw = localStorage.getItem('assetflow:settings');
+      const raw = localStorage.getItem("assetflow:settings");
       const base = raw ? JSON.parse(raw) : {};
       // Always try to resolve the currently signed-in user from the server first
-      let serverEmail = '';
+      let serverEmail = "";
       try {
-        const res = await fetch('/api/auth/me', { cache: 'no-store' });
+        const res = await fetch("/api/auth/me", { cache: "no-store" });
         if (res.ok) {
           const json = await res.json();
-          serverEmail = json?.user?.email || '';
+          serverEmail = json?.user?.email || "";
         }
       } catch (e) {
         // ignore network errors — we'll fall back to local storage value
       }
 
       const payload: any = {
-        user_email: serverEmail || base.email || base.user_email || '',
-        name: base.name || '',
+        user_email: serverEmail || base.email || base.user_email || "",
+        name: base.name || "",
         prefs: base.prefs || {},
         notify: base.notify || {},
-        mode: base.mode || 'system',
+        mode: base.mode || "system",
         events: base.events || {},
         integrations: base.integrations || {},
         assetFields,
@@ -106,29 +182,57 @@ export function CustomizationPage({ onNavigate, onSearch }: Props) {
 
       // Persist the resolved email back into localStorage so future saves don't need server lookup
       try {
-        const nextStored = { ...base, assetFields, vendorFields, licenseFields };
+        const nextStored = {
+          ...base,
+          assetFields,
+          vendorFields,
+          licenseFields,
+        };
         if (payload.user_email) nextStored.user_email = payload.user_email;
-        localStorage.setItem('assetflow:settings', JSON.stringify(nextStored));
+        localStorage.setItem("assetflow:settings", JSON.stringify(nextStored));
       } catch {}
 
       // If we still don't have an email and server couldn't resolve it, abort to avoid 400
       if (!payload.user_email) {
-        try { alert('Unable to determine your account email. Please sign in or ensure your settings are present in the browser before saving.'); } catch {}
+        try {
+          alert(
+            "Unable to determine your account email. Please sign in or ensure your settings are present in the browser before saving."
+          );
+        } catch {}
         return;
       }
 
       await saveSettings(payload);
-      try { window.dispatchEvent(new Event('assetflow:settings-saved')); } catch {}
-      try { alert('Fields saved'); } catch {}
+      try {
+        window.dispatchEvent(new Event("assetflow:settings-saved"));
+      } catch {}
+      try {
+        alert("Fields saved");
+      } catch {}
     } catch (e) {
-      try { alert('Failed to save fields'); } catch {}
+      try {
+        alert("Failed to save fields");
+      } catch {}
     }
   };
 
   // Locations stored locally (and optionally pushed to server if endpoint exists)
-  const [locations, setLocations] = useState<Array<{ id?: string; code?: string; name: string; address?: string; zipcode?: string }>>([]);
-  const [newLocation, setNewLocation] = useState<{ code: string; name: string; address: string; zipcode: string }>({ code: '', name: '', address: '', zipcode: '' });
-  const LS_KEY = 'assetflow:locations';
+  const [locations, setLocations] = useState<
+    Array<{
+      id?: string;
+      code?: string;
+      name: string;
+      address?: string;
+      zipcode?: string;
+    }>
+  >([]);
+  const [newLocation, setNewLocation] = useState<{
+    code: string;
+    name: string;
+    address: string;
+    zipcode: string;
+  }>({ code: "", name: "", address: "", zipcode: "" });
+  const LS_KEY = "assetflow:locations";
 
   useEffect(() => {
     try {
@@ -140,36 +244,63 @@ export function CustomizationPage({ onNavigate, onSearch }: Props) {
     } catch {}
   }, []);
 
-  const persistLocations = (next: Array<{ id?: string; code?: string; name: string; address?: string; zipcode?: string }>) => {
+  const persistLocations = (
+    next: Array<{
+      id?: string;
+      code?: string;
+      name: string;
+      address?: string;
+      zipcode?: string;
+    }>
+  ) => {
     try {
       localStorage.setItem(LS_KEY, JSON.stringify(next));
       // notify other parts of app with detail payload
-      try { window.dispatchEvent(new CustomEvent('assetflow:locations-updated', { detail: next })); } catch { window.dispatchEvent(new Event('assetflow:locations-updated')); }
+      try {
+        window.dispatchEvent(
+          new CustomEvent("assetflow:locations-updated", { detail: next })
+        );
+      } catch {
+        window.dispatchEvent(new Event("assetflow:locations-updated"));
+      }
     } catch {}
   };
 
-  const generateId = () => `loc_${Date.now()}_${Math.floor(Math.random() * 9999)}`;
+  const generateId = () =>
+    `loc_${Date.now()}_${Math.floor(Math.random() * 9999)}`;
 
   const addLocation = () => {
-    const vName = (newLocation.name || '').trim();
-    const vCode = (newLocation.code || '').trim();
-    const vZip = (newLocation.zipcode || '').trim();
+    const vName = (newLocation.name || "").trim();
+    const vCode = (newLocation.code || "").trim();
+    const vZip = (newLocation.zipcode || "").trim();
     // require code and name
     if (!vCode || !vName) return;
     // validate zipcode if present: must be 6 digits
     if (vZip && !/^[0-9]{6}$/.test(vZip)) {
-      try { alert('ZipCode must be a 6-digit number'); } catch {}
+      try {
+        alert("ZipCode must be a 6-digit number");
+      } catch {}
       return;
     }
-    const loc = { id: generateId(), code: vCode, name: vName, address: (newLocation.address || '').trim(), zipcode: vZip };
+    const loc = {
+      id: generateId(),
+      code: vCode,
+      name: vName,
+      address: (newLocation.address || "").trim(),
+      zipcode: vZip,
+    };
     const next = [...locations, loc];
     setLocations(next);
-    setNewLocation({ code: '', name: '', address: '', zipcode: '' });
+    setNewLocation({ code: "", name: "", address: "", zipcode: "" });
     persistLocations(next);
     // try to save to server (best-effort)
     (async () => {
       try {
-        await fetch('/api/admin/locations', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(loc) });
+        await fetch("/api/admin/locations", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(loc),
+        });
       } catch {}
     })();
   };
@@ -180,10 +311,25 @@ export function CustomizationPage({ onNavigate, onSearch }: Props) {
     persistLocations(next);
   };
 
-  const updateLocation = (idx: number, patch: Partial<{ code: string; name: string; address: string; zipcode: string }>) => {
+  const updateLocation = (
+    idx: number,
+    patch: Partial<{
+      code: string;
+      name: string;
+      address: string;
+      zipcode: string;
+    }>
+  ) => {
     // if zipcode present in patch validate
-    if (patch.zipcode !== undefined && patch.zipcode !== null && patch.zipcode !== '' && !/^[0-9]{6}$/.test(String(patch.zipcode))) {
-      try { alert('ZipCode must be a 6-digit number'); } catch {}
+    if (
+      patch.zipcode !== undefined &&
+      patch.zipcode !== null &&
+      patch.zipcode !== "" &&
+      !/^[0-9]{6}$/.test(String(patch.zipcode))
+    ) {
+      try {
+        alert("ZipCode must be a 6-digit number");
+      } catch {}
       return;
     }
     const next = locations.map((l, i) => (i === idx ? { ...l, ...patch } : l));
@@ -194,7 +340,11 @@ export function CustomizationPage({ onNavigate, onSearch }: Props) {
       try {
         const loc = next[idx];
         if (loc && loc.id) {
-          await fetch(`/api/admin/locations/${encodeURIComponent(loc.id)}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(loc) });
+          await fetch(`/api/admin/locations/${encodeURIComponent(loc.id)}`, {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(loc),
+          });
         }
       } catch {}
     })();
@@ -206,23 +356,25 @@ export function CustomizationPage({ onNavigate, onSearch }: Props) {
 
   const loadCatalog = async () => {
     try {
-      const res = await fetch('/api/admin/catalog', { cache: 'no-store' });
-      if (!res.ok) throw new Error('Failed');
+      const res = await fetch("/api/admin/catalog", { cache: "no-store" });
+      if (!res.ok) throw new Error("Failed");
       const data = await res.json();
       const items = Array.isArray(data) ? data : data?.categories ?? [];
       setCatalog(items);
-      setCatalogMsg('Loaded');
+      setCatalogMsg("Loaded");
       setTimeout(() => setCatalogMsg(null), 2000);
     } catch (e) {
-      setCatalogMsg('Failed to load catalog');
-      try { setTimeout(() => setCatalogMsg(null), 3000); } catch {}
+      setCatalogMsg("Failed to load catalog");
+      try {
+        setTimeout(() => setCatalogMsg(null), 3000);
+      } catch {}
     }
   };
 
   useEffect(() => {
     // show quick cached view from localStorage if present
     try {
-      const raw = localStorage.getItem('catalog.categories');
+      const raw = localStorage.getItem("catalog.categories");
       if (raw) {
         const parsed = JSON.parse(raw);
         if (Array.isArray(parsed)) setCatalog(parsed);
@@ -232,27 +384,92 @@ export function CustomizationPage({ onNavigate, onSearch }: Props) {
 
   return (
     <AssetFlowLayout
-      breadcrumbs={[{ label: 'Home', href: '#' }, { label: 'Settings', href: '/settings' }, { label: 'Customization' }]}
+      breadcrumbs={[
+        { label: "Home", href: "#" },
+        { label: "Settings", href: "/settings" },
+        { label: "Customization" },
+      ]}
       currentPage="settings"
       onSearch={onSearch}
     >
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-3xl font-bold text-[#1a1d2e] mb-1">Customization</h1>
-          <p className="text-[#64748b]">Create and manage locations used by assets, and inspect the catalog.</p>
+          <h1 className="text-3xl font-bold text-[#1a1d2e] mb-1">
+            Customization
+          </h1>
+          <p className="text-[#64748b]">
+            Create and manage locations used by assets, and inspect the catalog.
+          </p>
         </div>
         <div className="flex items-center gap-2 hidden">
-          <Button onClick={() => setActive('locations')} className={`${active === 'locations' ? 'bg-gradient-to-r from-[#6366f1] to-[#8b5cf6] text-white hover:shadow-lg' : ''}`}>Locations</Button>
-          <Button onClick={() => setActive('catalog')} className={`${active === 'catalog' ? 'bg-gradient-to-r from-[#6366f1] to-[#8b5cf6] text-white hover:shadow-lg' : ''}`}>Catalog</Button>
+          <Button
+            onClick={() => setActive("locations")}
+            className={`${
+              active === "locations"
+                ? "bg-gradient-to-r from-[#6366f1] to-[#8b5cf6] text-white hover:shadow-lg"
+                : ""
+            }`}
+          >
+            Locations
+          </Button>
+          <Button
+            onClick={() => setActive("catalog")}
+            className={`${
+              active === "catalog"
+                ? "bg-gradient-to-r from-[#6366f1] to-[#8b5cf6] text-white hover:shadow-lg"
+                : ""
+            }`}
+          >
+            Catalog
+          </Button>
         </div>
       </div>
 
       <div className="bg-white rounded-2xl border border-[rgba(0,0,0,0.08)] p-6 shadow-sm">
         <Tabs value={active} onValueChange={(v) => setActive(v as any)}>
           <TabsList className="flex w-full flex-wrap gap-2 rounded-xl border border-[rgba(0,0,0,0.08)] bg-[#f8f9ff] p-2 mb-4">
-            <TabsTrigger value="locations" className={`${active === 'locations' ? 'bg-white border border-[rgba(0,0,0,0.12)] shadow-md text-[#1a1d2e] font-semibold' : ''} flex items-center gap-2 px-3 py-2 rounded-xl`}>Locations</TabsTrigger>
-            <TabsTrigger value="catalog" className={`${active === 'catalog' ? 'bg-white border border-[rgba(0,0,0,0.12)] shadow-md text-[#1a1d2e] font-semibold' : ''} flex items-center gap-2 px-3 py-2 rounded-xl`}>Catalog</TabsTrigger>
-            <TabsTrigger value="fields" className={`${active === 'fields' ? 'bg-white border border-[rgba(0,0,0,0.12)] shadow-md text-[#1a1d2e] font-semibold' : ''} flex items-center gap-2 px-3 py-2 rounded-xl`}>Fields</TabsTrigger>
+            <TabsTrigger
+              value="locations"
+              className={`${
+                active === "locations"
+                  ? "bg-white border border-[rgba(0,0,0,0.12)] shadow-md text-[#1a1d2e] font-semibold"
+                  : ""
+              } flex items-center gap-2 px-3 py-2 rounded-xl`}
+            >
+              Locations
+            </TabsTrigger>
+            <TabsTrigger
+              value="catalog"
+              className={`${
+                active === "catalog"
+                  ? "bg-white border border-[rgba(0,0,0,0.12)] shadow-md text-[#1a1d2e] font-semibold"
+                  : ""
+              } flex items-center gap-2 px-3 py-2 rounded-xl`}
+            >
+              Catalog
+            </TabsTrigger>
+            <TabsTrigger
+              value="fields"
+              className={`${
+                active === "fields"
+                  ? "bg-white border border-[rgba(0,0,0,0.12)] shadow-md text-[#1a1d2e] font-semibold"
+                  : ""
+              } flex items-center gap-2 px-3 py-2 rounded-xl`}
+            >
+              Fields
+            </TabsTrigger>
+            {isSuperAdmin && (
+              <TabsTrigger
+                value="branding"
+                className={`${
+                  active === "branding"
+                    ? "bg-white border border-[rgba(0,0,0,0.12)] shadow-md text-[#1a1d2e] font-semibold"
+                    : ""
+                } flex items-center gap-2 px-3 py-2 rounded-xl`}
+              >
+                Branding
+              </TabsTrigger>
+            )}
           </TabsList>
 
           <TabsContent value="locations">
@@ -263,19 +480,55 @@ export function CustomizationPage({ onNavigate, onSearch }: Props) {
                     <div className="mb-3 grid grid-cols-1 md:grid-cols-4 gap-2">
                       <div>
                         <Label className="mb-1 block">Code (required)</Label>
-                        <Input value={newLocation.code} onChange={(e) => setNewLocation({ ...newLocation, code: e.target.value })} placeholder="e.g., BLDG-A-03" />
+                        <Input
+                          value={newLocation.code}
+                          onChange={(e) =>
+                            setNewLocation({
+                              ...newLocation,
+                              code: e.target.value,
+                            })
+                          }
+                          placeholder="e.g., BLDG-A-03"
+                        />
                       </div>
                       <div>
                         <Label className="mb-1 block">Name (required)</Label>
-                        <Input value={newLocation.name} onChange={(e) => setNewLocation({ ...newLocation, name: e.target.value })} placeholder="e.g., Building A - Floor 3" />
+                        <Input
+                          value={newLocation.name}
+                          onChange={(e) =>
+                            setNewLocation({
+                              ...newLocation,
+                              name: e.target.value,
+                            })
+                          }
+                          placeholder="e.g., Building A - Floor 3"
+                        />
                       </div>
                       <div>
                         <Label className="mb-1 block">Address</Label>
-                        <Input value={newLocation.address} onChange={(e) => setNewLocation({ ...newLocation, address: e.target.value })} placeholder="Street, City" />
+                        <Input
+                          value={newLocation.address}
+                          onChange={(e) =>
+                            setNewLocation({
+                              ...newLocation,
+                              address: e.target.value,
+                            })
+                          }
+                          placeholder="Street, City"
+                        />
                       </div>
                       <div>
                         <Label className="mb-1 block">ZipCode (6 digits)</Label>
-                        <Input value={newLocation.zipcode} onChange={(e) => setNewLocation({ ...newLocation, zipcode: e.target.value })} placeholder="e.g., 560001" />
+                        <Input
+                          value={newLocation.zipcode}
+                          onChange={(e) =>
+                            setNewLocation({
+                              ...newLocation,
+                              zipcode: e.target.value,
+                            })
+                          }
+                          placeholder="e.g., 560001"
+                        />
                       </div>
                       <div className="md:col-span-4 pt-4">
                         <Button onClick={addLocation}>Add Location</Button>
@@ -283,7 +536,9 @@ export function CustomizationPage({ onNavigate, onSearch }: Props) {
                     </div>
                     <div className="overflow-x-auto pt-4">
                       {locations.length === 0 ? (
-                        <p className="text-sm text-[#64748b]">No locations defined yet.</p>
+                        <p className="text-sm text-[#64748b]">
+                          No locations defined yet.
+                        </p>
                       ) : (
                         <table className="w-full table-auto text-sm">
                           <thead>
@@ -299,21 +554,65 @@ export function CustomizationPage({ onNavigate, onSearch }: Props) {
                             {locations.map((loc, idx) => (
                               <tr key={loc.id ?? idx} className="border-t">
                                 <td className="px-3 py-2 align-top">
-                                  <Input value={loc.code || ''} onChange={(e) => updateLocation(idx, { code: e.target.value })} placeholder="Code" />
+                                  <Input
+                                    value={loc.code || ""}
+                                    onChange={(e) =>
+                                      updateLocation(idx, {
+                                        code: e.target.value,
+                                      })
+                                    }
+                                    placeholder="Code"
+                                  />
                                 </td>
                                 <td className="px-3 py-2 align-top">
-                                  <Input value={loc.name || ''} onChange={(e) => updateLocation(idx, { name: e.target.value })} placeholder="Name" />
+                                  <Input
+                                    value={loc.name || ""}
+                                    onChange={(e) =>
+                                      updateLocation(idx, {
+                                        name: e.target.value,
+                                      })
+                                    }
+                                    placeholder="Name"
+                                  />
                                 </td>
                                 <td className="px-3 py-2 align-top">
-                                  <Input value={loc.address || ''} onChange={(e) => updateLocation(idx, { address: e.target.value })} placeholder="Address" />
+                                  <Input
+                                    value={loc.address || ""}
+                                    onChange={(e) =>
+                                      updateLocation(idx, {
+                                        address: e.target.value,
+                                      })
+                                    }
+                                    placeholder="Address"
+                                  />
                                 </td>
                                 <td className="px-3 py-2 align-top w-36">
-                                  <Input value={loc.zipcode || ''} onChange={(e) => updateLocation(idx, { zipcode: e.target.value })} placeholder="ZipCode" />
+                                  <Input
+                                    value={loc.zipcode || ""}
+                                    onChange={(e) =>
+                                      updateLocation(idx, {
+                                        zipcode: e.target.value,
+                                      })
+                                    }
+                                    placeholder="ZipCode"
+                                  />
                                 </td>
                                 <td className="px-3 py-2 align-top">
                                   <div className="flex items-center gap-2">
-                                    <Button variant="default" size="sm" onClick={() => updateLocation(idx, {})}>Save</Button>
-                                    <Button variant="outline" size="sm" onClick={() => removeLocation(idx)}>Remove</Button>
+                                    <Button
+                                      variant="default"
+                                      size="sm"
+                                      onClick={() => updateLocation(idx, {})}
+                                    >
+                                      Save
+                                    </Button>
+                                    <Button
+                                      variant="outline"
+                                      size="sm"
+                                      onClick={() => removeLocation(idx)}
+                                    >
+                                      Remove
+                                    </Button>
                                   </div>
                                 </td>
                               </tr>
@@ -329,7 +628,12 @@ export function CustomizationPage({ onNavigate, onSearch }: Props) {
                 <Card>
                   <div className="p-4">
                     <h4 className="font-semibold">Usage</h4>
-                    <p className="text-sm text-[#64748b] mt-2">Locations you add here will be available to select when creating or editing assets. They are stored locally in your browser; the app will attempt to save them to the server if an endpoint exists.</p>
+                    <p className="text-sm text-[#64748b] mt-2">
+                      Locations you add here will be available to select when
+                      creating or editing assets. They are stored locally in
+                      your browser; the app will attempt to save them to the
+                      server if an endpoint exists.
+                    </p>
                   </div>
                 </Card>
               </div>
@@ -344,96 +648,241 @@ export function CustomizationPage({ onNavigate, onSearch }: Props) {
             <Card>
               <CardHeader>
                 <CardTitle>Custom Fields</CardTitle>
-                <CardDescription>Define custom fields that appear on Add/Edit pages. Choose which page the field applies to: Assets, Vendors or Licenses. Values are stored under specifications.customFields by key on the respective object.</CardDescription>
+                <CardDescription>
+                  Define custom fields that appear on Add/Edit pages. Choose
+                  which page the field applies to: Assets, Vendors or Licenses.
+                  Values are stored under specifications.customFields by key on
+                  the respective object.
+                </CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="space-y-3 pb-4 border-b">
                   <div className="flex items-center gap-4 mb-3">
-                    <label className={`px-3 py-2 rounded-lg cursor-pointer ${customTarget === 'asset' ? 'bg-white border border-[rgba(0,0,0,0.08)] shadow-sm' : 'bg-[#f8f9ff]'}`}>
-                      <input type="radio" name="customTarget" value="asset" checked={customTarget === 'asset'} onChange={() => setCustomTarget('asset')} className="mr-2" /> Assets
+                    <label
+                      className={`px-3 py-2 rounded-lg cursor-pointer ${
+                        customTarget === "asset"
+                          ? "bg-white border border-[rgba(0,0,0,0.08)] shadow-sm"
+                          : "bg-[#f8f9ff]"
+                      }`}
+                    >
+                      <input
+                        type="radio"
+                        name="customTarget"
+                        value="asset"
+                        checked={customTarget === "asset"}
+                        onChange={() => setCustomTarget("asset")}
+                        className="mr-2"
+                      />{" "}
+                      Assets
                     </label>
-                    <label className={`px-3 py-2 rounded-lg cursor-pointer ${customTarget === 'vendor' ? 'bg-white border border-[rgba(0,0,0,0.08)] shadow-sm' : 'bg-[#f8f9ff]'}`}>
-                      <input type="radio" name="customTarget" value="vendor" checked={customTarget === 'vendor'} onChange={() => setCustomTarget('vendor')} className="mr-2" /> Vendors
+                    <label
+                      className={`px-3 py-2 rounded-lg cursor-pointer ${
+                        customTarget === "vendor"
+                          ? "bg-white border border-[rgba(0,0,0,0.08)] shadow-sm"
+                          : "bg-[#f8f9ff]"
+                      }`}
+                    >
+                      <input
+                        type="radio"
+                        name="customTarget"
+                        value="vendor"
+                        checked={customTarget === "vendor"}
+                        onChange={() => setCustomTarget("vendor")}
+                        className="mr-2"
+                      />{" "}
+                      Vendors
                     </label>
-                    <label className={`px-3 py-2 rounded-lg cursor-pointer ${customTarget === 'license' ? 'bg-white border border-[rgba(0,0,0,0.08)] shadow-sm' : 'bg-[#f8f9ff]'}`}>
-                      <input type="radio" name="customTarget" value="license" checked={customTarget === 'license'} onChange={() => setCustomTarget('license')} className="mr-2" /> Licenses
+                    <label
+                      className={`px-3 py-2 rounded-lg cursor-pointer ${
+                        customTarget === "license"
+                          ? "bg-white border border-[rgba(0,0,0,0.08)] shadow-sm"
+                          : "bg-[#f8f9ff]"
+                      }`}
+                    >
+                      <input
+                        type="radio"
+                        name="customTarget"
+                        value="license"
+                        checked={customTarget === "license"}
+                        onChange={() => setCustomTarget("license")}
+                        className="mr-2"
+                      />{" "}
+                      Licenses
                     </label>
                   </div>
 
                   {(() => {
-                    const fields = customTarget === 'asset' ? assetFields : customTarget === 'vendor' ? vendorFields : licenseFields;
+                    const fields =
+                      customTarget === "asset"
+                        ? assetFields
+                        : customTarget === "vendor"
+                        ? vendorFields
+                        : licenseFields;
                     if (!fields || fields.length === 0) {
-                      return <p className="text-sm text-[#64748b]">No custom fields defined for {customTarget === 'asset' ? 'Assets' : customTarget === 'vendor' ? 'Vendors' : 'Licenses'} yet.</p>;
+                      return (
+                        <p className="text-sm text-[#64748b]">
+                          No custom fields defined for{" "}
+                          {customTarget === "asset"
+                            ? "Assets"
+                            : customTarget === "vendor"
+                            ? "Vendors"
+                            : "Licenses"}{" "}
+                          yet.
+                        </p>
+                      );
                     }
                     return fields.map((f, idx) => (
                       <div key={idx} className="space-y-3">
                         <div className="grid grid-cols-1 md:grid-cols-4 gap-3 items-start">
                           <div>
                             <Label className="mb-1 block">Label</Label>
-                            <Input value={f.label} onChange={(e) => updateCurrentField(idx, { label: e.target.value })} placeholder="e.g., Asset Tag" />
+                            <Input
+                              value={f.label}
+                              onChange={(e) =>
+                                updateCurrentField(idx, {
+                                  label: e.target.value,
+                                })
+                              }
+                              placeholder="e.g., Asset Tag"
+                            />
                           </div>
                           <div>
                             <Label className="mb-1 block">Key</Label>
-                            <Input value={f.key} onChange={(e) => updateCurrentField(idx, { key: e.target.value.trim() })} placeholder="e.g., assetTag" />
-                            <p className="text-xs text-[#94a3b8] mt-1">Used in export/import and API as specifications.customFields[key]</p>
+                            <Input
+                              value={f.key}
+                              onChange={(e) =>
+                                updateCurrentField(idx, {
+                                  key: e.target.value.trim(),
+                                })
+                              }
+                              placeholder="e.g., assetTag"
+                            />
+                            <p className="text-xs text-[#94a3b8] mt-1">
+                              Used in export/import and API as
+                              specifications.customFields[key]
+                            </p>
                           </div>
                           <div>
                             <Label className="mb-1 block">Placeholder</Label>
-                            <Input value={(f.placeholder ?? '') as string} onChange={(e) => updateCurrentField(idx, { placeholder: e.target.value })} placeholder="e.g., TAG-00123" />
+                            <Input
+                              value={(f.placeholder ?? "") as string}
+                              onChange={(e) =>
+                                updateCurrentField(idx, {
+                                  placeholder: e.target.value,
+                                })
+                              }
+                              placeholder="e.g., TAG-00123"
+                            />
                           </div>
                           <div>
                             <Label className="mb-1 block">Type</Label>
                             <select
                               className="w-full px-3 py-2 rounded-lg bg-[#f8f9ff] border border-[rgba(0,0,0,0.08)]"
-                              value={f.type ?? 'text'}
-                              onChange={(e) => updateCurrentField(idx, { type: e.target.value as AssetFieldType })}
+                              value={f.type ?? "text"}
+                              onChange={(e) =>
+                                updateCurrentField(idx, {
+                                  type: e.target.value as AssetFieldType,
+                                })
+                              }
                             >
-                              {([
-                                'text', 'textarea', 'number', 'date', 'datetime', 'phone', 'email', 'url', 'select', 'multiselect', 'boolean', 'currency', 'star'
-                              ] as AssetFieldType[]).map((t) => (
-                                <option key={t} value={t}>{t === 'star' ? 'Star Rating' : t.charAt(0).toUpperCase() + t.slice(1)}</option>
+                              {(
+                                [
+                                  "text",
+                                  "textarea",
+                                  "number",
+                                  "date",
+                                  "datetime",
+                                  "phone",
+                                  "email",
+                                  "url",
+                                  "select",
+                                  "multiselect",
+                                  "boolean",
+                                  "currency",
+                                  "star",
+                                ] as AssetFieldType[]
+                              ).map((t) => (
+                                <option key={t} value={t}>
+                                  {t === "star"
+                                    ? "Star Rating"
+                                    : t.charAt(0).toUpperCase() + t.slice(1)}
+                                </option>
                               ))}
                             </select>
                           </div>
                         </div>
 
-                        {(f.type === 'select' || f.type === 'multiselect') && (
+                        {(f.type === "select" || f.type === "multiselect") && (
                           <div>
-                            <Label className="mb-1 block">Options (comma separated)</Label>
+                            <Label className="mb-1 block">
+                              Options (comma separated)
+                            </Label>
                             <Input
-                              value={(f.options || []).join(', ')}
-                              onChange={(e) => updateCurrentField(idx, { options: e.target.value.split(',').map(s => s.trim()).filter(Boolean) })}
+                              value={(f.options || []).join(", ")}
+                              onChange={(e) =>
+                                updateCurrentField(idx, {
+                                  options: e.target.value
+                                    .split(",")
+                                    .map((s) => s.trim())
+                                    .filter(Boolean),
+                                })
+                              }
                               placeholder="Option1, Option2, Option3"
                             />
-                            <p className="text-xs text-[#94a3b8] mt-1">Provide choices for select or multiselect fields.</p>
+                            <p className="text-xs text-[#94a3b8] mt-1">
+                              Provide choices for select or multiselect fields.
+                            </p>
                           </div>
                         )}
 
-                        {f.type === 'star' && (
+                        {f.type === "star" && (
                           <div>
                             <Label className="mb-1 block">Max value</Label>
                             <Input
                               type="number"
                               min={1}
                               max={10}
-                              value={typeof f.max === 'number' ? String(f.max) : ''}
+                              value={
+                                typeof f.max === "number" ? String(f.max) : ""
+                              }
                               onChange={(e) => {
                                 const v = e.target.value;
-                                const n = v === '' ? undefined : Math.max(1, Math.min(10, Number(v) || 1));
+                                const n =
+                                  v === ""
+                                    ? undefined
+                                    : Math.max(1, Math.min(10, Number(v) || 1));
                                 updateCurrentField(idx, { max: n });
                               }}
                               placeholder="5"
                             />
-                            <p className="text-xs text-[#94a3b8] mt-1">Max rating (1-10). Default 5.</p>
+                            <p className="text-xs text-[#94a3b8] mt-1">
+                              Max rating (1-10). Default 5.
+                            </p>
                           </div>
                         )}
 
                         <div className="grid grid-cols-2 items-center">
                           <label className="text-sm text-[#1a1d2e] flex items-center gap-2">
-                            <input type="checkbox" checked={!!f.required} onChange={(e) => updateCurrentField(idx, { required: e.target.checked })} /> Required
+                            <input
+                              type="checkbox"
+                              checked={!!f.required}
+                              onChange={(e) =>
+                                updateCurrentField(idx, {
+                                  required: e.target.checked,
+                                })
+                              }
+                            />{" "}
+                            Required
                           </label>
                           <div className="flex justify-end">
-                            <Button type="button" variant="outline" className="border-[#ef4444] text-[#ef4444] hover:bg-[#fee2e2]" onClick={() => removeCurrentField(idx)}>Remove</Button>
+                            <Button
+                              type="button"
+                              variant="outline"
+                              className="border-[#ef4444] text-[#ef4444] hover:bg-[#fee2e2]"
+                              onClick={() => removeCurrentField(idx)}
+                            >
+                              Remove
+                            </Button>
                           </div>
                         </div>
                       </div>
@@ -450,13 +899,32 @@ export function CustomizationPage({ onNavigate, onSearch }: Props) {
                       Add Field
                     </Button>
                     <div className="flex gap-2">
-                      <Button type="button" className="bg-gradient-to-r from-[#6366f1] to-[#8b5cf6] mb-3 text-white hover:shadow-lg hover:shadow-[#6366f1]/30" onClick={handleSaveFields}>Save Fields</Button>
+                      <Button
+                        type="button"
+                        className="bg-gradient-to-r from-[#6366f1] to-[#8b5cf6] mb-3 text-white hover:shadow-lg hover:shadow-[#6366f1]/30"
+                        onClick={handleSaveFields}
+                      >
+                        Save Fields
+                      </Button>
                     </div>
                   </div>
                 </div>
               </CardContent>
             </Card>
           </TabsContent>
+
+          {isSuperAdmin && (
+            <TabsContent value="branding">
+              <BrandingTab
+                brandName={brandName}
+                setBrandName={setBrandName}
+                logoUrl={logoUrl}
+                setLogoUrl={setLogoUrl}
+                brandingMsg={brandingMsg}
+                setBrandingMsg={setBrandingMsg}
+              />
+            </TabsContent>
+          )}
         </Tabs>
       </div>
     </AssetFlowLayout>

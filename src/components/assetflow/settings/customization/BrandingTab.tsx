@@ -1,9 +1,9 @@
 "use client";
 
 import React, { useRef, useState } from "react";
-import { Button } from "../../ui/button";
-import { uploadWithProgress } from "../../../lib/upload";
-import { toast } from "../../ui/sonner";
+import { Button } from "../../../ui/button";
+import { uploadWithProgress } from "../../../../lib/upload";
+import { toast } from "../../../ui/sonner";
 
 interface Props {
   brandName: string;

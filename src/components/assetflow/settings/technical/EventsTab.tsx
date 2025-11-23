@@ -1,16 +1,5 @@
 import React from "react";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-  CardDescription,
-  CardFooter,
-} from "../../ui/card";
-import { Label } from "../../ui/label";
-import { Input } from "../../ui/input";
-import { Button } from "../../ui/button";
-import { Switch } from "../../ui/switch";
+import { Switch } from "../../../ui/switch";
 import RestWebhookCard from "./RestWebhookCard";
 import KafkaCard from "./KafkaCard";
 

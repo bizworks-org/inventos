@@ -115,8 +115,7 @@ export function VendorsPage({ onNavigate, onSearch }: VendorsPageProps) {
     "Services",
     "Cloud",
   ];
-  const canWriteVendors =
-    !!me?.permissions?.includes("vendors_write") || me?.role === "admin";
+  const canWriteVendors = me?.role === "admin" || me?.role === "superadmin";
 
   // Count vendors by type
   const getTypeCount = (type: VendorTypeFilter) => {

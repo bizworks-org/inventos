@@ -100,8 +100,7 @@ export function LicensesPage({ onNavigate, onSearch }: LicensesPageProps) {
     "SaaS",
     "Cloud",
   ];
-  const canWriteLicenses =
-    !!me?.permissions?.includes("licenses_write") || me?.role === "admin";
+  const canWriteLicenses = me?.role === "admin" || me?.role === "superadmin";
 
   // Count licenses by type
   const getTypeCount = (type: LicenseTypeFilter) => {

@@ -49,57 +49,44 @@ export async function requirePermission(
 ): Promise<{ ok: true; me: MePayload } | { ok: false; status: 401 | 403 }> {
   const me = await readMeFromCookie();
   if (!me?.id) return { ok: false, status: 401 };
-  // Admin shortcut
-  let isAdmin =
-    me.role === "admin" ||
-    me.role === "superadmin" ||
-    (me.roles || []).includes("admin") ||
-    (me.roles || []).includes("superadmin");
-  if (!isAdmin) {
+  
+  // Determine role
+  let role: string | undefined = me.role;
+  if (!role) {
+    const roles = me.roles || [];
+    if (roles.includes("superadmin")) role = "superadmin";
+    else if (roles.includes("admin")) role = "admin";
+    else if (roles.includes("user")) role = "user";
+  }
+  
+  // If still no role, check DB
+  if (!role) {
     try {
       const dbUser = await dbFindUserById(me.id);
-      isAdmin =
-        !!dbUser &&
-        Array.isArray(dbUser.roles) &&
-        (dbUser.roles.includes("admin") || dbUser.roles.includes("superadmin"));
+      if (dbUser && Array.isArray(dbUser.roles)) {
+        if (dbUser.roles.includes("superadmin")) role = "superadmin";
+        else if (dbUser.roles.includes("admin")) role = "admin";
+        else if (dbUser.roles.includes("user")) role = "user";
+      }
     } catch {}
   }
-  if (isAdmin) return { ok: true, me };
-  // Try to use cached permissions from the sessions table when possible. This
-  // reduces DB lookups for frequently checked permissions while still allowing
-  // invalidation when roles change (see dbSetUserRoles which clears cached perms).
-  try {
-    const token = await readAuthToken();
-    if (token) {
-      try {
-        const th = createHash("sha256")
-          .update(token as string)
-          .digest();
-        const rows = await query<any>(
-          `SELECT permissions FROM sessions WHERE token_hash = :th AND revoked_at IS NULL AND (expires_at IS NULL OR expires_at > CURRENT_TIMESTAMP) LIMIT 1`,
-          { th }
-        );
-        const sess = rows?.[0];
-        if (sess && sess.permissions) {
-          let perms: string[] = [];
-          try {
-            perms = JSON.parse(String(sess.permissions));
-          } catch {
-            perms = [];
-          }
-          if (perms.includes(permission))
-            return { ok: true, me: { ...me, permissions: perms } };
-        }
-      } catch (e) {
-        // fall back to DB lookup below on any session read error
-      }
+  
+  // Role-based access control
+  // Admin and Superadmin: full read/write access
+  if (role === "admin" || role === "superadmin") {
+    return { ok: true, me: { ...me, role: role as Role } };
+  }
+  
+  // User role: read-only access
+  if (role === "user") {
+    // Allow read permissions only
+    if (permission.endsWith("_read")) {
+      return { ok: true, me: { ...me, role: "user" } };
     }
-  } catch {}
-
-  // Fallback: Always fetch current permissions from the DB to avoid relying on stale/cached
-  // token-embedded permissions.
-  const perms = await dbGetUserPermissions(me.id);
-  if (perms.includes(permission))
-    return { ok: true, me: { ...me, permissions: perms } };
+    // Deny write permissions
+    return { ok: false, status: 403 };
+  }
+  
+  // No valid role found
   return { ok: false, status: 403 };
 }

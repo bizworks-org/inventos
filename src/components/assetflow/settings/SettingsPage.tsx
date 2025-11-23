@@ -14,35 +14,19 @@ import {
   User,
   SlidersHorizontal,
   Server,
-  Webhook,
   Rss,
-  Send,
-  Check,
   Plug,
   Database,
   Mail,
-  TestTube,
 } from "lucide-react";
-import { Switch } from "../../ui/switch";
 import {
   Card,
   CardContent,
   CardDescription,
-  CardFooter,
   CardHeader,
   CardTitle,
 } from "../../ui/card";
 import { Button } from "../../ui/button";
-import { Badge } from "../../ui/badge";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "../../ui/dialog";
 import { Label } from "../../ui/label";
 import { Input } from "../../ui/input";
 import {
@@ -50,18 +34,15 @@ import {
   saveSettings,
   type ServerSettings,
 } from "../../../lib/api";
-import FileDropzone from "../../ui/FileDropzone";
-import { uploadWithProgress } from "../../../lib/upload";
 import { getMe, type ClientMe } from "../../../lib/auth/client";
-import type { AssetFieldDef, AssetFieldType } from "../../../lib/data";
-import DisabledCard from "./DisabledCard";
-import IntegrationsTab from "./IntegrationsTab";
-import EventsTab from "./EventsTab";
-import DatabaseTab from "./DatabaseTab";
-import ProfileTab from "./ProfileTab";
-import BrandingTab from "./BrandingTab";
-import PreferencesTab from "./PreferencesTab";
-import NotificationsTab from "./NotificationsTab";
+import type { AssetFieldDef } from "../../../lib/data";
+import DisabledCard from "./technical/DisabledCard";
+import IntegrationsTab from "./technical/IntegrationsTab";
+import EventsTab from "./technical/EventsTab";
+import DatabaseTab from "./technical/DatabaseTab";
+import ProfileTab from "./general/ProfileTab";
+import PreferencesTab from "./general/PreferencesTab";
+import NotificationsTab from "./general/NotificationsTab";
 
 interface SettingsPageProps {
   onNavigate?: (page: string) => void;
@@ -171,10 +152,6 @@ export function SettingsPage({
   const [pwdNew, setPwdNew] = useState("");
   const [pwdNew2, setPwdNew2] = useState("");
   const [profileMsg, setProfileMsg] = useState<string | null>(null);
-  // Branding
-  const [brandName, setBrandName] = useState<string>("Inventos");
-  const [logoUrl, setLogoUrl] = useState<string | null>(null);
-  const [brandingMsg, setBrandingMsg] = useState<string | null>(null);
   const [consentRequired, setConsentRequired] = useState<boolean>(true);
 
   // Preferences
@@ -470,21 +447,11 @@ export function SettingsPage({
   // Load branding from server and SSR attribute
   useEffect(() => {
     try {
-      const ssrName =
-        typeof document !== "undefined"
-          ? document.documentElement.getAttribute("data-brand-name") || ""
-          : "";
-      const ssrLogo =
-        typeof document !== "undefined"
-          ? document.documentElement.getAttribute("data-brand-logo") || ""
-          : "";
       const ssrConsent =
         typeof document !== "undefined"
           ? document.documentElement.getAttribute("data-consent-required") ||
             "true"
           : "true";
-      if (ssrName) setBrandName(ssrName);
-      if (ssrLogo) setLogoUrl(ssrLogo);
       setConsentRequired(!(ssrConsent === "false" || ssrConsent === "0"));
     } catch {}
     (async () => {
@@ -492,8 +459,6 @@ export function SettingsPage({
         const res = await fetch("/api/branding", { cache: "no-store" });
         if (res.ok) {
           const data = await res.json();
-          if (data?.brandName) setBrandName(data.brandName);
-          if (data?.logoUrl) setLogoUrl(data.logoUrl);
           if (typeof data?.consentRequired === "boolean")
             setConsentRequired(!!data.consentRequired);
         }
@@ -912,16 +877,6 @@ export function SettingsPage({
                   <User className="h-4 w-4 text-[#0ea5e9]" /> Profile
                 </TabsTrigger>
                 <TabsTrigger
-                  value="branding"
-                  className={`${
-                    activeTab === "branding"
-                      ? "bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 shadow-md text-gray-900 dark:text-gray-100 font-semibold"
-                      : "text-gray-700 dark:text-gray-300"
-                  } flex items-center gap-2 px-3 py-2 rounded-xl transition-colors hover:bg-gray-100 dark:hover:bg-gray-800`}
-                >
-                  <Server className="h-4 w-4 text-[#6366f1]" /> Branding
-                </TabsTrigger>
-                <TabsTrigger
                   value="preferences"
                   className={`${
                     activeTab === "preferences"
@@ -938,7 +893,7 @@ export function SettingsPage({
                     activeTab === "notifications"
                       ? "bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 shadow-md text-gray-900 dark:text-gray-100 font-semibold"
                       : "text-gray-700 dark:text-gray-300"
-                  } flex items-center gap-2 px-3 py-2 rounded-xl transition-colors hover:bg-gray-100 dark:hover:bg-gray-800`}
+                  } flex items-center gap-2 px-3 py-2 hidden rounded-xl transition-colors hover:bg-gray-100 dark:hover:bg-gray-800`}
                 >
                   <Bell className="h-4 w-4 text-[#f59e0b]" /> Notifications
                 </TabsTrigger>
@@ -1014,20 +969,6 @@ export function SettingsPage({
                 setPwdNew2={setPwdNew2}
                 profileMsg={profileMsg}
                 saveProfile={saveProfile}
-              />
-            </TabsContent>
-          )}
-
-          {/* Branding Tab */}
-          {view === "general" && (
-            <TabsContent value="branding" className="mt-0 space-y-8">
-              <BrandingTab
-                brandName={brandName}
-                setBrandName={setBrandName}
-                logoUrl={logoUrl}
-                setLogoUrl={setLogoUrl}
-                brandingMsg={brandingMsg}
-                setBrandingMsg={setBrandingMsg}
               />
             </TabsContent>
           )}

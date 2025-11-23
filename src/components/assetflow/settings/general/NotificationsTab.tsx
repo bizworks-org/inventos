@@ -7,9 +7,9 @@ import {
   CardDescription,
   CardHeader,
   CardTitle,
-} from "../../ui/card";
-import { Checkbox } from "../../ui/checkbox";
-import { Button } from "../../ui/button";
+} from "../../../ui/card";
+import { Checkbox } from "../../../ui/checkbox";
+import { Button } from "../../../ui/button";
 
 interface Props {
   notify: any;
