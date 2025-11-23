@@ -167,15 +167,17 @@ export function LicensesPage({ onNavigate, onSearch }: LicensesPageProps) {
           transition={{ duration: 0.3 }}
           className="flex gap-3"
         >
-          <Button
-            onClick={() =>
-              document.getElementById("license-import-input")?.click()
-            }
-            className="flex items-center gap-2 px-4 py-2 rounded-lg bg-white border border-[rgba(0,0,0,0.1)] hover:bg-[#f8f9ff] transition-all duration-200 text-[#1a1d2e]"
-          >
-            <Upload className="h-4 w-4" />
-            Import
-          </Button>
+          {canWriteLicenses && (
+            <Button
+              onClick={() =>
+                document.getElementById("license-import-input")?.click()
+              }
+              className="flex items-center gap-2 px-4 py-2 rounded-lg bg-white border border-[rgba(0,0,0,0.1)] hover:bg-[#f8f9ff] transition-all duration-200 text-[#1a1d2e]"
+            >
+              <Upload className="h-4 w-4" />
+              Import
+            </Button>
+          )}
           <input
             id="license-import-input"
             type="file"
@@ -204,13 +206,15 @@ export function LicensesPage({ onNavigate, onSearch }: LicensesPageProps) {
               }
             }}
           />
-          <Button
-            onClick={() => exportLicensesToCSV(filteredLicenses)}
-            className="flex items-center gap-2 px-4 py-2 rounded-lg bg-white border border-[rgba(0,0,0,0.1)] hover:bg-[#f8f9ff] transition-all duration-200 text-[#1a1d2e]"
-          >
-            <Download className="h-4 w-4" />
-            Export
-          </Button>
+          {canWriteLicenses && (
+            <Button
+              onClick={() => exportLicensesToCSV(filteredLicenses)}
+              className="flex items-center gap-2 px-4 py-2 rounded-lg bg-white border border-[rgba(0,0,0,0.1)] hover:bg-[#f8f9ff] transition-all duration-200 text-[#1a1d2e]"
+            >
+              <Download className="h-4 w-4" />
+              Export
+            </Button>
+          )}
           {canWriteLicenses && (
             <Button
               onClick={() => onNavigate?.("licenses-add")}
@@ -422,6 +426,7 @@ export function LicensesPage({ onNavigate, onSearch }: LicensesPageProps) {
         licenses={paginatedLicenses}
         onNavigate={onNavigate}
         onDelete={canWriteLicenses ? handleDelete : undefined}
+        canWrite={canWriteLicenses}
       />
       {filteredLicenses.length > 20 && (
         <div className="flex items-center gap-2 mt-4 justify-center">

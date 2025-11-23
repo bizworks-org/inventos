@@ -365,30 +365,30 @@ export function VendorsTable({
                           density === "ultra-compact" ? "gap-1.5" : "gap-2"
                         }`}
                       >
+                        <Button
+                          onClick={() => toggleView(vendor.id)}
+                          variant="outline"
+                          className={`transition-all duration-200 group rounded-lg hover:bg-[#f3f4f6] dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 ${
+                            density === "ultra-compact"
+                              ? "p-1.5 border-0"
+                              : "p-2"
+                          }`}
+                          title={
+                            expandedId === vendor.id
+                              ? "Hide details"
+                              : "View details"
+                          }
+                        >
+                          <Eye
+                            className={`${
+                              density === "ultra-compact"
+                                ? "h-3.5 w-3.5"
+                                : "h-4 w-4"
+                            } group-hover:scale-110 transition-transform`}
+                          />
+                        </Button>
                         {canWrite && (
                           <>
-                            <Button
-                              onClick={() => toggleView(vendor.id)}
-                              variant="outline"
-                              className={`transition-all duration-200 group rounded-lg hover:bg-[#f3f4f6] dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 ${
-                                density === "ultra-compact"
-                                  ? "p-1.5 border-0"
-                                  : "p-2"
-                              }`}
-                              title={
-                                expandedId === vendor.id
-                                  ? "Hide details"
-                                  : "View details"
-                              }
-                            >
-                              <Eye
-                                className={`${
-                                  density === "ultra-compact"
-                                    ? "h-3.5 w-3.5"
-                                    : "h-4 w-4"
-                                } group-hover:scale-110 transition-transform`}
-                              />
-                            </Button>
                             <Button
                               variant="destructive"
                               onClick={() => handleEdit(vendor.id)}

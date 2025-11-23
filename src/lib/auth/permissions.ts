@@ -49,7 +49,7 @@ export async function requirePermission(
 ): Promise<{ ok: true; me: MePayload } | { ok: false; status: 401 | 403 }> {
   const me = await readMeFromCookie();
   if (!me?.id) return { ok: false, status: 401 };
-  
+
   // Determine role
   let role: string | undefined = me.role;
   if (!role) {
@@ -58,7 +58,7 @@ export async function requirePermission(
     else if (roles.includes("admin")) role = "admin";
     else if (roles.includes("user")) role = "user";
   }
-  
+
   // If still no role, check DB
   if (!role) {
     try {
@@ -70,13 +70,13 @@ export async function requirePermission(
       }
     } catch {}
   }
-  
+
   // Role-based access control
   // Admin and Superadmin: full read/write access
   if (role === "admin" || role === "superadmin") {
     return { ok: true, me: { ...me, role: role as Role } };
   }
-  
+
   // User role: read-only access
   if (role === "user") {
     // Allow read permissions only
@@ -86,7 +86,7 @@ export async function requirePermission(
     // Deny write permissions
     return { ok: false, status: 403 };
   }
-  
+
   // No valid role found
   return { ok: false, status: 403 };
 }

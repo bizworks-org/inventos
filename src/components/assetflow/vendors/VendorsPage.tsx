@@ -212,15 +212,17 @@ export function VendorsPage({ onNavigate, onSearch }: VendorsPageProps) {
           transition={{ duration: 0.3 }}
           className="flex gap-3"
         >
-          <Button
-            onClick={() =>
-              document.getElementById("vendor-import-input")?.click()
-            }
-            className="flex items-center gap-2 px-4 py-2 rounded-lg bg-white border border-[rgba(0,0,0,0.1)] hover:bg-[#f8f9ff] transition-all duration-200 text-[#1a1d2e]"
-          >
-            <Upload className="h-4 w-4" />
-            Import
-          </Button>
+          {canWriteVendors && (
+            <Button
+              onClick={() =>
+                document.getElementById("vendor-import-input")?.click()
+              }
+              className="flex items-center gap-2 px-4 py-2 rounded-lg bg-white border border-[rgba(0,0,0,0.1)] hover:bg-[#f8f9ff] transition-all duration-200 text-[#1a1d2e]"
+            >
+              <Upload className="h-4 w-4" />
+              Import
+            </Button>
+          )}
           <input
             id="vendor-import-input"
             type="file"
@@ -260,13 +262,15 @@ export function VendorsPage({ onNavigate, onSearch }: VendorsPageProps) {
               }
             }}
           />
-          <Button
-            onClick={() => exportVendorsToCSV(filteredVendors)}
-            className="flex items-center gap-2 px-4 py-2 rounded-lg bg-white border border-[rgba(0,0,0,0.1)] hover:bg-[#f8f9ff] transition-all duration-200 text-[#1a1d2e]"
-          >
-            <Download className="h-4 w-4" />
-            Export
-          </Button>
+          {canWriteVendors && (
+            <Button
+              onClick={() => exportVendorsToCSV(filteredVendors)}
+              className="flex items-center gap-2 px-4 py-2 rounded-lg bg-white border border-[rgba(0,0,0,0.1)] hover:bg-[#f8f9ff] transition-all duration-200 text-[#1a1d2e]"
+            >
+              <Download className="h-4 w-4" />
+              Export
+            </Button>
+          )}
           {canWriteVendors && (
             <Button
               onClick={() => onNavigate?.("vendors-add")}
@@ -489,6 +493,7 @@ export function VendorsPage({ onNavigate, onSearch }: VendorsPageProps) {
         vendors={paginatedVendors}
         onNavigate={onNavigate}
         onDelete={canWriteVendors ? (id, _name) => handleDelete(id) : undefined}
+        canWrite={canWriteVendors}
       />
       {/* Import preview dialog */}
       <Dialog open={previewOpen} onOpenChange={setPreviewOpen}>
