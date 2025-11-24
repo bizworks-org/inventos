@@ -10,9 +10,9 @@ export const metadata = {
 
 export default async function AdminLayout({
   children,
-}: {
+}: Readonly<{
   children: ReactNode;
-}) {
+}>) {
   let me: {
     id: string;
     email: string;
@@ -26,12 +26,14 @@ export default async function AdminLayout({
     if (payload && (payload as any).id) {
       const dbUser = await dbFindUserById((payload as any).id);
       if (dbUser) {
-        const roleComputed: "admin" | "user" | "superadmin" =
-          Array.isArray(dbUser.roles) && dbUser.roles.includes("superadmin")
-            ? "superadmin"
-            : Array.isArray(dbUser.roles) && dbUser.roles.includes("admin")
-            ? "admin"
-            : "user";
+        let roleComputed: "admin" | "user" | "superadmin";
+        if (Array.isArray(dbUser.roles) && dbUser.roles.includes("superadmin")) {
+          roleComputed = "superadmin";
+        } else if (Array.isArray(dbUser.roles) && dbUser.roles.includes("admin")) {
+          roleComputed = "admin";
+        } else {
+          roleComputed = "user";
+        }
         me = {
           id: dbUser.id,
           email: dbUser.email,
