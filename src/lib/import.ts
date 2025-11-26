@@ -1,8 +1,15 @@
-import { Asset, License, Vendor } from './data';
-import { createAsset, updateAsset, createLicense, updateLicense, createVendor, updateVendor } from './api';
-import { secureId } from './secure';
+import { Asset, License, Vendor } from "./data";
+import {
+  createAsset,
+  updateAsset,
+  createLicense,
+  updateLicense,
+  createVendor,
+  updateVendor,
+} from "./api";
+import { secureId } from "./secure";
 
-export type ImportFormat = 'csv' | 'json';
+export type ImportFormat = "csv" | "json";
 
 export type ImportSummary = {
   attempted: number;
@@ -13,20 +20,21 @@ export type ImportSummary = {
 };
 
 function generateId(prefix: string) {
-  return `${prefix}-${Date.now()}-${secureId('', 16)}`;
+  return `${prefix}-${Date.now()}-${secureId("", 16)}`;
 }
 
 // Basic CSV parser supporting quoted fields and commas/newlines in quotes
 export function parseCSV(text: string): string[][] {
   const rows: string[][] = [];
   let row: string[] = [];
-  let field = '';
+  let field = "";
   let inQuotes = false;
   for (let i = 0; i < text.length; i++) {
     const ch = text[i];
     if (inQuotes) {
       if (ch === '"') {
-        if (text[i + 1] === '"') { // escaped quote
+        if (text[i + 1] === '"') {
+          // escaped quote
           field += '"';
           i++;
         } else {
@@ -38,15 +46,15 @@ export function parseCSV(text: string): string[][] {
     } else {
       if (ch === '"') {
         inQuotes = true;
-      } else if (ch === ',') {
+      } else if (ch === ",") {
         row.push(field);
-        field = '';
-      } else if (ch === '\n') {
+        field = "";
+      } else if (ch === "\n") {
         row.push(field);
         rows.push(row);
         row = [];
-        field = '';
-      } else if (ch === '\r') {
+        field = "";
+      } else if (ch === "\r") {
         // ignore \r; handle on \n
       } else {
         field += ch;
@@ -55,7 +63,7 @@ export function parseCSV(text: string): string[][] {
   }
   // push last field
   row.push(field);
-  if (row.length > 1 || (row.length === 1 && row[0] !== '')) rows.push(row);
+  if (row.length > 1 || (row.length === 1 && row[0] !== "")) rows.push(row);
   return rows;
 }
 
@@ -70,36 +78,54 @@ function headerIndexMap(headers: string[]): Record<string, number> {
 export function parseAssetsCSV(text: string): Asset[] {
   const rows = parseCSV(text);
   if (rows.length === 0) return [];
-  const headers = rows[0].map(h => h.trim());
+  const headers = rows[0].map((h) => h.trim());
   const hi = headerIndexMap(headers);
-  const get = (r: string[], name: string) => r[hi[name] ?? -1] ?? '';
+  const get = (r: string[], name: string) => r[hi[name] ?? -1] ?? "";
   // Determine per-column custom fields: any header not part of known asset columns
   const known = new Set([
-    'id', 'name', 'type', 'serial number', 'assigned to', 'department', 'status',
-    'purchase date', 'end of support', 'end of life', 'cost', 'location',
-    'processor', 'ram', 'storage', 'os', 'custom fields', 'warranty expiry'
+    "id",
+    "name",
+    "type",
+    "serial number",
+    "assigned to",
+    "department",
+    "status",
+    "purchase date",
+    "end of support",
+    "end of life",
+    "cost",
+    "location",
+    "processor",
+    "ram",
+    "storage",
+    "os",
+    "custom fields",
+    "warranty expiry",
   ]);
   const customColumnHeaders = headers
-    .map(h => h.trim())
-    .filter(h => h && !known.has(h.toLowerCase()));
+    .map((h) => h.trim())
+    .filter((h) => h && !known.has(h.toLowerCase()));
   const out: Asset[] = [];
   for (let i = 1; i < rows.length; i++) {
     const r = rows[i];
     if (!r || r.length === 0) continue;
-      // Do not generate long client-side IDs here. Leave id empty so server
-      // will assign a canonical asset id (AST-0001 style) when creating.
-      const id = (get(r, 'id') || '').trim() || '';
-    const cost = parseFloat((get(r, 'cost') || '0').trim());
+    // Do not generate long client-side IDs here. Leave id empty so server
+    // will assign a canonical asset id (AST-0001 style) when creating.
+    const id = (get(r, "id") || "").trim() || "";
+    const cost = parseFloat((get(r, "cost") || "0").trim());
     // Parse custom fields. Support old single JSON "Custom Fields" column AND per-column custom fields
     let customFields: Record<string, string> | undefined = undefined;
     // 1) parse JSON blob if provided
-    const cfRaw = get(r, 'custom fields');
+    const cfRaw = get(r, "custom fields");
     if (cfRaw && cfRaw.trim()) {
       try {
         const parsed = JSON.parse(cfRaw);
-        if (parsed && typeof parsed === 'object') {
+        if (parsed && typeof parsed === "object") {
           customFields = Object.fromEntries(
-            Object.entries(parsed as Record<string, unknown>).map(([k, v]) => [k, String(v)])
+            Object.entries(parsed as Record<string, unknown>).map(([k, v]) => [
+              k,
+              String(v),
+            ])
           );
         }
       } catch {
@@ -109,32 +135,34 @@ export function parseAssetsCSV(text: string): Asset[] {
     // 2) extract per-column custom fields (these override JSON keys)
     customColumnHeaders.forEach((header) => {
       const raw = get(r, header);
-      if (raw !== undefined && raw !== null && String(raw).trim() !== '') {
+      if (raw !== undefined && raw !== null && String(raw).trim() !== "") {
         if (!customFields) customFields = {};
         customFields[header] = raw;
       }
     });
     const asset: Asset = {
       id,
-      name: get(r, 'name') || '',
-      typeId: (get(r, 'type') as Asset['typeId']) || 'Laptop',
-      serialNumber: get(r, 'serial number') || '',
-      assignedTo: get(r, 'assigned to') || '',
-      department: get(r, 'department') || '',
+      name: get(r, "name") || "",
+      typeId: (get(r, "type") as Asset["typeId"]) || "Laptop",
+      serialNumber: get(r, "serial number") || "",
+      assignedTo: get(r, "assigned to") || "",
+      department: get(r, "department") || "",
       status:
-        (get(r, 'status') as Asset['status']) ||
-        (((get(r, 'assigned to') || '').trim() ? 'Allocated' : 'In Store (New)') as Asset['status']),
-      purchaseDate: get(r, 'purchase date') || '',
+        (get(r, "status") as Asset["status"]) ||
+        (((get(r, "assigned to") || "").trim()
+          ? "Allocated"
+          : "In Store (New)") as Asset["status"]),
+      purchaseDate: get(r, "purchase date") || "",
       // Prefer new lifecycle columns; fallback to legacy warranty expiry if present
-      eosDate: get(r, 'end of support') || (get(r, 'warranty expiry') || ''),
-      eolDate: get(r, 'end of life') || '',
+      eosDate: get(r, "end of support") || get(r, "warranty expiry") || "",
+      eolDate: get(r, "end of life") || "",
       cost: isNaN(cost) ? 0 : cost,
-      location: get(r, 'location') || '',
+      location: get(r, "location") || "",
       specifications: {
-        processor: get(r, 'processor') || undefined,
-        ram: get(r, 'ram') || undefined,
-        storage: get(r, 'storage') || undefined,
-        os: get(r, 'os') || undefined,
+        processor: get(r, "processor") || undefined,
+        ram: get(r, "ram") || undefined,
+        storage: get(r, "storage") || undefined,
+        os: get(r, "os") || undefined,
         customFields,
       },
     };
@@ -146,28 +174,29 @@ export function parseAssetsCSV(text: string): Asset[] {
 export function parseLicensesCSV(text: string): License[] {
   const rows = parseCSV(text);
   if (rows.length === 0) return [];
-  const headers = rows[0].map(h => h.trim());
+  const headers = rows[0].map((h) => h.trim());
   const hi = headerIndexMap(headers);
-  const get = (r: string[], name: string) => r[hi[name] ?? -1] ?? '';
+  const get = (r: string[], name: string) => r[hi[name] ?? -1] ?? "";
   const out: License[] = [];
   for (let i = 1; i < rows.length; i++) {
     const r = rows[i];
-    const id = (get(r, 'id') || '').trim() || generateId('LIC');
-    const seats = parseInt((get(r, 'seats') || '0').trim());
-    const seatsUsed = parseInt((get(r, 'seats used') || '0').trim());
-    const cost = parseFloat((get(r, 'cost') || '0').trim());
+    const id = (get(r, "id") || "").trim() || generateId("LIC");
+    const seats = parseInt((get(r, "seats") || "0").trim());
+    const seatsUsed = parseInt((get(r, "seats used") || "0").trim());
+    const cost = parseFloat((get(r, "cost") || "0").trim());
     const license: License = {
       id,
-      name: get(r, 'name') || '',
-      vendor: get(r, 'vendor') || '',
-      type: (get(r, 'type') as License['type']) || 'SaaS',
+      name: get(r, "name") || "",
+      vendor: get(r, "vendor") || "",
+      type: (get(r, "type") as License["type"]) || "SaaS",
       seats: isNaN(seats) ? 0 : seats,
       seatsUsed: isNaN(seatsUsed) ? 0 : seatsUsed,
-      expirationDate: get(r, 'expiration date') || '',
-      renewalDate: get(r, 'renewal date') || '',
+      expirationDate: get(r, "expiration date") || "",
+      renewalDate: get(r, "renewal date") || "",
       cost: isNaN(cost) ? 0 : cost,
-      owner: get(r, 'owner') || '',
-      compliance: (get(r, 'compliance') as License['compliance']) || 'Compliant',
+      owner: get(r, "owner") || "",
+      compliance:
+        (get(r, "compliance") as License["compliance"]) || "Compliant",
     };
     out.push(license);
   }
@@ -177,25 +206,25 @@ export function parseLicensesCSV(text: string): License[] {
 export function parseVendorsCSV(text: string): Vendor[] {
   const rows = parseCSV(text);
   if (rows.length === 0) return [];
-  const headers = rows[0].map(h => h.trim());
+  const headers = rows[0].map((h) => h.trim());
   const hi = headerIndexMap(headers);
-  const get = (r: string[], name: string) => r[hi[name] ?? -1] ?? '';
+  const get = (r: string[], name: string) => r[hi[name] ?? -1] ?? "";
   const out: Vendor[] = [];
   for (let i = 1; i < rows.length; i++) {
     const r = rows[i];
-    const id = (get(r, 'id') || '').trim() || generateId('VND');
-    const value = parseFloat((get(r, 'contract value') || '0').trim());
-    const rating = parseFloat((get(r, 'rating') || '0').trim());
+    const id = (get(r, "id") || "").trim() || generateId("VND");
+    const value = parseFloat((get(r, "contract value") || "0").trim());
+    const rating = parseFloat((get(r, "rating") || "0").trim());
     const vendor: Vendor = {
       id,
-      name: get(r, 'name') || '',
-      type: (get(r, 'type') as Vendor['type']) || 'Software',
-      contactPerson: get(r, 'contact person') || '',
-      email: get(r, 'email') || '',
-      phone: get(r, 'phone') || '',
-      status: (get(r, 'status') as Vendor['status']) || 'Approved',
+      name: get(r, "name") || "",
+      type: (get(r, "type") as Vendor["type"]) || "Software",
+      contactPerson: get(r, "contact person") || "",
+      email: get(r, "email") || "",
+      phone: get(r, "phone") || "",
+      status: (get(r, "status") as Vendor["status"]) || "Approved",
       contractValue: isNaN(value) ? 0 : value,
-      contractExpiry: get(r, 'contract expiry') || '',
+      contractExpiry: get(r, "contract expiry") || "",
       rating: isNaN(rating) ? 0 : rating,
     };
     out.push(vendor);
@@ -204,7 +233,13 @@ export function parseVendorsCSV(text: string): Vendor[] {
 }
 
 export async function importAssets(items: Asset[]): Promise<ImportSummary> {
-  const summary: ImportSummary = { attempted: items.length, created: 0, updated: 0, failed: 0, errors: [] };
+  const summary: ImportSummary = {
+    attempted: items.length,
+    created: 0,
+    updated: 0,
+    failed: 0,
+    errors: [],
+  };
   for (const a of items) {
     try {
       try {
@@ -223,7 +258,13 @@ export async function importAssets(items: Asset[]): Promise<ImportSummary> {
 }
 
 export async function importLicenses(items: License[]): Promise<ImportSummary> {
-  const summary: ImportSummary = { attempted: items.length, created: 0, updated: 0, failed: 0, errors: [] };
+  const summary: ImportSummary = {
+    attempted: items.length,
+    created: 0,
+    updated: 0,
+    failed: 0,
+    errors: [],
+  };
   for (const l of items) {
     try {
       try {
@@ -242,7 +283,13 @@ export async function importLicenses(items: License[]): Promise<ImportSummary> {
 }
 
 export async function importVendors(items: Vendor[]): Promise<ImportSummary> {
-  const summary: ImportSummary = { attempted: items.length, created: 0, updated: 0, failed: 0, errors: [] };
+  const summary: ImportSummary = {
+    attempted: items.length,
+    created: 0,
+    updated: 0,
+    failed: 0,
+    errors: [],
+  };
   for (const v of items) {
     try {
       try {
@@ -261,22 +308,24 @@ export async function importVendors(items: Vendor[]): Promise<ImportSummary> {
 }
 
 export function parseAssetsFile(fileName: string, text: string): Asset[] {
-  const isJSON = fileName.toLowerCase().endsWith('.json');
+  const isJSON = fileName.toLowerCase().endsWith(".json");
   if (isJSON) {
     const raw = JSON.parse(text) as any[];
     return raw.map((r) => ({
-      id: r.id ?? generateId('AST'),
-      name: r.name ?? '',
-      typeId: r.typeId ?? 'Laptop',
-      serialNumber: r.serialNumber ?? '',
-      assignedTo: r.assignedTo ?? '',
-      department: r.department ?? '',
-      status: r.status ?? ((r.assignedTo ? 'Allocated' : 'In Store (New)') as Asset['status']),
-      purchaseDate: r.purchaseDate ?? '',
-      eosDate: r.eosDate ?? r.warrantyExpiry ?? '',
-      eolDate: r.eolDate ?? '',
+      id: r.id ?? generateId("AST"),
+      name: r.name ?? "",
+      typeId: r.typeId ?? "Laptop",
+      serialNumber: r.serialNumber ?? "",
+      assignedTo: r.assignedTo ?? "",
+      department: r.department ?? "",
+      status:
+        r.status ??
+        ((r.assignedTo ? "Allocated" : "In Store (New)") as Asset["status"]),
+      purchaseDate: r.purchaseDate ?? "",
+      eosDate: r.eosDate ?? r.warrantyExpiry ?? "",
+      eolDate: r.eolDate ?? "",
       cost: Number(r.cost ?? 0),
-      location: r.location ?? '',
+      location: r.location ?? "",
       specifications: r.specifications ?? {},
     }));
   }
@@ -284,40 +333,40 @@ export function parseAssetsFile(fileName: string, text: string): Asset[] {
 }
 
 export function parseLicensesFile(fileName: string, text: string): License[] {
-  const isJSON = fileName.toLowerCase().endsWith('.json');
+  const isJSON = fileName.toLowerCase().endsWith(".json");
   if (isJSON) {
     const raw = JSON.parse(text) as any[];
     return raw.map((r) => ({
-      id: r.id ?? generateId('LIC'),
-      name: r.name ?? '',
-      vendor: r.vendor ?? '',
-      type: r.type ?? 'SaaS',
+      id: r.id ?? generateId("LIC"),
+      name: r.name ?? "",
+      vendor: r.vendor ?? "",
+      type: r.type ?? "SaaS",
       seats: Number(r.seats ?? 0),
       seatsUsed: Number(r.seatsUsed ?? 0),
-      expirationDate: r.expirationDate ?? '',
-      renewalDate: r.renewalDate ?? '',
+      expirationDate: r.expirationDate ?? "",
+      renewalDate: r.renewalDate ?? "",
       cost: Number(r.cost ?? 0),
-      owner: r.owner ?? '',
-      compliance: r.compliance ?? 'Compliant',
+      owner: r.owner ?? "",
+      compliance: r.compliance ?? "Compliant",
     }));
   }
   return parseLicensesCSV(text);
 }
 
 export function parseVendorsFile(fileName: string, text: string): Vendor[] {
-  const isJSON = fileName.toLowerCase().endsWith('.json');
+  const isJSON = fileName.toLowerCase().endsWith(".json");
   if (isJSON) {
     const raw = JSON.parse(text) as any[];
     return raw.map((r) => ({
-      id: r.id ?? generateId('VND'),
-      name: r.name ?? '',
-      type: r.type ?? 'Software',
-      contactPerson: r.contactPerson ?? '',
-      email: r.email ?? '',
-      phone: r.phone ?? '',
-      status: r.status ?? 'Approved',
+      id: r.id ?? generateId("VND"),
+      name: r.name ?? "",
+      type: r.type ?? "Software",
+      contactPerson: r.contactPerson ?? "",
+      email: r.email ?? "",
+      phone: r.phone ?? "",
+      status: r.status ?? "Approved",
       contractValue: Number(r.contractValue ?? 0),
-      contractExpiry: r.contractExpiry ?? '',
+      contractExpiry: r.contractExpiry ?? "",
       rating: Number(r.rating ?? 0),
     }));
   }

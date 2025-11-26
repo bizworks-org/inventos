@@ -62,7 +62,8 @@ export function CustomizationPage({ onNavigate, onSearch }: Props) {
         setLicenseFields(parsed.licenseFields as AssetFieldDef[]);
       // load asset id prefix if saved locally
       if (parsed?.assetIdPrefix) setAssetIdPrefix(String(parsed.assetIdPrefix));
-      if (parsed?.asset_id_prefix) setAssetIdPrefix(String(parsed.asset_id_prefix));
+      if (parsed?.asset_id_prefix)
+        setAssetIdPrefix(String(parsed.asset_id_prefix));
     } catch (e) {
       // ignore invalid cached settings
     }
@@ -639,7 +640,8 @@ export function CustomizationPage({ onNavigate, onSearch }: Props) {
                   <CardHeader>
                     <CardTitle>Asset ID Settings</CardTitle>
                     <CardDescription>
-                      Configure the prefix used when the system generates asset IDs.
+                      Configure the prefix used when the system generates asset
+                      IDs.
                     </CardDescription>
                   </CardHeader>
                   <CardContent>
@@ -651,7 +653,9 @@ export function CustomizationPage({ onNavigate, onSearch }: Props) {
                         placeholder="e.g., AST"
                       />
                       <p className="text-xs text-[#64748b] mt-2">
-                        The system will use this prefix when generating asset IDs (e.g., {assetIdPrefix}-0001). Only letters, numbers and hyphen are allowed.
+                        The system will use this prefix when generating asset
+                        IDs (e.g., {assetIdPrefix}-0001). Only letters, numbers
+                        and hyphen are allowed.
                       </p>
                     </div>
                   </CardContent>
