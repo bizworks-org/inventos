@@ -425,16 +425,26 @@ export function LicensesPage({ onNavigate, onSearch }: LicensesPageProps) {
         <div className="flex items-center gap-2 mt-4 justify-center">
           <Button
             disabled={page <= 1}
+            aria-disabled={page <= 1}
             onClick={() => setPage((p) => Math.max(1, p - 1))}
-            className="px-3 py-1 rounded bg-white border"
+            className={`px-3 py-1 rounded bg-white border ${
+              page <= 1
+                ? "text-[#94a3b8] pointer-events-none opacity-60"
+                : "text-[#1a1d2e]"
+            }`}
           >
             Prev
           </Button>
           <div className="text-sm text-[#64748b]">Page {page}</div>
           <Button
             disabled={page * perPage >= filteredLicenses.length}
+            aria-disabled={page * perPage >= filteredLicenses.length}
             onClick={() => setPage((p) => p + 1)}
-            className="px-3 py-1 rounded bg-white border"
+            className={`px-3 py-1 rounded bg-white border ${
+              page * perPage >= filteredLicenses.length
+                ? "text-[#94a3b8] pointer-events-none opacity-60"
+                : "text-[#1a1d2e]"
+            }`}
           >
             Next
           </Button>

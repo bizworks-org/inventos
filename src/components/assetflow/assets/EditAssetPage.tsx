@@ -638,10 +638,11 @@ export default function EditAssetPage({
 
                 <div>
                   <label className="mb-2 block text-sm font-medium">
-                    Assigned To *
+                    Assigned To
+                    {formData.status === "Allocated" ? " *" : " (optional)"}
                   </label>
                   <input
-                    required
+                    required={formData.status === "Allocated"}
                     value={formData.assignedTo}
                     onChange={(event) =>
                       handleInputChange("assignedTo", event.target.value)

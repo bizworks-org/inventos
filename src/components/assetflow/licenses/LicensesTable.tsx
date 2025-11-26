@@ -90,23 +90,27 @@ export function LicensesTable({
   onNavigate,
   onDelete,
   canWrite = true,
-}: LicensesTableProps) {
+}: Readonly<LicensesTableProps>) {
   const [hoveredRow, setHoveredRow] = useState<string | null>(null);
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const formatCurrency = useCurrencyFormatter();
   const { density } = usePrefs();
-  const cellPad =
-    density === "ultra-compact"
-      ? "px-3 py-1.5"
-      : density === "compact"
-      ? "px-4 py-2"
-      : "px-6 py-4";
-  const headPad =
-    density === "ultra-compact"
-      ? "px-3 py-2"
-      : density === "compact"
-      ? "px-4 py-2.5"
-      : "px-6 py-4";
+  let cellPad: string;
+  if (density === "ultra-compact") {
+    cellPad = "px-3 py-1.5";
+  } else if (density === "compact") {
+    cellPad = "px-4 py-2";
+  } else {
+    cellPad = "px-6 py-4";
+  }
+  let headPad: string;
+  if (density === "ultra-compact") {
+    headPad = "px-3 py-2";
+  } else if (density === "compact") {
+    headPad = "px-4 py-2.5";
+  } else {
+    headPad = "px-6 py-4";
+  }
   const subText = density === "ultra-compact" ? "text-[11px]" : "text-xs";
 
   const handleEdit = (licenseId: string) => {
@@ -202,6 +206,7 @@ export function LicensesTable({
               </th>
             </tr>
           </thead>
+
           <tbody>
             {licenses.map((license, index) => {
               const daysUntilExpiry = getDaysUntilExpiry(
@@ -209,27 +214,25 @@ export function LicensesTable({
               );
               const expired = isExpired(license.expirationDate);
               const expiringSoon = isExpiringSoon(license.expirationDate);
+              const isHovered = hoveredRow === license.id;
+              const isExpanded = expandedId === license.id;
 
               return (
                 <Fragment key={license.id}>
                   <motion.tr
-                    key={license.id}
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.3, delay: 0.45 + index * 0.05 }}
                     onMouseEnter={() => setHoveredRow(license.id)}
                     onMouseLeave={() => setHoveredRow(null)}
-                    className={`
-                    border-b border-gray-100 dark:border-gray-800 transition-all duration-200
-                    ${
-                      hoveredRow === license.id
+                    className={`border-b border-gray-100 dark:border-gray-800 transition-all duration-200 ${
+                      isHovered
                         ? "bg-gradient-to-r from-gray-50 to-transparent dark:from-gray-900 dark:to-transparent"
                         : ""
-                    }
-                  `}
+                    }`}
                   >
                     {/* License Name & Type */}
-                    <td className={`${cellPad}`}>
+                    <td className={cellPad}>
                       <div>
                         <p className="font-semibold text-gray-900 dark:text-gray-100 mb-1">
                           {license.name}
@@ -245,7 +248,7 @@ export function LicensesTable({
                     </td>
 
                     {/* Vendor */}
-                    <td className={`${cellPad}`}>
+                    <td className={cellPad}>
                       <p
                         className={`text-sm text-gray-600 dark:text-gray-400 ${
                           density === "ultra-compact" ? "text-[12px]" : ""
@@ -256,7 +259,7 @@ export function LicensesTable({
                     </td>
 
                     {/* Owner */}
-                    <td className={`${cellPad}`}>
+                    <td className={cellPad}>
                       <p
                         className={`text-sm text-gray-900 dark:text-gray-100 font-medium ${
                           density === "ultra-compact" ? "text-[12px]" : ""
@@ -266,10 +269,8 @@ export function LicensesTable({
                       </p>
                     </td>
 
-                    {/* Seats column removed from table */}
-
                     {/* Expiration */}
-                    <td className={`${cellPad}`}>
+                    <td className={cellPad}>
                       <div>
                         <p
                           className={`text-sm font-medium ${
@@ -300,20 +301,19 @@ export function LicensesTable({
                     </td>
 
                     {/* Compliance */}
-                    <td className={`${cellPad}`}>
+                    <td className={cellPad}>
                       <span
-                        className={`
-                      inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold border
-                      ${getComplianceColor(license.compliance)}
-                    `}
+                        className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold border ${getComplianceColor(
+                          license.compliance
+                        )}`}
                       >
-                        {getComplianceIcon(license.compliance)}
+                        {getComplianceIcon(license.compliance)}{" "}
                         {license.compliance}
                       </span>
                     </td>
 
                     {/* Annual Cost */}
-                    <td className={`${cellPad}`}>
+                    <td className={cellPad}>
                       <p
                         className={`text-sm font-semibold text-gray-900 dark:text-gray-100 ${
                           density === "ultra-compact" ? "text-[12px]" : ""
@@ -329,7 +329,7 @@ export function LicensesTable({
                     </td>
 
                     {/* Actions */}
-                    <td className={`${cellPad}`}>
+                    <td className={cellPad}>
                       <div
                         className={`flex items-center ${
                           density === "ultra-compact" ? "gap-1.5" : "gap-2"
@@ -343,11 +343,7 @@ export function LicensesTable({
                               ? "p-1.5 border-0"
                               : "p-2"
                           }`}
-                          title={
-                            expandedId === license.id
-                              ? "Hide details"
-                              : "View details"
-                          }
+                          title={isExpanded ? "Hide details" : "View details"}
                         >
                           <Eye
                             className={`${
@@ -398,9 +394,9 @@ export function LicensesTable({
                       </div>
                     </td>
                   </motion.tr>
-                  {expandedId === license.id && (
+
+                  {isExpanded && (
                     <motion.tr
-                      key={`${license.id}-details`}
                       initial={{ opacity: 0 }}
                       animate={{ opacity: 1 }}
                       transition={{ duration: 0.15 }}
@@ -416,54 +412,30 @@ export function LicensesTable({
                         } border-t border-gray-100 dark:border-gray-800 text-sm text-gray-700 dark:text-gray-300 bg-gradient-to-r from-gray-50 via-gray-50 to-white dark:from-gray-900 dark:via-gray-900 dark:to-gray-800 rounded-b-2xl shadow-sm`}
                       >
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                          <div>
-                            <div className="text-xs text-gray-600 dark:text-gray-400">
-                              ID
+                          {[
+                            "ID",
+                            "Vendor",
+                            "Owner",
+                            "Expiration",
+                            "Compliance",
+                            "Annual Cost",
+                          ].map((label, i) => (
+                            <div key={i}>
+                              <div className="text-xs text-gray-600 dark:text-gray-400">
+                                {label}
+                              </div>
+                              <div className="font-medium text-gray-900 dark:text-gray-100">
+                                {label === "ID" && license.id}
+                                {label === "Vendor" && license.vendor}
+                                {label === "Owner" && license.owner}
+                                {label === "Expiration" &&
+                                  formatDate(license.expirationDate)}
+                                {label === "Compliance" && license.compliance}
+                                {label === "Annual Cost" &&
+                                  formatCurrency(license.cost)}
+                              </div>
                             </div>
-                            <div className="font-medium text-gray-900 dark:text-gray-100">
-                              {license.id}
-                            </div>
-                          </div>
-                          <div>
-                            <div className="text-xs text-gray-600 dark:text-gray-400">
-                              Vendor
-                            </div>
-                            <div className="font-medium text-gray-900 dark:text-gray-100">
-                              {license.vendor}
-                            </div>
-                          </div>
-                          <div>
-                            <div className="text-xs text-gray-600 dark:text-gray-400">
-                              Owner
-                            </div>
-                            <div className="font-medium text-gray-900 dark:text-gray-100">
-                              {license.owner}
-                            </div>
-                          </div>
-                          <div>
-                            <div className="text-xs text-gray-600 dark:text-gray-400">
-                              Expiration
-                            </div>
-                            <div className="font-medium text-gray-900 dark:text-gray-100">
-                              {formatDate(license.expirationDate)}
-                            </div>
-                          </div>
-                          <div>
-                            <div className="text-xs text-gray-600 dark:text-gray-400">
-                              Compliance
-                            </div>
-                            <div className="font-medium text-gray-900 dark:text-gray-100">
-                              {license.compliance}
-                            </div>
-                          </div>
-                          <div>
-                            <div className="text-xs text-gray-600 dark:text-gray-400">
-                              Annual Cost
-                            </div>
-                            <div className="font-medium text-gray-900 dark:text-gray-100">
-                              {formatCurrency(license.cost)}
-                            </div>
-                          </div>
+                          ))}
                         </div>
                       </td>
                     </motion.tr>

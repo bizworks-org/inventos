@@ -23,6 +23,30 @@ function generateId(prefix: string) {
   return `${prefix}-${Date.now()}-${secureId("", 16)}`;
 }
 
+// Normalize various input date formats into `YYYY-MM-DD` or empty string
+function normalizeDateString(input: unknown): string {
+  if (input === null || input === undefined) return "";
+  if (typeof input === "string") {
+    const s = input.trim();
+    if (!s) return "";
+    // If already in YYYY-MM-DD form or contains ISO timestamp, take first 10 chars
+    if (/^\d{4}-\d{2}-\d{2}/.test(s)) return s.slice(0, 10);
+    // Try to parse with Date
+    const d = new Date(s);
+    if (!isNaN(d.getTime())) return d.toISOString().slice(0, 10);
+    return "";
+  }
+  if (input instanceof Date) {
+    if (!isNaN(input.getTime())) return input.toISOString().slice(0, 10);
+    return "";
+  }
+  try {
+    const d = new Date(input as any);
+    if (!isNaN(d.getTime())) return d.toISOString().slice(0, 10);
+  } catch {}
+  return "";
+}
+
 // Basic CSV parser supporting quoted fields and commas/newlines in quotes
 export function parseCSV(text: string): string[][] {
   const rows: string[][] = [];
@@ -180,7 +204,9 @@ export function parseLicensesCSV(text: string): License[] {
   const out: License[] = [];
   for (let i = 1; i < rows.length; i++) {
     const r = rows[i];
-    const id = (get(r, "id") || "").trim() || generateId("LIC");
+    // Do not fabricate long client-side license IDs. Leave id empty so server
+    // can assign a canonical short LIC-0001 style id, or accept an explicit id from CSV.
+    const id = (get(r, "id") || "").trim() || "";
     const seats = parseInt((get(r, "seats") || "0").trim());
     const seatsUsed = parseInt((get(r, "seats used") || "0").trim());
     const cost = parseFloat((get(r, "cost") || "0").trim());
@@ -191,8 +217,8 @@ export function parseLicensesCSV(text: string): License[] {
       type: (get(r, "type") as License["type"]) || "SaaS",
       seats: isNaN(seats) ? 0 : seats,
       seatsUsed: isNaN(seatsUsed) ? 0 : seatsUsed,
-      expirationDate: get(r, "expiration date") || "",
-      renewalDate: get(r, "renewal date") || "",
+      expirationDate: normalizeDateString(get(r, "expiration date") || ""),
+      renewalDate: normalizeDateString(get(r, "renewal date") || ""),
       cost: isNaN(cost) ? 0 : cost,
       owner: get(r, "owner") || "",
       compliance:
@@ -337,14 +363,16 @@ export function parseLicensesFile(fileName: string, text: string): License[] {
   if (isJSON) {
     const raw = JSON.parse(text) as any[];
     return raw.map((r) => ({
-      id: r.id ?? generateId("LIC"),
+      id: r.id ?? "",
       name: r.name ?? "",
       vendor: r.vendor ?? "",
       type: r.type ?? "SaaS",
       seats: Number(r.seats ?? 0),
       seatsUsed: Number(r.seatsUsed ?? 0),
-      expirationDate: r.expirationDate ?? "",
-      renewalDate: r.renewalDate ?? "",
+      expirationDate: normalizeDateString(
+        r.expirationDate ?? r.expiration_date ?? ""
+      ),
+      renewalDate: normalizeDateString(r.renewalDate ?? r.renewal_date ?? ""),
       cost: Number(r.cost ?? 0),
       owner: r.owner ?? "",
       compliance: r.compliance ?? "Compliant",

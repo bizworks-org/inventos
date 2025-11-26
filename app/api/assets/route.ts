@@ -189,32 +189,12 @@ export async function POST(req: NextRequest) {
         }
       } catch (e) {
         // If there's no explicit column, try to parse asset_fields JSON for a stored prefix
-        try {
-          const rows2: any[] = await query(
-            `SELECT asset_fields FROM user_settings WHERE asset_fields IS NOT NULL LIMIT 1`
-          );
-          if (rows2?.[0]?.asset_fields) {
-            try {
-              const parsed = JSON.parse(rows2[0].asset_fields);
-              const raw =
-                parsed?.assetIdPrefix ?? parsed?.asset_id_prefix ?? "";
-              const candidate = String(raw || "")
-                .trim()
-                .toUpperCase();
-              if (candidate) {
-                const sane = candidate.replace(/[^A-Z0-9-]/g, "");
-                if (sane) prefix = sane;
-              }
-            } catch (err) {
-              console.warn(
-                "Failed to parse asset_fields JSON for asset id prefix",
-                err
-              );
-            }
-          }
-        } catch (err) {
-          console.warn("Failed to read asset_fields from user_settings", err);
-        }
+        // Log the error so the exception is handled (satisfies linters/compilers) and then fallback
+        console.warn(
+          "Failed to read asset_id_prefix from user_settings, falling back to asset_fields",
+          e
+        );
+        prefix = await getAssetIdPrefixFromSettings(prefix);
       }
 
       // If client provided a clean matching id matching PREFIX-<digits>, keep it
@@ -294,4 +274,32 @@ export async function POST(req: NextRequest) {
       { status: 500 }
     );
   }
+}
+async function getAssetIdPrefixFromSettings(prefix: string) {
+  try {
+    const rows2: any[] = await query(
+      `SELECT asset_fields FROM user_settings WHERE asset_fields IS NOT NULL LIMIT 1`
+    );
+    if (rows2?.[0]?.asset_fields) {
+      try {
+        const parsed = JSON.parse(rows2[0].asset_fields);
+        const raw = parsed?.assetIdPrefix ?? parsed?.asset_id_prefix ?? "";
+        const candidate = String(raw || "")
+          .trim()
+          .toUpperCase();
+        if (candidate) {
+          const sane = candidate.replace(/[^A-Z0-9-]/g, "");
+          if (sane) prefix = sane;
+        }
+      } catch (err) {
+        console.warn(
+          "Failed to parse asset_fields JSON for asset id prefix",
+          err
+        );
+      }
+    }
+  } catch (err) {
+    console.warn("Failed to read asset_fields from user_settings", err);
+  }
+  return prefix;
 }
