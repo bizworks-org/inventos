@@ -248,6 +248,13 @@ export function AssetsTable({
   const subText = density === "ultra-compact" ? "text-[11px]" : "text-xs";
 
   const handleEdit = (assetId: string) => {
+    try {
+      // eslint-disable-next-line no-console
+      console.debug("[AssetsTable] handleEdit", {
+        assetId,
+        onNavigatePresent: !!onNavigate,
+      });
+    } catch {}
     onNavigate?.("assets-edit", assetId);
   };
 

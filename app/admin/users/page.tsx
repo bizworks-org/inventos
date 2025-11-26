@@ -64,8 +64,7 @@ export default function ManageUsersPage() {
       return;
     }
     const data = await res.json();
-    if (!res.ok) setError(data?.error || "Failed to load users");
-    else {
+    if (res.ok) {
       const meId = currentMeId ?? me?.id;
       const list = (data.users || []).map((u: any) => ({
         ...u,
@@ -73,11 +72,20 @@ export default function ManageUsersPage() {
       }));
       if (meId) {
         // Move current user to the top of the list while preserving order for others
-        list.sort((a: any, b: any) =>
-          a.id === meId ? -1 : b.id === meId ? 1 : 0
-        );
+        list.sort((a: any, b: any) => {
+          // Extract the nested ternary into an independent statement for clarity
+          let result = 0;
+          if (a.id === meId) {
+            result = -1;
+          } else if (b.id === meId) {
+            result = 1;
+          }
+          return result;
+        });
       }
       setUsers(list);
+    } else {
+      setError(data?.error || "Failed to load users");
     }
     setLoading(false);
   };
@@ -109,19 +117,6 @@ export default function ManageUsersPage() {
       }
     })();
   }, []);
-
-  const generatePassword = () => {
-    const finalPwd = makePassword();
-    setForm((f) => ({ ...f, password: finalPwd }));
-    (async () => {
-      try {
-        await navigator.clipboard.writeText(finalPwd);
-        toast.success("Password generated (copied)");
-      } catch {
-        toast.success("Password generated");
-      }
-    })();
-  };
 
   const makePassword = () => {
     const length = 12;
@@ -261,6 +256,44 @@ export default function ManageUsersPage() {
   };
   const resetPassword = async (id: string) => {
     console.debug("[users] resetPassword:start", { id });
+
+    const tryCopyToClipboard = async (text: string) => {
+      try {
+        await navigator.clipboard.writeText(text);
+        return true;
+      } catch {
+        // Fallback to legacy execCommand copy
+        try {
+          const ta = document.createElement("textarea");
+          ta.value = text;
+          ta.style.position = "fixed";
+          ta.style.top = "-1000px";
+          document.body.appendChild(ta);
+          ta.select();
+          document.execCommand("copy");
+          ta.remove();
+          return true;
+        } catch {
+          return false;
+        }
+      }
+    };
+
+    const showVisiblePasswordForAWhile = (userId: string, password: string) => {
+      try {
+        setVisiblePasswords((cur) => ({ ...cur, [userId]: password }));
+        setTimeout(() => {
+          setVisiblePasswords((cur) => {
+            const copy = { ...cur };
+            delete copy[userId];
+            return copy;
+          });
+        }, 60_000);
+      } catch (err) {
+        console.error("[users] resetPassword:setVisiblePasswords error", err);
+      }
+    };
+
     try {
       const res = await fetch("/api/admin/users/reset-password", {
         method: "POST",
@@ -274,57 +307,31 @@ export default function ManageUsersPage() {
         data: d,
       });
       if (!res.ok) throw new Error(d?.error || "Failed to reset password");
+
       const pwd = d?.password as string;
-      if (pwd) {
-        let copied = false;
-        try {
-          await navigator.clipboard.writeText(pwd);
-          copied = true;
-        } catch {
-          // Fallback: attempt legacy execCommand copy
-          try {
-            const ta = document.createElement("textarea");
-            ta.value = pwd;
-            ta.style.position = "fixed";
-            ta.style.top = "-1000px";
-            document.body.appendChild(ta);
-            ta.select();
-            document.execCommand("copy");
-            copied = true;
-            ta.remove();
-          } catch {}
-        }
-        console.debug("[users] resetPassword:about-to-toast", {
-          pwdPreview: pwd?.slice?.(0, 4) ?? "",
-          copied,
-          toastHasSuccess: !!(toast && (toast as any).success),
-        });
-        toast.success(`New password: ${pwd}${copied ? " (copied)" : ""}`);
-        // Show the password inline as well for 60s so it can be copied if toast was missed
-        try {
-          setVisiblePasswords((cur) => ({ ...cur, [id]: pwd }));
-          setTimeout(() => {
-            setVisiblePasswords((cur) => {
-              const copy = { ...cur };
-              delete copy[id];
-              return copy;
-            });
-          }, 60_000);
-        } catch (e) {
-          // no-op
-        }
-        if (!copied) {
-          // Surface the password in a second toast for clarity if copy failed
-          setTimeout(() => {
-            console.debug("[users] resetPassword:about-to-toast-info", {
-              pwdPreview: pwd?.slice?.(0, 6) ?? "",
-            });
-            toast.info(`Copy failed. Password: ${pwd}`);
-          }, 50);
-        }
-      } else {
+      if (!pwd) {
         console.debug("[users] resetPassword:about-to-toast-generic");
         toast.success("Password reset");
+        return;
+      }
+
+      const copied = await tryCopyToClipboard(pwd);
+      console.debug("[users] resetPassword:about-to-toast", {
+        pwdPreview: pwd?.slice?.(0, 4) ?? "",
+        copied,
+      });
+      toast.success(`New password: ${pwd}${copied ? " (copied)" : ""}`);
+
+      showVisiblePasswordForAWhile(id, pwd);
+
+      if (!copied) {
+        // Surface the password in a second toast for clarity if copy failed
+        setTimeout(() => {
+          console.debug("[users] resetPassword:about-to-toast-info", {
+            pwdPreview: pwd?.slice?.(0, 6) ?? "",
+          });
+          toast.info(`Copy failed. Password: ${pwd}`);
+        }, 50);
       }
     } catch (e: any) {
       console.debug("[users] resetPassword:error", e);
@@ -351,23 +358,84 @@ export default function ManageUsersPage() {
     queueUserRolesUpdate(userId, nextArr);
   };
 
+  const roleDisplay = (roles: Role[] = []) => {
+    if (roles.includes("superadmin")) return "Superadmin";
+    if (roles.includes("admin")) return "Admin";
+    return "User";
+  };
+
+  const renderUserRow = (u: User) => {
+    const rowClass =
+      me?.id === u.id ? "bg-indigo-50 border-l-4 border-indigo-800" : "";
+
+    return (
+      <tr key={u.id} className={`border-b border-[#f1f5f9] ${rowClass}`}>
+        <td className="py-3 pr-4 align-middle">
+          <div className="flex items-center gap-2">
+            <span>{u.name}</span>
+            {me?.id === u.id && (
+              <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-indigo-100 text-indigo-800">
+                You
+              </span>
+            )}
+          </div>
+        </td>
+        <td className="py-3 pr-4">{u.email}</td>
+        <td className="py-3 pr-4 align-middle">
+          {me?.role === "superadmin" ? (
+            <RoleChips
+              user={u}
+              allRoles={allRoles as Role[]}
+              meId={me?.id}
+              meLoading={meLoading}
+              activeAdminCount={activeAdminCount}
+              onApplyRole={applyRole}
+              onConfirmRemoveAdmin={(userId, userName, nextRole) =>
+                setConfirmRemoveAdminFor({ userId, userName, nextRole })
+              }
+              meRole={me?.role}
+            />
+          ) : (
+            <div className="flex gap-3 flex-wrap py-0.5">
+              <span
+                className="px-3 py-2 rounded-lg border bg-white text-[#1a1d2e] border-[#e2e8f0] inline-flex items-center gap-2"
+                aria-hidden
+              >
+                {roleDisplay(u.roles || [])}
+              </span>
+            </div>
+          )}
+        </td>
+        <td className="py-3 pr-4 align-middle">{u.active ? "Yes" : "No"}</td>
+        <td className="py-3 pr-4 align-middle">
+          <UserActions
+            user={u}
+            meId={me?.id}
+            meRole={me?.role}
+            activeAdminCount={activeAdminCount}
+            visiblePassword={visiblePasswords[u.id]}
+            onEdit={(user) => {
+              setEditing(user);
+              setForm({
+                name: user.name,
+                email: user.email,
+                role: user.roles[0] || "user",
+                password: "",
+              });
+              window.scrollTo({ top: 0, behavior: "smooth" });
+            }}
+            onActivate={activate}
+            onDeactivate={deactivate}
+            onResetPassword={resetPassword}
+            onRemove={remove}
+          />
+        </td>
+      </tr>
+    );
+  };
+
   return (
     <>
-      {/* DEBUG: Test toast button */}
-      {/* <div className="mb-4">
-        <button
-          onClick={() => {
-            console.log("[TEST] Toast button clicked", {
-              toast,
-              toastType: typeof toast,
-            });
-            toast.success("TEST TOAST - If you see this, toasts are working!");
-          }}
-          className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
-        >
-          🔔 TEST TOAST (Click to verify toasts work)
-        </button>
-      </div> */}
       <div className="bg-white border border-[#e2e8f0] rounded-xl p-6 mb-6 max-w-3xl">
         <h2 className="text-lg font-semibold mb-3">
           {editing ? `Edit User: ${editing.name}` : "Add User"}
@@ -397,7 +465,6 @@ export default function ManageUsersPage() {
               Superadmin
             </option>
           </select>
-          {/* Password is generated automatically on Create; generate button removed */}
         </div>
         <div className="mt-4 flex items-center gap-3">
           {editing ? (
@@ -458,115 +525,11 @@ export default function ManageUsersPage() {
       </div>
       <div className="bg-white border border-[#e2e8f0] rounded-xl p-6 mb-6">
         <h2 className="text-lg font-semibold mb-3">Users</h2>
-        {loading ? (
-          <p>Loading…</p>
-        ) : error ? (
-          <p className="text-[#ef4444]">{error}</p>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="min-w-full text-left">
-              <thead>
-                <tr className="border-b border-[#e2e8f0] text-[#64748b]">
-                  <th className="py-3 pr-4">Name</th>
-                  <th className="py-3 pr-4">Email</th>
-                  <th className="py-3 pr-4">Roles</th>
-                  <th className="py-3 pr-4">Active</th>
-                  <th className="py-3 pr-4">Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {users.map((u) => (
-                  <tr
-                    key={u.id}
-                    className={`border-b border-[#f1f5f9] ${
-                      me?.id === u.id
-                        ? "bg-indigo-50 border-l-4 border-indigo-800"
-                        : ""
-                    }`}
-                  >
-                    <td className="py-3 pr-4 align-middle">
-                      <div className="flex items-center gap-2">
-                        <span>{u.name}</span>
-                        {me?.id === u.id && (
-                          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-indigo-100 text-indigo-800">
-                            You
-                          </span>
-                        )}
-                      </div>
-                    </td>
-                    <td className="py-3 pr-4">{u.email}</td>
-                    <td className="py-3 pr-4 align-middle">
-                      {/* Only Superadmin can see and interact with RoleChips. Other viewers see a non-interactive role label. */}
-                      {me?.role === "superadmin" ? (
-                        <RoleChips
-                          user={u}
-                          allRoles={allRoles as Role[]}
-                          meId={me?.id}
-                          meLoading={meLoading}
-                          activeAdminCount={activeAdminCount}
-                          onApplyRole={applyRole}
-                          onConfirmRemoveAdmin={(userId, userName, nextRole) =>
-                            setConfirmRemoveAdminFor({
-                              userId,
-                              userName,
-                              nextRole,
-                            })
-                          }
-                          meRole={me?.role}
-                        />
-                      ) : (
-                        (() => {
-                          const rolesArr = (u.roles || []) as Role[];
-                          const display = rolesArr.includes("superadmin")
-                            ? "Superadmin"
-                            : rolesArr.includes("admin")
-                            ? "Admin"
-                            : "User";
-                          return (
-                            <div className="flex gap-3 flex-wrap py-0.5">
-                              <span
-                                className="px-3 py-2 rounded-lg border bg-white text-[#1a1d2e] border-[#e2e8f0] inline-flex items-center gap-2"
-                                aria-hidden
-                              >
-                                {display}
-                              </span>
-                            </div>
-                          );
-                        })()
-                      )}
-                    </td>
-                    <td className="py-3 pr-4 align-middle">
-                      {u.active ? "Yes" : "No"}
-                    </td>
-                    <td className="py-3 pr-4 align-middle">
-                      <UserActions
-                        user={u}
-                        meId={me?.id}
-                        meRole={me?.role}
-                        activeAdminCount={activeAdminCount}
-                        visiblePassword={visiblePasswords[u.id]}
-                        onEdit={(user) => {
-                          setEditing(user);
-                          setForm({
-                            name: user.name,
-                            email: user.email,
-                            role: user.roles[0] || "user",
-                            password: "",
-                          });
-                          window.scrollTo({ top: 0, behavior: "smooth" });
-                        }}
-                        onActivate={activate}
-                        onDeactivate={deactivate}
-                        onResetPassword={resetPassword}
-                        onRemove={remove}
-                      />
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
+        {(() => {
+          if (loading) return <p>Loading…</p>;
+          if (error) return <p className="text-[#ef4444]">{error}</p>;
+          return renderUserTable(users, renderUserRow);
+        })()}
       </div>
       <AlertDialog
         open={!!confirmRemoveAdminFor}
@@ -611,5 +574,23 @@ export default function ManageUsersPage() {
         )}
       </AlertDialog>
     </>
+  );
+}
+function renderUserTable(users: User[], renderUserRow) {
+  return (
+    <div className="overflow-x-auto">
+      <table className="min-w-full text-left">
+        <thead>
+          <tr className="border-b border-[#e2e8f0] text-[#64748b]">
+            <th className="py-3 pr-4">Name</th>
+            <th className="py-3 pr-4">Email</th>
+            <th className="py-3 pr-4">Roles</th>
+            <th className="py-3 pr-4">Active</th>
+            <th className="py-3 pr-4">Actions</th>
+          </tr>
+        </thead>
+        <tbody>{users.map((u) => renderUserRow(u))}</tbody>
+      </table>
+    </div>
   );
 }

@@ -86,7 +86,9 @@ export function parseAssetsCSV(text: string): Asset[] {
   for (let i = 1; i < rows.length; i++) {
     const r = rows[i];
     if (!r || r.length === 0) continue;
-    const id = (get(r, 'id') || '').trim() || generateId('AST');
+      // Do not generate long client-side IDs here. Leave id empty so server
+      // will assign a canonical asset id (AST-0001 style) when creating.
+      const id = (get(r, 'id') || '').trim() || '';
     const cost = parseFloat((get(r, 'cost') || '0').trim());
     // Parse custom fields. Support old single JSON "Custom Fields" column AND per-column custom fields
     let customFields: Record<string, string> | undefined = undefined;

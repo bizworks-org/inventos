@@ -157,15 +157,111 @@ export async function POST(req: NextRequest) {
 
     // Ensure DB NOT NULL columns have safe defaults so inserts don't fail.
     // `assigned_to` is NOT NULL in the schema; default to empty string when missing.
-    if (body.assigned_to == null) body.assigned_to = "";
-    if (body.assigned_email == null) body.assigned_email = "";
-    if (body.consent_status == null) body.consent_status = "";
+    body.assigned_to ??= "";
+    body.assigned_email ??= "";
+    body.consent_status ??= "";
 
     if (body?.type_id == null) {
       return NextResponse.json(
         { error: "Missing asset type" },
         { status: 400 }
       );
+    }
+
+    // Normalize/generate asset id using a DB-backed atomic sequence.
+    try {
+      // Determine prefix from saved settings if present (first non-null value wins), fallback to 'AST'
+      let prefix = "AST";
+      try {
+        const prefRows: any[] = await query(
+          "SELECT asset_id_prefix FROM user_settings WHERE asset_id_prefix IS NOT NULL LIMIT 1"
+        );
+        if (prefRows && prefRows.length > 0) {
+          const raw = prefRows[0]?.asset_id_prefix ?? "";
+          const candidate = String(raw || "")
+            .trim()
+            .toUpperCase();
+          if (candidate) {
+            // allow alphanumeric and dash in prefix
+            const sane = candidate.replace(/[^A-Z0-9-]/g, "");
+            if (sane) prefix = sane;
+          }
+        }
+      } catch (e) {
+        // If there's no explicit column, try to parse asset_fields JSON for a stored prefix
+        try {
+          const rows2: any[] = await query(
+            `SELECT asset_fields FROM user_settings WHERE asset_fields IS NOT NULL LIMIT 1`
+          );
+          if (rows2?.[0]?.asset_fields) {
+            try {
+              const parsed = JSON.parse(rows2[0].asset_fields);
+              const raw =
+                parsed?.assetIdPrefix ?? parsed?.asset_id_prefix ?? "";
+              const candidate = String(raw || "")
+                .trim()
+                .toUpperCase();
+              if (candidate) {
+                const sane = candidate.replace(/[^A-Z0-9-]/g, "");
+                if (sane) prefix = sane;
+              }
+            } catch (err) {
+              console.warn(
+                "Failed to parse asset_fields JSON for asset id prefix",
+                err
+              );
+            }
+          }
+        } catch (err) {
+          console.warn("Failed to read asset_fields from user_settings", err);
+        }
+      }
+
+      // If client provided a clean matching id matching PREFIX-<digits>, keep it
+      const idVal = typeof body.id === "string" ? body.id.trim() : "";
+      const re = new RegExp(
+        `^${prefix.replace(/[-/\\^$*+?.()|[\]{}]/g, "\\$&")}-\\d+$`
+      );
+      if (!re.test(idVal)) {
+        // Ensure the sequences table exists
+        try {
+          await query(
+            `CREATE TABLE IF NOT EXISTS sequences (name VARCHAR(64) PRIMARY KEY, val BIGINT NOT NULL)`
+          );
+        } catch {}
+
+        const seqName = `assets_${prefix}`;
+
+        // Atomically increment or initialize the counter
+        try {
+          await query(
+            `INSERT INTO sequences (name, val) VALUES (:name, 1) ON DUPLICATE KEY UPDATE val = val + 1`,
+            { name: seqName }
+          );
+          const rows: any[] = await query(
+            `SELECT val FROM sequences WHERE name = :name`,
+            { name: seqName }
+          );
+          const next = rows && rows.length ? Number(rows[0].val) : Date.now();
+          body.id = `${prefix}-${String(next).padStart(4, "0")}`;
+          try {
+            console.info("[api/assets] generated id for asset", body.id);
+          } catch {}
+        } catch (e) {
+          // last-resort fallback
+          console.warn(
+            "Failed to allocate sequence id, falling back to timestamp id",
+            e
+          );
+          body.id = `AST-${Date.now()}`;
+        }
+      }
+    } catch (err) {
+      console.warn(
+        "Failed to generate canonical asset id, falling back to provided id",
+        err
+      );
+      if (!body.id) body.id = `AST-${Date.now()}`;
     }
 
     const { cia_c, cia_i, cia_a } = clampCIAValues(body);
@@ -189,7 +285,8 @@ export async function POST(req: NextRequest) {
     await recordInitialStatusAndActivity(body);
     await notifyOnCreate(body);
 
-    return NextResponse.json({ ok: true }, { status: 201 });
+    // Return created id so clients can reference the canonical id assigned by server
+    return NextResponse.json({ ok: true, id: body.id }, { status: 201 });
   } catch (e: any) {
     console.error("POST /api/assets failed:", e);
     return NextResponse.json(

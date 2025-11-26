@@ -16,7 +16,7 @@ export function RoleChips({
   onApplyRole,
   onConfirmRemoveAdmin,
   meRole,
-}: {
+}: Readonly<{
   user: User;
   allRoles: Role[];
   meId?: string;
@@ -29,7 +29,7 @@ export function RoleChips({
     nextRole: Role
   ) => void;
   meRole?: Role;
-}) {
+}>) {
   // viewerRole is optionally provided via me.role; if the viewer is not a superadmin
   // we render non-interactive labels for all rows. (Only Superadmin sees editable chips.)
   // Note: callers may pass `meRole` via props in future; default behavior is to rely

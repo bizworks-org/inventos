@@ -75,6 +75,10 @@ export default function EditAssetPage({
   onNavigate,
   onSearch,
 }: Props) {
+  try {
+    // eslint-disable-next-line no-console
+    console.debug("[EditAssetPage] mounted with assetId", { assetId });
+  } catch {}
   const { currencySymbol, formatCurrency } = usePrefs();
 
   const [asset, setAsset] = useState<Asset | null>(null);
@@ -167,14 +171,20 @@ export default function EditAssetPage({
   useEffect(() => {
     let cancelled = false;
     setLoading(true);
+    try {
+      // eslint-disable-next-line no-console
+      console.debug("[EditAssetPage] fetching asset by id", { assetId });
+    } catch {}
 
     fetchAssetById(assetId)
       .then((record) => {
-        console.log("Fetched asset record:", record);
+        // eslint-disable-next-line no-console
+        console.debug("Fetched asset record:", record, "for assetId", assetId);
         if (!cancelled) setAsset(record);
       })
       .catch((error) => {
-        console.error("Failed to load asset", error);
+        // eslint-disable-next-line no-console
+        console.error("Failed to load asset", error, "assetId", assetId);
         if (!cancelled) toast.error("Failed to load asset");
       })
       .finally(() => {

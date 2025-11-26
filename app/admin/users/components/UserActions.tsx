@@ -14,7 +14,7 @@ export function UserActions({
   onRemove,
   meRole,
   visiblePassword,
-}: {
+}: Readonly<{
   user: User;
   meId?: string;
   activeAdminCount: number;
@@ -25,7 +25,7 @@ export function UserActions({
   onRemove: (id: string) => void;
   meRole?: Role;
   visiblePassword?: string;
-}) {
+}>) {
   const isSelf = meId === user.id;
   const targetIsSuper = (user.roles || []).includes("superadmin");
   const targetIsAdmin = (user.roles || []).includes("admin");
@@ -157,7 +157,7 @@ export function UserActions({
               try {
                 await navigator.clipboard.writeText(visiblePassword);
                 toast.success("Password copied");
-              } catch (e) {
+              } catch {
                 // fallback
                 try {
                   const ta = document.createElement("textarea");
@@ -166,7 +166,7 @@ export function UserActions({
                   ta.style.top = "-1000px";
                   document.body.appendChild(ta);
                   ta.select();
-                  document.execCommand("copy");
+                  (document as any).execCommand("copy");
                   ta.remove();
                   toast.success("Password copied");
                 } catch {

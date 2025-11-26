@@ -29,13 +29,16 @@ export function CustomizationPage({ onNavigate, onSearch }: Props) {
   const isSuperAdmin = me?.role === "superadmin";
 
   const [active, setActive] = useState<
-    "locations" | "catalog" | "fields" | "branding"
-  >("locations");
+    "identifiers" | "catalog" | "fields" | "branding"
+  >("identifiers");
 
   // Branding state
   const [brandName, setBrandName] = useState<string>("Inventos");
   const [logoUrl, setLogoUrl] = useState<string | null>(null);
   const [brandingMsg, setBrandingMsg] = useState<string | null>(null);
+
+  // Asset ID prefix (e.g., "AST")
+  const [assetIdPrefix, setAssetIdPrefix] = useState<string>("AST");
 
   // Custom field definitions (moved here from Settings page)
   const [assetFields, setAssetFields] = useState<AssetFieldDef[]>([]);
@@ -57,6 +60,9 @@ export function CustomizationPage({ onNavigate, onSearch }: Props) {
         setVendorFields(parsed.vendorFields as AssetFieldDef[]);
       if (Array.isArray(parsed?.licenseFields))
         setLicenseFields(parsed.licenseFields as AssetFieldDef[]);
+      // load asset id prefix if saved locally
+      if (parsed?.assetIdPrefix) setAssetIdPrefix(String(parsed.assetIdPrefix));
+      if (parsed?.asset_id_prefix) setAssetIdPrefix(String(parsed.asset_id_prefix));
     } catch (e) {
       // ignore invalid cached settings
     }
@@ -178,6 +184,7 @@ export function CustomizationPage({ onNavigate, onSearch }: Props) {
         assetFields,
         vendorFields,
         licenseFields,
+        assetIdPrefix,
       };
 
       // Persist the resolved email back into localStorage so future saves don't need server lookup
@@ -187,6 +194,7 @@ export function CustomizationPage({ onNavigate, onSearch }: Props) {
           assetFields,
           vendorFields,
           licenseFields,
+          assetIdPrefix,
         };
         if (payload.user_email) nextStored.user_email = payload.user_email;
         localStorage.setItem("assetflow:settings", JSON.stringify(nextStored));
@@ -403,14 +411,14 @@ export function CustomizationPage({ onNavigate, onSearch }: Props) {
         </div>
         <div className="flex items-center gap-2 hidden">
           <Button
-            onClick={() => setActive("locations")}
+            onClick={() => setActive("identifiers")}
             className={`${
-              active === "locations"
+              active === "identifiers"
                 ? "bg-gradient-to-r from-[#6366f1] to-[#8b5cf6] text-white hover:shadow-lg"
                 : ""
             }`}
           >
-            Locations
+            Identifiers
           </Button>
           <Button
             onClick={() => setActive("catalog")}
@@ -425,18 +433,20 @@ export function CustomizationPage({ onNavigate, onSearch }: Props) {
         </div>
       </div>
 
+      {/* Asset ID Settings moved into the Identifiers tab below */}
+
       <div className="bg-white rounded-2xl border border-[rgba(0,0,0,0.08)] p-6 shadow-sm">
         <Tabs value={active} onValueChange={(v) => setActive(v as any)}>
           <TabsList className="flex w-full flex-wrap gap-2 rounded-xl border border-[rgba(0,0,0,0.08)] bg-[#f8f9ff] p-2 mb-4">
             <TabsTrigger
-              value="locations"
+              value="identifiers"
               className={`${
-                active === "locations"
+                active === "identifiers"
                   ? "bg-white border border-[rgba(0,0,0,0.12)] shadow-md text-[#1a1d2e] font-semibold"
                   : ""
               } flex items-center gap-2 px-3 py-2 rounded-xl`}
             >
-              Locations
+              Identifiers
             </TabsTrigger>
             <TabsTrigger
               value="catalog"
@@ -472,7 +482,7 @@ export function CustomizationPage({ onNavigate, onSearch }: Props) {
             )}
           </TabsList>
 
-          <TabsContent value="locations">
+          <TabsContent value="identifiers">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               <div className="md:col-span-2">
                 <Card>
@@ -625,6 +635,28 @@ export function CustomizationPage({ onNavigate, onSearch }: Props) {
                 </Card>
               </div>
               <div>
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Asset ID Settings</CardTitle>
+                    <CardDescription>
+                      Configure the prefix used when the system generates asset IDs.
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="p-2">
+                      <Label className="mb-1 block">Asset ID Prefix</Label>
+                      <Input
+                        value={assetIdPrefix}
+                        onChange={(e) => setAssetIdPrefix(e.target.value)}
+                        placeholder="e.g., AST"
+                      />
+                      <p className="text-xs text-[#64748b] mt-2">
+                        The system will use this prefix when generating asset IDs (e.g., {assetIdPrefix}-0001). Only letters, numbers and hyphen are allowed.
+                      </p>
+                    </div>
+                  </CardContent>
+                </Card>
+
                 <Card>
                   <div className="p-4">
                     <h4 className="font-semibold">Usage</h4>

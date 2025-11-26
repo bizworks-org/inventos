@@ -20,6 +20,7 @@ export async function GET(req: NextRequest) {
   const events = parseJson(row.events);
   const integrations = parseJson(row.integrations);
   const assetFields = parseJson(row.asset_fields);
+  const assetIdPrefix = row.asset_id_prefix ?? null;
   const vendorFields = parseJson(row.vendor_fields);
   const licenseFields = parseJson(row.license_fields);
   return NextResponse.json({
@@ -32,6 +33,8 @@ export async function GET(req: NextRequest) {
     integrations,
     asset_fields: assetFields,
     assetFields, // camelCase alias for convenience
+    asset_id_prefix: assetIdPrefix,
+    assetIdPrefix: assetIdPrefix,
     vendor_fields: vendorFields,
     vendorFields,
     license_fields: licenseFields,
@@ -41,7 +44,7 @@ export async function GET(req: NextRequest) {
 
 export async function PUT(req: NextRequest) {
   const body = await req.json();
-  const { user_email, name, prefs, notify, mode, events, integrations, assetFields, vendorFields, licenseFields } = body;
+  const { user_email, name, prefs, notify, mode, events, integrations, assetFields, vendorFields, licenseFields, assetIdPrefix } = body;
   let email = user_email;
   // If client did not provide user_email, try to resolve from session cookie/token
   if (!email) {
@@ -63,12 +66,12 @@ export async function PUT(req: NextRequest) {
   // Try to persist into explicit columns (vendor_fields, license_fields) if they exist.
   // The SQL will include the new columns; if DB schema is older and lacks the columns, this query may fail.
   // To remain safe, applications can run the migration endpoint to add columns. For now, attempt the insert/update.
-  const sql = `INSERT INTO user_settings (user_email, name, prefs, notify, mode, events, integrations, asset_fields, vendor_fields, license_fields)
-               VALUES (:user_email, :name, :prefs, :notify, :mode, :events, :integrations, :asset_fields, :vendor_fields, :license_fields)
-               ON DUPLICATE KEY UPDATE name=VALUES(name), prefs=VALUES(prefs), notify=VALUES(notify), mode=VALUES(mode), events=VALUES(events), integrations=VALUES(integrations), asset_fields=VALUES(asset_fields), vendor_fields=VALUES(vendor_fields), license_fields=VALUES(license_fields)`;
+  const sql = `INSERT INTO user_settings (user_email, name, prefs, notify, mode, events, integrations, asset_fields, vendor_fields, license_fields, asset_id_prefix)
+               VALUES (:user_email, :name, :prefs, :notify, :mode, :events, :integrations, :asset_fields, :vendor_fields, :license_fields, :asset_id_prefix)
+               ON DUPLICATE KEY UPDATE name=VALUES(name), prefs=VALUES(prefs), notify=VALUES(notify), mode=VALUES(mode), events=VALUES(events), integrations=VALUES(integrations), asset_fields=VALUES(asset_fields), vendor_fields=VALUES(vendor_fields), license_fields=VALUES(license_fields), asset_id_prefix=VALUES(asset_id_prefix)`;
 
   try {
-    await query(sql, {
+      await query(sql, {
       user_email: email,
       name,
       prefs: JSON.stringify(prefs ?? {}),
@@ -79,13 +82,14 @@ export async function PUT(req: NextRequest) {
       asset_fields: JSON.stringify(assetFields ?? []),
       vendor_fields: JSON.stringify(vendorFields ?? []),
       license_fields: JSON.stringify(licenseFields ?? []),
+      asset_id_prefix: assetIdPrefix ?? null,
     });
   } catch (err) {
     // If the DB doesn't have the new columns (older schema), fall back to storing everything into asset_fields
     console.warn('Persisting vendor/license fields failed, falling back to asset_fields. Error:', err?.message || err);
     const fallbackSql = `INSERT INTO user_settings (user_email, name, prefs, notify, mode, events, integrations, asset_fields)
-                         VALUES (:user_email, :name, :prefs, :notify, :mode, :events, :integrations, :asset_fields)
-                         ON DUPLICATE KEY UPDATE name=VALUES(name), prefs=VALUES(prefs), notify=VALUES(notify), mode=VALUES(mode), events=VALUES(events), integrations=VALUES(integrations), asset_fields=VALUES(asset_fields)`;
+           VALUES (:user_email, :name, :prefs, :notify, :mode, :events, :integrations, :asset_fields)
+           ON DUPLICATE KEY UPDATE name=VALUES(name), prefs=VALUES(prefs), notify=VALUES(notify), mode=VALUES(mode), events=VALUES(events), integrations=VALUES(integrations), asset_fields=VALUES(asset_fields)`;
     // Merge existing stored asset_fields JSON to include vendor & license fields under a unified shape
     // Load existing row to merge if present
     try {
@@ -99,6 +103,7 @@ export async function PUT(req: NextRequest) {
       merged.assetFields = assetFields ?? merged.assetFields ?? [];
       merged.vendorFields = vendorFields ?? merged.vendorFields ?? [];
       merged.licenseFields = licenseFields ?? merged.licenseFields ?? [];
+      if (assetIdPrefix) merged.assetIdPrefix = assetIdPrefix;
 
       await query(fallbackSql, {
         user_email: email,

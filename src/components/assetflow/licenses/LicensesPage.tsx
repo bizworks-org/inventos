@@ -2,14 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { motion } from "motion/react";
-import {
-  Plus,
-  Download,
-  Upload,
-  Search,
-  AlertTriangle,
-  DollarSign,
-} from "lucide-react";
+import { Plus, Download, Upload, Search, AlertTriangle } from "lucide-react";
 import { AssetFlowLayout } from "../layout/AssetFlowLayout";
 import { License } from "../../../lib/data";
 import { fetchLicenses, deleteLicense } from "../../../lib/api";
@@ -271,7 +264,7 @@ export function LicensesPage({ onNavigate, onSearch }: LicensesPageProps) {
           <div className="flex items-center justify-between mb-2">
             <p className="text-sm text-[#64748b]">Total Monthly Spend</p>
             <div className="h-10 w-10 rounded-lg bg-gradient-to-br from-[#6366f1] to-[#8b5cf6] flex items-center justify-center">
-              <DollarSign className="h-4 w-4 text-white" />
+              <span className="text-white font-bold">₹</span>
             </div>
           </div>
           <p className="text-2xl font-bold text-[#1a1d2e]">

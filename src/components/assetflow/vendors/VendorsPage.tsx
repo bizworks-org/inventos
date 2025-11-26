@@ -26,8 +26,6 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
-  DialogClose,
 } from "@/components/ui/dialog";
 import { toast } from "@/components/ui/sonner";
 import { getMe, type ClientMe } from "../../../lib/auth/client";
