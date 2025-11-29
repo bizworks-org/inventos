@@ -18,7 +18,6 @@ interface AddAssetPageProps {
   onSearch?: (query: string) => void;
 }
 
-type AssetCategory = string;
 // No hard-coded categories/types: prefer client cache (localStorage) and fall back to API when cache is cleared.
 
 // Try to read catalog from localStorage (written by admin UI). Fallback to builtins.
@@ -29,40 +28,64 @@ type UiCategory = {
   types: Array<{ id?: number; name: string; sort?: number }>;
 };
 
-const readCatalogFromStorage = (): UiCategory[] | null => {
+// Utility helpers for safer localStorage and network operations.
+const safeParseJSON = <T,>(raw: string | null): T | null => {
   try {
-    const raw = localStorage.getItem("catalog.categories");
     if (!raw) return null;
-    const parsed = JSON.parse(raw);
-    if (!Array.isArray(parsed)) return null;
-    return parsed as UiCategory[];
-  } catch (e) {
-    console.error(e);
+    return JSON.parse(raw) as T;
+  } catch (err) {
+    // Avoid swallowing errors — log for diagnostics
+    // eslint-disable-next-line no-console
+    console.warn("safeParseJSON failed", err);
     return null;
   }
 };
 
-const categoryOfTypeFromCatalog = (
-  cats: UiCategory[] | null,
-  t: Asset["typeId"]
-): string | null => {
-  if (!cats) return null;
-  for (const c of cats) {
-    if (Array.isArray(c.types) && c.types.some((x) => x.name === t))
-      return c.name;
+const lsGet = <T,>(key: string): T | null =>
+  safeParseJSON<T>(localStorage.getItem(key));
+
+const lsSet = (key: string, value: unknown) => {
+  try {
+    localStorage.setItem(key, JSON.stringify(value));
+  } catch (err) {
+    // eslint-disable-next-line no-console
+    console.warn("lsSet failed", key, err);
   }
-  return null;
 };
 
-const typesByCategoryFromCatalog = (
-  cats: UiCategory[] | null,
-  catName: string
-): Asset["typeId"][] => {
-  if (!cats) return [] as Asset["typeId"][];
-  const c = cats.find((x) => x.name === catName);
-  if (!c) return [] as Asset["typeId"][];
-  return c.types.map((t) => t.name as Asset["typeId"]);
+const lsRemove = (key: string) => {
+  try {
+    localStorage.removeItem(key);
+  } catch (err) {
+    // eslint-disable-next-line no-console
+    console.warn("lsRemove failed", key, err);
+  }
 };
+
+const fetchJson = async (url: string) => {
+  try {
+    const res = await fetch(url, { cache: "no-store" });
+    if (!res.ok) throw new Error(`Fetch failed: ${res.status}`);
+    return res.json();
+  } catch (err) {
+    // eslint-disable-next-line no-console
+    console.warn("fetchJson failed", url, err);
+    return null;
+  }
+};
+
+const readCatalogFromStorage = (): UiCategory[] | null => {
+  try {
+    const parsed = lsGet<UiCategory[]>("catalog.categories");
+    if (!Array.isArray(parsed)) return null;
+    return parsed;
+  } catch (err) {
+    // eslint-disable-next-line no-console
+    console.warn("readCatalogFromStorage failed", err);
+    return null;
+  }
+};
+
 const assetStatuses: Asset["status"][] = [
   "In Store (New)",
   "In Store (Used)",
@@ -77,12 +100,13 @@ const assetStatuses: Asset["status"][] = [
 // Local draft key for autosave
 const ADD_ASSET_DRAFT_KEY = "assetflow:add-asset-draft";
 
-export function AddAssetPage({ onNavigate, onSearch }: AddAssetPageProps) {
+export function AddAssetPage(props: Readonly<AddAssetPageProps>) {
+  const { onNavigate, onSearch } = props;
   const { currencySymbol, formatCurrency } = usePrefs();
   const [consentRequired, setConsentRequired] = useState<boolean>(true);
-  const [assetType, setAssetType] = useState<Asset["typeId"] | "">("");
-  const [assetTypeId, setAssetTypeId] = useState<number | string | "">("");
-  const [category, setCategory] = useState<AssetCategory>("");
+  const [assetType, setAssetType] = useState<Asset["typeId"]>("");
+  const [assetTypeId, setAssetTypeId] = useState<number | string>("");
+  const [category, setCategory] = useState<string>("");
   const [formData, setFormData] = useState({
     name: "",
     serialNumber: "",
@@ -134,12 +158,12 @@ export function AddAssetPage({ onNavigate, onSearch }: AddAssetPageProps) {
   const ciaAvg = useMemo(() => ciaTotal / 3, [ciaTotal]);
 
   // Load any saved draft on first mount
-  const loadDraftFromLocalStorage = (): unknown | null => {
+  const loadDraftFromLocalStorage = (): unknown => {
     try {
-      const raw = localStorage.getItem(ADD_ASSET_DRAFT_KEY);
-      if (!raw) return null;
-      return JSON.parse(raw) as unknown;
-    } catch {
+      return lsGet<any>(ADD_ASSET_DRAFT_KEY) as unknown;
+    } catch (err) {
+      // eslint-disable-next-line no-console
+      console.warn("loadDraftFromLocalStorage failed", err);
       return null;
     }
   };
@@ -181,18 +205,16 @@ export function AddAssetPage({ onNavigate, onSearch }: AddAssetPageProps) {
   // Autosave draft to localStorage when fields change (debounced)
   useEffect(() => {
     const t = setTimeout(() => {
-      try {
-        const payload = {
-          formData,
-          assetType,
-          assetTypeId,
-          category,
-          customFieldValues,
-          extraFields,
-          cia,
-        };
-        localStorage.setItem(ADD_ASSET_DRAFT_KEY, JSON.stringify(payload));
-      } catch {}
+      const payload = {
+        formData,
+        assetType,
+        assetTypeId,
+        category,
+        customFieldValues,
+        extraFields,
+        cia,
+      };
+      lsSet(ADD_ASSET_DRAFT_KEY, payload);
     }, 300);
     return () => clearTimeout(t);
   }, [
@@ -213,7 +235,10 @@ export function AddAssetPage({ onNavigate, onSearch }: AddAssetPageProps) {
         setCatalog(stored);
         return;
       }
-    } catch {}
+    } catch (err) {
+      // eslint-disable-next-line no-console
+      console.warn("fetchAndCacheCatalog: readCatalogFromStorage failed", err);
+    }
 
     try {
       const res = await fetch("/api/catalog", { cache: "no-store" });
@@ -221,72 +246,93 @@ export function AddAssetPage({ onNavigate, onSearch }: AddAssetPageProps) {
       const data = await res.json();
       const cats = Array.isArray(data) ? data : data?.categories;
       if (Array.isArray(cats)) {
-        try {
-          localStorage.setItem("catalog.categories", JSON.stringify(cats));
-        } catch {}
+        lsSet("catalog.categories", cats);
         setCatalog(cats as UiCategory[]);
       }
     } catch (e) {
-      // leave catalog null
+      console.error(e);
     }
   };
 
   useEffect(() => {
     fetchAndCacheCatalog();
-    const onClear = () => {
-      (async () => {
-        try {
-          const res = await fetch("/api/catalog", { cache: "no-store" });
-          if (!res.ok) return;
-          const data = await res.json();
-          const cats = Array.isArray(data) ? data : data?.categories;
-          if (Array.isArray(cats)) {
-            try {
-              localStorage.setItem("catalog.categories", JSON.stringify(cats));
-            } catch {}
-            setCatalog(cats as UiCategory[]);
-          }
-        } catch {}
-      })();
+
+    const onClear = async () => {
+      try {
+        const data = await fetchJson("/api/catalog");
+        const cats = Array.isArray(data) ? data : data?.categories;
+        if (Array.isArray(cats)) {
+          lsSet("catalog.categories", cats);
+          setCatalog(cats as UiCategory[]);
+        }
+      } catch (err) {
+        // eslint-disable-next-line no-console
+        console.warn("onClear: failed to refresh catalog", err);
+      }
     };
+
     globalThis.addEventListener(
       "assetflow:catalog-cleared",
       onClear as EventListener
     );
+
     const onLocations = () => {
       try {
-        const raw = localStorage.getItem("assetflow:locations");
-        if (!raw) return setLocationsList([]);
-        const parsed = JSON.parse(raw);
-        if (Array.isArray(parsed)) setLocationsList(parsed.filter(Boolean));
-      } catch {
+        const parsed = lsGet<any>("assetflow:locations");
+        if (!Array.isArray(parsed)) return setLocationsList([]);
+        setLocationsList(parsed.filter(Boolean));
+      } catch (err) {
+        // eslint-disable-next-line no-console
+        console.warn("onLocations failed", err);
         setLocationsList([]);
       }
     };
+
     onLocations();
     globalThis.addEventListener(
       "assetflow:locations-updated",
       onLocations as EventListener
     );
-    return () =>
+
+    return () => {
       globalThis.removeEventListener(
         "assetflow:catalog-cleared",
         onClear as EventListener
       );
-    // note: not removing locations listener here intentionally due to early returns; cleaned up below
+      globalThis.removeEventListener(
+        "assetflow:locations-updated",
+        onLocations as EventListener
+      );
+    };
   }, []);
 
   useEffect(() => {
     const handler = () => {
       try {
-        const raw = localStorage.getItem("assetflow:locations");
-        if (!raw) return setLocationsList([]);
-        const parsed = JSON.parse(raw);
-        if (Array.isArray(parsed)) setLocationsList(parsed.filter(Boolean));
-      } catch {
+        const parsed = lsGet<any>("assetflow:locations");
+        if (!Array.isArray(parsed)) {
+          setLocationsList([]);
+          return;
+        }
+        const filtered = parsed.filter(Boolean);
+        // Only update if the new list differs from the current one to avoid unnecessary re-renders
+        try {
+          if (JSON.stringify(locationsList) !== JSON.stringify(filtered)) {
+            setLocationsList(filtered);
+          }
+        } catch (err) {
+          // Fallback to blind set if comparison fails
+          // eslint-disable-next-line no-console
+          console.warn("locations comparison failed", err);
+          setLocationsList(filtered);
+        }
+      } catch (err) {
+        // eslint-disable-next-line no-console
+        console.warn("locations handler failed", err);
         setLocationsList([]);
       }
     };
+
     globalThis.addEventListener(
       "assetflow:locations-updated",
       handler as EventListener
@@ -324,49 +370,39 @@ export function AddAssetPage({ onNavigate, onSearch }: AddAssetPageProps) {
   }, [catalog]);
 
   const assetTypes = useMemo(() => {
-    if (catalog && catalog.length) {
+    if (catalog?.length) {
       const all: string[] = [];
       for (const c of catalog)
         for (const t of c.types) if (!all.includes(t.name)) all.push(t.name);
-      return all as Asset["typeId"][];
+      return all;
     }
     return [] as Asset["typeId"][];
   }, [catalog]);
 
-  const typesByCategoryWithIds = (cat: AssetCategory) => {
+  const typesByCategoryWithIds = (cat: string) => {
     if (!catalog) return [] as Array<{ id?: number; name: string }>;
     const c = catalog.find((x) => x.name === cat);
     if (!c) return [] as Array<{ id?: number; name: string }>;
     return c.types.map((t) => ({ id: t.id, name: t.name }));
   };
 
-  const categoryOfType = (t: Asset["typeId"]): AssetCategory => {
-    const from = categoryOfTypeFromCatalog(catalog, t);
-    if (from) return from as AssetCategory;
-    return t as unknown as AssetCategory;
-  };
-
-  const typesByCategory = (cat: AssetCategory): Asset["typeId"][] => {
-    const list = typesByCategoryFromCatalog(catalog, cat as string);
-    if (list && list.length) return list;
-    return [] as Asset["typeId"][];
-  };
   useEffect(() => {
     try {
-      const s = localStorage.getItem("assetflow:settings");
-      if (s) {
-        const parsed = JSON.parse(s);
-        if (Array.isArray(parsed.assetFields))
-          setFieldDefs(parsed.assetFields as AssetFieldDef[]);
-      }
-    } catch {}
+      const s = lsGet<any>("assetflow:settings");
+      if (s && Array.isArray(s.assetFields))
+        setFieldDefs(s.assetFields as AssetFieldDef[]);
+    } catch (err) {
+      // eslint-disable-next-line no-console
+      console.warn("failed to read assetflow:settings", err);
+    }
     // Read SSR-provided consent flag
     try {
-      const v = document?.documentElement?.getAttribute(
-        "data-consent-required"
-      );
+      const v = document?.documentElement?.dataset?.consentRequired;
       if (v === "false" || v === "0") setConsentRequired(false);
-    } catch {}
+    } catch (err) {
+      // eslint-disable-next-line no-console
+      console.warn("failed to read consentRequired dataset", err);
+    }
   }, []);
 
   const handleInputChange = (field: string, value: string) => {
@@ -384,52 +420,75 @@ export function AddAssetPage({ onNavigate, onSearch }: AddAssetPageProps) {
       return;
     }
 
-    // Create new asset
     setSaving(true);
-    const newAsset: Asset = {
-      id: `AST-${Date.now()}`,
-      name: formData.name,
-      typeId: assetType as Asset["typeId"],
-      serialNumber: formData.serialNumber,
-      assignedTo: formData.assignedTo,
-      department: formData.department,
-      status: formData.status,
-      purchaseDate: formData.purchaseDate,
-      // Lifecycle
-      eosDate: formData.eosDate || undefined,
-      eolDate: formData.eolDate || undefined,
-      cost: parseFloat(formData.cost),
-      location: formData.location,
-      // CIA dedicated fields (persist only components; compute total/avg in UI)
-      ciaConfidentiality: cia.c,
-      ciaIntegrity: cia.i,
-      ciaAvailability: cia.a,
-      specifications: {
-        processor: formData.processor,
-        ram: formData.ram,
-        storage: formData.storage,
-        os: formData.os,
-        customFields: {
-          ...Object.fromEntries(
-            fieldDefs.map((def) => [def.key, customFieldValues[def.key] ?? ""])
-          ),
-          ...Object.fromEntries(
-            extraFields
-              .filter((cf) => cf.key.trim() !== "")
-              .map((cf) => [cf.key.trim(), cf.value])
-          ),
+
+    // Build the Asset object in a single helper to reduce branching in the outer flow
+    const buildAsset = (): Asset => {
+      const costVal = formData.cost ? Number.parseFloat(formData.cost) : 0;
+      const customFieldsObj = Object.fromEntries(
+        fieldDefs.map((def) => [def.key, customFieldValues[def.key] ?? ""])
+      );
+      const extraFieldsObj = Object.fromEntries(
+        extraFields
+          .filter((cf) => cf.key.trim() !== "")
+          .map((cf) => [cf.key.trim(), cf.value])
+      );
+
+      const asset: Asset = {
+        id: `AST-${Date.now()}`,
+        name: formData.name,
+        typeId: assetType,
+        serialNumber: formData.serialNumber,
+        assignedTo: formData.assignedTo,
+        department: formData.department,
+        status: formData.status,
+        purchaseDate: formData.purchaseDate,
+        // Lifecycle
+        eosDate: formData.eosDate || undefined,
+        eolDate: formData.eolDate || undefined,
+        cost: costVal,
+        location: formData.location,
+        // CIA dedicated fields (persist only components; compute total/avg in UI)
+        ciaConfidentiality: cia.c,
+        ciaIntegrity: cia.i,
+        ciaAvailability: cia.a,
+        specifications: {
+          processor: formData.processor,
+          ram: formData.ram,
+          storage: formData.storage,
+          os: formData.os,
+          customFields: {
+            ...customFieldsObj,
+            ...extraFieldsObj,
+          },
         },
-      },
+      };
+
+      // Attach type_id for newer schema if we have one (keep type for backward compatibility)
+      if (assetTypeId) {
+        // @ts-ignore allow additional property
+        (asset as any).type_id =
+          typeof assetTypeId === "string" && /^\d+$/.test(String(assetTypeId))
+            ? Number(assetTypeId)
+            : assetTypeId;
+      }
+
+      // Optional assigned email + consent status handling
+      const assignedEmail = formData.assignedEmail?.trim();
+      if (assignedEmail) {
+        // @ts-ignore include optional consent fields
+        (asset as any).assignedEmail = assignedEmail;
+        (asset as any).consentStatus = consentRequired ? "pending" : "none";
+        // If consent is disabled but an email is provided, auto-mark as Allocated on first add
+        if (!consentRequired) {
+          asset.status = "Allocated";
+        }
+      }
+
+      return asset;
     };
 
-    // Attach type_id for newer schema if we have one (keep type for backward compatibility)
-    if (assetTypeId) {
-      // @ts-ignore allow additional property
-      (newAsset as any).type_id =
-        typeof assetTypeId === "string" && /^\\d+$/.test(String(assetTypeId))
-          ? Number(assetTypeId)
-          : assetTypeId;
-    }
+    const newAsset = buildAsset();
 
     // Log event
     logAssetCreated(newAsset.id, newAsset.name, "admin@company.com", {
@@ -438,42 +497,53 @@ export function AddAssetPage({ onNavigate, onSearch }: AddAssetPageProps) {
     });
 
     try {
-      // @ts-ignore include optional consent fields
-      (newAsset as any).assignedEmail =
-        formData.assignedEmail?.trim() || undefined;
-      if ((newAsset as any).assignedEmail) {
-        (newAsset as any).consentStatus = consentRequired ? "pending" : "none";
-        // If consent is disabled but an email is provided, auto-mark as Allocated on first add
-        if (!consentRequired) {
-          newAsset.status = "Allocated";
-        }
-      }
       await createAsset(newAsset);
-      try {
-        localStorage.removeItem(ADD_ASSET_DRAFT_KEY);
-      } catch {}
+      lsRemove(ADD_ASSET_DRAFT_KEY);
+
       // Trigger consent email only if required (best-effort)
-      if (consentRequired && (newAsset as any).assignedEmail) {
+      const assignedEmail = (newAsset as any).assignedEmail;
+      if (consentRequired && assignedEmail) {
         try {
           await sendAssetConsent({
             assetId: newAsset.id,
-            email: (newAsset as any).assignedEmail,
+            email: assignedEmail,
             assetName: newAsset.name,
             assignedBy: "AssetFlow",
           });
-        } catch {}
+        } catch (err) {
+          // eslint-disable-next-line no-console
+          console.warn("sendAssetConsent failed", err);
+        }
       }
     } catch (err) {
       console.error("Failed to create asset", err);
+    } finally {
+      // Navigate back to assets page
+      setSaving(false);
+      onNavigate?.("assets");
     }
-    // Navigate back to assets page
-    setSaving(false);
-    onNavigate?.("assets");
   };
 
   const showSpecifications = ["Laptop", "Desktop", "Server"].includes(
     assetType
   );
+
+  // Extracted handlers to reduce nesting in JSX
+  const handleExtraFieldKeyChange = (idx: number, value: string) => {
+    setExtraFields((arr) =>
+      arr.map((it, i) => (i === idx ? { ...it, key: value } : it))
+    );
+  };
+
+  const handleExtraFieldValueChange = (idx: number, value: string) => {
+    setExtraFields((arr) =>
+      arr.map((it, i) => (i === idx ? { ...it, value } : it))
+    );
+  };
+
+  const handleRemoveExtraField = (idx: number) => {
+    setExtraFields((arr) => arr.filter((_, i) => i !== idx));
+  };
 
   return (
     <AssetFlowLayout
@@ -524,7 +594,10 @@ export function AddAssetPage({ onNavigate, onSearch }: AddAssetPageProps) {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {/* Asset Category */}
                 <div className="md:col-span-2">
-                  <label className="block text-sm font-medium text-[#1a1d2e] mb-2">
+                  <label
+                    htmlFor="asset-category"
+                    className="block text-sm font-medium text-[#1a1d2e] mb-2"
+                  >
                     Asset Category *
                   </label>
                   <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
@@ -539,9 +612,9 @@ export function AddAssetPage({ onNavigate, onSearch }: AddAssetPageProps) {
                             const first = options[0];
                             if (first.id !== undefined && first.id !== null) {
                               setAssetTypeId(first.id);
-                              setAssetType(first.name as Asset["typeId"]);
+                              setAssetType(first.name);
                             } else {
-                              setAssetType(first.name as Asset["typeId"]);
+                              setAssetType(first.name);
                               setAssetTypeId("");
                             }
                           }
@@ -563,58 +636,65 @@ export function AddAssetPage({ onNavigate, onSearch }: AddAssetPageProps) {
 
                 {/* Asset Type (by Category) */}
                 <div>
-                  <label className="block text-sm font-medium text-[#1a1d2e] mb-2">
+                  <label
+                    htmlFor="asset-type"
+                    className="block text-sm font-medium text-[#1a1d2e] mb-2"
+                  >
                     Asset Type *
                   </label>
                   <select
+                    id="asset-type"
                     required
                     value={assetTypeId ? String(assetTypeId) : assetType}
                     onChange={(e) => {
                       const v = e.target.value;
                       // Prefer numeric id values when present in catalog
-                      if (
-                        catalog &&
-                        catalog.length &&
-                        catalogMaps.idToName.has(v)
-                      ) {
+                      if (catalog?.length && catalogMaps.idToName.has(v)) {
                         setAssetTypeId(Number(v));
-                        setAssetType(
-                          catalogMaps.idToName.get(v) as Asset["typeId"]
-                        );
+                        setAssetType(catalogMaps.idToName.get(v));
                       } else {
                         // legacy: name value
-                        setAssetType(String(v) as Asset["typeId"]);
+                        setAssetType(String(v));
                         setAssetTypeId("");
                       }
                     }}
                     className="w-full px-4 py-2.5 rounded-lg bg-[#f8f9ff] border border-[rgba(0,0,0,0.05)] text-[#1a1d2e] focus:outline-none focus:ring-2 focus:ring-[#6366f1]/20 focus:border-[#6366f1] transition-all duration-200 cursor-pointer"
                   >
-                    {(typesByCategoryWithIds(category).length
-                      ? typesByCategoryWithIds(category)
-                      : catalog && catalog.length
-                      ? catalog.flatMap((c) => c.types)
-                      : assetTypes.map((n) => ({ name: n } as any))
-                    ).map((t: any) => (
-                      <option
-                        key={t.id ?? t.name}
-                        value={
-                          t.id !== undefined && t.id !== null
-                            ? String(t.id)
-                            : t.name
-                        }
-                      >
-                        {t.name}
-                      </option>
-                    ))}
+                    {(() => {
+                      let opts: Array<{ id?: number; name: string }>;
+                      if (typesByCategoryWithIds(category).length) {
+                        opts = typesByCategoryWithIds(category);
+                      } else if (catalog?.length) {
+                        opts = catalog.flatMap((c) => c.types);
+                      } else {
+                        opts = assetTypes.map((n) => ({ name: n } as any));
+                      }
+                      return opts.map((t: any) => (
+                        <option
+                          key={t.id ?? t.name}
+                          value={
+                            t.id !== undefined && t.id !== null
+                              ? String(t.id)
+                              : t.name
+                          }
+                        >
+                          {t.name}
+                        </option>
+                      ));
+                    })()}
                   </select>
                 </div>
 
                 {/* Asset Name */}
                 <div className="md:col-span-2">
-                  <label className="block text-sm font-medium text-[#1a1d2e] mb-2">
+                  <label
+                    htmlFor="asset-name"
+                    className="block text-sm font-medium text-[#1a1d2e] mb-2"
+                  >
                     Asset Name *
                   </label>
                   <input
+                    id="asset-name"
                     type="text"
                     required
                     value={formData.name}
@@ -626,10 +706,14 @@ export function AddAssetPage({ onNavigate, onSearch }: AddAssetPageProps) {
 
                 {/* Serial Number */}
                 <div>
-                  <label className="block text-sm font-medium text-[#1a1d2e] mb-2">
+                  <label
+                    htmlFor="serial-number"
+                    className="block text-sm font-medium text-[#1a1d2e] mb-2"
+                  >
                     Serial Number *
                   </label>
                   <input
+                    id="serial-number"
                     type="text"
                     required
                     value={formData.serialNumber}
@@ -643,10 +727,14 @@ export function AddAssetPage({ onNavigate, onSearch }: AddAssetPageProps) {
 
                 {/* Status */}
                 <div>
-                  <label className="block text-sm font-medium text-[#1a1d2e] mb-2">
+                  <label
+                    htmlFor="status"
+                    className="block text-sm font-medium text-[#1a1d2e] mb-2"
+                  >
                     Status *
                   </label>
                   <select
+                    id="status"
                     required
                     value={formData.status}
                     onChange={(e) =>
@@ -664,11 +752,15 @@ export function AddAssetPage({ onNavigate, onSearch }: AddAssetPageProps) {
 
                 {/* Assigned To (required only when Allocated) */}
                 <div>
-                  <label className="block text-sm font-medium text-[#1a1d2e] mb-2">
+                  <label
+                    htmlFor="assigned-to"
+                    className="block text-sm font-medium text-[#1a1d2e] mb-2"
+                  >
                     Assigned To
                     {formData.status === "Allocated" ? " *" : " (optional)"}
                   </label>
                   <input
+                    id="assigned-to"
                     type="text"
                     required={formData.status === "Allocated"}
                     value={formData.assignedTo}
@@ -682,11 +774,15 @@ export function AddAssetPage({ onNavigate, onSearch }: AddAssetPageProps) {
 
                 {/* Assigned To Email */}
                 <div>
-                  <label className="block text-sm font-medium text-[#1a1d2e] mb-2">
+                  <label
+                    htmlFor="assigned-email"
+                    className="block text-sm font-medium text-[#1a1d2e] mb-2"
+                  >
                     Assigned To Email
                     {formData.assignedTo.trim() ? " *" : " (optional)"}
                   </label>
                   <input
+                    id="assigned-email"
                     type="email"
                     required={!!formData.assignedTo.trim()}
                     value={formData.assignedEmail}
@@ -705,10 +801,14 @@ export function AddAssetPage({ onNavigate, onSearch }: AddAssetPageProps) {
 
                 {/* Department */}
                 <div>
-                  <label className="block text-sm font-medium text-[#1a1d2e] mb-2">
+                  <label
+                    htmlFor="department"
+                    className="block text-sm font-medium text-[#1a1d2e] mb-2"
+                  >
                     Department *
                   </label>
                   <input
+                    id="department"
                     type="text"
                     required
                     value={formData.department}
@@ -722,10 +822,14 @@ export function AddAssetPage({ onNavigate, onSearch }: AddAssetPageProps) {
 
                 {/* Location */}
                 <div className="md:col-span-2">
-                  <label className="block text-sm font-medium text-[#1a1d2e] mb-2">
+                  <label
+                    htmlFor="location"
+                    className="block text-sm font-medium text-[#1a1d2e] mb-2"
+                  >
                     Location *
                   </label>
                   <select
+                    id="location"
                     required
                     value={formData.location ?? ""}
                     onChange={(e) =>
@@ -757,10 +861,14 @@ export function AddAssetPage({ onNavigate, onSearch }: AddAssetPageProps) {
               </h3>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-[#1a1d2e] mb-2">
+                  <label
+                    htmlFor="cia-confidentiality"
+                    className="block text-sm font-medium text-[#1a1d2e] mb-2"
+                  >
                     Confidentiality
                   </label>
                   <select
+                    id="cia-confidentiality"
                     value={String(cia.c)}
                     onChange={(e) =>
                       setCia((v) => ({ ...v, c: Number(e.target.value) }))
@@ -775,10 +883,14 @@ export function AddAssetPage({ onNavigate, onSearch }: AddAssetPageProps) {
                   </select>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-[#1a1d2e] mb-2">
+                  <label
+                    htmlFor="cia-integrity"
+                    className="block text-sm font-medium text-[#1a1d2e] mb-2"
+                  >
                     Integrity
                   </label>
                   <select
+                    id="cia-integrity"
                     value={String(cia.i)}
                     onChange={(e) =>
                       setCia((v) => ({ ...v, i: Number(e.target.value) }))
@@ -793,10 +905,14 @@ export function AddAssetPage({ onNavigate, onSearch }: AddAssetPageProps) {
                   </select>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-[#1a1d2e] mb-2">
+                  <label
+                    htmlFor="cia-availability"
+                    className="block text-sm font-medium text-[#1a1d2e] mb-2"
+                  >
                     Availability
                   </label>
                   <select
+                    id="cia-availability"
                     value={String(cia.a)}
                     onChange={(e) =>
                       setCia((v) => ({ ...v, a: Number(e.target.value) }))
@@ -841,7 +957,10 @@ export function AddAssetPage({ onNavigate, onSearch }: AddAssetPageProps) {
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 {/* Cost */}
                 <div>
-                  <label className="block text-sm font-medium text-[#1a1d2e] mb-2">
+                  <label
+                    htmlFor="purchase-cost"
+                    className="block text-sm font-medium text-[#1a1d2e] mb-2"
+                  >
                     Purchase Cost *
                   </label>
                   <div className="relative">
@@ -849,6 +968,7 @@ export function AddAssetPage({ onNavigate, onSearch }: AddAssetPageProps) {
                       {currencySymbol}
                     </span>
                     <input
+                      id="purchase-cost"
                       type="number"
                       required
                       min="0"
@@ -865,10 +985,14 @@ export function AddAssetPage({ onNavigate, onSearch }: AddAssetPageProps) {
 
                 {/* Purchase Date */}
                 <div>
-                  <label className="block text-sm font-medium text-[#1a1d2e] mb-2">
+                  <label
+                    htmlFor="purchase-date"
+                    className="block text-sm font-medium text-[#1a1d2e] mb-2"
+                  >
                     Purchase Date *
                   </label>
                   <input
+                    id="purchase-date"
                     type="date"
                     required
                     value={formData.purchaseDate}
@@ -881,10 +1005,14 @@ export function AddAssetPage({ onNavigate, onSearch }: AddAssetPageProps) {
 
                 {/* End of Support */}
                 <div>
-                  <label className="block text-sm font-medium text-[#1a1d2e] mb-2">
+                  <label
+                    htmlFor="eos-date"
+                    className="block text-sm font-medium text-[#1a1d2e] mb-2"
+                  >
                     End of Support
                   </label>
                   <input
+                    id="eos-date"
                     type="date"
                     value={formData.eosDate}
                     onChange={(e) =>
@@ -896,10 +1024,14 @@ export function AddAssetPage({ onNavigate, onSearch }: AddAssetPageProps) {
 
                 {/* End of Life */}
                 <div>
-                  <label className="block text-sm font-medium text-[#1a1d2e] mb-2">
+                  <label
+                    htmlFor="eol-date"
+                    className="block text-sm font-medium text-[#1a1d2e] mb-2"
+                  >
                     End of Life
                   </label>
                   <input
+                    id="eol-date"
                     type="date"
                     value={formData.eolDate}
                     onChange={(e) =>
@@ -926,10 +1058,14 @@ export function AddAssetPage({ onNavigate, onSearch }: AddAssetPageProps) {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {/* Processor */}
                   <div>
-                    <label className="block text-sm font-medium text-[#1a1d2e] mb-2">
+                    <label
+                      htmlFor="processor"
+                      className="block text-sm font-medium text-[#1a1d2e] mb-2"
+                    >
                       Processor
                     </label>
                     <input
+                      id="processor"
                       type="text"
                       value={formData.processor}
                       onChange={(e) =>
@@ -942,10 +1078,14 @@ export function AddAssetPage({ onNavigate, onSearch }: AddAssetPageProps) {
 
                   {/* RAM */}
                   <div>
-                    <label className="block text-sm font-medium text-[#1a1d2e] mb-2">
+                    <label
+                      htmlFor="ram"
+                      className="block text-sm font-medium text-[#1a1d2e] mb-2"
+                    >
                       RAM
                     </label>
                     <input
+                      id="ram"
                       type="text"
                       value={formData.ram}
                       onChange={(e) => handleInputChange("ram", e.target.value)}
@@ -956,10 +1096,14 @@ export function AddAssetPage({ onNavigate, onSearch }: AddAssetPageProps) {
 
                   {/* Storage */}
                   <div>
-                    <label className="block text-sm font-medium text-[#1a1d2e] mb-2">
+                    <label
+                      htmlFor="storage"
+                      className="block text-sm font-medium text-[#1a1d2e] mb-2"
+                    >
                       Storage
                     </label>
                     <input
+                      id="storage"
                       type="text"
                       value={formData.storage}
                       onChange={(e) =>
@@ -972,10 +1116,14 @@ export function AddAssetPage({ onNavigate, onSearch }: AddAssetPageProps) {
 
                   {/* Operating System */}
                   <div>
-                    <label className="block text-sm font-medium text-[#1a1d2e] mb-2">
+                    <label
+                      htmlFor="os"
+                      className="block text-sm font-medium text-[#1a1d2e] mb-2"
+                    >
                       Operating System
                     </label>
                     <input
+                      id="os"
                       type="text"
                       value={formData.os}
                       onChange={(e) => handleInputChange("os", e.target.value)}
@@ -1015,11 +1163,15 @@ export function AddAssetPage({ onNavigate, onSearch }: AddAssetPageProps) {
                     setCustomFieldValues((v) => ({ ...v, [def.key]: newVal }));
                   return (
                     <div key={def.key}>
-                      <label className="block text-sm font-medium text-[#1a1d2e] mb-2">
+                      <label
+                        htmlFor={def.key}
+                        className="block text-sm font-medium text-[#1a1d2e] mb-2"
+                      >
                         {def.label}
                         {def.required ? " *" : ""}
                       </label>
                       <FieldRenderer
+                        id={def.key}
                         def={def}
                         value={val}
                         onChange={onChange}
@@ -1038,18 +1190,14 @@ export function AddAssetPage({ onNavigate, onSearch }: AddAssetPageProps) {
                   <div className="space-y-3">
                     {extraFields.map((cf, idx) => (
                       <div
-                        key={idx}
+                        key={JSON.stringify(cf)}
                         className="grid grid-cols-1 md:grid-cols-12 gap-3 items-center"
                       >
                         <input
                           placeholder="Key"
                           value={cf.key}
                           onChange={(e) =>
-                            setExtraFields((arr) =>
-                              arr.map((it, i) =>
-                                i === idx ? { ...it, key: e.target.value } : it
-                              )
-                            )
+                            handleExtraFieldKeyChange(idx, e.target.value)
                           }
                           className="md:col-span-5 w-full px-3 py-2 rounded-lg bg-[#f8f9ff] border border-[rgba(0,0,0,0.08)]"
                         />
@@ -1057,23 +1205,13 @@ export function AddAssetPage({ onNavigate, onSearch }: AddAssetPageProps) {
                           placeholder="Value"
                           value={cf.value}
                           onChange={(e) =>
-                            setExtraFields((arr) =>
-                              arr.map((it, i) =>
-                                i === idx
-                                  ? { ...it, value: e.target.value }
-                                  : it
-                              )
-                            )
+                            handleExtraFieldValueChange(idx, e.target.value)
                           }
                           className="md:col-span-6 w-full px-3 py-2 rounded-lg bg-[#f8f9ff] border border-[rgba(0,0,0,0.08)]"
                         />
                         <Button
                           type="button"
-                          onClick={() =>
-                            setExtraFields((arr) =>
-                              arr.filter((_, i) => i !== idx)
-                            )
-                          }
+                          onClick={() => handleRemoveExtraField(idx)}
                           className="md:col-span-1 px-3 py-2 rounded-lg bg-white border border-[rgba(0,0,0,0.08)] hover:bg-[#fee2e2] text-[#ef4444]"
                         >
                           Remove
@@ -1131,7 +1269,7 @@ export function AddAssetPage({ onNavigate, onSearch }: AddAssetPageProps) {
                   <div className="flex justify-between items-center pb-2 border-b border-white/20">
                     <span className="text-sm text-white/80">Cost</span>
                     <span className="font-semibold">
-                      {formatCurrency(parseFloat(formData.cost))}
+                      {formatCurrency(Number.parseFloat(formData.cost))}
                     </span>
                   </div>
                 )}
@@ -1153,9 +1291,7 @@ export function AddAssetPage({ onNavigate, onSearch }: AddAssetPageProps) {
                 <Button
                   type="button"
                   onClick={() => {
-                    try {
-                      localStorage.removeItem(ADD_ASSET_DRAFT_KEY);
-                    } catch {}
+                    lsRemove(ADD_ASSET_DRAFT_KEY);
                     onNavigate?.("assets");
                   }}
                   className="gap-2 w-full px-8 py-3 mt-4 bg-white/10 text-white rounded-lg font-semibold hover:bg-white/20 transition-all duration-200"

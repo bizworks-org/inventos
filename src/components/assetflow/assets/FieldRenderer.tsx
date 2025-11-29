@@ -5,31 +5,32 @@ import { AssetFieldDef, AssetFieldType } from '../../../lib/data';
 type Props = {
   def: AssetFieldDef;
   value: string;
+  id?: string;
   onChange: (v: string) => void;
 };
-
+export default function FieldRenderer({ def, value, onChange, id }: Props) {
 export default function FieldRenderer({ def, value, onChange }: Props) {
   const val = value ?? '';
   // console.log('def.type', def.type, def, value);
-  if (def.type === 'textarea') {
+    return <textarea id={id} required={!!def.required} value={val} onChange={(e) => onChange(e.target.value)} placeholder={def.placeholder || ''} className="w-full px-3 py-2 rounded-lg bg-[#f8f9ff] border border-[rgba(0,0,0,0.08)]" />;
     return <textarea required={!!def.required} value={val} onChange={(e) => onChange(e.target.value)} placeholder={def.placeholder || ''} className="w-full px-3 py-2 rounded-lg bg-[#f8f9ff] border border-[rgba(0,0,0,0.08)]" />;
   }
 
-  if (def.type === 'number' || def.type === 'currency') {
+    return <input id={id} type="number" step={def.type === 'currency' ? '0.01' : '1'} required={!!def.required} value={val} onChange={(e) => onChange(e.target.value)} className="w-full px-3 py-2 rounded-lg bg-[#f8f9ff] border border-[rgba(0,0,0,0.08)]" />;
     return <input type="number" step={def.type === 'currency' ? '0.01' : '1'} required={!!def.required} value={val} onChange={(e) => onChange(e.target.value)} className="w-full px-3 py-2 rounded-lg bg-[#f8f9ff] border border-[rgba(0,0,0,0.08)]" />;
   }
 
-  if (def.type === 'date' || def.type === 'datetime') {
+    return <input id={id} type={def.type === 'date' ? 'date' : 'datetime-local'} required={!!def.required} value={val} onChange={(e) => onChange(e.target.value)} className="w-full px-3 py-2 rounded-lg bg-[#f8f9ff] border border-[rgba(0,0,0,0.08)]" />;
     return <input type={def.type === 'date' ? 'date' : 'datetime-local'} required={!!def.required} value={val} onChange={(e) => onChange(e.target.value)} className="w-full px-3 py-2 rounded-lg bg-[#f8f9ff] border border-[rgba(0,0,0,0.08)]" />;
   }
 
   if (def.type === 'phone' || def.type === 'email' || def.type === 'url') {
-    const t = def.type === 'phone' ? 'tel' : def.type === 'email' ? 'email' : 'url';
+    return <input id={id} type={t} required={!!def.required} value={val} onChange={(e) => onChange(e.target.value)} placeholder={def.placeholder || ''} className="w-full px-3 py-2 rounded-lg bg-[#f8f9ff] border border-[rgba(0,0,0,0.08)]" />;
     return <input type={t} required={!!def.required} value={val} onChange={(e) => onChange(e.target.value)} placeholder={def.placeholder || ''} className="w-full px-3 py-2 rounded-lg bg-[#f8f9ff] border border-[rgba(0,0,0,0.08)]" />;
   }
 
   if (def.type === 'select') {
-    return (
+      <select id={id} required={!!def.required} value={val} onChange={(e) => onChange(e.target.value)} className="w-full px-3 py-2 rounded-lg bg-[#f8f9ff] border border-[rgba(0,0,0,0.08)]">
       <select required={!!def.required} value={val} onChange={(e) => onChange(e.target.value)} className="w-full px-3 py-2 rounded-lg bg-[#f8f9ff] border border-[rgba(0,0,0,0.08)]">
         <option value="">-- select --</option>
         {(def.options || []).map((opt) => <option key={opt} value={opt}>{opt}</option>)}
@@ -39,10 +40,10 @@ export default function FieldRenderer({ def, value, onChange }: Props) {
 
   if (def.type === 'multiselect') {
     const selected = (typeof val === 'string' && val.length) ? val.split(',').map(s => s.trim()) : [];
-    return (
-      <select multiple value={selected} onChange={(e) => {
+      <select id={id} multiple value={selected} onChange={(e) => {
         const opts = Array.from(e.target.selectedOptions).map(o => o.value);
         onChange(opts.join(', '));
+      }} className="w-full px-3 py-2 rounded-lg bg-[#f8f9ff] border border-[rgba(0,0,0,0.08)]">
       }} className="w-full px-3 py-2 rounded-lg bg-[#f8f9ff] border border-[rgba(0,0,0,0.08)]">
         {(def.options || []).map((opt) => <option key={opt} value={opt}>{opt}</option>)}
       </select>
@@ -51,7 +52,7 @@ export default function FieldRenderer({ def, value, onChange }: Props) {
 
   if (def.type === 'boolean') {
     return (
-      <div className="flex items-center gap-2">
+        <input id={id} type="checkbox" checked={val === 'true'} onChange={(e) => onChange(e.target.checked ? 'true' : 'false')} />
         <input type="checkbox" checked={val === 'true'} onChange={(e) => onChange(e.target.checked ? 'true' : 'false')} />
         <span className="text-sm">{def.placeholder || ''}</span>
       </div>
@@ -94,6 +95,6 @@ export default function FieldRenderer({ def, value, onChange }: Props) {
     );
   }
 
-  // default: text
+  return <input id={id} type="text" required={!!def.required} value={val} onChange={(e) => onChange(e.target.value)} placeholder={def.placeholder || ''} className="w-full px-3 py-2 rounded-lg bg-[#f8f9ff] border border-[rgba(0,0,0,0.08)]" />;
   return <input type="text" required={!!def.required} value={val} onChange={(e) => onChange(e.target.value)} placeholder={def.placeholder || ''} className="w-full px-3 py-2 rounded-lg bg-[#f8f9ff] border border-[rgba(0,0,0,0.08)]" />;
 }
