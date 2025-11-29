@@ -32,8 +32,8 @@ export default function AssetImportModal({
     const onKey = (ev: KeyboardEvent) => {
       if (ev.key === "Escape") onClose();
     };
-    if (open) window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
+    if (open) globalThis.addEventListener("keydown", onKey);
+    return () => globalThis.removeEventListener("keydown", onKey);
   }, [open, onClose]);
 
   useEffect(() => {
@@ -45,7 +45,6 @@ export default function AssetImportModal({
         document.body.style.overflow = prev || "";
       };
     }
-    return;
   }, [open]);
 
   useEffect(() => {
@@ -57,13 +56,13 @@ export default function AssetImportModal({
       const all = Array.from(document.querySelectorAll<HTMLElement>("body *"));
       for (const el of all) {
         try {
-          const cs = window.getComputedStyle(el);
+          const cs = globalThis.getComputedStyle(el);
           if (!cs) continue;
           const pos = cs.position;
-          const z = parseInt(cs.zIndex || "0", 10);
+          const z = Number.parseInt(cs.zIndex || "0", 10);
           if (
             (pos === "fixed" || pos === "sticky" || pos === "absolute") &&
-            !isNaN(z) &&
+            !Number.isNaN(z) &&
             z >= modalZ
           ) {
             // save previous inline z-index so we can restore
@@ -126,9 +125,8 @@ export default function AssetImportModal({
         onClick={onClose}
         aria-hidden="true"
       />
-      <div
-        role="dialog"
-        aria-modal="true"
+      <dialog
+        open
         aria-label="Asset Import Preview"
         style={{
           position: "relative",
@@ -292,7 +290,7 @@ export default function AssetImportModal({
             </Button>
           </div>
         </div>
-      </div>
+      </dialog>
       {/* render the loading overlay as a sibling so it reliably sits above the panel */}
       {loading && (
         <AssetImportLoadingOverlay
@@ -304,7 +302,7 @@ export default function AssetImportModal({
     </div>
   );
 
-  return typeof document !== "undefined"
-    ? createPortal(modal, document.body)
-    : modal;
+  return typeof document === "undefined"
+    ? modal
+    : createPortal(modal, document.body);
 }
