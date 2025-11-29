@@ -48,7 +48,7 @@ export async function PUT(req: NextRequest, ctx: any) {
       return NextResponse.json({ error: "Name required" }, { status: 400 });
     const address = body?.address ?? null;
     const zipcode = body?.zipcode ?? null;
-    if (zipcode && !/^[0-9]{6}$/.test(String(zipcode)))
+    if (zipcode && !/^\d{6}$/.test(String(zipcode)))
       return NextResponse.json(
         { error: "ZipCode must be 6 digits" },
         { status: 400 }

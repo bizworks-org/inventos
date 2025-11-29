@@ -60,7 +60,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Name required" }, { status: 400 });
     const address = (body?.address || "").toString();
     const zipcode = (body?.zipcode || "").toString();
-    if (zipcode && !/^[0-9]{6}$/.test(zipcode))
+    if (zipcode && !/^\d{6}$/.test(zipcode))
       return NextResponse.json(
         { error: "ZipCode must be 6 digits" },
         { status: 400 }

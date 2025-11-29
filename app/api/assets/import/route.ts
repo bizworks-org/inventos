@@ -30,11 +30,10 @@ export async function POST(req: NextRequest) {
       text = String(body?.text || "");
     } else {
       // treat body as raw text
-      fileName = "import.csv";
       text = await req.text();
     }
 
-    if (!text || !text.trim()) {
+    if (!text?.trim()) {
       return NextResponse.json(
         { error: "Empty import payload" },
         { status: 400 }

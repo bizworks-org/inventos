@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { AssetFlowLayout } from "../layout/AssetFlowLayout";
 import { useMe } from "../layout/MeContext";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../../ui/tabs";
@@ -24,7 +24,7 @@ interface Props {
   onSearch?: (q: string) => void;
 }
 
-export function CustomizationPage({ onNavigate, onSearch }: Props) {
+export function CustomizationPage({ onNavigate, onSearch }: Readonly<Props>) {
   const { me } = useMe();
   const isSuperAdmin = me?.role === "superadmin";
 
@@ -65,7 +65,7 @@ export function CustomizationPage({ onNavigate, onSearch }: Props) {
       if (parsed?.asset_id_prefix)
         setAssetIdPrefix(String(parsed.asset_id_prefix));
     } catch (e) {
-      // ignore invalid cached settings
+      console.error("Failed to parse cached settings:", e);
     }
 
     const handler = () => {
@@ -82,17 +82,17 @@ export function CustomizationPage({ onNavigate, onSearch }: Props) {
       } catch {}
     };
 
-    window.addEventListener(
+    globalThis.addEventListener(
       "assetflow:settings-saved",
       handler as EventListener
     );
-    window.addEventListener("storage", handler as any);
+    globalThis.addEventListener("storage", handler as any);
     return () => {
-      window.removeEventListener(
+      globalThis.removeEventListener(
         "assetflow:settings-saved",
         handler as EventListener
       );
-      window.removeEventListener("storage", handler as any);
+      globalThis.removeEventListener("storage", handler as any);
     };
   }, []);
 
@@ -101,10 +101,8 @@ export function CustomizationPage({ onNavigate, onSearch }: Props) {
     const loadBranding = async () => {
       try {
         // Load branding from server
-        const ssrName =
-          document.documentElement.getAttribute("data-brand-name");
-        const ssrLogo =
-          document.documentElement.getAttribute("data-brand-logo");
+        const ssrName = document.documentElement.dataset.brandName;
+        const ssrLogo = document.documentElement.dataset.brandLogo;
         if (ssrName) setBrandName(ssrName);
         if (ssrLogo) setLogoUrl(ssrLogo);
 
@@ -171,7 +169,9 @@ export function CustomizationPage({ onNavigate, onSearch }: Props) {
           serverEmail = json?.user?.email || "";
         }
       } catch (e) {
-        // ignore network errors — we'll fall back to local storage value
+        // Log network errors and continue; we'll fall back to local storage value
+        // This ensures the exception is handled instead of being silently swallowed.
+        console.warn("Failed to fetch current user for settings save:", e);
       }
 
       const payload: any = {
@@ -213,12 +213,16 @@ export function CustomizationPage({ onNavigate, onSearch }: Props) {
 
       await saveSettings(payload);
       try {
-        window.dispatchEvent(new Event("assetflow:settings-saved"));
-      } catch {}
+        globalThis.dispatchEvent(new Event("assetflow:settings-saved"));
+      } catch (err) {
+        console.warn("Failed to dispatch assetflow:settings-saved event:", err);
+      }
       try {
         alert("Fields saved");
       } catch {}
     } catch (e) {
+      // Log the error so it's properly handled and visible in diagnostics
+      console.error("Failed to save fields:", e);
       try {
         alert("Failed to save fields");
       } catch {}
@@ -266,11 +270,11 @@ export function CustomizationPage({ onNavigate, onSearch }: Props) {
       localStorage.setItem(LS_KEY, JSON.stringify(next));
       // notify other parts of app with detail payload
       try {
-        window.dispatchEvent(
+        globalThis.dispatchEvent(
           new CustomEvent("assetflow:locations-updated", { detail: next })
         );
       } catch {
-        window.dispatchEvent(new Event("assetflow:locations-updated"));
+        globalThis.dispatchEvent(new Event("assetflow:locations-updated"));
       }
     } catch {}
   };
@@ -285,7 +289,7 @@ export function CustomizationPage({ onNavigate, onSearch }: Props) {
     // require code and name
     if (!vCode || !vName) return;
     // validate zipcode if present: must be 6 digits
-    if (vZip && !/^[0-9]{6}$/.test(vZip)) {
+    if (vZip && !/^\d{6}$/.test(vZip)) {
       try {
         alert("ZipCode must be a 6-digit number");
       } catch {}
@@ -334,7 +338,7 @@ export function CustomizationPage({ onNavigate, onSearch }: Props) {
       patch.zipcode !== undefined &&
       patch.zipcode !== null &&
       patch.zipcode !== "" &&
-      !/^[0-9]{6}$/.test(String(patch.zipcode))
+      !/^\d{6}$/.test(String(patch.zipcode))
     ) {
       try {
         alert("ZipCode must be a 6-digit number");
@@ -348,7 +352,7 @@ export function CustomizationPage({ onNavigate, onSearch }: Props) {
     (async () => {
       try {
         const loc = next[idx];
-        if (loc && loc.id) {
+        if (loc?.id) {
           await fetch(`/api/admin/locations/${encodeURIComponent(loc.id)}`, {
             method: "PUT",
             headers: { "Content-Type": "application/json" },
@@ -361,24 +365,6 @@ export function CustomizationPage({ onNavigate, onSearch }: Props) {
 
   // Catalog tab: show cached catalog and allow refresh
   const [catalog, setCatalog] = useState<any[]>([]);
-  const [catalogMsg, setCatalogMsg] = useState<string | null>(null);
-
-  const loadCatalog = async () => {
-    try {
-      const res = await fetch("/api/admin/catalog", { cache: "no-store" });
-      if (!res.ok) throw new Error("Failed");
-      const data = await res.json();
-      const items = Array.isArray(data) ? data : data?.categories ?? [];
-      setCatalog(items);
-      setCatalogMsg("Loaded");
-      setTimeout(() => setCatalogMsg(null), 2000);
-    } catch (e) {
-      setCatalogMsg("Failed to load catalog");
-      try {
-        setTimeout(() => setCatalogMsg(null), 3000);
-      } catch {}
-    }
-  };
 
   useEffect(() => {
     // show quick cached view from localStorage if present
@@ -746,22 +732,25 @@ export function CustomizationPage({ onNavigate, onSearch }: Props) {
                   </div>
 
                   {(() => {
-                    const fields =
-                      customTarget === "asset"
-                        ? assetFields
-                        : customTarget === "vendor"
-                        ? vendorFields
-                        : licenseFields;
+                    let fields = assetFields;
+                    if (customTarget === "vendor") {
+                      fields = vendorFields;
+                    } else if (customTarget === "license") {
+                      fields = licenseFields;
+                    }
+
+                    // Extracted the nested ternary into an independent statement
+                    let targetName = "Assets";
+                    if (customTarget === "vendor") {
+                      targetName = "Vendors";
+                    } else if (customTarget === "license") {
+                      targetName = "Licenses";
+                    }
+
                     if (!fields || fields.length === 0) {
                       return (
                         <p className="text-sm text-[#64748b]">
-                          No custom fields defined for{" "}
-                          {customTarget === "asset"
-                            ? "Assets"
-                            : customTarget === "vendor"
-                            ? "Vendors"
-                            : "Licenses"}{" "}
-                          yet.
+                          No custom fields defined for {targetName} yet.
                         </p>
                       );
                     }

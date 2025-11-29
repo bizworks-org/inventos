@@ -3,6 +3,60 @@ import { query } from "@/lib/db";
 import { requirePermission, readMeFromCookie } from "@/lib/auth/permissions";
 import { notify } from "@/lib/notifications";
 
+async function allocateIdIfNeeded(target: any) {
+  const idVal = typeof target?.id === "string" ? target.id.trim() : "";
+  const prefix = "LIC";
+  const re = new RegExp(
+    `^${prefix.replace(/[-/\\^$*+?.()|[\]{}]/g, "\\$&")}-\\d+$`
+  );
+  if (re.test(idVal)) return;
+
+  try {
+    await query(
+      `CREATE TABLE IF NOT EXISTS sequences (name VARCHAR(64) PRIMARY KEY, val BIGINT NOT NULL)`
+    );
+  } catch {}
+  const seqName = `licenses_${prefix}`;
+  try {
+    await query(
+      `INSERT INTO sequences (name, val) VALUES (:name, 1) ON DUPLICATE KEY UPDATE val = val + 1`,
+      { name: seqName }
+    );
+    const rows: any[] = await query(
+      `SELECT val FROM sequences WHERE name = :name`,
+      { name: seqName }
+    );
+    const next = rows?.length ? Number(rows[0].val) : Date.now();
+    target.id = `${prefix}-${String(next).padStart(4, "0")}`;
+  } catch {
+    target.id = `LIC-${Date.now()}`;
+  }
+}
+
+// Helper to notify admins without affecting the primary flow
+async function notifyAdmins(target: any) {
+  try {
+    const me = await readMeFromCookie();
+    const admins = await query<any>(
+      `SELECT u.email FROM users u
+           JOIN user_roles ur ON ur.user_id = u.id
+           JOIN roles r ON r.id = ur.role_id
+          WHERE r.name IN ('admin','superadmin')`
+    );
+    const recipients = admins.map((a: any) => String(a.email)).filter(Boolean);
+    if (recipients.length) {
+      await notify({
+        type: "license.created",
+        title: `License created: ${target.name}`,
+        body: `${me?.email || "system"} created license ${target.name}`,
+        recipients,
+        entity: { type: "license", id: String(target.id) },
+        metadata: { id: target.id, name: target.name },
+      });
+    }
+  } catch {}
+}
+
 export async function GET() {
   const guard = await requirePermission("licenses_read");
   if (!("ok" in guard) || !guard.ok)
@@ -24,67 +78,15 @@ export async function POST(req: NextRequest) {
       { status: (guard as any).status ?? 403 }
     );
   const body = await req.json();
+
+  // Helper to allocate an ID when it's missing or not matching LIC-<digits>
+
   try {
-    // If no id provided or it's not a short canonical LIC-<digits>, allocate one using DB-backed sequence
-    try {
-      const idVal = typeof body?.id === "string" ? body.id.trim() : "";
-      const prefix = "LIC";
-      const re = new RegExp(
-        `^${prefix.replace(/[-/\\^$*+?.()|[\]{}]/g, "\\$&")}-\\d+$`
-      );
-      if (!re.test(idVal)) {
-        try {
-          await query(
-            `CREATE TABLE IF NOT EXISTS sequences (name VARCHAR(64) PRIMARY KEY, val BIGINT NOT NULL)`
-          );
-        } catch {}
-        const seqName = `licenses_${prefix}`;
-        try {
-          await query(
-            `INSERT INTO sequences (name, val) VALUES (:name, 1) ON DUPLICATE KEY UPDATE val = val + 1`,
-            { name: seqName }
-          );
-          const rows: any[] = await query(
-            `SELECT val FROM sequences WHERE name = :name`,
-            { name: seqName }
-          );
-          const next = rows && rows.length ? Number(rows[0].val) : Date.now();
-          body.id = `${prefix}-${String(next).padStart(4, "0")}`;
-        } catch (e) {
-          body.id = `LIC-${Date.now()}`;
-        }
-      }
-    } catch (err) {
-      if (!body.id) body.id = `LIC-${Date.now()}`;
-    }
+    await allocateIdIfNeeded(body);
 
     const sql = `INSERT INTO licenses (id, name, vendor, type, seats, seats_used, expiration_date, cost, owner, compliance, renewal_date)
                  VALUES (:id, :name, :vendor, :type, :seats, :seats_used, :expiration_date, :cost, :owner, :compliance, :renewal_date)`;
     await query(sql, body);
-    // Notify admins about new license
-    try {
-      const me = await readMeFromCookie();
-      const admins = await query<any>(
-        `SELECT u.email FROM users u
-           JOIN user_roles ur ON ur.user_id = u.id
-           JOIN roles r ON r.id = ur.role_id
-          WHERE r.name IN ('admin','superadmin')`
-      );
-      const recipients = admins
-        .map((a: any) => String(a.email))
-        .filter(Boolean);
-      if (recipients.length) {
-        await notify({
-          type: "license.created",
-          title: `License created: ${body.name}`,
-          body: `${me?.email || "system"} created license ${body.name}`,
-          recipients,
-          entity: { type: "license", id: String(body.id) },
-          metadata: { id: body.id, name: body.name },
-        });
-      }
-    } catch {}
-    return NextResponse.json({ ok: true, id: body.id }, { status: 201 });
   } catch (e: any) {
     console.error("POST /api/licenses failed:", e);
     return NextResponse.json(
@@ -92,4 +94,9 @@ export async function POST(req: NextRequest) {
       { status: 500 }
     );
   }
+
+  // Fire-and-forget notification to avoid increasing request complexity
+  void notifyAdmins(body);
+
+  return NextResponse.json({ ok: true, id: body.id }, { status: 201 });
 }

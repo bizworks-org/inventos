@@ -11,18 +11,19 @@ export async function GET() {
   if (!me?.id) return NextResponse.json({ user: null }, { status: 200 });
   const user = await dbFindUserById(me.id);
   if (!user) return NextResponse.json({ user: null }, { status: 200 });
-  const role: "admin" | "user" | "superadmin" =
-    Array.isArray(user.roles) && user.roles.includes("superadmin")
-      ? "superadmin"
-      : Array.isArray(user.roles) && user.roles.includes("admin")
-      ? "admin"
-      : "user";
+  let role: "admin" | "user" | "superadmin" = "user";
+  if (Array.isArray(user.roles) && user.roles.includes("superadmin")) {
+    role = "superadmin";
+  } else if (Array.isArray(user.roles) && user.roles.includes("admin")) {
+    role = "admin";
+  }
   let permissions: string[] = [];
   if (role === "admin" || role === "superadmin") {
     // Admins should have all permissions (UI and API should treat admins as unrestricted)
     try {
       permissions = await dbListPermissions();
     } catch (e) {
+      console.error("Failed to list permissions, falling back to user-specific permissions:", e);
       permissions = await dbGetUserPermissions(user.id);
     }
   } else {

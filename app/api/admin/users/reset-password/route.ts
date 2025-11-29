@@ -80,8 +80,7 @@ export async function POST(req: NextRequest) {
   try {
     const reloaded = await dbFindUserByEmail(user.email);
     if (
-      !reloaded ||
-      !reloaded.password_hash ||
+      !reloaded?.password_hash ||
       !verifyPassword(password, reloaded.password_hash)
     ) {
       console.error("Password reset verification failed for user", user.email);
@@ -91,12 +90,15 @@ export async function POST(req: NextRequest) {
       );
     }
     // Log success (non-sensitive): indicate reset completed for this user
-    try {
-      if (process.env.NODE_ENV !== "production")
-        console.info("Password reset completed for", user.email, {
-          userId: userId,
-        });
-    } catch (e) {}
+        try {
+          if (process.env.NODE_ENV !== "production")
+            console.info("Password reset completed for", user.email, {
+              userId: userId,
+            });
+        } catch (e) {
+          // If logging fails, record the error so it can be investigated
+          console.error("Failed to log password reset for", user.email, e);
+        }
   } catch (e) {
     console.error("Error verifying reset password for", user.email, e);
     return NextResponse.json(

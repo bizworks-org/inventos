@@ -70,8 +70,8 @@ export async function PUT(req: NextRequest, ctx: any) {
   const params = {
     ...body,
     id,
-    contacts: (body as any).contacts
-      ? JSON.stringify((body as any).contacts)
+    contacts: body.contacts
+      ? JSON.stringify(body.contacts)
       : null,
   };
   const sqlWithContacts = sql.replace(

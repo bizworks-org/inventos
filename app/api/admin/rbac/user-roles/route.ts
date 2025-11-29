@@ -24,23 +24,21 @@ async function requireAdmin() {
   }
 }
 
-export async function POST(req: NextRequest) {
-  const me = await requireAdmin();
-  if (!me) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-  // Detect whether the requester is a Superadmin so we can allow broader actions
-  let requesterIsSuper = false;
+// Helper: check if a given userId has the 'superadmin' role
+async function isRequesterSuper(userId: any): Promise<boolean> {
   try {
     const r = await query<{ count: number }>(
       `SELECT COUNT(*) AS count FROM user_roles ur JOIN roles r ON r.id = ur.role_id WHERE ur.user_id = :uid AND r.name = 'superadmin'`,
-      { uid: (me as any).id }
+      { uid: userId }
     );
-    requesterIsSuper = Number(r?.[0]?.count || 0) > 0;
-  } catch {}
-  const body = await req.json();
-  const { userId, roles } = body || {};
-  if (!userId || !Array.isArray(roles))
-    return NextResponse.json({ error: "Bad request" }, { status: 400 });
-  // Guard: disallow modifying roles of other administrators
+    return Number(r?.[0]?.count || 0) > 0;
+  } catch {
+    return false;
+  }
+}
+
+// Helper: check if a given userId currently has admin or superadmin role
+async function isUserAdmin(userId: any): Promise<boolean> {
   try {
     const rows = await query<{ count: number }>(
       `SELECT COUNT(*) AS count
@@ -49,78 +47,104 @@ export async function POST(req: NextRequest) {
         WHERE ur.user_id = :userId AND r.name IN ('admin','superadmin')`,
       { userId }
     );
-    const targetIsAdmin = Number(rows?.[0]?.count || 0) > 0;
-    if (targetIsAdmin && (me as any).id !== userId && !requesterIsSuper) {
+    return Number(rows?.[0]?.count || 0) > 0;
+  } catch {
+    return false;
+  }
+}
+
+// Helper: count current admins (admin + superadmin)
+async function countAdmins(): Promise<number> {
+  const rows = await query<{ count: number }>(
+    `SELECT COUNT(*) AS count
+           FROM user_roles ur
+           JOIN roles r ON r.id = ur.role_id
+          WHERE r.name IN ('admin','superadmin')`
+  );
+  return Number(rows?.[0]?.count || 0);
+}
+
+export async function POST(req: NextRequest) {
+  const me = await requireAdmin();
+  if (!me) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  const meId = (me as any).id;
+
+  const body = await req.json();
+  const { userId, roles } = body || {};
+  if (!userId || !Array.isArray(roles))
+    return NextResponse.json({ error: "Bad request" }, { status: 400 });
+
+  const requesterIsSuper = await isRequesterSuper(meId);
+
+  // Guard helpers to reduce cognitive complexity of this function
+  const guardModifyOtherAdmins = async (): Promise<NextResponse | null> => {
+    const targetIsAdmin = await isUserAdmin(userId);
+    if (targetIsAdmin && meId !== userId && !requesterIsSuper) {
       return NextResponse.json(
         { error: "Cannot modify roles of another administrator." },
         { status: 403 }
       );
     }
-  } catch {}
-  // Guard: prevent an admin from removing their own admin role, especially if they are the last admin
-  if (
-    userId === (me as any).id &&
-    !(roles.includes("admin") || roles.includes("superadmin"))
-  ) {
-    if (!requesterIsSuper) {
-      try {
-        const rows = await query<{ count: number }>(
-          `SELECT COUNT(*) AS count
-           FROM user_roles ur
-           JOIN roles r ON r.id = ur.role_id
-          WHERE r.name IN ('admin','superadmin')`
-        );
-        const adminCount = Number(rows?.[0]?.count || 0);
-        if (adminCount <= 1) {
+    return null;
+  };
+
+  const guardSelfDowngrade = async (): Promise<NextResponse | null> => {
+    if (
+      userId === meId &&
+      !(roles.includes("admin") || roles.includes("superadmin"))
+    ) {
+      if (!requesterIsSuper) {
+        try {
+          const adminCount = await countAdmins();
+          if (adminCount <= 1) {
+            return NextResponse.json(
+              { error: "Cannot remove the last administrator." },
+              { status: 400 }
+            );
+          }
+        } catch {
+          // If we cannot verify, be safe and block the self-downgrade
           return NextResponse.json(
-            { error: "Cannot remove the last administrator." },
+            { error: "Cannot change your own admin role at this time." },
+            { status: 400 }
+          );
+        }
+      }
+    }
+    return null;
+  };
+
+  const guardZeroAdmins = async (): Promise<NextResponse | null> => {
+    if (
+      !(roles.includes("admin") || roles.includes("superadmin")) &&
+      !requesterIsSuper
+    ) {
+      try {
+        const adminCount = await countAdmins();
+        const isCurrentlyAdmin = await isUserAdmin(userId);
+        if (isCurrentlyAdmin && adminCount <= 1) {
+          return NextResponse.json(
+            { error: "At least one administrator must remain." },
             { status: 400 }
           );
         }
       } catch {
-        // If we cannot verify, be safe and block the self-downgrade
         return NextResponse.json(
-          { error: "Cannot change your own admin role at this time." },
+          { error: "Cannot validate admin constraints. Try again later." },
           { status: 400 }
         );
       }
     }
+    return null;
+  };
+
+  // Run guards in sequence and return early if any block applies
+  const guards = [guardModifyOtherAdmins, guardSelfDowngrade, guardZeroAdmins];
+  for (const g of guards) {
+    const res = await g();
+    if (res) return res;
   }
-  // Guard: prevent resulting in zero admins system-wide
-  if (
-    !(roles.includes("admin") || roles.includes("superadmin")) &&
-    !requesterIsSuper
-  ) {
-    try {
-      const rows = await query<{ count: number }>(
-        `SELECT COUNT(*) AS count
-           FROM user_roles ur
-           JOIN roles r ON r.id = ur.role_id
-          WHERE r.name IN ('admin','superadmin')`
-      );
-      const adminCount = Number(rows?.[0]?.count || 0);
-      // If current target is an admin, ensure at least 2 before removal
-      const currentRows = await query<{ count: number }>(
-        `SELECT COUNT(*) AS count
-           FROM user_roles ur
-           JOIN roles r ON r.id = ur.role_id
-          WHERE ur.user_id = :userId AND r.name IN ('admin','superadmin')`,
-        { userId }
-      );
-      const isCurrentlyAdmin = Number(currentRows?.[0]?.count || 0) > 0;
-      if (isCurrentlyAdmin && adminCount <= 1) {
-        return NextResponse.json(
-          { error: "At least one administrator must remain." },
-          { status: 400 }
-        );
-      }
-    } catch {
-      return NextResponse.json(
-        { error: "Cannot validate admin constraints. Try again later." },
-        { status: 400 }
-      );
-    }
-  }
+
   await dbSetUserRoles(userId, roles);
   return NextResponse.json({ ok: true });
 }

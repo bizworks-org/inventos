@@ -254,45 +254,56 @@ export default function ManageUsersPage() {
     toast.success("User activated");
     load();
   };
+  // fallback copy using execCommand for older browsers
+  const fallbackCopyToClipboard = (text: string) => {
+    try {
+      const ta = document.createElement("textarea");
+      ta.value = text;
+      ta.style.position = "fixed";
+      ta.style.top = "-1000px";
+      document.body.appendChild(ta);
+      ta.select();
+      // execCommand is deprecated in lib.dom.d.ts; cast to any to avoid the deprecated signature error
+      (document as any).execCommand("copy");
+      ta.remove();
+      return true;
+    } catch {
+      return false;
+    }
+  };
+
+  const tryCopyToClipboard = async (text: string) => {
+    try {
+      await navigator.clipboard.writeText(text);
+      return true;
+    } catch {
+      return fallbackCopyToClipboard(text);
+    }
+  };
+
+  const clearVisiblePassword = (userId: string) => {
+    try {
+      setVisiblePasswords((cur) => {
+        const copy = { ...cur };
+        delete copy[userId];
+        return copy;
+      });
+    } catch (err) {
+      console.error("[users] resetPassword:clearVisiblePassword error", err);
+    }
+  };
+
+  const showVisiblePasswordForAWhile = (userId: string, password: string) => {
+    try {
+      setVisiblePasswords((cur) => ({ ...cur, [userId]: password }));
+      setTimeout(() => clearVisiblePassword(userId), 60_000);
+    } catch (err) {
+      console.error("[users] resetPassword:setVisiblePasswords error", err);
+    }
+  };
+
   const resetPassword = async (id: string) => {
     console.debug("[users] resetPassword:start", { id });
-
-    const tryCopyToClipboard = async (text: string) => {
-      try {
-        await navigator.clipboard.writeText(text);
-        return true;
-      } catch {
-        // Fallback to legacy execCommand copy
-        try {
-          const ta = document.createElement("textarea");
-          ta.value = text;
-          ta.style.position = "fixed";
-          ta.style.top = "-1000px";
-          document.body.appendChild(ta);
-          ta.select();
-          document.execCommand("copy");
-          ta.remove();
-          return true;
-        } catch {
-          return false;
-        }
-      }
-    };
-
-    const showVisiblePasswordForAWhile = (userId: string, password: string) => {
-      try {
-        setVisiblePasswords((cur) => ({ ...cur, [userId]: password }));
-        setTimeout(() => {
-          setVisiblePasswords((cur) => {
-            const copy = { ...cur };
-            delete copy[userId];
-            return copy;
-          });
-        }, 60_000);
-      } catch (err) {
-        console.error("[users] resetPassword:setVisiblePasswords error", err);
-      }
-    };
 
     try {
       const res = await fetch("/api/admin/users/reset-password", {
@@ -385,7 +396,7 @@ export default function ManageUsersPage() {
           {me?.role === "superadmin" ? (
             <RoleChips
               user={u}
-              allRoles={allRoles as Role[]}
+              allRoles={allRoles}
               meId={me?.id}
               meLoading={meLoading}
               activeAdminCount={activeAdminCount}
@@ -543,10 +554,7 @@ export default function ManageUsersPage() {
               <AlertDialogTitle>Remove Admin role?</AlertDialogTitle>
               <AlertDialogDescription>
                 You are about to remove the Admin role from{" "}
-                <span className="font-semibold">
-                  {confirmRemoveAdminFor.userName}
-                </span>
-                . This may restrict access to administrative features.
+                <span className="font-semibold">{confirmRemoveAdminFor.userName}</span>. This may restrict access to administrative features.
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>

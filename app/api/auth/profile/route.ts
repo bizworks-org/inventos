@@ -12,6 +12,8 @@ import {
 } from "@/lib/auth/db-users";
 import { query } from "@/lib/db";
 
+type UserRole = "admin" | "user" | "superadmin";
+
 async function requireAuth() {
   const token = await readAuthToken();
   const payload = verifyToken(token);
@@ -19,7 +21,7 @@ async function requireAuth() {
   return payload as any as {
     id: string;
     email: string;
-    role: "admin" | "user" | "superadmin";
+    role: UserRole;
   };
 }
 
@@ -28,12 +30,14 @@ export async function GET() {
   if (!me) return NextResponse.json({ user: null }, { status: 200 });
   const user = await dbFindUserById(me.id);
   if (!user) return NextResponse.json({ user: null }, { status: 200 });
-  const role: "admin" | "user" | "superadmin" =
-    Array.isArray(user.roles) && user.roles.includes("superadmin")
-      ? "superadmin"
-      : Array.isArray(user.roles) && user.roles.includes("admin")
-      ? "admin"
-      : "user";
+  let role: UserRole = "user";
+  if (Array.isArray(user.roles)) {
+    if (user.roles.includes("superadmin")) {
+      role = "superadmin";
+    } else if (user.roles.includes("admin")) {
+      role = "admin";
+    }
+  }
   return NextResponse.json({
     user: { id: user.id, email: user.email, name: user.name, role },
   });
@@ -45,43 +49,41 @@ export async function PUT(req: NextRequest) {
   const body = await req.json().catch(() => ({}));
   const { name, passwordCurrent, passwordNew } = body || {};
 
-  // Update name if provided
-  if (typeof name === "string" && name.trim().length > 0) {
-    await dbUpdateUser(me.id, { name: name.trim() });
-  }
+  const updateName = async (value: unknown) => {
+    if (typeof value === "string" && value.trim().length > 0) {
+      await dbUpdateUser(me.id, { name: value.trim() });
+    }
+  };
 
-  // Update password if requested
-  if (passwordNew) {
-    if (!passwordCurrent)
-      return NextResponse.json(
-        { error: "Current password is required" },
-        { status: 400 }
-      );
-    // Fetch stored password hash
+  const updatePassword = async (
+    current: unknown,
+    next: unknown
+  ): Promise<{ error: string; status: number } | null> => {
+    if (!next) return null;
+    if (!current) return { error: "Current password is required", status: 400 };
+
     const rows = await query<{ password_hash: string }>(
       `SELECT password_hash FROM users WHERE id = :id LIMIT 1`,
       { id: me.id }
     );
     const stored = rows?.[0]?.password_hash;
-    if (!stored)
-      return NextResponse.json(
-        { error: "Password unavailable for update" },
-        { status: 400 }
-      );
-    const ok = verifyPassword(passwordCurrent, stored);
-    if (!ok)
-      return NextResponse.json(
-        { error: "Current password is incorrect" },
-        { status: 400 }
-      );
-    if (typeof passwordNew !== "string" || passwordNew.length < 8)
-      return NextResponse.json(
-        { error: "New password must be at least 8 characters" },
-        { status: 400 }
-      );
-    const newHash = hashPassword(passwordNew);
+    if (!stored) return { error: "Password unavailable for update", status: 400 };
+
+    const ok = verifyPassword(current as string, stored);
+    if (!ok) return { error: "Current password is incorrect", status: 400 };
+
+    if (typeof next !== "string" || next.length < 8)
+      return { error: "New password must be at least 8 characters", status: 400 };
+
+    const newHash = hashPassword(next);
     await dbUpdateUserPassword(me.id, newHash);
-  }
+    return null;
+  };
+
+  await updateName(name);
+
+  const pwdErr = await updatePassword(passwordCurrent, passwordNew);
+  if (pwdErr) return NextResponse.json({ error: pwdErr.error }, { status: pwdErr.status });
 
   const updated = await dbFindUserById(me.id);
   if (!updated)
@@ -89,12 +91,16 @@ export async function PUT(req: NextRequest) {
       { error: "User not found after update" },
       { status: 404 }
     );
-  const role: "admin" | "user" | "superadmin" =
-    Array.isArray(updated.roles) && updated.roles.includes("superadmin")
-      ? "superadmin"
-      : Array.isArray(updated.roles) && updated.roles.includes("admin")
-      ? "admin"
-      : "user";
+
+  let role: UserRole = "user";
+  if (Array.isArray(updated.roles)) {
+    if (updated.roles.includes("superadmin")) {
+      role = "superadmin";
+    } else if (updated.roles.includes("admin")) {
+      role = "admin";
+    }
+  }
+
   return NextResponse.json({
     ok: true,
     user: { id: updated.id, email: updated.email, name: updated.name, role },

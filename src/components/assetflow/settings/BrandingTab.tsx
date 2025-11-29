@@ -1,9 +1,9 @@
 "use client";
 
 import React, { useRef, useState } from "react";
-import { Button } from "../../../ui/button";
-import { uploadWithProgress } from "../../../../lib/upload";
-import { toast } from "../../../ui/sonner";
+import { Button } from "../../ui/button";
+import { uploadWithProgress } from "../../../lib/upload";
+import { toast } from "../../ui/sonner";
 
 interface Props {
   brandName: string;
@@ -192,15 +192,8 @@ export default function BrandingTab({
                   throw new Error(data?.error || "Failed to save branding");
                 toast.success("Branding saved successfully");
                 try {
-                  // prefer dataset over setAttribute for data-* attributes
-                  if (
-                    typeof document !== "undefined" &&
-                    document.documentElement
-                  ) {
-                    document.documentElement.dataset.brandName =
-                      brandName || "";
-                    document.documentElement.dataset.brandLogo = logoUrl || "";
-                  }
+                  document.documentElement.dataset.brandName = brandName || "";
+                  document.documentElement.dataset.brandLogo = logoUrl || "";
                 } catch {}
               } catch (e: any) {
                 toast.error(e?.message || "Failed to save branding");

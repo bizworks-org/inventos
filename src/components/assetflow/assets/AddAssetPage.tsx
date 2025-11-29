@@ -7,7 +7,7 @@ import { ArrowLeft, Save, X } from "lucide-react";
 import { Button } from "../../ui/button";
 import { toast } from "@/components/ui/sonner";
 import { AssetFlowLayout } from "../layout/AssetFlowLayout";
-import { Asset, AssetFieldDef, AssetFieldType } from "../../../lib/data";
+import { Asset, AssetFieldDef } from "../../../lib/data";
 import { createAsset, sendAssetConsent } from "../../../lib/api";
 import { logAssetCreated } from "../../../lib/events";
 import FieldRenderer from "./FieldRenderer";
@@ -37,6 +37,7 @@ const readCatalogFromStorage = (): UiCategory[] | null => {
     if (!Array.isArray(parsed)) return null;
     return parsed as UiCategory[];
   } catch (e) {
+    console.error(e);
     return null;
   }
 };
@@ -133,31 +134,48 @@ export function AddAssetPage({ onNavigate, onSearch }: AddAssetPageProps) {
   const ciaAvg = useMemo(() => ciaTotal / 3, [ciaTotal]);
 
   // Load any saved draft on first mount
-  useEffect(() => {
+  const loadDraftFromLocalStorage = (): unknown | null => {
     try {
       const raw = localStorage.getItem(ADD_ASSET_DRAFT_KEY);
-      if (!raw) return;
-      const draft = JSON.parse(raw);
-      if (draft && typeof draft === "object") {
-        if (draft.formData && typeof draft.formData === "object") {
-          setFormData((prev) => ({ ...prev, ...draft.formData }));
-        }
-        if (typeof draft.assetType !== "undefined")
-          setAssetType(draft.assetType as any);
-        if (typeof draft.assetTypeId !== "undefined")
-          setAssetTypeId(draft.assetTypeId as any);
-        if (typeof draft.category !== "undefined")
-          setCategory(draft.category as any);
-        if (
-          draft.customFieldValues &&
-          typeof draft.customFieldValues === "object"
-        )
-          setCustomFieldValues(draft.customFieldValues);
-        if (Array.isArray(draft.extraFields)) setExtraFields(draft.extraFields);
-        if (draft.cia && typeof draft.cia === "object")
-          setCia((v) => ({ ...v, ...draft.cia }));
-      }
-    } catch {}
+      if (!raw) return null;
+      return JSON.parse(raw) as unknown;
+    } catch {
+      return null;
+    }
+  };
+
+  const applyDraft = (draft: any) => {
+    if (!draft || typeof draft !== "object") return;
+
+    if (draft.formData && typeof draft.formData === "object") {
+      setFormData((prev) => ({ ...prev, ...draft.formData }));
+    }
+    if (draft.assetType !== undefined) {
+      setAssetType(draft.assetType);
+    }
+    if (draft.assetTypeId !== undefined) {
+      setAssetTypeId(draft.assetTypeId);
+    }
+    if (draft.category !== undefined) {
+      setCategory(draft.category);
+    }
+    if (
+      draft.customFieldValues &&
+      typeof draft.customFieldValues === "object"
+    ) {
+      setCustomFieldValues(draft.customFieldValues);
+    }
+    if (Array.isArray(draft.extraFields)) {
+      setExtraFields(draft.extraFields);
+    }
+    if (draft.cia && typeof draft.cia === "object") {
+      setCia((v) => ({ ...v, ...draft.cia }));
+    }
+  };
+
+  useEffect(() => {
+    const draft = loadDraftFromLocalStorage();
+    if (draft) applyDraft(draft);
   }, []);
 
   // Autosave draft to localStorage when fields change (debounced)
@@ -231,7 +249,7 @@ export function AddAssetPage({ onNavigate, onSearch }: AddAssetPageProps) {
         } catch {}
       })();
     };
-    window.addEventListener(
+    globalThis.addEventListener(
       "assetflow:catalog-cleared",
       onClear as EventListener
     );
@@ -246,12 +264,12 @@ export function AddAssetPage({ onNavigate, onSearch }: AddAssetPageProps) {
       }
     };
     onLocations();
-    window.addEventListener(
+    globalThis.addEventListener(
       "assetflow:locations-updated",
       onLocations as EventListener
     );
     return () =>
-      window.removeEventListener(
+      globalThis.removeEventListener(
         "assetflow:catalog-cleared",
         onClear as EventListener
       );
@@ -269,36 +287,40 @@ export function AddAssetPage({ onNavigate, onSearch }: AddAssetPageProps) {
         setLocationsList([]);
       }
     };
-    window.addEventListener(
+    globalThis.addEventListener(
       "assetflow:locations-updated",
       handler as EventListener
     );
     return () =>
-      window.removeEventListener(
+      globalThis.removeEventListener(
         "assetflow:locations-updated",
         handler as EventListener
       );
   }, []);
 
   const categoryList = useMemo(() => {
-    if (catalog && catalog.length) return catalog.map((c) => c.name);
+    if (catalog?.length) return catalog.map((c) => c.name);
     return [] as string[];
   }, [catalog]);
 
   // Build id->name map and easy accessors for category -> types with ids
   const catalogMaps = useMemo(() => {
-    const idToName = new Map<string, string>();
-    const nameToId = new Map<string, number>();
-    if (catalog && catalog.length) {
-      for (const c of catalog)
-        for (const t of c.types || []) {
-          if (t.id !== undefined && t.id !== null)
-            idToName.set(String(t.id), t.name);
-          if (t.name && t.id !== undefined && t.id !== null)
-            nameToId.set(t.name, Number(t.id));
+    const buildMaps = (cats?: UiCategory[] | null) => {
+      const idToName = new Map<string, string>();
+      const nameToId = new Map<string, number>();
+      if (!Array.isArray(cats) || cats.length === 0)
+        return { idToName, nameToId };
+      for (const c of cats) {
+        const types = c.types || [];
+        for (const t of types) {
+          const hasId = t.id !== undefined && t.id !== null;
+          if (hasId) idToName.set(String(t.id), t.name);
+          if (t.name && hasId) nameToId.set(t.name, Number(t.id));
         }
-    }
-    return { idToName, nameToId };
+      }
+      return { idToName, nameToId };
+    };
+    return buildMaps(catalog);
   }, [catalog]);
 
   const assetTypes = useMemo(() => {

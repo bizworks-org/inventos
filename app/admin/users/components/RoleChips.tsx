@@ -35,11 +35,11 @@ export function RoleChips({
   // Note: callers may pass `meRole` via props in future; default behavior is to rely
   // on `meId` only when needed.
   const getCurrentRole = (u: User): Role => {
-    const roles = (u.roles || []) as Role[];
+    const roles: Role[] = u.roles ?? [];
     if (roles.includes("superadmin")) return "superadmin";
     if (roles.includes("admin")) return "admin";
     if (roles.includes("user")) return "user";
-    return (roles[0] as Role) || "user";
+    return roles[0] || "user";
   };
   const roleGradient = (r: Role) =>
     r === "admin"
@@ -52,7 +52,6 @@ export function RoleChips({
     return !(hasAdmin && !isSelf);
   };
 
-  const isOtherAdmin = (user.roles || []).includes("admin") && meId !== user.id;
   const isSuperadmin = (user.roles || []).includes("superadmin");
 
   // Determine if the current viewer is a Superadmin by inspecting the meId row
@@ -109,13 +108,12 @@ export function RoleChips({
         const currentRole = getCurrentRole(user);
         const selected = currentRole === r;
         const Icon = r === "admin" ? Shield : UserIcon;
-        const isSelf = meId === user.id;
         const viewerIsSuper = meRole === "superadmin";
         const editable = canEditRoles(user, viewerIsSuper);
         const disableInteraction = !editable || selected;
         const handleClick = () => {
           if (disableInteraction) return;
-          const nextRole = r as Role;
+          const nextRole = r;
           // If the viewer is Superadmin, allow direct changes (no confirmation)
           if (viewerIsSuper) {
             onApplyRole(user.id, nextRole);
@@ -141,7 +139,7 @@ export function RoleChips({
             } ${disableInteraction ? "opacity-60 cursor-not-allowed" : ""}`}
             style={
               selected
-                ? { backgroundImage: roleGradient(r as Role) }
+                ? { backgroundImage: roleGradient(r) }
                 : undefined
             }
             aria-pressed={selected}

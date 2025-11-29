@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import path from "path";
+import path from "node:path";
 import { put, del } from "@vercel/blob";
 import { query } from "@/lib/db";
 
@@ -24,7 +24,7 @@ export async function POST(req: NextRequest) {
     if (!file || typeof file === "string") {
       return NextResponse.json({ error: "No file provided" }, { status: 400 });
     }
-    const blob = file as File;
+    const blob = file;
 
     // Validate basic file type by extension
     const allowed = [".png", ".jpg", ".jpeg", ".svg", ".webp"];
@@ -38,9 +38,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Get the current logo URL from database to delete old blob
-    const rows = (await query(
-      "SELECT logo_url FROM site_settings WHERE id = 1"
-    )) as any[];
+    const rows = await query("SELECT logo_url FROM site_settings WHERE id = 1");
     const oldLogoUrl = rows?.[0]?.logo_url;
 
     // Delete old blob if it exists and is from Vercel Blob storage
