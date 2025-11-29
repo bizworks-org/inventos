@@ -13,7 +13,7 @@ export default function AssetImportLoadingOverlay({
   loading = false,
   text = "Parsing file…",
   style,
-}: Props) {
+}: Readonly<Props>) {
   if (!loading) return null;
 
   return (
@@ -33,8 +33,7 @@ export default function AssetImportLoadingOverlay({
     >
       <div style={{ textAlign: "center" }}>
         <style>{`@keyframes ai_overlay_spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }`}</style>
-        <div
-          role="status"
+        <output
           aria-live="polite"
           style={{
             width: 48,
