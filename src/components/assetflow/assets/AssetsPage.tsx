@@ -30,7 +30,10 @@ interface AssetsPageProps {
 export type AssetStatus = "All" | Asset["status"];
 export type AssetCategory = "All" | string;
 
-export function AssetsPage({ onNavigate, onSearch }: AssetsPageProps) {
+export function AssetsPage({
+  onNavigate,
+  onSearch,
+}: Readonly<AssetsPageProps>) {
   const [selectedCategory, setSelectedCategory] =
     useState<AssetCategory>("All");
   const [selectedStatus, setSelectedStatus] = useState<AssetStatus>("All");
@@ -96,14 +99,14 @@ export function AssetsPage({ onNavigate, onSearch }: AssetsPageProps) {
 
     if (!loadFromStorage()) fetchAndStore();
     const onClear = () => fetchAndStore();
-    window.addEventListener(
+    globalThis.addEventListener(
       "assetflow:catalog-cleared",
       onClear as EventListener
     );
 
     return () => {
       cancelled = true;
-      window.removeEventListener(
+      globalThis.removeEventListener(
         "assetflow:catalog-cleared",
         onClear as EventListener
       );
@@ -114,7 +117,7 @@ export function AssetsPage({ onNavigate, onSearch }: AssetsPageProps) {
   const catalogLookup = useMemo(() => {
     const idToCategory = new Map<string, string>();
     const nameToCategory = new Map<string, string>();
-    if (catalog && catalog.length) {
+    if (catalog?.length) {
       for (const c of catalog) {
         for (const t of c.types || []) {
           if (t.id !== undefined && t.id !== null)
@@ -134,15 +137,15 @@ export function AssetsPage({ onNavigate, onSearch }: AssetsPageProps) {
       // If numeric-ish, try ID lookup
       if (s !== "" && /^\d+$/.test(s)) {
         const byId = catalogLookup.idToCategory.get(s);
-        if (byId) return byId as Exclude<AssetCategory, "All">;
+        if (byId) return byId;
       }
       // Try name lookup
       const byName = catalogLookup.nameToCategory.get(s);
-      if (byName) return byName as Exclude<AssetCategory, "All">;
+      if (byName) return byName;
       // Fall back to a stable bucket if mapping is unknown
-      return "Other" as Exclude<AssetCategory, "All">;
+      return "Other";
     }
-    return "Other" as Exclude<AssetCategory, "All">;
+    return "Other";
   };
 
   const filteredAssets = useMemo(() => {
@@ -191,8 +194,7 @@ export function AssetsPage({ onNavigate, onSearch }: AssetsPageProps) {
   }, [filteredAssets, page, perPage]);
 
   const assetCategories: AssetCategory[] = useMemo(() => {
-    if (catalog && catalog.length)
-      return ["All", ...catalog.map((c) => c.name)];
+    if (catalog?.length) return ["All", ...catalog.map((c) => c.name)];
     return ["All"];
   }, [catalog]);
   const canWriteAssets = me?.role === "admin" || me?.role === "superadmin";
@@ -203,13 +205,14 @@ export function AssetsPage({ onNavigate, onSearch }: AssetsPageProps) {
   };
 
   const handleDelete = async (id: string, _name?: string) => {
-    const keep = assets.filter((a) => a.id !== id);
+    const previousAssets = assets;
+    const keep = previousAssets.filter((a) => a.id !== id);
     setAssets(keep); // optimistic
     try {
       await deleteAsset(id);
     } catch (e) {
       // rollback on error
-      setAssets(assets);
+      setAssets(previousAssets);
       console.error(e);
     }
   };
@@ -328,10 +331,10 @@ export function AssetsPage({ onNavigate, onSearch }: AssetsPageProps) {
                           );
                         } catch {}
                       }
-                    } catch (innerErr: any) {
-                      console.error("asset-import parse error", innerErr);
+                    } catch (error_: any) {
+                      console.error("asset-import parse error", error_);
                       toast.error?.(
-                        `Import parse failed: ${innerErr?.message || innerErr}`
+                        `Import parse failed: ${error_?.message || error_}`
                       );
                       setAssetPreviewOpen(false);
                       setAssetPreviewLoading(false);
@@ -420,7 +423,7 @@ export function AssetsPage({ onNavigate, onSearch }: AssetsPageProps) {
               try {
                 localStorage.removeItem("catalog.categories");
               } catch {}
-              window.dispatchEvent(new Event("assetflow:catalog-cleared"));
+              globalThis.dispatchEvent(new Event("assetflow:catalog-cleared"));
               toast.success("Catalog refreshed");
             }}
             className="flex items-center gap-2 px-3 py-2 rounded-lg bg-white border border-[rgba(0,0,0,0.1)] hover:bg-[#f8f9ff] text-[#1a1d2e] text-sm"
