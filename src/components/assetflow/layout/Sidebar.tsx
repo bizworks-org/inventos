@@ -35,6 +35,12 @@ const navItems: NavItem[] = [
     colorClass: "text-emerald-400",
   },
   {
+    name: "Audits",
+    id: "audits",
+    icon: Activity,
+    colorClass: "text-cyan-400",
+  },
+  {
     name: "Licenses",
     id: "licenses",
     icon: FileText,
@@ -90,6 +96,7 @@ export function Sidebar({
   const pathById: Record<string, string> = {
     dashboard: "/dashboard",
     assets: "/assets",
+    audits: "/audits",
     licenses: "/licenses",
     vendors: "/vendors",
     events: "/events",

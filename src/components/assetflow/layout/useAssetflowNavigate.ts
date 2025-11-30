@@ -10,6 +10,8 @@ export function useAssetflowNavigate() {
     switch (page) {
       case "dashboard":
         return "/dashboard";
+      case "audits":
+        return "/audits";
       case "assets":
         return "/assets";
       case "assets-add":
@@ -35,6 +37,10 @@ export function useAssetflowNavigate() {
       case "search":
         return "/search";
       default:
+        // Allow direct path-like pages, e.g. "audits/123"
+        if (page && (page.startsWith("/") || page.includes("/"))) {
+          return page.startsWith("/") ? page : `/${page}`;
+        }
         return "/dashboard";
     }
   }, []);
