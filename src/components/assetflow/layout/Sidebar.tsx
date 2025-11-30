@@ -34,12 +34,7 @@ const navItems: NavItem[] = [
     icon: Package,
     colorClass: "text-emerald-400",
   },
-  {
-    name: "Audits",
-    id: "audits",
-    icon: Activity,
-    colorClass: "text-cyan-400",
-  },
+
   {
     name: "Licenses",
     id: "licenses",
@@ -47,6 +42,12 @@ const navItems: NavItem[] = [
     colorClass: "text-pink-400",
   },
   { name: "Vendors", id: "vendors", icon: Users, colorClass: "text-amber-400" },
+  {
+    name: "Audits",
+    id: "audits",
+    icon: Activity,
+    colorClass: "text-cyan-400",
+  },
   {
     name: "Settings",
     id: "settings",
@@ -57,7 +58,6 @@ const navItems: NavItem[] = [
 
 interface SidebarProps {
   currentPage?: string; // optional legacy prop; active is computed from pathname when available
-  onNavigate?: (page: string) => void; // legacy; no longer used
 }
 
 export function Sidebar({
@@ -69,29 +69,29 @@ export function Sidebar({
   const pathname = usePathname();
   // Use server-provided user to avoid client fetch; fall back to undefined for SSR
   const [me, setMe] = useState<typeof meProp | undefined>(
-    meProp === undefined ? undefined : meProp
+    meProp ?? undefined
   );
   // Branding state (SSR-provided to avoid flicker)
   const [brandLogo, setBrandLogo] = useState<string | null>(() => {
     if (typeof document === "undefined") return null;
-    const v = document.documentElement.getAttribute("data-brand-logo") || "";
+    const v = document.documentElement.dataset.brandLogo || "";
     return v || null;
   });
   const [brandName, setBrandName] = useState<string>(() => {
     if (typeof document === "undefined") return "Inventos";
     return (
-      document.documentElement.getAttribute("data-brand-name") || "Inventos"
+      document.documentElement.dataset.brandName || "Inventos"
     );
   });
   // Persist admin visibility once detected in the client session
   const [everAdmin, setEverAdmin] = useState<boolean>(() => {
     if (typeof document === "undefined") return false;
-    return document.documentElement.getAttribute("data-admin") === "true";
+    return document.documentElement.dataset.admin === "true";
   });
   // Track server-provided admin hint and react to changes immediately (e.g., right after login)
   const [serverAdminHint, setServerAdminHint] = useState<boolean>(() => {
     if (typeof document === "undefined") return false;
-    return document.documentElement.getAttribute("data-admin") === "true";
+    return document.documentElement.dataset.admin === "true";
   });
   const pathById: Record<string, string> = {
     dashboard: "/dashboard",
@@ -113,7 +113,7 @@ export function Sidebar({
   };
 
   useEffect(() => {
-    setMe(meProp === undefined ? me : meProp);
+    setMe(meProp ?? me);
   }, [meProp]);
 
   // Lazy-fetch branding if not provided by SSR
@@ -134,9 +134,9 @@ export function Sidebar({
   // When we know the user is admin (from me or server hint), latch everAdmin=true for this session
   useEffect(() => {
     const serverIsAdmin =
-      typeof document !== "undefined"
-        ? document.documentElement.getAttribute("data-admin") === "true"
-        : false;
+      typeof document === "undefined"
+        ? false
+        : document.documentElement.dataset.admin === "true";
     setServerAdminHint(serverIsAdmin);
     if (serverIsAdmin || me?.role === "admin" || me?.role === "superadmin")
       setEverAdmin(true);
@@ -147,12 +147,12 @@ export function Sidebar({
     if (typeof document === "undefined") return;
     const el = document.documentElement;
     const update = () => {
-      const adminV = el.getAttribute("data-admin") === "true";
+      const adminV = el.dataset.admin === "true";
       setServerAdminHint(adminV);
       if (adminV) setEverAdmin(true);
-      const logoV = el.getAttribute("data-brand-logo") || "";
+      const logoV = el.dataset.brandLogo || "";
       setBrandLogo(logoV || null);
-      const nameV = el.getAttribute("data-brand-name") || "Inventos";
+      const nameV = el.dataset.brandName || "Inventos";
       setBrandName(nameV);
     };
     update();
@@ -203,8 +203,6 @@ export function Sidebar({
           icon: Package,
           colorClass: "text-rose-300",
         });
-        //children.push({ name: 'Configuration', id: 'settings_configuration', icon: Settings, colorClass: 'text-violet-300' });
-        //children.push({ name: 'Catalog', id: 'settings_catalog', icon: Package, colorClass: 'text-red-300' });
       }
       base.splice(idx + 1, 0, ...children);
     }
@@ -283,7 +281,6 @@ export function Sidebar({
           if (pathname) {
             if (item.id === "settings") {
               // Do not highlight the parent Settings item; only highlight its children
-              isActive = false;
             } else if (item.id.startsWith("settings_") || item.id === "admin") {
               // Exact match for Settings sub-items and Admin root
               isActive = pathname === href || pathname === `${href}/`;

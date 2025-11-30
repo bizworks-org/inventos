@@ -35,6 +35,7 @@ export function LicensesPage({ onNavigate, onSearch }: LicensesPageProps) {
   const [licenses, setLicenses] = useState<License[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [me, setMe] = useState<ClientMe>(null);
+  const [expiringOnly, setExpiringOnly] = useState<boolean>(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -71,9 +72,24 @@ export function LicensesPage({ onNavigate, onSearch }: LicensesPageProps) {
           license.vendor.toLowerCase().includes(searchQuery.toLowerCase()) ||
           license.owner.toLowerCase().includes(searchQuery.toLowerCase());
 
-        return matchesType && matchesCompliance && matchesSearch;
+        const now = new Date();
+        const future = new Date(now.getTime() + 90 * 24 * 60 * 60 * 1000);
+        const expiringSoon = (() => {
+          try {
+            const d = new Date(license.expirationDate);
+            return d <= future && d >= now;
+          } catch {
+            return false;
+          }
+        })();
+
+        const matchesExpiring = !expiringOnly || expiringSoon;
+
+        return (
+          matchesType && matchesCompliance && matchesSearch && matchesExpiring
+        );
       }),
-    [licenses, selectedType, selectedCompliance, searchQuery]
+    [licenses, selectedType, selectedCompliance, searchQuery, expiringOnly]
   );
 
   // Pagination
@@ -222,11 +238,18 @@ export function LicensesPage({ onNavigate, onSearch }: LicensesPageProps) {
 
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6">
-        <motion.div
+        <motion.button
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.3, delay: 0.1 }}
-          className="bg-white rounded-xl border border-[rgba(0,0,0,0.08)] p-6 shadow-sm"
+          onClick={() => {
+            setSelectedType("All");
+            setSelectedCompliance("All");
+            setSearchQuery("");
+            setExpiringOnly(false);
+          }}
+          type="button"
+          className="bg-white rounded-xl border border-[rgba(0,0,0,0.08)] p-6 shadow-sm cursor-pointer hover:border-[#6366f1]/40 hover:shadow-md"
         >
           <div className="flex items-center justify-between mb-2">
             <p className="text-sm text-[#64748b]">Total Licenses</p>
@@ -238,13 +261,18 @@ export function LicensesPage({ onNavigate, onSearch }: LicensesPageProps) {
             {formatCurrency(totalValue)}
           </p>
           <p className="text-xs text-[#94a3b8] mt-1">{t("annualSpend")}</p>
-        </motion.div>
+        </motion.button>
 
-        <motion.div
+        <motion.button
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.3, delay: 0.15 }}
-          className="bg-white rounded-xl border border-[rgba(0,0,0,0.08)] p-6 shadow-sm"
+          onClick={() => {
+            setExpiringOnly(true);
+            setSelectedCompliance("All");
+          }}
+          type="button"
+          className="bg-white rounded-xl border border-[rgba(0,0,0,0.08)] p-6 shadow-sm cursor-pointer hover:border-[#f59e0b]/40 hover:shadow-md"
         >
           <div className="flex items-center justify-between mb-2">
             <p className="text-sm text-[#64748b]">Expiring Soon</p>
@@ -252,14 +280,19 @@ export function LicensesPage({ onNavigate, onSearch }: LicensesPageProps) {
           </div>
           <p className="text-2xl font-bold text-[#f59e0b]">{expiringCount}</p>
           <p className="text-xs text-[#94a3b8] mt-1">Within 90 days</p>
-        </motion.div>
+        </motion.button>
 
         {/* Total Monthly Spend */}
-        <motion.div
+        <motion.button
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.3, delay: 0.2 }}
-          className="bg-white rounded-xl border border-[rgba(0,0,0,0.08)] p-6 shadow-sm"
+          onClick={() => {
+            // No specific filter; act as a reset of expiring filter
+            setExpiringOnly(false);
+          }}
+          type="button"
+          className="bg-white rounded-xl border border-[rgba(0,0,0,0.08)] p-6 shadow-sm cursor-pointer hover:border-[#6366f1]/40 hover:shadow-md"
         >
           <div className="flex items-center justify-between mb-2">
             <p className="text-sm text-[#64748b]">Total Monthly Spend</p>
@@ -273,15 +306,20 @@ export function LicensesPage({ onNavigate, onSearch }: LicensesPageProps) {
           <p className="text-xs text-[#94a3b8] mt-1">
             Monthly spend across licenses
           </p>
-        </motion.div>
+        </motion.button>
 
         {/* Seat utilization tile removed from UI */}
 
-        <motion.div
+        <motion.button
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.3, delay: 0.25 }}
-          className="bg-white rounded-xl border border-[rgba(0,0,0,0.08)] p-6 shadow-sm"
+          onClick={() => {
+            setSelectedCompliance("Compliant");
+            setExpiringOnly(false);
+          }}
+          type="button"
+          className="bg-white rounded-xl border border-[rgba(0,0,0,0.08)] p-6 shadow-sm cursor-pointer hover:border-[#10b981]/40 hover:shadow-md"
         >
           <div className="flex items-center justify-between mb-2">
             <p className="text-sm text-[#64748b]">Compliance Status</p>
@@ -293,7 +331,7 @@ export function LicensesPage({ onNavigate, onSearch }: LicensesPageProps) {
             {licenses.filter((l) => l.compliance === "Compliant").length}
           </p>
           <p className="text-xs text-[#94a3b8] mt-1">Compliant licenses</p>
-        </motion.div>
+        </motion.button>
       </div>
 
       {/* Filters Card */}
@@ -397,8 +435,14 @@ export function LicensesPage({ onNavigate, onSearch }: LicensesPageProps) {
           <div className="flex items-center gap-3">
             {filteredLicenses.length >= 30 && (
               <>
-                <label className="text-sm text-[#64748b]">Items per page</label>
+                <label
+                  htmlFor="itemsPerPage"
+                  className="text-sm text-[#64748b]"
+                >
+                  Items per page
+                </label>
                 <select
+                  id="itemsPerPage"
                   value={perPage}
                   onChange={(e) => setPerPage(Number(e.target.value))}
                   className="px-2 py-1 rounded-lg bg-white border"

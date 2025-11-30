@@ -1,9 +1,16 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { motion } from "motion/react";
 import { Button } from "@/components/ui/button";
 import { AssetFlowLayout } from "../layout/AssetFlowLayout";
 import { fetchAudits, createAudit, Audit } from "../../../lib/audit";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { GitCompare, ArrowRight } from "lucide-react";
 
 export function AuditsPage({
   onNavigate,
@@ -16,6 +23,10 @@ export function AuditsPage({
   const [location, setLocation] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [locations, setLocations] = useState<string[]>([]);
+  const [diffOpen, setDiffOpen] = useState(false);
+  const [diffLoading, setDiffLoading] = useState(false);
+  const [diffData, setDiffData] = useState<any | null>(null);
+  const [diffAuditName, setDiffAuditName] = useState<string>("");
 
   useEffect(() => {
     (async () => {
@@ -73,6 +84,32 @@ export function AuditsPage({
     }
   };
 
+  const orderedAudits = useMemo(() => {
+    return [...audits].sort(
+      (a, b) =>
+        new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
+    );
+  }, [audits]);
+
+  const openDiffForAudit = async (auditId: string, label: string) => {
+    try {
+      setDiffLoading(true);
+      setDiffAuditName(label);
+      const res = await fetch(
+        `/api/assets/audits/${auditId}/diff?previous=true`,
+        { cache: "no-store" }
+      );
+      if (!res.ok) throw new Error(`Failed to fetch diff (${res.status})`);
+      const data = await res.json();
+      setDiffData(data);
+      setDiffOpen(true);
+    } catch (e: any) {
+      setError(e?.message || String(e));
+    } finally {
+      setDiffLoading(false);
+    }
+  };
+
   return (
     <AssetFlowLayout
       breadcrumbs={[{ label: "Home", href: "#" }, { label: "Audits" }]}
@@ -125,41 +162,172 @@ export function AuditsPage({
       <div>
         <h2 className="text-lg font-semibold mb-4">Recent Audits</h2>
         {loading && <p className="text-sm text-[#64748b]">Loading…</p>}
-        {!loading && !audits.length && (
+        {!loading && !orderedAudits.length && (
           <p className="text-sm text-[#64748b]">No audits yet.</p>
         )}
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-          {audits.map((a, idx) => (
-            <motion.div
-              key={a.id}
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.25, delay: idx * 0.05 }}
-              className="p-4 border rounded-lg bg-white shadow-sm flex flex-col gap-2"
-            >
+        {!!orderedAudits.length && (
+          <div className="bg-white rounded-2xl border border-[rgba(0,0,0,0.08)] shadow-sm overflow-hidden">
+            <div className="bg-gradient-to-r from-[#f8f9ff] to-[#eef2ff] px-4 py-3 border-b">
               <div className="flex items-center justify-between">
-                <h3 className="font-medium text-[#1a1d2e]">{a.name}</h3>
-                <span className="text-xs px-2 py-1 rounded bg-[#f8f9ff] text-[#64748b]">
-                  {a.id}
-                </span>
+                <div className="text-sm font-medium text-[#1a1d2e]">Audits</div>
               </div>
-              <p className="text-xs text-[#64748b]">
-                {a.location || "Global"} •{" "}
-                {new Date(a.timestamp).toLocaleDateString()}
-              </p>
-              <p className="text-xs text-[#64748b]">
-                Items: {a.itemCount ?? 0}
-              </p>
-              <Button
-                onClick={() => onNavigate?.(`audits/${a.id}`)}
-                className="mt-1 text-sm px-3 py-2"
-              >
-                Open
-              </Button>
-            </motion.div>
-          ))}
-        </div>
+            </div>
+            <table className="w-full">
+              <thead>
+                <tr className="text-left text-[#64748b] text-xs">
+                  <th className="px-4 py-3">Name</th>
+                  <th className="px-4 py-3">Location</th>
+                  <th className="px-4 py-3">Date</th>
+                  <th className="px-4 py-3">Items</th>
+                  <th className="px-4 py-3">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {orderedAudits.map((a, idx) => (
+                  <tr
+                    key={a.id}
+                    className={`border-t ${
+                      idx % 2 ? "bg-[#fbfbfd]" : "bg-white"
+                    }`}
+                  >
+                    <td className="px-4 py-3 text-sm text-[#1a1d2e]">
+                      {a.name}
+                    </td>
+                    <td className="px-4 py-3 text-sm text-[#64748b]">
+                      {a.location || "Global"}
+                    </td>
+                    <td className="px-4 py-3 text-sm text-[#64748b]">
+                      {new Date(a.timestamp).toLocaleString()}
+                    </td>
+                    <td className="px-4 py-3 text-sm text-[#64748b]">
+                      {a.itemCount ?? 0}
+                    </td>
+                    <td className="px-4 py-3 text-sm">
+                      <div className="flex items-center gap-2">
+                        <Button
+                          variant="outline"
+                          className="px-2 py-1 h-8 text-[#1a1d2e]"
+                          onClick={() => onNavigate?.(`audits/${a.id}`)}
+                        >
+                          Open <ArrowRight className="ml-1 h-3.5 w-3.5" />
+                        </Button>
+                        {idx > 0 && (
+                          <Button
+                            variant="ghost"
+                            className="px-2 py-1 h-8 text-[#1a1d2e]"
+                            title="Compare with previous audit"
+                            onClick={() => openDiffForAudit(a.id, a.name)}
+                          >
+                            <GitCompare className="h-4 w-4 text-[#6366f1]" />
+                          </Button>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
       </div>
+
+      <Dialog open={diffOpen} onOpenChange={setDiffOpen}>
+        <DialogContent className="max-w-3xl">
+          <DialogHeader>
+            <DialogTitle>Audit Comparison: {diffAuditName}</DialogTitle>
+          </DialogHeader>
+          {diffLoading && (
+            <div className="text-sm text-[#64748b]">Loading report…</div>
+          )}
+          {!diffLoading && diffData && (
+            <div className="space-y-3">
+              <div className="grid grid-cols-2 gap-3">
+                <div className="bg-[#f8f9ff] rounded p-3">
+                  <div className="text-xs text-[#64748b]">New Assets</div>
+                  <div className="text-lg font-semibold text-[#1a1d2e]">
+                    {diffData?.new?.length || 0}
+                  </div>
+                </div>
+                <div className="bg-[#f8f9ff] rounded p-3">
+                  <div className="text-xs text-[#64748b]">Missing Assets</div>
+                  <div className="text-lg font-semibold text-[#1a1d2e]">
+                    {diffData?.missing?.length || 0}
+                  </div>
+                </div>
+                <div className="bg-[#f8f9ff] rounded p-3">
+                  <div className="text-xs text-[#64748b]">Status Changes</div>
+                  <div className="text-lg font-semibold text-[#1a1d2e]">
+                    {diffData?.statusChanges?.length || 0}
+                  </div>
+                </div>
+                <div className="bg-[#f8f9ff] rounded p-3">
+                  <div className="text-xs text-[#64748b]">Unchanged</div>
+                  <div className="text-lg font-semibold text-[#1a1d2e]">
+                    {diffData?.unchanged?.length || 0}
+                  </div>
+                </div>
+              </div>
+              <div className="max-h-[40vh] overflow-auto border rounded">
+                <table className="w-full text-sm">
+                  <thead className="bg-[#f8fafc]">
+                    <tr>
+                      <th className="px-3 py-2 text-left">Serial</th>
+                      <th className="px-3 py-2 text-left">Change</th>
+                      <th className="px-3 py-2 text-left">Details</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {(diffData?.statusChanges || []).map(
+                      (row: any, i: number) => (
+                        <tr
+                          key={`sc-${i}`}
+                          className="odd:bg-white even:bg-[#fbfbfd]"
+                        >
+                          <td className="px-3 py-2">
+                            {row.serial_number ||
+                              row.serial ||
+                              row.serialNumber}
+                          </td>
+                          <td className="px-3 py-2">Status changed</td>
+                          <td className="px-3 py-2">
+                            {row.prev} → {row.curr}
+                          </td>
+                        </tr>
+                      )
+                    )}
+                    {(diffData?.new || []).map((row: any, i: number) => (
+                      <tr
+                        key={`new-${i}`}
+                        className="odd:bg-white even:bg-[#fbfbfd]"
+                      >
+                        <td className="px-3 py-2">
+                          {row.serial_number || row.serial || row.serialNumber}
+                        </td>
+                        <td className="px-3 py-2">New</td>
+                        <td className="px-3 py-2">Appeared in current audit</td>
+                      </tr>
+                    ))}
+                    {(diffData?.missing || []).map((row: any, i: number) => (
+                      <tr
+                        key={`miss-${i}`}
+                        className="odd:bg-white even:bg-[#fbfbfd]"
+                      >
+                        <td className="px-3 py-2">
+                          {row.serial_number || row.serial || row.serialNumber}
+                        </td>
+                        <td className="px-3 py-2">Missing</td>
+                        <td className="px-3 py-2">
+                          Absent compared to previous
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </AssetFlowLayout>
   );
 }

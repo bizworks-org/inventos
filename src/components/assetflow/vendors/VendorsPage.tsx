@@ -53,6 +53,7 @@ export function VendorsPage({ onNavigate, onSearch }: VendorsPageProps) {
   const [vendors, setVendors] = useState<Vendor[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [me, setMe] = useState<ClientMe>(null);
+  const [expiringOnly, setExpiringOnly] = useState<boolean>(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -90,9 +91,17 @@ export function VendorsPage({ onNavigate, onSearch }: VendorsPageProps) {
             .includes(searchQuery.toLowerCase()) ||
           vendor.email.toLowerCase().includes(searchQuery.toLowerCase());
 
-        return matchesType && matchesStatus && matchesSearch;
+        const expiryDate = new Date(vendor.contractExpiry);
+        const now = new Date();
+        const daysUntilExpiry = Math.floor(
+          (expiryDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)
+        );
+        const expiringSoon = daysUntilExpiry <= 90 && daysUntilExpiry >= 0;
+        const matchesExpiring = !expiringOnly || expiringSoon;
+
+        return matchesType && matchesStatus && matchesSearch && matchesExpiring;
       }),
-    [vendors, selectedType, selectedStatus, searchQuery]
+    [vendors, selectedType, selectedStatus, searchQuery, expiringOnly]
   );
 
   // Pagination
@@ -283,11 +292,19 @@ export function VendorsPage({ onNavigate, onSearch }: VendorsPageProps) {
 
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6">
-        <motion.div
+        <motion.button
+          type="button"
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.3, delay: 0.1 }}
-          className="bg-white rounded-xl border border-[rgba(0,0,0,0.08)] p-6 shadow-sm"
+          onClick={() => {
+            // Reset all filters
+            setSelectedType("All");
+            setSelectedStatus("All");
+            setSearchQuery("");
+            setExpiringOnly(false);
+          }}
+          className="bg-white rounded-xl border border-[rgba(0,0,0,0.08)] p-6 shadow-sm cursor-pointer hover:border-[#6366f1]/40 hover:shadow-md"
         >
           <div className="flex items-center justify-between mb-2">
             <p className="text-sm text-[#64748b]">Total Contract Value</p>
@@ -301,13 +318,20 @@ export function VendorsPage({ onNavigate, onSearch }: VendorsPageProps) {
           <p className="text-xs text-[#94a3b8] mt-1">
             Across {vendors.length} vendors
           </p>
-        </motion.div>
+        </motion.button>
 
-        <motion.div
+        <motion.button
+          type="button"
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.3, delay: 0.15 }}
-          className="bg-white rounded-xl border border-[rgba(0,0,0,0.08)] p-6 shadow-sm"
+          onClick={() => {
+            // Focus vendors with higher ratings by setting type to All and clearing other filters
+            setSelectedType("All");
+            setSelectedStatus("All");
+            setExpiringOnly(false);
+          }}
+          className="bg-white rounded-xl border border-[rgba(0,0,0,0.08)] p-6 shadow-sm cursor-pointer hover:border-[#f59e0b]/40 hover:shadow-md"
         >
           <div className="flex items-center justify-between mb-2">
             <p className="text-sm text-[#64748b]">Average Rating</p>
@@ -333,13 +357,18 @@ export function VendorsPage({ onNavigate, onSearch }: VendorsPageProps) {
             </div>
           </div>
           <p className="text-xs text-[#94a3b8] mt-1">Vendor performance</p>
-        </motion.div>
+        </motion.button>
 
-        <motion.div
+        <motion.button
+          type="button"
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.3, delay: 0.2 }}
-          className="bg-white rounded-xl border border-[rgba(0,0,0,0.08)] p-6 shadow-sm"
+          onClick={() => {
+            setSelectedStatus("Approved");
+            setExpiringOnly(false);
+          }}
+          className="bg-white rounded-xl border border-[rgba(0,0,0,0.08)] p-6 shadow-sm cursor-pointer hover:border-[#10b981]/40 hover:shadow-md"
         >
           <div className="flex items-center justify-between mb-2">
             <p className="text-sm text-[#64748b]">Approved Vendors</p>
@@ -349,13 +378,18 @@ export function VendorsPage({ onNavigate, onSearch }: VendorsPageProps) {
           </div>
           <p className="text-2xl font-bold text-[#10b981]">{approvedCount}</p>
           <p className="text-xs text-[#94a3b8] mt-1">Active partnerships</p>
-        </motion.div>
+        </motion.button>
 
-        <motion.div
+        <motion.button
+          type="button"
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.3, delay: 0.25 }}
-          className="bg-white rounded-xl border border-[rgba(0,0,0,0.08)] p-6 shadow-sm"
+          onClick={() => {
+            setExpiringOnly(true);
+            setSelectedStatus("All");
+          }}
+          className="bg-white rounded-xl border border-[rgba(0,0,0,0.08)] p-6 shadow-sm cursor-pointer hover:border-[#f59e0b]/40 hover:shadow-md"
         >
           <div className="flex items-center justify-between mb-2">
             <p className="text-sm text-[#64748b]">Expiring Soon</p>
@@ -365,7 +399,7 @@ export function VendorsPage({ onNavigate, onSearch }: VendorsPageProps) {
           </div>
           <p className="text-2xl font-bold text-[#f59e0b]">{expiringCount}</p>
           <p className="text-xs text-[#94a3b8] mt-1">Within 90 days</p>
-        </motion.div>
+        </motion.button>
       </div>
 
       {/* Filters Card */}
@@ -469,8 +503,11 @@ export function VendorsPage({ onNavigate, onSearch }: VendorsPageProps) {
           <div className="flex items-center gap-3">
             {filteredVendors.length >= 30 && (
               <>
-                <label className="text-sm text-[#64748b]">Items per page</label>
+                <label htmlFor="per-page" className="text-sm text-[#64748b]">
+                  Items per page
+                </label>
                 <select
+                  id="per-page"
                   value={perPage}
                   onChange={(e) => setPerPage(Number(e.target.value))}
                   className="px-2 py-1 rounded-lg bg-white border"
