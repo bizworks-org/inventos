@@ -94,6 +94,73 @@ export function EventsPage({
     return matchesEntityType && matchesSeverity && matchesTime && matchesSearch;
   });
 
+  // Export all fields present in filtered events to CSV
+  const exportLogAllFields = () => {
+    try {
+      // Collect all keys present across events
+      const keySet = new Set<string>();
+      for (const e of filteredEvents) {
+        for (const k of Object.keys(e as any)) {
+          keySet.add(k);
+        }
+      }
+      // Preferred ordering of common fields
+      const preferred = [
+        "id",
+        "timestamp",
+        "severity",
+        "action",
+        "entityType",
+        "entityId",
+        "user",
+        "details",
+        "metadata",
+      ];
+      const others = Array.from(keySet)
+        .filter((k) => !preferred.includes(k))
+        .sort();
+      const headers = [...preferred.filter((k) => keySet.has(k)), ...others];
+
+      const serializeValue = (v: any) => {
+        if (v == null) return "";
+        if (typeof v === "object") {
+          try {
+            return JSON.stringify(v);
+          } catch {
+            return String(v);
+          }
+        }
+        return String(v);
+      };
+
+      const escapeCSV = (s: string) => {
+        const clean = s.replace(/\r?\n/g, " ").replace(/\t/g, " ");
+        if (/[",\n\r]/.test(clean))
+          return '"' + clean.replace(/"/g, '""') + '"';
+        return clean;
+      };
+
+      const rows = filteredEvents.map((e) =>
+        headers.map((h) => escapeCSV(serializeValue((e as any)[h])))
+      );
+      const csv = [headers.join(","), ...rows.map((r) => r.join(","))].join(
+        "\n"
+      );
+      const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+      const url = URL.createObjectURL(blob);
+      const when = new Date().toISOString().slice(0, 19).replace(/[:T]/g, "-");
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `events-log-all-${selectedEntityType}-${selectedSeverity}-${selectedTimeFilter}-${when}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error("Export failed", err);
+    }
+  };
+
   // Count by severity
   const countBySeverity = (severity: EventSeverity) => {
     return events.filter((e) => e.severity === severity).length;
@@ -156,7 +223,10 @@ export function EventsPage({
             />
             Refresh
           </Button>
-          <Button className="flex items-center gap-2 px-4 py-2 rounded-lg bg-gradient-to-r from-[#6366f1] to-[#8b5cf6] text-white hover:shadow-lg hover:shadow-[#6366f1]/30 transition-all duration-200">
+          <Button
+            onClick={exportLogAllFields}
+            className="flex items-center gap-2 px-4 py-2 rounded-lg bg-gradient-to-r from-[#6366f1] to-[#8b5cf6] text-white hover:shadow-lg hover:shadow-[#6366f1]/30 transition-all duration-200"
+          >
             <Download className="h-4 w-4" />
             Export Log
           </Button>
