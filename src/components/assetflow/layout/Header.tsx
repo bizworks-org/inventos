@@ -10,7 +10,7 @@ interface HeaderProps {
   onSearch?: (query: string) => void;
 }
 
-export function Header({ breadcrumbs = [], onSearch }: HeaderProps) {
+export function Header({ breadcrumbs = [], onSearch }: Readonly<HeaderProps>) {
   const [searchQuery, setSearchQuery] = useState("");
   const { me } = useMe();
   const { profileOpen, setProfileOpen, profileRef } = useProfileMenu();

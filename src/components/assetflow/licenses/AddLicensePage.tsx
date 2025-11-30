@@ -20,7 +20,7 @@ interface AddLicensePageProps {
 const licenseTypes: License['type'][] = ['Software', 'SaaS', 'Cloud'];
 const complianceStatuses: License['compliance'][] = ['Compliant', 'Warning', 'Non-Compliant'];
 
-export function AddLicensePage({ onNavigate, onSearch }: AddLicensePageProps) {
+export function AddLicensePage({ onNavigate, onSearch }: Readonly<AddLicensePageProps>) {
   const { formatCurrency, currencySymbol } = usePrefs();
   const [formData, setFormData] = useState({
     name: '',
@@ -108,7 +108,7 @@ export function AddLicensePage({ onNavigate, onSearch }: AddLicensePageProps) {
   };
 
   // Calculate monthly cost
-  const monthlyCost = formData.cost ? (parseFloat(formData.cost) / 12) : 0;
+  const monthlyCost = formData.cost ? (Number.parseFloat(formData.cost) / 12) : 0;
 
   return (
     <AssetFlowLayout
@@ -153,10 +153,11 @@ export function AddLicensePage({ onNavigate, onSearch }: AddLicensePageProps) {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {/* License Name */}
                 <div className="md:col-span-2">
-                  <label className="block text-sm font-medium text-[#1a1d2e] mb-2">
+                  <label htmlFor="license-name" className="block text-sm font-medium text-[#1a1d2e] mb-2">
                     License Name *
                   </label>
                   <input
+                    id="license-name"
                     type="text"
                     required
                     value={formData.name}
@@ -168,7 +169,7 @@ export function AddLicensePage({ onNavigate, onSearch }: AddLicensePageProps) {
 
                 {/* Vendor */}
                 <div>
-                  <label className="block text-sm font-medium text-[#1a1d2e] mb-2">
+                  <label htmlFor="vendor" className="block text-sm font-medium text-[#1a1d2e] mb-2">
                     Vendor *
                   </label>
                   <select
@@ -201,7 +202,7 @@ export function AddLicensePage({ onNavigate, onSearch }: AddLicensePageProps) {
 
                 {/* License Type */}
                 <div>
-                  <label className="block text-sm font-medium text-[#1a1d2e] mb-2">
+                  <label htmlFor="type" className="block text-sm font-medium text-[#1a1d2e] mb-2">
                     License Type *
                   </label>
                   <select
@@ -218,7 +219,7 @@ export function AddLicensePage({ onNavigate, onSearch }: AddLicensePageProps) {
 
                 {/* Owner */}
                 <div className="md:col-span-2">
-                  <label className="block text-sm font-medium text-[#1a1d2e] mb-2">
+                  <label htmlFor="owner" className="block text-sm font-medium text-[#1a1d2e] mb-2">
                     Owner / Department *
                   </label>
                   <input
@@ -250,12 +251,13 @@ export function AddLicensePage({ onNavigate, onSearch }: AddLicensePageProps) {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {/* Annual Cost */}
                 <div>
-                  <label className="block text-sm font-medium text-[#1a1d2e] mb-2">
+                  <label htmlFor="annual-cost" className="block text-sm font-medium text-[#1a1d2e] mb-2">
                     Annual Cost *
                   </label>
                   <div className="relative">
                     <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[#64748b]">{currencySymbol}</span>
                     <input
+                      id="annual-cost"
                       type="number"
                       required
                       min="0"
@@ -275,10 +277,11 @@ export function AddLicensePage({ onNavigate, onSearch }: AddLicensePageProps) {
 
                 {/* Compliance Status */}
                 <div>
-                  <label className="block text-sm font-medium text-[#1a1d2e] mb-2">
+                  <label htmlFor="compliance-status" className="block text-sm font-medium text-[#1a1d2e] mb-2">
                     Compliance Status *
                   </label>
                   <select
+                    id="compliance-status"
                     required
                     value={formData.compliance}
                     onChange={(e) => handleInputChange('compliance', e.target.value)}
@@ -292,12 +295,13 @@ export function AddLicensePage({ onNavigate, onSearch }: AddLicensePageProps) {
 
                 {/* Expiration Date */}
                 <div>
-                  <label className="block text-sm font-medium text-[#1a1d2e] mb-2">
+                  <label htmlFor="expiration-date" className="block text-sm font-medium text-[#1a1d2e] mb-2">
                     Expiration Date *
                   </label>
                   <div className="relative">
                     <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-[#64748b] pointer-events-none" />
                     <input
+                      id="expiration-date"
                       type="date"
                       required
                       value={formData.expirationDate}
@@ -309,12 +313,13 @@ export function AddLicensePage({ onNavigate, onSearch }: AddLicensePageProps) {
 
                 {/* Renewal Date */}
                 <div>
-                  <label className="block text-sm font-medium text-[#1a1d2e] mb-2">
+                  <label htmlFor="renewal-date" className="block text-sm font-medium text-[#1a1d2e] mb-2">
                     Renewal Date
                   </label>
                   <div className="relative">
                     <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-[#64748b] pointer-events-none" />
                     <input
+                      id="renewal-date"
                       type="date"
                       value={formData.renewalDate}
                       onChange={(e) => handleInputChange('renewalDate', e.target.value)}
@@ -345,12 +350,13 @@ export function AddLicensePage({ onNavigate, onSearch }: AddLicensePageProps) {
                 {fieldDefs.map((def) => {
                   const val = customFieldValues[def.key] ?? '';
                   const onChange = (newVal: string) => setCustomFieldValues((v) => ({ ...v, [def.key]: newVal }));
+                  const fieldId = `license-${def.key}`;
                   return (
                     <div key={def.key}>
-                      <label className="block text-sm font-medium text-[#1a1d2e] mb-2">
-                        {def.label}{def.required ? ' *' : ''}
+                      <label htmlFor={fieldId} className="block text-sm font-medium text-[#1a1d2e] mb-2">
+                        <span className="block mb-2">{def.label}{def.required ? ' *' : ''}</span>
                       </label>
-                      <FieldRenderer def={def} value={val} onChange={onChange} />
+                      <FieldRenderer id={fieldId} def={def} value={val} onChange={onChange} />
                     </div>
                   );
                 })}
@@ -381,7 +387,7 @@ export function AddLicensePage({ onNavigate, onSearch }: AddLicensePageProps) {
                 {formData.cost && (
                   <div className="flex justify-between items-center pb-2 border-b border-white/20">
                     <span className="text-sm text-white/80">Annual Cost</span>
-                    <span className="font-semibold">{formatCurrency(parseFloat(formData.cost))}</span>
+                    <span className="font-semibold">{formatCurrency(Number.parseFloat(formData.cost))}</span>
                   </div>
                 )}
               </div>

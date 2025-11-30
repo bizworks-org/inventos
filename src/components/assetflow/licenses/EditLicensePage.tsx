@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { usePrefs } from "../layout/PrefsContext";
 import { motion } from "motion/react";
-import { ArrowLeft, Save, X, Calendar, DollarSign } from "lucide-react";
+import { Save, X, Calendar, DollarSign } from "lucide-react";
 import { AssetFlowLayout } from "../layout/AssetFlowLayout";
 import { License, AssetFieldDef, Vendor } from "../../../lib/data";
 import FieldRenderer from "../assets/FieldRenderer";
@@ -13,7 +13,7 @@ import {
   fetchVendors,
 } from "../../../lib/api";
 import { toast } from "@/components/ui/sonner";
-import { logLicenseCreated, logLicenseExpiring } from "../../../lib/events";
+import { logLicenseCreated } from "../../../lib/events";
 import { Button } from "@/components/ui/button";
 
 interface EditLicensePageProps {
@@ -33,7 +33,7 @@ export function EditLicensePage({
   licenseId,
   onNavigate,
   onSearch,
-}: EditLicensePageProps) {
+}: Readonly<EditLicensePageProps>) {
   const { currencySymbol, formatCurrency } = usePrefs();
   const [license, setLicense] = useState<License | undefined>(undefined);
   const [loading, setLoading] = useState(true);
@@ -167,7 +167,7 @@ export function EditLicensePage({
       seatsUsed: license.seatsUsed,
       expirationDate: formData.expirationDate,
       renewalDate: formData.renewalDate,
-      cost: parseFloat(formData.cost || "0"),
+      cost: Number.parseFloat(formData.cost || "0"),
       owner: formData.owner,
       compliance: formData.compliance,
     };
@@ -249,12 +249,16 @@ export function EditLicensePage({
               </h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="md:col-span-2">
-                  <label className="block text-sm font-medium text-[#1a1d2e] mb-2">
+                  <label
+                    htmlFor="license-name"
+                    className="block text-sm font-medium text-[#1a1d2e] mb-2"
+                  >
                     License Name *
                   </label>
                   <input
                     type="text"
                     required
+                    id="license-name"
                     value={formData.name}
                     onChange={(e) => handleInputChange("name", e.target.value)}
                     placeholder="e.g., Microsoft 365 Enterprise"
@@ -263,11 +267,15 @@ export function EditLicensePage({
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-[#1a1d2e] mb-2">
+                  <label
+                    htmlFor="license-vendor"
+                    className="block text-sm font-medium text-[#1a1d2e] mb-2"
+                  >
                     Vendor *
                   </label>
                   <select
                     required
+                    id="license-vendor"
                     value={formData.vendor}
                     onChange={(e) => {
                       const v = e.target.value;
@@ -295,6 +303,7 @@ export function EditLicensePage({
                   {formData.vendor === "__other__" && (
                     <input
                       type="text"
+                      id="license-vendor-manual"
                       value={vendorManual}
                       onChange={(e) => setVendorManual(e.target.value)}
                       placeholder="Enter vendor name"
@@ -304,11 +313,15 @@ export function EditLicensePage({
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-[#1a1d2e] mb-2">
+                  <label
+                    htmlFor="license-type"
+                    className="block text-sm font-medium text-[#1a1d2e] mb-2"
+                  >
                     License Type *
                   </label>
                   <select
                     required
+                    id="license-type"
                     value={formData.type}
                     onChange={(e) => handleInputChange("type", e.target.value)}
                     className="w-full px-4 py-2.5 rounded-lg bg-[#f8f9ff] border border-[rgba(0,0,0,0.05)] text-[#1a1d2e] focus:outline-none focus:ring-2 focus:ring-[#6366f1]/20 focus:border-[#6366f1] transition-all duration-200 cursor-pointer"
@@ -322,12 +335,16 @@ export function EditLicensePage({
                 </div>
 
                 <div className="md:col-span-2">
-                  <label className="block text-sm font-medium text-[#1a1d2e] mb-2">
+                  <label
+                    htmlFor="license-owner"
+                    className="block text-sm font-medium text-[#1a1d2e] mb-2"
+                  >
                     Owner / Department *
                   </label>
                   <input
                     type="text"
                     required
+                    id="license-owner"
                     value={formData.owner}
                     onChange={(e) => handleInputChange("owner", e.target.value)}
                     placeholder="e.g., IT Department"
@@ -354,7 +371,10 @@ export function EditLicensePage({
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-[#1a1d2e] mb-2">
+                  <label
+                    htmlFor="license-cost"
+                    className="block text-sm font-medium text-[#1a1d2e] mb-2"
+                  >
                     Annual Cost *
                   </label>
                   <div className="relative">
@@ -366,6 +386,7 @@ export function EditLicensePage({
                       required
                       min="0"
                       step="0.01"
+                      id="license-cost"
                       value={formData.cost}
                       onChange={(e) =>
                         handleInputChange("cost", e.target.value)
@@ -377,11 +398,15 @@ export function EditLicensePage({
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-[#1a1d2e] mb-2">
+                  <label
+                    htmlFor="license-compliance"
+                    className="block text-sm font-medium text-[#1a1d2e] mb-2"
+                  >
                     Compliance Status *
                   </label>
                   <select
                     required
+                    id="license-compliance"
                     value={formData.compliance}
                     onChange={(e) =>
                       handleInputChange("compliance", e.target.value)
@@ -397,7 +422,10 @@ export function EditLicensePage({
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-[#1a1d2e] mb-2">
+                  <label
+                    htmlFor="license-expiration"
+                    className="block text-sm font-medium text-[#1a1d2e] mb-2"
+                  >
                     Expiration Date *
                   </label>
                   <div className="relative">
@@ -405,6 +433,7 @@ export function EditLicensePage({
                     <input
                       type="date"
                       required
+                      id="license-expiration"
                       value={formData.expirationDate}
                       onChange={(e) =>
                         handleInputChange("expirationDate", e.target.value)
@@ -415,13 +444,17 @@ export function EditLicensePage({
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-[#1a1d2e] mb-2">
+                  <label
+                    htmlFor="license-renewal"
+                    className="block text-sm font-medium text-[#1a1d2e] mb-2"
+                  >
                     Renewal Date
                   </label>
                   <div className="relative">
                     <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-[#64748b] pointer-events-none" />
                     <input
                       type="date"
+                      id="license-renewal"
                       value={formData.renewalDate}
                       onChange={(e) =>
                         handleInputChange("renewalDate", e.target.value)
@@ -461,14 +494,16 @@ export function EditLicensePage({
                   return (
                     <div key={def.key}>
                       <label className="block text-sm font-medium text-[#1a1d2e] mb-2">
-                        {def.label}
-                        {def.required ? " *" : ""}
+                        <span className="block mb-2">
+                          {def.label}
+                          {def.required ? " *" : ""}
+                        </span>
+                        <FieldRenderer
+                          def={def}
+                          value={val}
+                          onChange={onChange}
+                        />
                       </label>
-                      <FieldRenderer
-                        def={def}
-                        value={val}
-                        onChange={onChange}
-                      />
                     </div>
                   );
                 })}

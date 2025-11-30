@@ -63,42 +63,6 @@ function getEntityColor(entityType: SystemEvent["entityType"]) {
   return colors[entityType];
 }
 
-function formatTimestamp(timestamp: string): string {
-  const date = new Date(timestamp);
-  const now = new Date();
-  const diffInMs = now.getTime() - date.getTime();
-  const diffInMinutes = Math.floor(diffInMs / (1000 * 60));
-  const diffInHours = Math.floor(diffInMs / (1000 * 60 * 60));
-  const diffInDays = Math.floor(diffInMs / (1000 * 60 * 60 * 24));
-
-  // If less than 1 minute
-  if (diffInMinutes < 1) {
-    return "Just now";
-  }
-
-  // If less than 1 hour
-  if (diffInMinutes < 60) {
-    return `${diffInMinutes}m ago`;
-  }
-
-  // If less than 24 hours
-  if (diffInHours < 24) {
-    return `${diffInHours}h ago`;
-  }
-
-  // If less than 7 days
-  if (diffInDays < 7) {
-    return `${diffInDays}d ago`;
-  }
-
-  // Otherwise, show the date
-  return date.toLocaleDateString("en-US", {
-    month: "short",
-    day: "numeric",
-    year: date.getFullYear() !== now.getFullYear() ? "numeric" : undefined,
-  });
-}
-
 function formatFullTimestamp(timestamp: string): string {
   return new Date(timestamp).toLocaleString("en-US", {
     year: "numeric",
@@ -113,7 +77,7 @@ function formatFullTimestamp(timestamp: string): string {
 function groupEventsByDate(events: SystemEvent[]): Map<string, SystemEvent[]> {
   const grouped = new Map<string, SystemEvent[]>();
 
-  events.forEach((event) => {
+  for (const event of events) {
     const date = new Date(event.timestamp);
     const today = new Date();
     const yesterday = new Date(today);
@@ -130,20 +94,20 @@ function groupEventsByDate(events: SystemEvent[]): Map<string, SystemEvent[]> {
         month: "short",
         day: "numeric",
         year:
-          date.getFullYear() !== today.getFullYear() ? "numeric" : undefined,
+          date.getFullYear() === today.getFullYear() ? undefined : "numeric",
       });
     }
-
     if (!grouped.has(dateKey)) {
       grouped.set(dateKey, []);
     }
-    grouped.get(dateKey)!.push(event);
-  });
+    grouped.get(dateKey).push(event);
+  }
 
   return grouped;
 }
 
-export function EventsTimeline({ events }: EventsTimelineProps) {
+export function EventsTimeline(props: Readonly<EventsTimelineProps>) {
+  const { events } = props;
   const [expandedEventId, setExpandedEventId] = useState<string | null>(null);
 
   if (events.length === 0) {
@@ -218,9 +182,9 @@ export function EventsTimeline({ events }: EventsTimelineProps) {
                       className={`
                         w-full px-4 py-2.5 flex items-center gap-3 text-sm transition-colors duration-150
                         ${
-                          index !== dateEvents.length - 1
-                            ? "border-b border-[rgba(0,0,0,0.04)]"
-                            : ""
+                          index === dateEvents.length - 1
+                            ? ""
+                            : "border-b border-[rgba(0,0,0,0.04)]"
                         }
                         hover:bg-[rgba(248,249,255,0.8)] focus:outline-none focus:bg-[rgba(248,249,255,1)]
                       `}

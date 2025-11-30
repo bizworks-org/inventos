@@ -23,7 +23,7 @@ export function AssetFlowLayout({
   currentPage,
   onSearch,
   me,
-}: AssetFlowLayoutProps) {
+}: Readonly<AssetFlowLayoutProps>) {
   // Prefer SSR-provided me from MeContext; accepts prop override when explicitly passed.
   const { me: ctxMe } = useMe();
   const meEffective = me ?? ctxMe ?? null;
