@@ -536,6 +536,8 @@ function SettingsPageImpl({
       .catch(() => setMe(null));
   };
 
+  // Notification preferences are persisted when user clicks Save
+
   const applyBasicSettings = (parsed: any) => {
     if (parsed.name) setName(parsed.name);
     if (parsed.email) setEmail(parsed.email);
@@ -650,6 +652,13 @@ function SettingsPageImpl({
   }, [mode, setTheme]);
 
   const handleSave = async () => {
+    // Ensure profile updates are applied when the global Save is clicked
+    try {
+      await saveProfileHandler(name);
+    } catch {
+      // saveProfile handles its own messaging; continue to save other settings
+    }
+
     if (events.method === "webhook") {
       try {
         const obj = JSON.parse(events.webhookHeaders || "{}");

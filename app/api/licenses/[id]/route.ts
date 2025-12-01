@@ -105,16 +105,18 @@ export async function DELETE(_req: NextRequest, ctx: any) {
       { status: (guard as any).status ?? 403 }
     );
   const { id } = await resolveParams(ctx);
-  
+
   // Fetch license name before deletion for event logging
   let licenseName = id;
   try {
-    const license = await query("SELECT name FROM licenses WHERE id = :id", { id });
+    const license = await query("SELECT name FROM licenses WHERE id = :id", {
+      id,
+    });
     if (license?.[0]?.name) licenseName = license[0].name;
   } catch {}
-  
+
   await query("DELETE FROM licenses WHERE id = :id", { id });
-  
+
   // Log event to events table
   try {
     const me = await readMeFromCookie();
@@ -135,6 +137,6 @@ export async function DELETE(_req: NextRequest, ctx: any) {
   } catch (e) {
     console.warn("Failed to log license deletion event", e);
   }
-  
+
   return NextResponse.json({ ok: true });
 }

@@ -70,9 +70,7 @@ export async function PUT(req: NextRequest, ctx: any) {
   const params = {
     ...body,
     id,
-    contacts: body.contacts
-      ? JSON.stringify(body.contacts)
-      : null,
+    contacts: body.contacts ? JSON.stringify(body.contacts) : null,
   };
   const sqlWithContacts = sql.replace(
     "\n    WHERE id=:id",
@@ -143,16 +141,18 @@ export async function DELETE(_req: NextRequest, ctx: any) {
       { status: (guard as any).status ?? 403 }
     );
   const { id } = await resolveParams(ctx);
-  
+
   // Fetch vendor name before deletion for event logging
   let vendorName = id;
   try {
-    const vendor = await query("SELECT name FROM vendors WHERE id = :id", { id });
+    const vendor = await query("SELECT name FROM vendors WHERE id = :id", {
+      id,
+    });
     if (vendor?.[0]?.name) vendorName = vendor[0].name;
   } catch {}
-  
+
   await query("DELETE FROM vendors WHERE id = :id", { id });
-  
+
   // Log event to events table
   try {
     const me = await readMeFromCookie();
@@ -173,6 +173,6 @@ export async function DELETE(_req: NextRequest, ctx: any) {
   } catch (e) {
     console.warn("Failed to log vendor deletion event", e);
   }
-  
+
   return NextResponse.json({ ok: true });
 }

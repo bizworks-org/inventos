@@ -112,7 +112,11 @@ export async function POST(req: NextRequest) {
         action: "license.created",
         user: me?.email || "system",
         details: `New license created: ${body.name || body.id}`,
-        metadata: JSON.stringify({ id: body.id, name: body.name, vendor: body.vendor }),
+        metadata: JSON.stringify({
+          id: body.id,
+          name: body.name,
+          vendor: body.vendor,
+        }),
       }
     );
   } catch (e) {

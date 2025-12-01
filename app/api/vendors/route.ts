@@ -80,7 +80,11 @@ export async function POST(req: NextRequest) {
         action: "vendor.created",
         user: me?.email || "system",
         details: `New vendor created: ${body.name || body.id}`,
-        metadata: JSON.stringify({ id: body.id, name: body.name, type: body.type }),
+        metadata: JSON.stringify({
+          id: body.id,
+          name: body.name,
+          type: body.type,
+        }),
       }
     );
   } catch (e) {

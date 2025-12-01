@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { Button } from "../../../ui/button";
+// Save now happens via global Save button in header
 
 interface Props {
   name: string;
@@ -119,15 +119,7 @@ export default function ProfileTab({
           </p>
         )}
 
-        <div className="flex justify-end">
-          <Button
-            type="button"
-            onClick={saveProfile}
-            className="bg-gradient-to-r from-[#6366f1] to-[#8b5cf6] text-white hover:shadow-lg hover:shadow-[#6366f1]/30"
-          >
-            Save Profile
-          </Button>
-        </div>
+        {/* Profile saved by global Save Changes button in header */}
       </div>
     </>
   );

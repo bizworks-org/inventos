@@ -9,7 +9,7 @@ import {
   CardTitle,
 } from "../../../ui/card";
 import { Checkbox } from "../../../ui/checkbox";
-import { Button } from "../../../ui/button";
+// Saved by global Save button in settings header
 
 interface Props {
   notify: any;
@@ -23,13 +23,7 @@ export default function NotificationsTab({
   handleSave,
 }: Props) {
   return (
-    <form
-      className="space-y-6"
-      onSubmit={(e) => {
-        e.preventDefault();
-        handleSave();
-      }}
-    >
+    <div className="space-y-6">
       <Card>
         <CardHeader>
           <CardTitle>Notification Channels</CardTitle>
@@ -100,7 +94,7 @@ export default function NotificationsTab({
               <div className="flex items-center justify-between p-3 rounded-lg bg-gray-50 dark:bg-gray-900">
                 <span className="text-sm">New Asset Added</span>
                 <Checkbox
-                  className="border-[#e2e8f0] bg-black"
+                  className="border-[#e2e8f0] bg-white dark:bg-gray-800"
                   checked={!!notify.events.assets.newAsset}
                   onCheckedChange={(v: any) =>
                     setNotify((n: any) => ({
@@ -116,7 +110,7 @@ export default function NotificationsTab({
               <div className="flex items-center justify-between p-3 rounded-lg bg-gray-50 dark:bg-gray-900">
                 <span className="text-sm">Asset Status Change</span>
                 <Checkbox
-                  className="border-[#e2e8f0] bg-black"
+                  className="border-[#e2e8f0] bg-white dark:bg-gray-800"
                   checked={!!notify.events.assets.statusChange}
                   onCheckedChange={(v: any) =>
                     setNotify((n: any) => ({
@@ -132,7 +126,7 @@ export default function NotificationsTab({
               <div className="flex items-center justify-between p-3 rounded-lg bg-gray-50 dark:bg-gray-900">
                 <span className="text-sm">Maintenance Due</span>
                 <Checkbox
-                  className="border-[#e2e8f0] bg-black"
+                  className="border-[#e2e8f0] bg-white dark:bg-gray-800"
                   checked={!!notify.events.assets.maintenanceDue}
                   onCheckedChange={(v: any) =>
                     setNotify((n: any) => ({
@@ -253,15 +247,6 @@ export default function NotificationsTab({
           </div>
         </CardContent>
       </Card>
-
-      <div className="flex justify-end">
-        <Button
-          type="submit"
-          className="bg-gradient-to-r from-[#6366f1] to-[#8b5cf6] text-white hover:shadow-lg hover:shadow-[#6366f1]/30"
-        >
-          Save Preferences
-        </Button>
-      </div>
-    </form>
+    </div>
   );
 }
