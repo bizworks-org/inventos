@@ -4,25 +4,15 @@ interface SettingsHeaderProps {
   view: "general" | "technical";
   saving: boolean;
   isAdmin: boolean;
-  backupInProgress: boolean;
-  previewing: boolean;
-  restoreInProgress: boolean;
   onSave: () => void;
-  onBackup: () => void;
-  onRestore: (file: File | null) => void;
 }
 
 export function SettingsHeader({
   view,
   saving,
   isAdmin,
-  backupInProgress,
-  previewing,
-  restoreInProgress,
   onSave,
-  onBackup,
-  onRestore,
-}: SettingsHeaderProps) {
+}: Readonly<SettingsHeaderProps>) {
   return (
     <div className="flex items-center justify-between mb-8 dark:bg-black">
       <div>
@@ -43,39 +33,6 @@ export function SettingsHeader({
         >
           {saving ? "Saving…" : "Save Changes"}
         </Button>
-      )}
-
-      {view === "technical" && isAdmin && (
-        <div className="flex items-center gap-3">
-          <input
-            id="restore-file"
-            type="file"
-            accept=".bin"
-            className="hidden"
-            onChange={(e) => {
-              const f = e.target.files ? e.target.files[0] : null;
-              onRestore(f);
-              try {
-                (e.target as HTMLInputElement).value = "";
-              } catch {}
-            }}
-          />
-          <Button
-            onClick={onBackup}
-            variant="outline"
-            className="px-3 py-2 rounded-lg border-[#6366f1] text-[#6366f1] hover:bg-[#eef2ff]"
-          >
-            {backupInProgress ? "Backing up…" : "Backup"}
-          </Button>
-          <label htmlFor="restore-file">
-            <Button
-              type="button"
-              className="px-3 py-2 rounded-lg border text-gray-700 dark:text-gray-200"
-            >
-              {previewing || restoreInProgress ? "Processing…" : "Restore"}
-            </Button>
-          </label>
-        </div>
       )}
     </div>
   );

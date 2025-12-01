@@ -5,6 +5,7 @@ import { motion } from "motion/react";
 import { AssetFlowLayout } from "../layout/AssetFlowLayout";
 import { useMe } from "../layout/MeContext";
 import { Tabs, TabsContent } from "../../ui/tabs";
+import { Button } from "../../ui/button";
 import { useTheme } from "next-themes";
 import { Server, Plug } from "lucide-react";
 import {
@@ -524,6 +525,56 @@ function SettingsPageImpl({
     handleRestoreConfirmed,
   } = backupRestore;
 
+  const [lastBackupDate, setLastBackupDate] = useState<Date | null>(null);
+  const [lastRestoreDate, setLastRestoreDate] = useState<Date | null>(null);
+
+  // load backup metadata from localStorage
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem("assetflow:backup-meta");
+      if (!raw) return;
+      const parsed = JSON.parse(raw || "{}");
+      setLastBackupDate(parsed.lastBackup ? new Date(parsed.lastBackup) : null);
+      setLastRestoreDate(
+        parsed.lastRestore ? new Date(parsed.lastRestore) : null
+      );
+    } catch {}
+  }, []);
+
+  const persistBackupMeta = (updates: {
+    lastBackup?: string;
+    lastRestore?: string;
+  }) => {
+    try {
+      const raw = localStorage.getItem("assetflow:backup-meta");
+      const base = raw ? JSON.parse(raw) : {};
+      const merged = { ...base, ...updates };
+      localStorage.setItem("assetflow:backup-meta", JSON.stringify(merged));
+    } catch {}
+  };
+
+  const onBackupClick = async () => {
+    const ok = await handleBackup();
+    if (ok) {
+      const now = new Date();
+      setLastBackupDate(now);
+      persistBackupMeta({ lastBackup: now.toISOString() });
+    }
+  };
+
+  const onPreviewFile = async (file: File | null) => {
+    await handlePreview(file);
+  };
+
+  const onConfirmRestore = async () => {
+    const ok = await handleRestoreConfirmed();
+    if (ok) {
+      const now = new Date();
+      setLastRestoreDate(now);
+      persistBackupMeta({ lastRestore: now.toISOString() });
+    }
+  };
+
   const loadUserProfile = () => {
     getMe()
       .then((m) => {
@@ -769,13 +820,10 @@ function SettingsPageImpl({
         view={view}
         saving={saving}
         isAdmin={me?.role === "admin"}
-        backupInProgress={backupInProgress}
-        previewing={previewing}
-        restoreInProgress={restoreInProgress}
         onSave={handleSave}
-        onBackup={handleBackup}
-        onRestore={handlePreview}
       />
+
+      {/* Backup / Restore moved to System tab */}
 
       <motion.div
         initial={{ opacity: 0, y: 20 }}
@@ -837,6 +885,74 @@ function SettingsPageImpl({
                 setNotify={setNotify as any}
                 handleSave={handleSave}
               />
+            </TabsContent>
+          )}
+
+          {/* System (Backup & Restore) */}
+          {view === "general" && (
+            <TabsContent value="system" className="mt-0 space-y-8">
+              <div className="space-y-4">
+                <h3 className="text-lg font-semibold">System</h3>
+                <p className="text-sm text-gray-600 dark:text-gray-400">
+                  Administrative operations for backups and restores. Visible to
+                  administrators only.
+                </p>
+
+                {me?.role === "admin" ? (
+                  <div className="pt-4">
+                    <div className="flex items-center gap-3 mb-4">
+                      <input
+                        id="system-restore-file"
+                        type="file"
+                        accept=".bin"
+                        className="hidden"
+                        onChange={(e) => {
+                          const f = e.target.files ? e.target.files[0] : null;
+                          onPreviewFile(f);
+                          try {
+                            (e.target as HTMLInputElement).value = "";
+                          } catch {}
+                        }}
+                      />
+                      <Button
+                        onClick={onBackupClick}
+                        variant="outline"
+                        className="px-3 py-2 rounded-lg border-[#6366f1] text-[#6366f1] hover:bg-[#eef2ff]"
+                      >
+                        {backupInProgress ? "Backing up…" : "Backup"}
+                      </Button>
+                      <label htmlFor="system-restore-file">
+                        <Button
+                          type="button"
+                          className="px-3 py-2 rounded-lg border text-white dark:text-gray-200"
+                        >
+                          {previewing || restoreInProgress
+                            ? "Processing…"
+                            : "Restore"}
+                        </Button>
+                      </label>
+                    </div>
+
+                    <div className="text-sm text-gray-700 dark:text-gray-300">
+                      <div>
+                        <strong>Last backup:</strong>{" "}
+                        {lastBackupDate ? lastBackupDate.toLocaleString() : "—"}
+                      </div>
+                      {lastRestoreDate ? (
+                        <div>
+                          <strong>Last restore:</strong>{" "}
+                          {lastRestoreDate.toLocaleString()}
+                        </div>
+                      ) : null}
+                    </div>
+                  </div>
+                ) : (
+                  <div className="text-sm text-gray-600 dark:text-gray-400">
+                    Backup and restore operations are available to
+                    administrators only.
+                  </div>
+                )}
+              </div>
             </TabsContent>
           )}
           {/* Integrations */}
@@ -957,7 +1073,7 @@ function SettingsPageImpl({
           setPreviewFile(null);
           setPreviewStats([]);
         }}
-        onConfirm={handleRestoreConfirmed}
+        onConfirm={onConfirmRestore}
       />
     </AssetFlowLayout>
   );

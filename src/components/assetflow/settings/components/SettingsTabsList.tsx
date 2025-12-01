@@ -51,6 +51,12 @@ export function SettingsTabsList({
           >
             <Bell className="h-4 w-4 text-[#f59e0b]" /> Notifications
           </TabsTrigger>
+          <TabsTrigger
+            value="system"
+            className={getTabClasses(activeTab === "system")}
+          >
+            <Database className="h-4 w-4 text-[#64748b]" /> System
+          </TabsTrigger>
         </>
       )}
 

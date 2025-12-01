@@ -33,8 +33,10 @@ export function useBackupRestore() {
       a.remove();
       URL.revokeObjectURL(url);
       toast.success("Backup downloaded");
+      return true;
     } catch (e: any) {
       toast.error(e?.message || "Backup failed");
+      return false;
     } finally {
       setBackupInProgress(false);
     }
@@ -56,9 +58,11 @@ export function useBackupRestore() {
       if (!res.ok) throw new Error(data?.error || "Preview failed");
       setPreviewStats(data.tables || null);
       setPreviewOpen(true);
+      return true;
     } catch (e: any) {
       setPreviewError(e?.message || "Preview failed");
       toast.error(e?.message || "Preview failed");
+      return false;
     } finally {
       setPreviewing(false);
     }
@@ -82,8 +86,10 @@ export function useBackupRestore() {
       setPreviewOpen(false);
       setPreviewStats(null);
       setPreviewFile(null);
+      return true;
     } catch (e: any) {
       toast.error(e?.message || "Restore failed");
+      return false;
     } finally {
       setRestoreInProgress(false);
     }
