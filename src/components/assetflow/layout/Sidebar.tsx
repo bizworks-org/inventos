@@ -49,6 +49,12 @@ const navItems: NavItem[] = [
     colorClass: "text-cyan-400",
   },
   {
+    name: "Events",
+    id: "events",
+    icon: Activity,
+    colorClass: "text-sky-300",
+  },
+  {
     name: "Settings",
     id: "settings",
     icon: Settings,
@@ -68,9 +74,7 @@ export function Sidebar({
 }) {
   const pathname = usePathname();
   // Use server-provided user to avoid client fetch; fall back to undefined for SSR
-  const [me, setMe] = useState<typeof meProp | undefined>(
-    meProp ?? undefined
-  );
+  const [me, setMe] = useState<typeof meProp | undefined>(meProp ?? undefined);
   // Branding state (SSR-provided to avoid flicker)
   const [brandLogo, setBrandLogo] = useState<string | null>(() => {
     if (typeof document === "undefined") return null;
@@ -79,9 +83,7 @@ export function Sidebar({
   });
   const [brandName, setBrandName] = useState<string>(() => {
     if (typeof document === "undefined") return "Inventos";
-    return (
-      document.documentElement.dataset.brandName || "Inventos"
-    );
+    return document.documentElement.dataset.brandName || "Inventos";
   });
   // Persist admin visibility once detected in the client session
   const [everAdmin, setEverAdmin] = useState<boolean>(() => {
@@ -188,12 +190,6 @@ export function Sidebar({
           id: "settings_general",
           icon: Settings,
           colorClass: "text-violet-300",
-        },
-        {
-          name: "Events",
-          id: "settings_events",
-          icon: Activity,
-          colorClass: "text-sky-300",
         },
       ];
       if (isAdminLike) {

@@ -15,9 +15,11 @@ import {
 export function AuditSessionPage({
   auditId,
   previousAuditId,
+  onSearch,
 }: {
   auditId: string;
   previousAuditId?: string;
+  onSearch?: (query: string) => void;
 }) {
   const [items, setItems] = useState<AuditItem[]>([]);
   const [prevItems, setPrevItems] = useState<AuditItem[]>([]);
@@ -164,6 +166,7 @@ export function AuditSessionPage({
         { label: auditId },
       ]}
       currentPage="audits"
+      onSearch={onSearch}
     >
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-2xl font-bold text-[#1a1d2e]">Audit {auditId}</h1>

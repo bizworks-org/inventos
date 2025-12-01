@@ -248,14 +248,49 @@ export function CustomizationPage({ onNavigate, onSearch }: Readonly<Props>) {
   const LS_KEY = "assetflow:locations";
 
   useEffect(() => {
-    try {
-      const raw = localStorage.getItem(LS_KEY);
-      if (raw) {
-        const parsed = JSON.parse(raw);
-        if (Array.isArray(parsed)) setLocations(parsed.filter(Boolean));
+    // If the current user is an admin, prefer the server list (authoritative).
+    // Otherwise fall back to localStorage cache. Persist server list to
+    // localStorage so other parts of the app (AddAssetPage) continue to work.
+    const load = async () => {
+      try {
+        if (me && (me.role === "admin" || me.role === "superadmin")) {
+          try {
+            const res = await fetch("/api/admin/locations", {
+              cache: "no-store",
+            });
+            if (res.ok) {
+              const data = await res.json();
+              const rows = Array.isArray(data?.locations) ? data.locations : [];
+              setLocations(rows);
+              persistLocations(rows);
+              return;
+            }
+          } catch (err) {
+            // network error — fall back to localStorage below
+            // eslint-disable-next-line no-console
+            console.warn(
+              "Failed to fetch server locations, falling back to cache",
+              err
+            );
+          }
+        }
+      } catch (err) {
+        // ignore
       }
-    } catch {}
-  }, []);
+
+      try {
+        const raw = localStorage.getItem(LS_KEY);
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          if (Array.isArray(parsed)) setLocations(parsed.filter(Boolean));
+        }
+      } catch (e) {
+        // ignore
+      }
+    };
+
+    load();
+  }, [me]);
 
   const persistLocations = (
     next: Array<{
@@ -295,26 +330,52 @@ export function CustomizationPage({ onNavigate, onSearch }: Readonly<Props>) {
       } catch {}
       return;
     }
-    const loc = {
+
+    // Create a temporary local entry for immediate UX, then persist to server
+    const temp = {
       id: generateId(),
       code: vCode,
       name: vName,
       address: (newLocation.address || "").trim(),
       zipcode: vZip,
     };
-    const next = [...locations, loc];
+    const next = [...locations, temp];
     setLocations(next);
     setNewLocation({ code: "", name: "", address: "", zipcode: "" });
     persistLocations(next);
-    // try to save to server (best-effort)
+
+    // Try to save to server; if successful, refresh authoritative list from server.
     (async () => {
       try {
-        await fetch("/api/admin/locations", {
+        const res = await fetch("/api/admin/locations", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(loc),
+          body: JSON.stringify({
+            code: temp.code,
+            name: temp.name,
+            address: temp.address,
+            zipcode: temp.zipcode,
+          }),
         });
-      } catch {}
+        if (res.ok) {
+          // Refresh the server list so ids and ordering are authoritative
+          try {
+            const g = await fetch("/api/admin/locations", {
+              cache: "no-store",
+            });
+            if (g.ok) {
+              const data = await g.json();
+              const rows = Array.isArray(data?.locations) ? data.locations : [];
+              setLocations(rows);
+              persistLocations(rows);
+            }
+          } catch (err) {
+            // ignore refresh error
+          }
+        }
+      } catch (err) {
+        // network error; keep optimistic local entry
+      }
     })();
   };
 

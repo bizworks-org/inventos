@@ -13,8 +13,10 @@ import { GitCompare, ArrowRight } from "lucide-react";
 
 export function AuditsPage({
   onNavigate,
+  onSearch,
 }: {
   readonly onNavigate?: (page: string) => void;
+  readonly onSearch?: (query: string) => void;
 }) {
   const [audits, setAudits] = useState<Audit[]>([]);
   const [loading, setLoading] = useState(true);
@@ -113,6 +115,7 @@ export function AuditsPage({
     <AssetFlowLayout
       breadcrumbs={[{ label: "Home", href: "#" }, { label: "Audits" }]}
       currentPage="audits"
+      onSearch={onSearch}
     >
       <div className="flex items-center justify-between mb-8">
         <div>

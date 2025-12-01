@@ -65,7 +65,9 @@ export async function POST(req: NextRequest) {
         { error: "ZipCode must be 6 digits" },
         { status: 400 }
       );
-    const id = `loc_${Date.now()}_${secureId("", 16)}`;
+    // Use a short, secure id for locations (compact and unique)
+    // `secureId("", 4)` produces 4 random bytes -> 8 hex characters
+    const id = `loc_${secureId("", 4)}`;
     await query(
       "INSERT INTO locations (id, code, name, address, zipcode) VALUES (:id, :code, :name, :address, :zipcode)",
       {
