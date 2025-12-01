@@ -11,16 +11,11 @@ import {
   User,
   Clock,
   ChevronDown,
-  X,
 } from "lucide-react";
 import { SystemEvent } from "../../../lib/events";
 
 interface EventsTimelineProps {
   events: SystemEvent[];
-}
-
-interface ExpandedEvent {
-  id: string;
 }
 
 function getSeverityColor(severity: SystemEvent["severity"]) {

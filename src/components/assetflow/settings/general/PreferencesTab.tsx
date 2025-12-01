@@ -41,11 +41,13 @@ export default function PreferencesTab({
                 setPrefs((p) => ({ ...p, density: "ultra-compact" }));
                 persistPrefs({ density: "ultra-compact" });
               }}
-              className={`px-3 py-2 rounded-lg border ${
+              aria-pressed={prefs.density === "ultra-compact"}
+              aria-label="Ultra compact density"
+              className={
                 prefs.density === "ultra-compact"
-                  ? "bg-[#e0e7ff] border-[#6366f1] text-gray-900 dark:text-gray-100"
-                  : "bg-gray-50 dark:bg-gray-900 border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400"
-              }`}
+                  ? "px-4 py-2 rounded-lg bg-gradient-to-r from-[#6366f1] to-[#8b5cf6] text-white hover:shadow-lg hover:shadow-[#6366f1]/30 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-400"
+                  : "px-3 py-2 rounded-lg border focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-400 bg-gray-50 dark:bg-gray-900 border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400"
+              }
             >
               Ultra-compact
             </Button>
@@ -55,11 +57,13 @@ export default function PreferencesTab({
                 setPrefs((p) => ({ ...p, density: "compact" }));
                 persistPrefs({ density: "compact" });
               }}
-              className={`px-3 py-2 rounded-lg border ${
+              aria-pressed={prefs.density === "compact"}
+              aria-label="Compact density"
+              className={
                 prefs.density === "compact"
-                  ? "bg-[#e0e7ff] border-[#6366f1] text-gray-900 dark:text-gray-100"
-                  : "bg-gray-50 dark:bg-gray-900 border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400"
-              }`}
+                  ? "px-4 py-2 rounded-lg bg-gradient-to-r from-[#6366f1] to-[#8b5cf6] text-white hover:shadow-lg hover:shadow-[#6366f1]/30 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-400"
+                  : "px-3 py-2 rounded-lg border focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-400 bg-gray-50 dark:bg-gray-900 border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400"
+              }
             >
               Compact
             </Button>
@@ -69,11 +73,13 @@ export default function PreferencesTab({
                 setPrefs((p) => ({ ...p, density: "comfortable" }));
                 persistPrefs({ density: "comfortable" });
               }}
-              className={`px-3 py-2 rounded-lg border ${
+              aria-pressed={prefs.density === "comfortable"}
+              aria-label="Comfortable density"
+              className={
                 prefs.density === "comfortable"
-                  ? "bg-[#e0e7ff] border-[#6366f1] text-gray-900 dark:text-gray-100"
-                  : "bg-gray-50 dark:bg-gray-900 border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400"
-              }`}
+                  ? "px-4 py-2 rounded-lg bg-gradient-to-r from-[#6366f1] to-[#8b5cf6] text-white hover:shadow-lg hover:shadow-[#6366f1]/30 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-400"
+                  : "px-3 py-2 rounded-lg border focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-400 bg-gray-50 dark:bg-gray-900 border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400"
+              }
             >
               Comfortable
             </Button>

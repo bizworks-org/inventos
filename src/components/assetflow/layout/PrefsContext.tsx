@@ -26,16 +26,7 @@ type Language =
   | "ur"
   | "ar";
 
-type Currency =
-  | "USD"
-  | "EUR"
-  | "GBP"
-  | "INR"
-  | "JPY"
-  | "AUD"
-  | "CAD"
-  | "CNY"
-  | "SGD";
+type Currency = "INR";
 
 type Prefs = {
   language: Language;
@@ -190,7 +181,21 @@ export function PrefsProvider({ children }: { children: React.ReactNode }) {
     const onStorage = (e: StorageEvent) => {
       if (e.key === "assetflow:settings") setPrefs(readPrefsFromStorage());
     };
-    const onCustom = () => setPrefs(readPrefsFromStorage());
+
+    // Accept custom events with detail to update prefs immediately without relying on localStorage
+    const onCustom = (ev: Event) => {
+      try {
+        const ce = ev as CustomEvent & { detail?: any };
+        if (ce?.detail && ce.detail.prefs) {
+          const p = ce.detail.prefs as Prefs;
+          setPrefs((prev) => ({ ...prev, ...p }));
+          return;
+        }
+      } catch {}
+      // Fallback: read from storage (for backward compatibility)
+      setPrefs(readPrefsFromStorage());
+    };
+
     window.addEventListener("storage", onStorage);
     window.addEventListener("assetflow:prefs-updated", onCustom as any);
     return () => {
@@ -200,21 +205,17 @@ export function PrefsProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const locale = getLocaleForLanguage(prefs.language);
-  const currencySymbol = useMemo(
-    () => getCurrencySymbolFor(locale, prefs.currency),
-    [locale, prefs.currency]
-  );
+  const currencySymbol = "₹";
 
   const t = (key: string) =>
     translations[prefs.language]?.[key] || translations.en[key] || key;
   const formatCurrency = (amount: number, opts?: Intl.NumberFormatOptions) =>
     new Intl.NumberFormat(locale, {
       style: "currency",
-      currency: prefs.currency,
+      currency: "INR",
       ...opts,
     }).format(amount);
 
-  // Force currency to INR for the whole app regardless of stored prefs
   const value: PrefsContextType = {
     language: prefs.language,
     currency: "INR",
@@ -244,24 +245,20 @@ export function usePrefs() {
     const language = (
       allowedLanguages.includes(raw.language as Language) ? raw.language : "en"
     ) as Language;
-    const currency = (
-      ["USD", "EUR", "GBP", "INR", "JPY", "AUD", "CAD", "CNY", "SGD"] as const
-    ).includes(raw.currency as any)
-      ? (raw.currency as Currency)
-      : "INR";
+    const currency = "INR";
     const density = (
       ["comfortable", "compact", "ultra-compact"] as const
     ).includes(raw.density as any)
       ? raw.density
       : "comfortable";
     const locale = getLocaleForLanguage(language);
-    const currencySymbol = getCurrencySymbolFor(locale, currency);
+    const currencySymbol = "₹";
     const t = (key: string) =>
       translations[language]?.[key] || translations.en[key] || key;
     const formatCurrency = (amount: number, opts?: Intl.NumberFormatOptions) =>
       new Intl.NumberFormat(locale, {
         style: "currency",
-        currency,
+        currency: "INR",
         ...opts,
       }).format(amount);
     return { language, currency, density, t, formatCurrency, currencySymbol };

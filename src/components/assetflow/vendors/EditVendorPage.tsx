@@ -98,7 +98,7 @@ export function EditVendorPage({
     accountNumber: "",
     ifscSwiftCode: "",
     paymentTerms: "Net 30",
-    preferredCurrency: "USD",
+    preferredCurrency: "INR",
     vendorCreditLimit: "",
     gstCertificateFile: null,
   });
@@ -123,7 +123,7 @@ export function EditVendorPage({
       accountNumber: (prev as any).accountNumber ?? "",
       ifscSwiftCode: (prev as any).ifscSwiftCode ?? "",
       paymentTerms: (prev as any).paymentTerms ?? "Net 30",
-      preferredCurrency: (prev as any).preferredCurrency ?? "USD",
+      preferredCurrency: (prev as any).preferredCurrency ?? "INR",
       vendorCreditLimit: (prev as any).vendorCreditLimit ?? "",
       gstCertificateFile: null,
       contacts: (prev as any).contacts ?? [],
@@ -188,7 +188,7 @@ export function EditVendorPage({
       accountNumber: (vendor as any).accountNumber ?? "",
       ifscSwiftCode: (vendor as any).ifscSwiftCode ?? "",
       paymentTerms: (vendor as any).paymentTerms ?? "Net 30",
-      preferredCurrency: (vendor as any).preferredCurrency ?? "USD",
+      preferredCurrency: (vendor as any).preferredCurrency ?? "INR",
       vendorCreditLimit: (vendor as any).vendorCreditLimit ?? "",
       gstCertificateName: (vendor as any).gstCertificateName ?? null,
       contacts: (vendor as any).contacts ?? [],
@@ -331,7 +331,7 @@ export function EditVendorPage({
     (updated as any).preferredCurrency =
       (formData as any).preferredCurrency ??
       (vendor as any).preferredCurrency ??
-      undefined;
+      "INR";
     (updated as any).vendorCreditLimit =
       (formData as any).vendorCreditLimit ??
       (vendor as any).vendorCreditLimit ??
@@ -1734,22 +1734,16 @@ export function EditVendorPage({
                     </select>
                   </div>
 
-                  <div>
+                  <div className="hidden">
                     <label className="block text-sm font-medium text-[#1a1d2e] mb-2">
                       Preferred Currency
                     </label>
                     <select
-                      value={formData.preferredCurrency}
-                      onChange={(e) =>
-                        handleInputChange("preferredCurrency", e.target.value)
-                      }
+                      value="INR"
+                      disabled
                       className="w-full px-4 py-2.5 rounded-lg bg-[#f8f9ff] border border-[rgba(0,0,0,0.05)] text-[#1a1d2e] focus:outline-none focus:ring-2 focus:ring-[#6366f1]/20 focus:border-[#6366f1] transition-all duration-200 cursor-pointer"
                     >
-                      <option>USD</option>
-                      <option>INR</option>
-                      <option>EUR</option>
-                      <option>GBP</option>
-                      <option>AUD</option>
+                      <option>INR (₹)</option>
                     </select>
                   </div>
 

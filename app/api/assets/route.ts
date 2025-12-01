@@ -179,7 +179,9 @@ export async function POST(req: NextRequest) {
         );
         if (prefRows && prefRows.length > 0) {
           const raw = prefRows[0]?.asset_id_prefix ?? "";
-          const candidate = String(raw || "").trim().toUpperCase();
+          const candidate = String(raw || "")
+            .trim()
+            .toUpperCase();
           if (candidate) {
             const sane = candidate.replace(/[^A-Z0-9-]/g, "");
             if (sane) prefix = sane;
@@ -196,7 +198,10 @@ export async function POST(req: NextRequest) {
     };
 
     const isCanonicalId = (prefix: string, idVal: string) => {
-      const escapedPrefix = prefix.replace(/[-/\\^$*+?.()|[\]{}]/g, String.raw`\$&`);
+      const escapedPrefix = prefix.replace(
+        /[-/\\^$*+?.()|[\]{}]/g,
+        String.raw`\$&`
+      );
       const re = new RegExp(`^${escapedPrefix}-\\d+$`);
       return re.test(idVal);
     };
@@ -278,6 +283,31 @@ export async function POST(req: NextRequest) {
     // Record status and activity (best-effort) and notify recipients (best-effort)
     await recordInitialStatusAndActivity(body);
     await notifyOnCreate(body);
+
+    // Log event to events table
+    try {
+      const me = await readMeFromCookie();
+      await query(
+        `INSERT INTO events (id, ts, severity, entity_type, entity_id, action, user, details, metadata)
+         VALUES (:id, NOW(), :severity, :entity_type, :entity_id, :action, :user, :details, :metadata)`,
+        {
+          id: `EVT-${Date.now()}-${secureId("", 16)}`,
+          severity: "info",
+          entity_type: "asset",
+          entity_id: body.id,
+          action: "asset.created",
+          user: me?.email || "system",
+          details: `New asset created: ${body.name || body.id}`,
+          metadata: JSON.stringify({
+            id: body.id,
+            name: body.name,
+            type_id: body.type_id,
+          }),
+        }
+      );
+    } catch (e) {
+      console.warn("Failed to log asset creation event", e);
+    }
 
     // Return created id so clients can reference the canonical id assigned by server
     return NextResponse.json({ ok: true, id: body.id }, { status: 201 });

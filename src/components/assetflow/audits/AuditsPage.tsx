@@ -1,9 +1,8 @@
 "use client";
 import { useEffect, useState, useMemo } from "react";
-import { motion } from "motion/react";
 import { Button } from "@/components/ui/button";
 import { AssetFlowLayout } from "../layout/AssetFlowLayout";
-import { fetchAudits, createAudit, Audit } from "../../../lib/audit";
+import { fetchAudits, createAudit, Audit, AuditDiff } from "../../../lib/audit";
 import {
   Dialog,
   DialogContent,
@@ -15,7 +14,7 @@ import { GitCompare, ArrowRight } from "lucide-react";
 export function AuditsPage({
   onNavigate,
 }: {
-  onNavigate?: (page: string) => void;
+  readonly onNavigate?: (page: string) => void;
 }) {
   const [audits, setAudits] = useState<Audit[]>([]);
   const [loading, setLoading] = useState(true);
@@ -25,7 +24,7 @@ export function AuditsPage({
   const [locations, setLocations] = useState<string[]>([]);
   const [diffOpen, setDiffOpen] = useState(false);
   const [diffLoading, setDiffLoading] = useState(false);
-  const [diffData, setDiffData] = useState<any | null>(null);
+  const [diffData, setDiffData] = useState<AuditDiff | null>(null);
   const [diffAuditName, setDiffAuditName] = useState<string>("");
 
   useEffect(() => {
@@ -245,25 +244,25 @@ export function AuditsPage({
                 <div className="bg-[#f8f9ff] rounded p-3">
                   <div className="text-xs text-[#64748b]">New Assets</div>
                   <div className="text-lg font-semibold text-[#1a1d2e]">
-                    {diffData?.new?.length || 0}
+                    {diffData?.added?.length || 0}
                   </div>
                 </div>
                 <div className="bg-[#f8f9ff] rounded p-3">
                   <div className="text-xs text-[#64748b]">Missing Assets</div>
                   <div className="text-lg font-semibold text-[#1a1d2e]">
-                    {diffData?.missing?.length || 0}
+                    {diffData?.removed?.length || 0}
                   </div>
                 </div>
                 <div className="bg-[#f8f9ff] rounded p-3">
                   <div className="text-xs text-[#64748b]">Status Changes</div>
                   <div className="text-lg font-semibold text-[#1a1d2e]">
-                    {diffData?.statusChanges?.length || 0}
+                    {diffData?.statusChanged?.length || 0}
                   </div>
                 </div>
                 <div className="bg-[#f8f9ff] rounded p-3">
                   <div className="text-xs text-[#64748b]">Unchanged</div>
                   <div className="text-lg font-semibold text-[#1a1d2e]">
-                    {diffData?.unchanged?.length || 0}
+                    {0}
                   </div>
                 </div>
               </div>
@@ -277,44 +276,34 @@ export function AuditsPage({
                     </tr>
                   </thead>
                   <tbody>
-                    {(diffData?.statusChanges || []).map(
-                      (row: any, i: number) => (
-                        <tr
-                          key={`sc-${i}`}
-                          className="odd:bg-white even:bg-[#fbfbfd]"
-                        >
-                          <td className="px-3 py-2">
-                            {row.serial_number ||
-                              row.serial ||
-                              row.serialNumber}
-                          </td>
-                          <td className="px-3 py-2">Status changed</td>
-                          <td className="px-3 py-2">
-                            {row.prev} → {row.curr}
-                          </td>
-                        </tr>
-                      )
-                    )}
-                    {(diffData?.new || []).map((row: any, i: number) => (
+                    {(diffData?.statusChanged || []).map((row) => (
                       <tr
-                        key={`new-${i}`}
+                        key={`sc-${row.serialNumber}`}
                         className="odd:bg-white even:bg-[#fbfbfd]"
                       >
+                        <td className="px-3 py-2">{row.serialNumber}</td>
+                        <td className="px-3 py-2">Status changed</td>
                         <td className="px-3 py-2">
-                          {row.serial_number || row.serial || row.serialNumber}
+                          {row.from} → {row.to}
                         </td>
+                      </tr>
+                    ))}
+                    {(diffData?.added || []).map((serial) => (
+                      <tr
+                        key={`new-${serial}`}
+                        className="odd:bg-white even:bg-[#fbfbfd]"
+                      >
+                        <td className="px-3 py-2">{serial}</td>
                         <td className="px-3 py-2">New</td>
                         <td className="px-3 py-2">Appeared in current audit</td>
                       </tr>
                     ))}
-                    {(diffData?.missing || []).map((row: any, i: number) => (
+                    {(diffData?.removed || []).map((serial) => (
                       <tr
-                        key={`miss-${i}`}
+                        key={`miss-${serial}`}
                         className="odd:bg-white even:bg-[#fbfbfd]"
                       >
-                        <td className="px-3 py-2">
-                          {row.serial_number || row.serial || row.serialNumber}
-                        </td>
+                        <td className="px-3 py-2">{serial}</td>
                         <td className="px-3 py-2">Missing</td>
                         <td className="px-3 py-2">
                           Absent compared to previous

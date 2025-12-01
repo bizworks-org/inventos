@@ -177,8 +177,7 @@ export function AddVendorPage({ onNavigate, onSearch }: AddVendorPageProps) {
       (formData as any).ifscSwiftCode || undefined;
     (newVendor as any).paymentTerms =
       (formData as any).paymentTerms || undefined;
-    (newVendor as any).preferredCurrency =
-      (formData as any).preferredCurrency || undefined;
+    (newVendor as any).preferredCurrency = "INR";
     if (
       (formData as any).vendorCreditLimit !== undefined &&
       (formData as any).vendorCreditLimit !== ""

@@ -97,7 +97,10 @@ export async function PUT(req: NextRequest, ctx: any) {
 
     // If we still don't have a type_id and there is no existing row, insert a new asset
     if (typeId === undefined) {
-      const existing = await query("SELECT type_id FROM assets WHERE id = :id LIMIT 1", { id });
+      const existing = await query(
+        "SELECT type_id FROM assets WHERE id = :id LIMIT 1",
+        { id }
+      );
       if (!existing?.length) {
         return await insertAsset(id, body);
       }
@@ -109,10 +112,35 @@ export async function PUT(req: NextRequest, ctx: any) {
     const prevStatus = await fetchPrevStatus(id);
 
     // Perform UPDATE
-    await updateAsset(id, body, { cia_confidentiality: cia_c, cia_integrity: cia_i, cia_availability: cia_a });
+    await updateAsset(id, body, {
+      cia_confidentiality: cia_c,
+      cia_integrity: cia_i,
+      cia_availability: cia_a,
+    });
 
     // Record status change and add activity/notification as needed
     await recordStatusAndNotify(id, prevStatus, body);
+
+    // Log event to events table
+    try {
+      const me = await readMeFromCookie();
+      await query(
+        `INSERT INTO events (id, ts, severity, entity_type, entity_id, action, user, details, metadata)
+         VALUES (:id, NOW(), :severity, :entity_type, :entity_id, :action, :user, :details, :metadata)`,
+        {
+          id: `EVT-${Date.now()}-${secureId("", 16)}`,
+          severity: "info",
+          entity_type: "asset",
+          entity_id: id,
+          action: "asset.updated",
+          user: me?.email || "system",
+          details: `Asset updated: ${body.name || id}`,
+          metadata: JSON.stringify({ id, changes: body }),
+        }
+      );
+    } catch (e) {
+      console.warn("Failed to log asset update event", e);
+    }
 
     return NextResponse.json({ ok: true });
   } catch (e: any) {
@@ -124,7 +152,10 @@ export async function PUT(req: NextRequest, ctx: any) {
   }
 }
 
-async function resolveTypeId(body: any, id: string): Promise<number | undefined> {
+async function resolveTypeId(
+  body: any,
+  id: string
+): Promise<number | undefined> {
   // Accept explicit positive numeric type_id
   if (body?.type_id != null) {
     const raw = String(body.type_id).trim();
@@ -135,7 +166,10 @@ async function resolveTypeId(body: any, id: string): Promise<number | undefined>
   // Resolve from provided type name
   if (body?.type) {
     try {
-      const rows = await query("SELECT id FROM asset_types WHERE name = :name LIMIT 1", { name: body.type });
+      const rows = await query(
+        "SELECT id FROM asset_types WHERE name = :name LIMIT 1",
+        { name: body.type }
+      );
       if (rows?.length) return Number(rows[0].id);
     } catch {
       // ignore resolution failure
@@ -144,7 +178,10 @@ async function resolveTypeId(body: any, id: string): Promise<number | undefined>
 
   // Preserve existing DB value if present (do not clobber with 0)
   try {
-    const existing = await query("SELECT type_id FROM assets WHERE id = :id LIMIT 1", { id });
+    const existing = await query(
+      "SELECT type_id FROM assets WHERE id = :id LIMIT 1",
+      { id }
+    );
     if (existing?.length) return Number(existing[0].type_id);
   } catch {
     // ignore DB errors here
@@ -162,7 +199,8 @@ async function insertAsset(id: string, body: any) {
 
     // compute CIA and normalize specs
     const { cia_c, cia_i, cia_a } = computeCIA(body);
-    if (body && typeof body.specifications === "object") body.specifications = JSON.stringify(body.specifications);
+    if (body && typeof body.specifications === "object")
+      body.specifications = JSON.stringify(body.specifications);
 
     const insertSql = `INSERT INTO assets (id, name, type_id, serial_number, assigned_to, assigned_email, consent_status, department, status, purchase_date, end_of_support_date, end_of_life_date, warranty_expiry, cost, location, specifications,
               cia_confidentiality, cia_integrity, cia_availability)
@@ -190,14 +228,25 @@ async function insertAsset(id: string, body: any) {
 
 async function fetchPrevStatus(id: string): Promise<string | null> {
   try {
-    const cur = await query<any>("SELECT status FROM assets WHERE id = :id LIMIT 1", { id });
+    const cur = await query<any>(
+      "SELECT status FROM assets WHERE id = :id LIMIT 1",
+      { id }
+    );
     return cur?.[0]?.status ?? null;
   } catch {
     return null;
   }
 }
 
-async function updateAsset(id: string, body: any, cia: { cia_confidentiality: number; cia_integrity: number; cia_availability: number; }) {
+async function updateAsset(
+  id: string,
+  body: any,
+  cia: {
+    cia_confidentiality: number;
+    cia_integrity: number;
+    cia_availability: number;
+  }
+) {
   const sql = `UPDATE assets SET name=:name, type_id=:type_id, serial_number=:serial_number, assigned_to=:assigned_to, assigned_email=:assigned_email, consent_status=:consent_status, department=:department, status=:status,
       purchase_date=:purchase_date, end_of_support_date=:end_of_support_date, end_of_life_date=:end_of_life_date, warranty_expiry=:warranty_expiry, cost=:cost, location=:location, specifications=:specifications,
       cia_confidentiality=:cia_confidentiality, cia_integrity=:cia_integrity, cia_availability=:cia_availability
@@ -211,7 +260,11 @@ async function updateAsset(id: string, body: any, cia: { cia_confidentiality: nu
   });
 }
 
-async function recordStatusAndNotify(id: string, prevStatus: string | null, body: any) {
+async function recordStatusAndNotify(
+  id: string,
+  prevStatus: string | null,
+  body: any
+) {
   try {
     const newStatus: string | null = body?.status ?? null;
     if (newStatus && prevStatus !== null && newStatus !== prevStatus) {
@@ -246,7 +299,10 @@ async function recordStatusAndNotify(id: string, prevStatus: string | null, body
   // Send notifications (best-effort)
   try {
     const me = await readMeFromCookie();
-    const rows = await query<any>("SELECT id, name, assigned_email FROM assets WHERE id = :id LIMIT 1", { id });
+    const rows = await query<any>(
+      "SELECT id, name, assigned_email FROM assets WHERE id = :id LIMIT 1",
+      { id }
+    );
     const rec = rows?.[0];
     const recipients: string[] = [];
     if (rec?.assigned_email) recipients.push(String(rec.assigned_email));
@@ -295,7 +351,39 @@ export async function DELETE(_req: NextRequest, ctx: any) {
     );
   try {
     const { id } = await resolveParams(ctx);
+
+    // Fetch asset name before deletion for event logging
+    let assetName = id;
+    try {
+      const asset = await query("SELECT name FROM assets WHERE id = :id", {
+        id,
+      });
+      if (asset?.[0]?.name) assetName = asset[0].name;
+    } catch {}
+
     await query("DELETE FROM assets WHERE id = :id", { id });
+
+    // Log event to events table
+    try {
+      const me = await readMeFromCookie();
+      await query(
+        `INSERT INTO events (id, ts, severity, entity_type, entity_id, action, user, details, metadata)
+         VALUES (:id, NOW(), :severity, :entity_type, :entity_id, :action, :user, :details, :metadata)`,
+        {
+          id: `EVT-${Date.now()}-${secureId("", 16)}`,
+          severity: "warning",
+          entity_type: "asset",
+          entity_id: id,
+          action: "asset.deleted",
+          user: me?.email || "system",
+          details: `Asset deleted: ${assetName}`,
+          metadata: JSON.stringify({ id }),
+        }
+      );
+    } catch (e) {
+      console.warn("Failed to log asset deletion event", e);
+    }
+
     return NextResponse.json({ ok: true });
   } catch (e: any) {
     console.error(`DELETE /api/assets failed:`, e);

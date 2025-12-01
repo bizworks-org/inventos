@@ -2,7 +2,16 @@
 
 import { useState, useEffect } from "react";
 import { motion } from "motion/react";
-import { Download, Search, RefreshCw, Activity, LogIn } from "lucide-react";
+import {
+  Download,
+  Search,
+  RefreshCw,
+  Activity,
+  LogIn,
+  XCircle,
+  AlertTriangle,
+  CheckCircle,
+} from "lucide-react";
 import { AssetFlowLayout } from "../layout/AssetFlowLayout";
 import { SystemEvent, EventSeverity, EntityType } from "../../../lib/events";
 import { fetchEvents } from "../../../lib/api";
@@ -154,7 +163,7 @@ export function EventsPage({
       a.download = `events-log-all-${selectedEntityType}-${selectedSeverity}-${selectedTimeFilter}-${when}.csv`;
       document.body.appendChild(a);
       a.click();
-      document.body.removeChild(a);
+      a.remove();
       URL.revokeObjectURL(url);
     } catch (err) {
       console.error("Export failed", err);
@@ -234,12 +243,22 @@ export function EventsPage({
       </div>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6">
-        <motion.div
+      <div className="flex gap-4 mb-6 w-full">
+        <motion.button
+          type="button"
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.3, delay: 0.1 }}
-          className="bg-white rounded-xl border border-[rgba(0,0,0,0.08)] p-6 shadow-sm"
+          onClick={() => {
+            setSelectedSeverity("all");
+            setSelectedEntityType("all");
+            setSelectedTimeFilter("all");
+          }}
+          className={`flex-1 basis-0 rounded-xl border p-6 shadow-sm cursor-pointer transition-colors duration-200 ${
+            selectedSeverity === "all"
+              ? "bg-gradient-to-br from-[#6366f1]/5 to-[#8b5cf6]/10 border-[#6366f1]/40"
+              : "bg-white border-[rgba(0,0,0,0.08)] hover:border-[#6366f1]/40 hover:bg-[#f8f9ff]"
+          }`}
         >
           <div className="flex items-center justify-between mb-2">
             <p className="text-sm text-[#64748b]">Total Events</p>
@@ -249,13 +268,41 @@ export function EventsPage({
           </div>
           <p className="text-2xl font-bold text-[#1a1d2e]">{events.length}</p>
           <p className="text-xs text-[#94a3b8] mt-1">All time</p>
-        </motion.div>
-
-        <motion.div
+        </motion.button>
+        <motion.button
+          type="button"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.3, delay: 0.22 }}
+          onClick={() => setSelectedSeverity("error")}
+          className={`flex-1 basis-0 rounded-xl border p-6 shadow-sm cursor-pointer transition-colors duration-200 ${
+            selectedSeverity === "error"
+              ? "bg-gradient-to-br from-[#f43f5e]/10 to-[#e11d48]/20 border-[#f43f5e]/50"
+              : "bg-white border-[rgba(0,0,0,0.08)] hover:border-[#f43f5e]/50 hover:bg-[#fff1f2]"
+          }`}
+        >
+          <div className="flex items-center justify-between mb-2">
+            <p className="text-sm text-[#64748b]">Errors</p>
+            <div className="h-10 w-10 rounded-lg bg-gradient-to-br from-[#f43f5e] to-[#e11d48] flex items-center justify-center">
+              <XCircle className="h-6 w-6 text-white" />
+            </div>
+          </div>
+          <p className="text-2xl font-bold text-[#f43f5e]">
+            {countBySeverity("error")}
+          </p>
+          <p className="text-xs text-[#94a3b8] mt-1">Errors logged</p>
+        </motion.button>
+        <motion.button
+          type="button"
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.3, delay: 0.15 }}
-          className="bg-white rounded-xl border border-[rgba(0,0,0,0.08)] p-6 shadow-sm"
+          onClick={() => setSelectedSeverity("critical")}
+          className={`flex-1 basis-0 rounded-xl border p-6 shadow-sm cursor-pointer transition-colors duration-200 ${
+            selectedSeverity === "critical"
+              ? "bg-gradient-to-br from-[#ef4444]/10 to-[#dc2626]/20 border-[#ef4444]/50"
+              : "bg-white border-[rgba(0,0,0,0.08)] hover:border-[#ef4444]/50 hover:bg-[#fef2f2]"
+          }`}
         >
           <div className="flex items-center justify-between mb-2">
             <p className="text-sm text-[#64748b]">Critical</p>
@@ -267,13 +314,18 @@ export function EventsPage({
             {countBySeverity("critical")}
           </p>
           <p className="text-xs text-[#94a3b8] mt-1">Requires attention</p>
-        </motion.div>
-
-        <motion.div
+        </motion.button>
+        <motion.button
+          type="button"
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.3, delay: 0.2 }}
-          className="bg-white rounded-xl border border-[rgba(0,0,0,0.08)] p-6 shadow-sm"
+          onClick={() => setSelectedSeverity("warning")}
+          className={`flex-1 basis-0 rounded-xl border p-6 shadow-sm cursor-pointer transition-colors duration-200 ${
+            selectedSeverity === "warning"
+              ? "bg-gradient-to-br from-[#f59e0b]/10 to-[#f97316]/20 border-[#f59e0b]/50"
+              : "bg-white border-[rgba(0,0,0,0.08)] hover:border-[#f59e0b]/50 hover:bg-[#fffbeb]"
+          }`}
         >
           <div className="flex items-center justify-between mb-2">
             <p className="text-sm text-[#64748b]">Warnings</p>
@@ -285,13 +337,18 @@ export function EventsPage({
             {countBySeverity("warning")}
           </p>
           <p className="text-xs text-[#94a3b8] mt-1">Need review</p>
-        </motion.div>
-
-        <motion.div
+        </motion.button>
+        <motion.button
+          type="button"
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.3, delay: 0.25 }}
-          className="bg-white rounded-xl border border-[rgba(0,0,0,0.08)] p-6 shadow-sm"
+          onClick={() => setSelectedSeverity("info")}
+          className={`flex-1 basis-0 rounded-xl border p-6 shadow-sm cursor-pointer transition-colors duration-200 ${
+            selectedSeverity === "info"
+              ? "bg-gradient-to-br from-[#10b981]/10 to-[#14b8a6]/20 border-[#10b981]/50"
+              : "bg-white border-[rgba(0,0,0,0.08)] hover:border-[#10b981]/50 hover:bg-[#f0fdf4]"
+          }`}
         >
           <div className="flex items-center justify-between mb-2">
             <p className="text-sm text-[#64748b]">Info</p>
@@ -303,7 +360,7 @@ export function EventsPage({
             {countBySeverity("info")}
           </p>
           <p className="text-xs text-[#94a3b8] mt-1">Normal operations</p>
-        </motion.div>
+        </motion.button>
       </div>
 
       {/* Filters Card */}
@@ -538,33 +595,44 @@ function AuthSessions({ events }: AuthSessionsProps) {
                 </td>
               </tr>
             )}
-            {sessions.map((s, i) => {
+            {sessions.map((session, index) => {
               const ip =
-                s.login?.metadata?.ip ||
-                s.logout?.metadata?.ip ||
-                s.login?.metadata?.ip_address ||
+                session.login?.metadata?.ip ||
+                session.logout?.metadata?.ip ||
+                session.login?.metadata?.ip_address ||
                 "";
               const ua =
-                s.login?.metadata?.userAgent ||
-                s.logout?.metadata?.userAgent ||
+                session.login?.metadata?.userAgent ||
+                session.logout?.metadata?.userAgent ||
                 "";
               return (
-                <tr key={i} className="border-t border-[rgba(0,0,0,0.05)]">
+                <tr
+                  key={
+                    session.login?.id ??
+                    session.logout?.id ??
+                    `${session.login?.timestamp ?? ""}-${
+                      session.logout?.timestamp ?? ""
+                    }-${session.login?.user ?? session.logout?.user ?? ""}`
+                  }
+                  className="border-t border-[rgba(0,0,0,0.05)]"
+                >
                   <td className="px-4 py-2 font-medium text-[#1a1d2e]">
-                    {s.login?.user || s.logout?.user || "—"}
+                    {session.login?.user || session.logout?.user || "—"}
                   </td>
                   <td className="px-4 py-2 text-[#64748b]">
-                    {s.login
-                      ? new Date(s.login.timestamp).toLocaleString()
+                    {session.login
+                      ? new Date(session.login.timestamp).toLocaleString()
                       : "—"}
                   </td>
                   <td className="px-4 py-2 text-[#64748b]">
-                    {s.logout
-                      ? new Date(s.logout.timestamp).toLocaleString()
+                    {session.logout
+                      ? new Date(session.logout.timestamp).toLocaleString()
                       : "—"}
                   </td>
                   <td className="px-4 py-2 text-[#1a1d2e]">
-                    {s.durationMs === null ? "—" : formatDuration(s.durationMs)}
+                    {session.durationMs === null
+                      ? "—"
+                      : formatDuration(session.durationMs)}
                   </td>
                   <td className="px-4 py-2 text-[#64748b]">{ip || "—"}</td>
                   <td
