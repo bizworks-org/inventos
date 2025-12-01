@@ -105,6 +105,33 @@ export async function PUT(req: NextRequest, ctx: any) {
       });
     }
   } catch {}
+
+  // Log event to events table
+  try {
+    const me = await readMeFromCookie();
+    const rows = await query<any>(
+      "SELECT name FROM vendors WHERE id = :id LIMIT 1",
+      { id }
+    );
+    const name = rows?.[0]?.name || String(id);
+    await query(
+      `INSERT INTO events (id, ts, severity, entity_type, entity_id, action, user, details, metadata)
+       VALUES (:id, NOW(), :severity, :entity_type, :entity_id, :action, :user, :details, :metadata)`,
+      {
+        id: `EVT-${Date.now()}-${Math.random().toString(36).substring(2, 18)}`,
+        severity: "info",
+        entity_type: "vendor",
+        entity_id: id,
+        action: "vendor.updated",
+        user: me?.email || "system",
+        details: `Vendor updated: ${name}`,
+        metadata: JSON.stringify({ id, changes: body }),
+      }
+    );
+  } catch (e) {
+    console.warn("Failed to log vendor update event", e);
+  }
+
   return NextResponse.json({ ok: true });
 }
 
@@ -116,6 +143,36 @@ export async function DELETE(_req: NextRequest, ctx: any) {
       { status: (guard as any).status ?? 403 }
     );
   const { id } = await resolveParams(ctx);
+  
+  // Fetch vendor name before deletion for event logging
+  let vendorName = id;
+  try {
+    const vendor = await query("SELECT name FROM vendors WHERE id = :id", { id });
+    if (vendor?.[0]?.name) vendorName = vendor[0].name;
+  } catch {}
+  
   await query("DELETE FROM vendors WHERE id = :id", { id });
+  
+  // Log event to events table
+  try {
+    const me = await readMeFromCookie();
+    await query(
+      `INSERT INTO events (id, ts, severity, entity_type, entity_id, action, user, details, metadata)
+       VALUES (:id, NOW(), :severity, :entity_type, :entity_id, :action, :user, :details, :metadata)`,
+      {
+        id: `EVT-${Date.now()}-${Math.random().toString(36).substring(2, 18)}`,
+        severity: "warning",
+        entity_type: "vendor",
+        entity_id: id,
+        action: "vendor.deleted",
+        user: me?.email || "system",
+        details: `Vendor deleted: ${vendorName}`,
+        metadata: JSON.stringify({ id }),
+      }
+    );
+  } catch (e) {
+    console.warn("Failed to log vendor deletion event", e);
+  }
+  
   return NextResponse.json({ ok: true });
 }

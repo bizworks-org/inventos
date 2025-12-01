@@ -98,5 +98,26 @@ export async function POST(req: NextRequest) {
   // Fire-and-forget notification to avoid increasing request complexity
   void notifyAdmins(body);
 
+  // Log event to events table
+  try {
+    const me = await readMeFromCookie();
+    await query(
+      `INSERT INTO events (id, ts, severity, entity_type, entity_id, action, user, details, metadata)
+       VALUES (:id, NOW(), :severity, :entity_type, :entity_id, :action, :user, :details, :metadata)`,
+      {
+        id: `EVT-${Date.now()}-${Math.random().toString(36).substring(2, 18)}`,
+        severity: "info",
+        entity_type: "license",
+        entity_id: body.id,
+        action: "license.created",
+        user: me?.email || "system",
+        details: `New license created: ${body.name || body.id}`,
+        metadata: JSON.stringify({ id: body.id, name: body.name, vendor: body.vendor }),
+      }
+    );
+  } catch (e) {
+    console.warn("Failed to log license creation event", e);
+  }
+
   return NextResponse.json({ ok: true, id: body.id }, { status: 201 });
 }

@@ -65,5 +65,27 @@ export async function POST(req: NextRequest) {
       });
     }
   } catch {}
+
+  // Log event to events table
+  try {
+    const me = await readMeFromCookie();
+    await query(
+      `INSERT INTO events (id, ts, severity, entity_type, entity_id, action, user, details, metadata)
+       VALUES (:id, NOW(), :severity, :entity_type, :entity_id, :action, :user, :details, :metadata)`,
+      {
+        id: `EVT-${Date.now()}-${Math.random().toString(36).substring(2, 18)}`,
+        severity: "info",
+        entity_type: "vendor",
+        entity_id: body.id,
+        action: "vendor.created",
+        user: me?.email || "system",
+        details: `New vendor created: ${body.name || body.id}`,
+        metadata: JSON.stringify({ id: body.id, name: body.name, type: body.type }),
+      }
+    );
+  } catch (e) {
+    console.warn("Failed to log vendor creation event", e);
+  }
+
   return NextResponse.json({ ok: true }, { status: 201 });
 }

@@ -67,6 +67,33 @@ export async function PUT(req: NextRequest, ctx: any) {
       });
     }
   } catch {}
+
+  // Log event to events table
+  try {
+    const me = await readMeFromCookie();
+    const rows = await query<any>(
+      "SELECT name FROM licenses WHERE id = :id LIMIT 1",
+      { id }
+    );
+    const name = rows?.[0]?.name || String(id);
+    await query(
+      `INSERT INTO events (id, ts, severity, entity_type, entity_id, action, user, details, metadata)
+       VALUES (:id, NOW(), :severity, :entity_type, :entity_id, :action, :user, :details, :metadata)`,
+      {
+        id: `EVT-${Date.now()}-${Math.random().toString(36).substring(2, 18)}`,
+        severity: "info",
+        entity_type: "license",
+        entity_id: id,
+        action: "license.updated",
+        user: me?.email || "system",
+        details: `License updated: ${name}`,
+        metadata: JSON.stringify({ id, changes: body }),
+      }
+    );
+  } catch (e) {
+    console.warn("Failed to log license update event", e);
+  }
+
   return NextResponse.json({ ok: true });
 }
 
@@ -78,6 +105,36 @@ export async function DELETE(_req: NextRequest, ctx: any) {
       { status: (guard as any).status ?? 403 }
     );
   const { id } = await resolveParams(ctx);
+  
+  // Fetch license name before deletion for event logging
+  let licenseName = id;
+  try {
+    const license = await query("SELECT name FROM licenses WHERE id = :id", { id });
+    if (license?.[0]?.name) licenseName = license[0].name;
+  } catch {}
+  
   await query("DELETE FROM licenses WHERE id = :id", { id });
+  
+  // Log event to events table
+  try {
+    const me = await readMeFromCookie();
+    await query(
+      `INSERT INTO events (id, ts, severity, entity_type, entity_id, action, user, details, metadata)
+       VALUES (:id, NOW(), :severity, :entity_type, :entity_id, :action, :user, :details, :metadata)`,
+      {
+        id: `EVT-${Date.now()}-${Math.random().toString(36).substring(2, 18)}`,
+        severity: "warning",
+        entity_type: "license",
+        entity_id: id,
+        action: "license.deleted",
+        user: me?.email || "system",
+        details: `License deleted: ${licenseName}`,
+        metadata: JSON.stringify({ id }),
+      }
+    );
+  } catch (e) {
+    console.warn("Failed to log license deletion event", e);
+  }
+  
   return NextResponse.json({ ok: true });
 }
