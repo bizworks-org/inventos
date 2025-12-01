@@ -841,6 +841,7 @@ function SettingsPageImpl({
             activeTab={activeTab}
             techTabsDisabled={techTabsDisabled}
             canEditMail={canEditMail}
+            isAdmin={me?.role === "admin"}
           />
 
           {/* Profile */}
