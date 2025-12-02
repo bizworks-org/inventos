@@ -78,9 +78,11 @@ export function RoleChips({
   }
 
   if (meLoading) {
+    // Render skeletons only for the roles that will be visible to the viewer
+    const skeletonRoles = (allRoles || []).filter((r) => r !== "superadmin");
     return (
       <div className="flex gap-3 flex-wrap py-0.5">
-        {allRoles.map((r) => (
+        {skeletonRoles.map((r) => (
           <button
             key={r}
             type="button"
@@ -102,15 +104,29 @@ export function RoleChips({
   // role and render RoleChips accordingly. For backward compatibility, when the
   // caller does not indicate viewer role, we preserve the previous behavior.
 
+  // Build the visible roles list. Parent may already filter by limits, but
+  // ensure the user's current role is always present so the selected chip
+  // can render even when limits hide the role for assignment.
+  const currentRole = getCurrentRole(user);
+  const baseRoles = allRoles || [];
+  const visibleSet = new Set<string>(baseRoles);
+  if (meRole !== "superadmin") visibleSet.delete("superadmin");
+  visibleSet.add(currentRole);
+  // Keep a stable ordering: user, admin, superadmin (if present)
+  const roleOrder: Role[] = ["user", "admin", "superadmin"];
+  const visibleRoles = roleOrder.filter((r) => visibleSet.has(r));
+
   return (
     <div className="flex gap-3 flex-wrap py-0.5">
-      {allRoles.map((r) => {
+      {visibleRoles.map((r) => {
         const currentRole = getCurrentRole(user);
         const selected = currentRole === r;
         const Icon = r === "admin" ? Shield : UserIcon;
         const viewerIsSuper = meRole === "superadmin";
         const editable = canEditRoles(user, viewerIsSuper);
-        const disableInteraction = !editable || selected;
+        // Non-super viewers cannot assign the `superadmin` role.
+        const cannotAssignSuper = r === "superadmin" && !viewerIsSuper;
+        const disableInteraction = !editable || selected || cannotAssignSuper;
         const handleClick = () => {
           if (disableInteraction) return;
           const nextRole = r;
@@ -137,11 +153,7 @@ export function RoleChips({
                 ? "text-white border-transparent"
                 : "bg-white text-[#1a1d2e] border-[#e2e8f0] hover:border-[#cbd5e1]"
             } ${disableInteraction ? "opacity-60 cursor-not-allowed" : ""}`}
-            style={
-              selected
-                ? { backgroundImage: roleGradient(r) }
-                : undefined
-            }
+            style={selected ? { backgroundImage: roleGradient(r) } : undefined}
             aria-pressed={selected}
             aria-label={`Select ${r} role`}
           >
@@ -155,13 +167,14 @@ export function RoleChips({
             </div>
           </button>
         );
-        if (!editable) {
+        if (!editable || cannotAssignSuper) {
+          const tip = cannotAssignSuper
+            ? "Only a Superadmin may assign the Superadmin role"
+            : "Cannot modify roles of another Admin";
           return (
             <Tooltip key={r}>
               <TooltipTrigger asChild>{button}</TooltipTrigger>
-              <TooltipContent>
-                Cannot modify roles of another Admin
-              </TooltipContent>
+              <TooltipContent>{tip}</TooltipContent>
             </Tooltip>
           );
         }

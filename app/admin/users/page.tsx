@@ -118,6 +118,56 @@ export default function ManageUsersPage() {
     })();
   }, []);
 
+  const canEditRoleForTarget = (target?: User | null) => {
+    if (!me) return false;
+    if (me.role === "superadmin") return true;
+    if (me.role !== "admin") return false;
+    // viewer is admin
+    if (!target) return true; // creating a new user
+    const targetRoles = target.roles || [];
+    if (targetRoles.includes("superadmin")) return false;
+    const targetIsAdmin = targetRoles.includes("admin");
+    const isSelf = target.id === me.id;
+    if (targetIsAdmin && !isSelf) return false; // cannot edit other admins
+    return true;
+  };
+
+  const adminCount = useMemo(
+    () => users.filter((u) => (u.roles || []).includes("admin")).length,
+    [users]
+  );
+  const superCount = useMemo(
+    () => users.filter((u) => (u.roles || []).includes("superadmin")).length,
+    [users]
+  );
+
+  const allowedRolesForTarget = (target?: User | null) => {
+    const base = allRoles?.length
+      ? [...allRoles]
+      : ["user", "admin", "superadmin"]; // Default roles
+    let list = base.slice();
+    if (me?.role !== "superadmin")
+      list = list.filter((r) => r !== "superadmin");
+
+    // If admin limit reached, do not show Admin for targets that don't already have it
+    if (adminCount >= 5) {
+      const targetHasAdmin = !!(
+        target && (target.roles || []).includes("admin")
+      );
+      if (!targetHasAdmin) list = list.filter((r) => r !== "admin"); // Filter admin role
+    }
+
+    // If superadmin limit reached, do not show Superadmin for targets that don't already have it
+    if (superCount >= 3) {
+      const targetHasSuper = !!(
+        target && (target.roles || []).includes("superadmin")
+      );
+      if (!targetHasSuper) list = list.filter((r) => r !== "superadmin"); // Filter superadmin role
+    }
+
+    return list as Role[]; // Ensure return type is Role[]
+  };
+
   const makePassword = () => {
     const length = 12;
     const lowers = "abcdefghijklmnopqrstuvwxyz";
@@ -393,10 +443,10 @@ export default function ManageUsersPage() {
         </td>
         <td className="py-3 pr-4">{u.email}</td>
         <td className="py-3 pr-4 align-middle">
-          {me?.role === "superadmin" ? (
+          {me?.role === "superadmin" || me?.role === "admin" ? (
             <RoleChips
               user={u}
-              allRoles={allRoles}
+              allRoles={allowedRolesForTarget(u)}
               meId={me?.id}
               meLoading={meLoading}
               activeAdminCount={activeAdminCount}
@@ -468,13 +518,24 @@ export default function ManageUsersPage() {
             className="px-3 py-2.5 rounded-lg border border-[#e2e8f0] bg-white"
             value={form.role}
             onChange={(e) => setForm({ ...form, role: e.target.value as Role })}
-            disabled={!!editing}
+            disabled={
+              editing
+                ? !canEditRoleForTarget(editing)
+                : !canEditRoleForTarget(null)
+            }
           >
-            <option value="user">User</option>
-            <option value="admin">Admin</option>
-            <option value="superadmin" disabled={me?.role !== "superadmin"}>
-              Superadmin
-            </option>
+            {(editing
+              ? allowedRolesForTarget(editing)
+              : allowedRolesForTarget(null)
+            ).map((r) => (
+              <option key={r} value={r}>
+                {r === "superadmin"
+                  ? "Superadmin"
+                  : r === "admin"
+                  ? "Admin"
+                  : "User"}
+              </option>
+            ))}
           </select>
         </div>
         <div className="mt-4 flex items-center gap-3">
@@ -554,7 +615,10 @@ export default function ManageUsersPage() {
               <AlertDialogTitle>Remove Admin role?</AlertDialogTitle>
               <AlertDialogDescription>
                 You are about to remove the Admin role from{" "}
-                <span className="font-semibold">{confirmRemoveAdminFor.userName}</span>. This may restrict access to administrative features.
+                <span className="font-semibold">
+                  {confirmRemoveAdminFor.userName}
+                </span>
+                {". "}This may restrict access to administrative features.
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>

@@ -79,7 +79,10 @@ export async function POST(
         inserted++;
         if (asset) matched++;
       } catch (err) {
-        // continue
+        console.error(
+          `Failed to insert audit item for serial number ${sn}:`,
+          err
+        );
       }
     }
     return NextResponse.json({

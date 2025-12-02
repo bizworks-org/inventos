@@ -275,7 +275,7 @@ export function CustomizationPage({ onNavigate, onSearch }: Readonly<Props>) {
           }
         }
       } catch (err) {
-        // ignore
+        console.error("Error loading locations from server:", err);
       }
 
       try {
@@ -285,7 +285,7 @@ export function CustomizationPage({ onNavigate, onSearch }: Readonly<Props>) {
           if (Array.isArray(parsed)) setLocations(parsed.filter(Boolean));
         }
       } catch (e) {
-        // ignore
+        console.error("Error loading locations from server:", e);
       }
     };
 
@@ -370,11 +370,11 @@ export function CustomizationPage({ onNavigate, onSearch }: Readonly<Props>) {
               persistLocations(rows);
             }
           } catch (err) {
-            // ignore refresh error
+            console.error("Error refreshing locations from server:", err);
           }
         }
       } catch (err) {
-        // network error; keep optimistic local entry
+        console.error("Network error while saving location:", err);
       }
     })();
   };
