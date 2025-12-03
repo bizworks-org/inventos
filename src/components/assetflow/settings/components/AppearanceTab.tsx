@@ -3,7 +3,7 @@ import { Sun, Moon, Laptop } from "lucide-react";
 
 interface AppearanceTabProps {
   mode: "light" | "dark" | "system";
-  systemTheme?: string | undefined;
+  systemTheme?: string;
   onModeChange: (mode: "light" | "dark" | "system") => void;
 }
 

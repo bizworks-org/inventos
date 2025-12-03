@@ -16,7 +16,7 @@ interface Props {
   persistPrefs: (next: Partial<Preferences>) => void;
   mode: "light" | "dark" | "system";
   setMode: (m: "light" | "dark" | "system") => void;
-  systemTheme?: string | undefined;
+  systemTheme?: string;
 }
 
 export default function PreferencesTab({
@@ -31,9 +31,9 @@ export default function PreferencesTab({
     <>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div>
-          <label className="block text-sm font-medium text-gray-900 dark:text-gray-100 mb-2">
+          <p className="block text-sm font-medium text-gray-900 dark:text-gray-100 mb-2">
             Table Density
-          </label>
+          </p>
           <div className="flex gap-3">
             <Button
               type="button"
@@ -85,9 +85,9 @@ export default function PreferencesTab({
             </Button>
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-900 dark:text-gray-100 mb-2 mt-4">
+            <p className="block text-sm font-medium text-gray-900 dark:text-gray-100 mb-2 mt-4">
               Currency: INR
-            </label>
+            </p>
             <select
               className="w-full hidden px-3 py-2 rounded-lg bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700"
               value={"INR"}

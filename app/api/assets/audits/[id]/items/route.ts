@@ -2,6 +2,30 @@ import { NextRequest, NextResponse } from "next/server";
 import { query } from "@/lib/db";
 import { requirePermission } from "@/lib/auth/permissions";
 
+async function processSerialNumber(auditId: string, sn: string) {
+  try {
+    const existing: any[] = await query(
+      `SELECT id, status FROM assets WHERE serial_number = :sn LIMIT 1`,
+      { sn }
+    );
+    const asset = existing?.[0];
+    await query(
+      `INSERT INTO audit_items (audit_id, serial_number, asset_id, found, asset_status_snapshot) VALUES (:audit_id, :serial_number, :asset_id, :found, :status)`,
+      {
+        audit_id: auditId,
+        serial_number: sn,
+        asset_id: asset ? asset.id : null,
+        found: asset ? 1 : 0,
+        status: asset ? asset.status : null,
+      }
+    );
+    return { inserted: true, matched: !!asset };
+  } catch (err) {
+    console.error(`Failed to insert audit item for serial number ${sn}:`, err);
+    return { inserted: false, matched: false };
+  }
+}
+
 // Using explicit params destructuring and awaiting params per Next.js dynamic route requirement.
 export async function GET(
   _: NextRequest,
@@ -39,52 +63,32 @@ export async function POST(
       { error: "Forbidden" },
       { status: (guard as any).status ?? 403 }
     );
+
   try {
-    const body = await req.json();
+    const body = await req.json().catch(() => ({}));
     const serialNumbers: string[] = Array.isArray(body?.serialNumbers)
       ? body.serialNumbers.map((s: any) => String(s).trim()).filter(Boolean)
       : [];
-    if (!serialNumbers.length)
+
+    if (!serialNumbers.length) {
       return NextResponse.json(
         { error: "Empty serialNumbers" },
         { status: 400 }
       );
-    let inserted = 0;
-    let matched = 0;
+    }
+
     const { id } = await params;
     const auditId = String(id || "").trim();
-    // Clear existing items for this audit before inserting new ones (replace mode)
-    try {
-      await query(`DELETE FROM audit_items WHERE audit_id = :audit_id`, {
-        audit_id: auditId,
-      });
-    } catch {}
+
+    let inserted = 0;
+    let matched = 0;
+
     for (const sn of serialNumbers) {
-      try {
-        const existing: any[] = await query(
-          `SELECT id, status FROM assets WHERE serial_number = :sn LIMIT 1`,
-          { sn }
-        );
-        const asset = existing?.[0];
-        await query(
-          `INSERT INTO audit_items (audit_id, serial_number, asset_id, found, asset_status_snapshot) VALUES (:audit_id, :serial_number, :asset_id, :found, :status)`,
-          {
-            audit_id: auditId,
-            serial_number: sn,
-            asset_id: asset ? asset.id : null,
-            found: asset ? 1 : 0,
-            status: asset ? asset.status : null,
-          }
-        );
-        inserted++;
-        if (asset) matched++;
-      } catch (err) {
-        console.error(
-          `Failed to insert audit item for serial number ${sn}:`,
-          err
-        );
-      }
+      const result = await processSerialNumber(auditId, sn);
+      if (result.inserted) inserted++;
+      if (result.matched) matched++;
     }
+
     return NextResponse.json({
       ok: true,
       inserted,

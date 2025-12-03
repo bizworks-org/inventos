@@ -4,7 +4,7 @@ import IntegrationCard from './IntegrationCard';
 
 type IntegrationId = 'ad' | 'aws' | 'azure' | 'mdm';
 
-export default function IntegrationsTab(props: {
+export default function IntegrationsTab(props: Readonly<{
   techTabsDisabled: boolean;
   integrations: Array<{ id: IntegrationId; name: string; description: string; icon: any }>;
   connected: Record<string, boolean>;
@@ -16,8 +16,8 @@ export default function IntegrationsTab(props: {
   setEndpointUrl: (s: string) => void;
   handleConnect: (id: IntegrationId) => void;
   setConnected: (fn: (c: Record<string, boolean>) => Record<string, boolean>) => void;
-}) {
-  const { techTabsDisabled, integrations, connected, dialogOpenFor, setDialogOpenFor, apiKey, setApiKey, endpointUrl, setEndpointUrl, handleConnect, setConnected } = props;
+}>) {
+  const { techTabsDisabled, integrations, connected, setConnected } = props;
 
   if (techTabsDisabled) return null; // parent will render DisabledCard when needed
 

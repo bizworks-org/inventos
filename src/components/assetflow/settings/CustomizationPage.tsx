@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { AssetFlowLayout } from "../layout/AssetFlowLayout";
 import { useMe } from "../layout/MeContext";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../../ui/tabs";
@@ -154,6 +154,49 @@ export function CustomizationPage({ onNavigate, onSearch }: Readonly<Props>) {
         arr.map((f, i) => (i === idx ? { ...f, ...patch } : f))
       );
   };
+
+  // Factory helpers to avoid deep inline nesting in JSX
+  const makeOnFieldLabelChange =
+    (idx: number) => (e: React.ChangeEvent<HTMLInputElement>) =>
+      updateCurrentField(idx, { label: e.target.value });
+
+  const makeOnFieldKeyChange =
+    (idx: number) => (e: React.ChangeEvent<HTMLInputElement>) =>
+      updateCurrentField(idx, { key: e.target.value.trim() });
+
+  const makeOnFieldPlaceholderChange =
+    (idx: number) => (e: React.ChangeEvent<HTMLInputElement>) =>
+      updateCurrentField(idx, { placeholder: e.target.value });
+
+  const makeOnFieldTypeChange =
+    (idx: number) =>
+    (e: React.ChangeEvent<HTMLSelectElement | HTMLInputElement>) =>
+      updateCurrentField(idx, { type: e.target.value as AssetFieldType });
+
+  const makeOnFieldOptionsChange =
+    (idx: number) => (e: React.ChangeEvent<HTMLInputElement>) => {
+      const opts = e.target.value
+        .split(",")
+        .map((s) => s.trim())
+        .filter(Boolean);
+      updateCurrentField(idx, { options: opts });
+    };
+
+  const makeOnFieldStarMaxChange =
+    (idx: number) => (e: React.ChangeEvent<HTMLInputElement>) => {
+      const v = e.target.value;
+      const n =
+        v === ""
+          ? undefined
+          : Math.max(1, Math.min(10, Number(v) || 1));
+      updateCurrentField(idx, { max: n });
+    };
+
+  const makeOnFieldRequiredChange =
+    (idx: number) => (e: React.ChangeEvent<HTMLInputElement>) =>
+      updateCurrentField(idx, { required: e.target.checked });
+
+  const makeOnFieldRemove = (idx: number) => () => removeCurrentField(idx);
 
   const handleSaveFields = async () => {
     try {
@@ -423,20 +466,6 @@ export function CustomizationPage({ onNavigate, onSearch }: Readonly<Props>) {
       } catch {}
     })();
   };
-
-  // Catalog tab: show cached catalog and allow refresh
-  const [catalog, setCatalog] = useState<any[]>([]);
-
-  useEffect(() => {
-    // show quick cached view from localStorage if present
-    try {
-      const raw = localStorage.getItem("catalog.categories");
-      if (raw) {
-        const parsed = JSON.parse(raw);
-        if (Array.isArray(parsed)) setCatalog(parsed);
-      }
-    } catch {}
-  }, []);
 
   return (
     <AssetFlowLayout
@@ -816,17 +845,13 @@ export function CustomizationPage({ onNavigate, onSearch }: Readonly<Props>) {
                       );
                     }
                     return fields.map((f, idx) => (
-                      <div key={idx} className="space-y-3">
+                      <div key={idx * 2} className="space-y-3">
                         <div className="grid grid-cols-1 md:grid-cols-4 gap-3 items-start">
                           <div>
                             <Label className="mb-1 block">Label</Label>
                             <Input
                               value={f.label}
-                              onChange={(e) =>
-                                updateCurrentField(idx, {
-                                  label: e.target.value,
-                                })
-                              }
+                              onChange={makeOnFieldLabelChange(idx)}
                               placeholder="e.g., Asset Tag"
                             />
                           </div>
@@ -834,11 +859,7 @@ export function CustomizationPage({ onNavigate, onSearch }: Readonly<Props>) {
                             <Label className="mb-1 block">Key</Label>
                             <Input
                               value={f.key}
-                              onChange={(e) =>
-                                updateCurrentField(idx, {
-                                  key: e.target.value.trim(),
-                                })
-                              }
+                              onChange={makeOnFieldKeyChange(idx)}
                               placeholder="e.g., assetTag"
                             />
                             <p className="text-xs text-[#94a3b8] mt-1">
@@ -849,12 +870,8 @@ export function CustomizationPage({ onNavigate, onSearch }: Readonly<Props>) {
                           <div>
                             <Label className="mb-1 block">Placeholder</Label>
                             <Input
-                              value={(f.placeholder ?? "") as string}
-                              onChange={(e) =>
-                                updateCurrentField(idx, {
-                                  placeholder: e.target.value,
-                                })
-                              }
+                              value={(f.placeholder ?? "")}
+                              onChange={makeOnFieldPlaceholderChange(idx)}
                               placeholder="e.g., TAG-00123"
                             />
                           </div>
@@ -863,11 +880,7 @@ export function CustomizationPage({ onNavigate, onSearch }: Readonly<Props>) {
                             <select
                               className="w-full px-3 py-2 rounded-lg bg-[#f8f9ff] border border-[rgba(0,0,0,0.08)]"
                               value={f.type ?? "text"}
-                              onChange={(e) =>
-                                updateCurrentField(idx, {
-                                  type: e.target.value as AssetFieldType,
-                                })
-                              }
+                              onChange={makeOnFieldTypeChange(idx)}
                             >
                               {(
                                 [
@@ -903,14 +916,7 @@ export function CustomizationPage({ onNavigate, onSearch }: Readonly<Props>) {
                             </Label>
                             <Input
                               value={(f.options || []).join(", ")}
-                              onChange={(e) =>
-                                updateCurrentField(idx, {
-                                  options: e.target.value
-                                    .split(",")
-                                    .map((s) => s.trim())
-                                    .filter(Boolean),
-                                })
-                              }
+                                  onChange={makeOnFieldOptionsChange(idx)}
                               placeholder="Option1, Option2, Option3"
                             />
                             <p className="text-xs text-[#94a3b8] mt-1">
@@ -929,14 +935,7 @@ export function CustomizationPage({ onNavigate, onSearch }: Readonly<Props>) {
                               value={
                                 typeof f.max === "number" ? String(f.max) : ""
                               }
-                              onChange={(e) => {
-                                const v = e.target.value;
-                                const n =
-                                  v === ""
-                                    ? undefined
-                                    : Math.max(1, Math.min(10, Number(v) || 1));
-                                updateCurrentField(idx, { max: n });
-                              }}
+                              onChange={makeOnFieldStarMaxChange(idx)}
                               placeholder="5"
                             />
                             <p className="text-xs text-[#94a3b8] mt-1">
@@ -950,11 +949,7 @@ export function CustomizationPage({ onNavigate, onSearch }: Readonly<Props>) {
                             <input
                               type="checkbox"
                               checked={!!f.required}
-                              onChange={(e) =>
-                                updateCurrentField(idx, {
-                                  required: e.target.checked,
-                                })
-                              }
+                              onChange={makeOnFieldRequiredChange(idx)}
                             />{" "}
                             Required
                           </label>
@@ -963,7 +958,7 @@ export function CustomizationPage({ onNavigate, onSearch }: Readonly<Props>) {
                               type="button"
                               variant="outline"
                               className="border-[#ef4444] text-[#ef4444] hover:bg-[#fee2e2]"
-                              onClick={() => removeCurrentField(idx)}
+                              onClick={makeOnFieldRemove(idx)}
                             >
                               Remove
                             </Button>

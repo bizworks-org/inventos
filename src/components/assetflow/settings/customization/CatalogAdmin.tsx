@@ -21,8 +21,8 @@ export type UiCategory = {
   id: number;
   name: string;
   sort: number;
-  types: Array<{ id: number; name: string; sort: number }>;
-};
+  types: Array<{ id: number; name: string; sort: number }>;}
+  
 
 export default function CatalogAdmin({}: {}) {
   const [categories, setCategories] = useState<UiCategory[]>([]);
@@ -44,6 +44,7 @@ export default function CatalogAdmin({}: {}) {
   const [renamingTypeId, setRenamingTypeId] = useState<number | null>(null);
   const [renamingTypeName, setRenamingTypeName] = useState("");
   const [renamingTypeCategoryId, setRenamingTypeCategoryId] = useState<
+
     number | null
   >(null);
   const [hoveredTypeId, setHoveredTypeId] = useState<number | null>(null);
@@ -57,7 +58,7 @@ export default function CatalogAdmin({}: {}) {
   } | null>(null);
   const [confirmBusy, setConfirmBusy] = useState(false);
   const pendingTypes =
-    confirmPayload && confirmPayload.entity === "category"
+    confirmPayload?.entity === "category"
       ? categories.find((c) => c.id === confirmPayload.id)?.types || []
       : [];
 
@@ -73,13 +74,14 @@ export default function CatalogAdmin({}: {}) {
       try {
         localStorage.setItem("catalog.categories", JSON.stringify(cats));
         try {
-          window.dispatchEvent(new Event("assetflow:catalog-cleared"));
+          globalThis.dispatchEvent(new Event("assetflow:catalog-cleared"));
         } catch {}
       } catch (e) {
-        // ignore storage errors
+        console.error(e);
       }
       if (cats.length && !selectedId) setSelectedId(cats[0].id);
     } catch (e: any) {
+        console.error(e);
       setError(e?.message || "Failed to load catalog");
     } finally {
       setLoading(false);
@@ -358,8 +360,7 @@ export default function CatalogAdmin({}: {}) {
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ entity: "type", id: tid }),
               })
-            )
-          );
+            );
           for (const res of responses) {
             if (!res.ok) {
               const data = await res.json().catch(() => ({}));
@@ -484,6 +485,16 @@ export default function CatalogAdmin({}: {}) {
       if (prev) prev.focus();
     };
   }, [confirmOpen]);
+
+  // Extracted dialog title: avoid nested ternary in JSX by computing the title here.
+  let dialogTitle = "Delete";
+  if (confirmPayload) {
+    let entityLabel = "Type";
+    if (confirmPayload.entity === "category") {
+      entityLabel = "Category";
+    }
+    dialogTitle = `Delete ${entityLabel}`;
+  }
 
   return (
     <div>
@@ -676,7 +687,7 @@ export default function CatalogAdmin({}: {}) {
                       </div>
                     </div>
                   );
-                })}
+                })}             
               </div>
             )}
             <div className="mt-4 pt-4 border-t border-[#e2e8f0]">
@@ -913,8 +924,10 @@ export default function CatalogAdmin({}: {}) {
       {confirmOpen && (
         <Portal>
           <div className="fixed inset-0 z-40">
-            <div
-              className="absolute inset-0 bg-black/30 backdrop-blur-sm"
+            <button
+              type="button"
+              aria-label="Close dialog"
+              className="absolute inset-0 bg-black/30 backdrop-blur-sm focus:outline-none"
               onClick={() => {
                 setConfirmOpen(false);
                 setConfirmPayload(null);
@@ -933,13 +946,7 @@ export default function CatalogAdmin({}: {}) {
                     id="catalog-confirm-title"
                     className="text-lg font-semibold text-[#111827]"
                   >
-                    {confirmPayload
-                      ? `Delete ${
-                          confirmPayload.entity === "category"
-                            ? "Category"
-                            : "Type"
-                        }`
-                      : "Delete"}
+                    {dialogTitle}
                   </h3>
                   {confirmPayload && (
                     <p className="text-sm text-[#64748b] mt-1">

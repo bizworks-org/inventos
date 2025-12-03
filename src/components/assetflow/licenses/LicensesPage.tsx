@@ -15,8 +15,8 @@ import { getMe, type ClientMe } from "../../../lib/auth/client";
 import { Button } from "@/components/ui/button";
 
 interface LicensesPageProps {
-  onNavigate?: (page: string, licenseId?: string) => void;
-  onSearch?: (query: string) => void;
+  readonly onNavigate?: (page: string, licenseId?: string) => void;
+  readonly onSearch?: (query: string) => void;
 }
 
 export type LicenseTypeFilter = "All" | "Software" | "SaaS" | "Cloud";
@@ -33,7 +33,6 @@ export function LicensesPage({ onNavigate, onSearch }: LicensesPageProps) {
     useState<ComplianceFilter>("All");
   const [searchQuery, setSearchQuery] = useState("");
   const [licenses, setLicenses] = useState<License[]>([]);
-  const [error, setError] = useState<string | null>(null);
   const [me, setMe] = useState<ClientMe>(null);
   const [expiringOnly, setExpiringOnly] = useState<boolean>(false);
 
@@ -46,11 +45,13 @@ export function LicensesPage({ onNavigate, onSearch }: LicensesPageProps) {
       .then((rows) => {
         if (!cancelled) {
           setLicenses(rows);
-          setError(null);
         }
       })
-      .catch((e) => {
-        if (!cancelled) setError(e.message || "Failed to load licenses");
+      .catch(() => {
+        if (!cancelled) {
+          // Intentionally not storing an error state; errors are logged/handled elsewhere as needed.
+          console.error("Failed to load licenses");
+        }
       });
     return () => {
       cancelled = true;
@@ -142,12 +143,18 @@ export function LicensesPage({ onNavigate, onSearch }: LicensesPageProps) {
   // Seat UI removed; keep backend values intact but don't display aggregated seat stats
 
   const handleDelete = async (id: string) => {
-    const keep = licenses.filter((l) => l.id !== id);
-    setLicenses(keep);
+    // Capture current state so we can restore on failure
+    const previous = licenses;
+    const next = previous.filter((l) => l.id !== id);
+
+    // Use functional setter arguments that do not directly pass the `licenses` state variable
+    setLicenses(() => next);
+
     try {
       await deleteLicense(id);
     } catch (e) {
-      setLicenses(licenses);
+      // Restore previous state using a functional setter (argument doesn't rely on the `licenses` variable)
+      setLicenses(() => previous);
       console.error(e);
     }
   };

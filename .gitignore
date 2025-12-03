@@ -68,11 +68,10 @@ Thumbs.db
 # Next.js image cache
 public/static/
 
-# Expo local state
-.expo/
-
 # Lockfiles (optional; comment out if you commit them)
 # package-lock.json
 # yarn.lock
 # pnpm-lock.yaml
 passwords.txt
+.vs/
+.github/prompts/

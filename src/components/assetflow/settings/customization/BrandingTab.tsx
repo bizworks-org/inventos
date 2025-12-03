@@ -164,7 +164,7 @@ export default function BrandingTab({
               PNG/SVG/JPG/WebP up to a 5 MB
             </p>
 
-            <style jsx>{`
+            <style>{`
               @keyframes shimmer {
                 0% {
                   background-position: 200% 0;

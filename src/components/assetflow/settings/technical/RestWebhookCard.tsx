@@ -11,13 +11,13 @@ import { Label } from "../../../ui/label";
 import { Input } from "../../../ui/input";
 import { Button } from "../../../ui/button";
 
-export default function RestWebhookCard(props: {
+export default function RestWebhookCard(props: Readonly<{
   events: any;
   setEvents: (fn: any) => void;
   headersError: string | null;
   setHeadersError: (s: string | null) => void;
   saveRestSettings: () => void;
-}) {
+}>) {
   const { events, setEvents, headersError, setHeadersError, saveRestSettings } =
     props;
   return (

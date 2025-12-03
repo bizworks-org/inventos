@@ -35,7 +35,7 @@ export function MailConfigForm({
   onSaveConfig,
   onSendTestEmail,
   onSendTestToMe,
-}: MailConfigFormProps) {
+}: Readonly<MailConfigFormProps>) {
   return (
     <Card className="border-gray-200 dark:border-gray-700">
       <CardHeader>

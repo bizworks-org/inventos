@@ -16,12 +16,12 @@ import { Check } from "lucide-react";
 
 type Integration = { id: string; name: string; description: string; icon: any };
 
-export default function IntegrationCard(props: {
+export default function IntegrationCard(props: Readonly<{
   integration: Integration;
   isConnected: boolean;
   onConnect: (id: string, apiKey: string, endpointUrl: string) => void;
   onDisconnect: (id: string) => void;
-}) {
+}>) {
   const { integration, isConnected, onConnect, onDisconnect } = props;
   const Icon = integration.icon;
   const [open, setOpen] = useState(false);
@@ -50,7 +50,15 @@ export default function IntegrationCard(props: {
         </div>
       </div>
 
-      {!isConnected ? (
+      {isConnected ? (
+        <Button
+          variant="outline"
+          className="border-[#ef4444] text-[#ef4444] hover:bg-[#fee2e2]"
+          onClick={() => onDisconnect(integration.id)}
+        >
+          Disconnect
+        </Button>
+      ) : (
         <Dialog open={open} onOpenChange={setOpen}>
           <DialogTrigger asChild>
             <Button className="bg-gradient-to-r from-[#6366f1] to-[#8b5cf6] text-white hover:shadow-lg hover:shadow-[#6366f1]/30">
@@ -111,14 +119,6 @@ export default function IntegrationCard(props: {
             </DialogFooter>
           </DialogContent>
         </Dialog>
-      ) : (
-        <Button
-          variant="outline"
-          className="border-[#ef4444] text-[#ef4444] hover:bg-[#fee2e2]"
-          onClick={() => onDisconnect(integration.id)}
-        >
-          Disconnect
-        </Button>
       )}
     </div>
   );

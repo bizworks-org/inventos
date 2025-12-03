@@ -11,7 +11,7 @@ import { Label } from "../../../ui/label";
 import { Input } from "../../../ui/input";
 import { Button } from "../../../ui/button";
 
-export default function DatabaseTab(props: {
+export default function DatabaseTab(props: Readonly<{
   techTabsDisabled: boolean;
   dbForm: {
     host: string;
@@ -27,7 +27,7 @@ export default function DatabaseTab(props: {
   onTestConnection: () => Promise<void>;
   onSaveConfig: () => Promise<void>;
   onInitialize: () => Promise<void>;
-}) {
+}>) {
   const {
     techTabsDisabled,
     dbForm,

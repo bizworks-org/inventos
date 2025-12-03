@@ -11,11 +11,11 @@ import { Label } from "../../../ui/label";
 import { Input } from "../../../ui/input";
 import { Button } from "../../../ui/button";
 
-export default function KafkaCard(props: {
+export default function KafkaCard(props: Readonly<{
   events: any;
   setEvents: (fn: any) => void;
   saveKafkaSettings: () => void;
-}) {
+}>) {
   const { events, setEvents, saveKafkaSettings } = props;
   return (
     <Card>

@@ -3,7 +3,7 @@ import { Switch } from "../../../ui/switch";
 import RestWebhookCard from "./RestWebhookCard";
 import KafkaCard from "./KafkaCard";
 
-export default function EventsTab(props: {
+export default function EventsTab(props: Readonly<{
   techTabsDisabled: boolean;
   events: any;
   setEvents: (fn: any) => void;
@@ -11,7 +11,7 @@ export default function EventsTab(props: {
   setHeadersError: (s: string | null) => void;
   saveRestSettings: () => void;
   saveKafkaSettings: () => void;
-}) {
+}>) {
   const {
     techTabsDisabled,
     events,

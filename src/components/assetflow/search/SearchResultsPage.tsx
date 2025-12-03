@@ -1,17 +1,17 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { AssetFlowLayout } from '../layout/AssetFlowLayout';
-import type { Asset, Vendor, License } from '../../../lib/data';
+import type from '../../../lib/data';
 import { motion } from 'motion/react';
 import { Search, Edit2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 
 interface SearchResultsPageProps {
-  query: string;
-  onNavigate?: (page: string, id?: string) => void;
-  onSearch?: (q: string) => void;
+  readonly query: string;
+  readonly onNavigate?: (page: string, id?: string) => void;
+  readonly onSearch?: (q: string) => void;
 }
 
 export default function SearchResultsPage({ query, onNavigate, onSearch }: SearchResultsPageProps) {

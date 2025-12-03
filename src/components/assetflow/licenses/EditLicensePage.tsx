@@ -288,7 +288,7 @@ export function EditLicensePage({
                     {/* include current vendor name as option if it's not in vendors list and not the __other__ marker */}
                     {formData.vendor &&
                       formData.vendor !== "__other__" &&
-                      !vendors.find((v) => v.name === formData.vendor) && (
+                      !vendors.some((v) => v.name === formData.vendor) && (
                         <option value={formData.vendor}>
                           {formData.vendor}
                         </option>
@@ -533,7 +533,7 @@ export function EditLicensePage({
                   <div className="flex justify-between items-center pb-2 border-b border-white/20">
                     <span className="text-sm text-white/80">Annual Cost</span>
                     <span className="font-semibold">
-                      {formatCurrency(parseFloat(formData.cost))}
+                      {formatCurrency(Number.parseFloat(formData.cost))}
                     </span>
                   </div>
                 )}

@@ -21,7 +21,7 @@ export default function NotificationsTab({
   notify,
   setNotify,
   handleSave,
-}: Props) {
+}: Readonly<Props>) {
   return (
     <div className="space-y-6">
       <Card>

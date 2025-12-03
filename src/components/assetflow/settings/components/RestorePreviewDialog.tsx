@@ -26,7 +26,7 @@ interface RestorePreviewDialogProps {
   onConfirm: () => void;
 }
 
-function PreviewStatsTable({ stats }: { stats: any[] }) {
+function PreviewStatsTable({ stats }: Readonly<{ stats: any[] }>) {
   const getDeltaClassName = (delta: number) => {
     if (delta > 0) return "text-green-600";
     if (delta < 0) return "text-red-600";
@@ -84,11 +84,11 @@ function PreviewContent({
   previewing,
   previewError,
   previewStats,
-}: {
+}: Readonly<{
   previewing: boolean;
   previewError: string | null;
   previewStats: Record<string, any> | null;
-}) {
+}>) {
   if (previewError) {
     return <p className="text-red-600 text-sm">{previewError}</p>;
   }
@@ -121,7 +121,7 @@ export function RestorePreviewDialog({
   restoreInProgress,
   onClose,
   onConfirm,
-}: RestorePreviewDialogProps) {
+}: Readonly<RestorePreviewDialogProps>) {
   const handleClose = () => {
     onClose();
   };

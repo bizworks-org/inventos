@@ -10,10 +10,10 @@ import {
 export function DisabledCard({
   title,
   description,
-}: {
+}: Readonly<{
   title: string;
   description?: string;
-}) {
+}>) {
   return (
     <Card>
       <CardHeader>

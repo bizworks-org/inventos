@@ -31,96 +31,121 @@ export default function ProfileTab({
   setPwdNew2,
   profileMsg,
   saveProfile,
-}: Props) {
+}: Readonly<Props>) {
+  const idBase = React.useId();
+  const fullNameId = `${idBase}-full-name`;
+  const emailId = `${idBase}-email`;
+  const pwdCurrentId = `${idBase}-pwd-current`;
+  const pwdNewId = `${idBase}-pwd-new`;
+  const pwdNew2Id = `${idBase}-pwd-new2`;
+
   return (
-    <>
-      <div className="space-y-8">
-        <div>
-          <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-3">
-            Profile
-          </h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div>
-              <label className="block text-sm font-medium text-gray-900 dark:text-gray-100 mb-2">
-                Full Name
-              </label>
-              <input
-                className="w-full px-3 py-2 rounded-lg bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 focus:outline-none focus:ring-2 focus:ring-[#6366f1]/20"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-900 dark:text-gray-100 mb-2">
-                Email
-              </label>
-              <input
-                type="email"
-                disabled
-                className="w-full px-3 py-2 rounded-lg bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 text-[#6b7280]"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-              />
-              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                Email is managed by an administrator.
-              </p>
-            </div>
+    <div className="space-y-8">
+      <div>
+        <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-3">
+          Profile
+        </h3>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div>
+            <label
+              htmlFor={fullNameId}
+              className="block text-sm font-medium text-gray-900 dark:text-gray-100 mb-2"
+            >
+              Full Name
+            </label>
+            <input
+              id={fullNameId}
+              className="w-full px-3 py-2 rounded-lg bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 focus:outline-none focus:ring-2 focus:ring-[#6366f1]/20"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+            />
+          </div>
+          <div>
+            <label
+              htmlFor={emailId}
+              className="block text-sm font-medium text-gray-900 dark:text-gray-100 mb-2"
+            >
+              Email
+            </label>
+            <input
+              id={emailId}
+              type="email"
+              disabled
+              className="w-full px-3 py-2 rounded-lg bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 text-[#6b7280]"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+            />
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+              Email is managed by an administrator.
+            </p>
           </div>
         </div>
-
-        <div>
-          <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-3">
-            Change Password
-          </h3>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div>
-              <label className="block text-sm font-medium text-gray-900 dark:text-gray-100 mb-2">
-                Current Password
-              </label>
-              <input
-                type="password"
-                className="w-full px-3 py-2 rounded-lg bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700"
-                value={pwdCurrent}
-                onChange={(e) => setPwdCurrent(e.target.value)}
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-900 dark:text-gray-100 mb-2">
-                New Password
-              </label>
-              <input
-                type="password"
-                className="w-full px-3 py-2 rounded-lg bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700"
-                value={pwdNew}
-                onChange={(e) => setPwdNew(e.target.value)}
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-900 dark:text-gray-100 mb-2">
-                Confirm New Password
-              </label>
-              <input
-                type="password"
-                className="w-full px-3 py-2 rounded-lg bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700"
-                value={pwdNew2}
-                onChange={(e) => setPwdNew2(e.target.value)}
-              />
-            </div>
-          </div>
-        </div>
-
-        {profileMsg && (
-          <p
-            className={`text-sm ${
-              profileMsg.startsWith("OK") ? "text-green-600" : "text-red-600"
-            }`}
-          >
-            {profileMsg}
-          </p>
-        )}
-
-        {/* Profile saved by global Save Changes button in header */}
       </div>
-    </>
+
+      <div>
+        <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-3">
+          Change Password
+        </h3>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div>
+            <label
+              htmlFor={pwdCurrentId}
+              className="block text-sm font-medium text-gray-900 dark:text-gray-100 mb-2"
+            >
+              Current Password
+            </label>
+            <input
+              id={pwdCurrentId}
+              type="password"
+              className="w-full px-3 py-2 rounded-lg bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700"
+              value={pwdCurrent}
+              onChange={(e) => setPwdCurrent(e.target.value)}
+            />
+          </div>
+          <div>
+            <label
+              htmlFor={pwdNewId}
+              className="block text-sm font-medium text-gray-900 dark:text-gray-100 mb-2"
+            >
+              New Password
+            </label>
+            <input
+              id={pwdNewId}
+              type="password"
+              className="w-full px-3 py-2 rounded-lg bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700"
+              value={pwdNew}
+              onChange={(e) => setPwdNew(e.target.value)}
+            />
+          </div>
+          <div>
+            <label
+              htmlFor={pwdNew2Id}
+              className="block text-sm font-medium text-gray-900 dark:text-gray-100 mb-2"
+            >
+              Confirm New Password
+            </label>
+            <input
+              id={pwdNew2Id}
+              type="password"
+              className="w-full px-3 py-2 rounded-lg bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700"
+              value={pwdNew2}
+              onChange={(e) => setPwdNew2(e.target.value)}
+            />
+          </div>
+        </div>
+      </div>
+
+      {profileMsg && (
+        <p
+          className={`text-sm ${
+            profileMsg.startsWith("OK") ? "text-green-600" : "text-red-600"
+          }`}
+        >
+          {profileMsg}
+        </p>
+      )}
+
+      {/* Profile saved by global Save Changes button in header */}
+    </div>
   );
 }

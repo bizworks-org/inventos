@@ -82,7 +82,7 @@ export function AddLicensePage({ onNavigate, onSearch }: Readonly<AddLicensePage
       seatsUsed: 0,
       expirationDate: formData.expirationDate,
       renewalDate: renewalDate,
-      cost: parseFloat(formData.cost),
+      cost: Number.parseFloat(formData.cost),
       owner: formData.owner,
       compliance: formData.compliance
     };
