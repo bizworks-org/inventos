@@ -7,6 +7,7 @@ import {
 import { signToken, verifyPassword, type Role } from "@/lib/auth/server";
 import { query } from "@/lib/db";
 import { randomUUID, createHash } from "node:crypto";
+import logger from "@/lib/logger";
 import { secureId } from "@/lib/secure";
 
 async function tryVerifyPassword(password: string, hash?: string) {
@@ -102,20 +103,36 @@ async function createSessionAndLog(
     );
 
     try {
+      // Insert a single session event that will be updated on logout.
+      // Use a predictable event id so signout can locate and update the same row.
+      const eventId = `SESS-${sessionId}`;
       await query(
         `INSERT INTO events (id, ts, severity, entity_type, entity_id, action, user, details, metadata)
          VALUES (:id, CURRENT_TIMESTAMP, :severity, :entity_type, :entity_id, :action, :user, :details, :metadata)`,
         {
-          id: `EVT-${Date.now()}-${secureId("", 16)}`,
+          id: eventId,
           severity: "info",
           entity_type: "user",
           entity_id: user.id,
-          action: "auth.login",
+          action: "auth.session",
           user: user.email,
-          details: `User login`,
-          metadata: JSON.stringify({ sessionId, ip, userAgent: ua }),
+          details: `User session started`,
+          metadata: JSON.stringify({
+            sessionId,
+            ip,
+            userAgent: ua,
+            loginAt: new Date().toISOString(),
+          }),
         }
       );
+      try {
+        logger.auth("session.start", {
+          user: user.email,
+          sessionId,
+          ip,
+          userAgent: ua,
+        });
+      } catch {}
     } catch (e) {
       console.error(e);
     }
