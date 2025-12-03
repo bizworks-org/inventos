@@ -11,11 +11,22 @@ export type User = {
   active: boolean;
 };
 
-const AUTH_COOKIE = "auth_token";
-const DEFAULT_SECRET = "dev-secret-change-me";
+const AUTH_COOKIE = process.env.AUTH_COOKIE_NAME || "auth_token";
 
+// Read auth secret from environment. In production the secret MUST be set.
 export function getAuthSecret() {
-  return process.env.AUTH_SECRET || DEFAULT_SECRET;
+  const s = process.env.AUTH_SECRET;
+  if (s && s.length > 0) return s;
+  if (process.env.NODE_ENV === "production") {
+    throw new Error(
+      "Missing AUTH_SECRET environment variable. Set AUTH_SECRET to a long, random value."
+    );
+  }
+  // Development fallback (explicit and obvious string)
+  console.warn(
+    "Using development fallback auth secret. Set AUTH_SECRET in your environment to avoid this warning."
+  );
+  return "dev-secret-change-me";
 }
 
 export function signToken(
