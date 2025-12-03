@@ -21,8 +21,8 @@ export type UiCategory = {
   id: number;
   name: string;
   sort: number;
-  types: Array<{ id: number; name: string; sort: number }>;}
-  
+  types: Array<{ id: number; name: string; sort: number }>;
+};
 
 export default function CatalogAdmin({}: {}) {
   const [categories, setCategories] = useState<UiCategory[]>([]);
@@ -44,7 +44,6 @@ export default function CatalogAdmin({}: {}) {
   const [renamingTypeId, setRenamingTypeId] = useState<number | null>(null);
   const [renamingTypeName, setRenamingTypeName] = useState("");
   const [renamingTypeCategoryId, setRenamingTypeCategoryId] = useState<
-
     number | null
   >(null);
   const [hoveredTypeId, setHoveredTypeId] = useState<number | null>(null);
@@ -81,7 +80,7 @@ export default function CatalogAdmin({}: {}) {
       }
       if (cats.length && !selectedId) setSelectedId(cats[0].id);
     } catch (e: any) {
-        console.error(e);
+      console.error(e);
       setError(e?.message || "Failed to load catalog");
     } finally {
       setLoading(false);
@@ -360,7 +359,8 @@ export default function CatalogAdmin({}: {}) {
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ entity: "type", id: tid }),
               })
-            );
+            )
+          );
           for (const res of responses) {
             if (!res.ok) {
               const data = await res.json().catch(() => ({}));
@@ -687,7 +687,7 @@ export default function CatalogAdmin({}: {}) {
                       </div>
                     </div>
                   );
-                })}             
+                })}
               </div>
             )}
             <div className="mt-4 pt-4 border-t border-[#e2e8f0]">

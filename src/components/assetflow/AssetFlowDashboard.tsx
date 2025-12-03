@@ -17,8 +17,8 @@ interface AssetFlowDashboardProps {
 export function AssetFlowDashboard({
   onNavigate,
   onSearch,
-}: AssetFlowDashboardProps) {
-  const [errors, setErrors] = useState<string | null>(null);
+}: Readonly<AssetFlowDashboardProps>) {
+  const [errors] = useState<string | null>(null);
   const [summary, setSummary] = useState<{
     totalAssets: number;
     totalAssetsDelta: number;
@@ -84,7 +84,7 @@ export function AssetFlowDashboard({
           // Simple loading skeletons
           Array.from({ length: 4 }).map((_, i) => (
             <div
-              key={`skeleton-${i}`}
+              key={`skeleton-${i * i}`}
               className="rounded-2xl bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 p-6 shadow-sm"
             >
               <div className="animate-pulse">

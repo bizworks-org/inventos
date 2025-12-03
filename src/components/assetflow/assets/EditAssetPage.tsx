@@ -134,12 +134,12 @@ export default function EditAssetPage({
         load();
       } catch {}
     };
-    window.addEventListener(
+    globalThis.addEventListener(
       "assetflow:locations-updated",
       handler as EventListener
     );
     return () =>
-      window.removeEventListener(
+      globalThis.removeEventListener(
         "assetflow:locations-updated",
         handler as EventListener
       );
@@ -201,11 +201,12 @@ export default function EditAssetPage({
       const response = await fetch("/api/catalog", { cache: "no-store" });
       if (!response.ok) throw new Error("Failed to load catalog");
       const payload = await response.json();
-      const categories = Array.isArray(payload)
-        ? payload
-        : Array.isArray(payload?.categories)
-        ? payload.categories
-        : null;
+      let categories: UiCategory[] | null = null;
+      if (Array.isArray(payload)) {
+        categories = payload as UiCategory[];
+      } else if (Array.isArray(payload?.categories)) {
+        categories = payload.categories as UiCategory[];
+      }
       if (categories) {
         setCatalog(categories as UiCategory[]);
       }
@@ -219,12 +220,12 @@ export default function EditAssetPage({
     const handler = () => {
       fetchCatalog();
     };
-    window.addEventListener(
+    globalThis.addEventListener(
       "assetflow:catalog-cleared",
       handler as EventListener
     );
     return () => {
-      window.removeEventListener(
+      globalThis.removeEventListener(
         "assetflow:catalog-cleared",
         handler as EventListener
       );
@@ -245,9 +246,7 @@ export default function EditAssetPage({
     }
 
     try {
-      const attr = document?.documentElement?.getAttribute(
-        "data-consent-required"
-      );
+      const attr = document?.documentElement?.dataset?.consentRequired;
       if (attr === "false" || attr === "0") {
         setConsentRequired(false);
       }
@@ -284,7 +283,7 @@ export default function EditAssetPage({
       purchaseDate: asset.purchaseDate,
       eosDate: (asset as any).eosDate || "",
       eolDate: (asset as any).eolDate || "",
-      cost: asset.cost != null ? String(asset.cost) : "",
+      cost: asset.cost == null ? "" : String(asset.cost),
       location: asset.location,
       processor: asset.specifications?.processor ?? "",
       ram: asset.specifications?.ram ?? "",
@@ -308,14 +307,14 @@ export default function EditAssetPage({
     const nextValues: Record<string, string> = {};
     const orphanFields: Array<{ key: string; value: string }> = [];
 
-    Object.entries(customFields).forEach(([key, value]) => {
-      if (EXCLUDE_CF_KEYS.has(key)) return; // never surface CIA fields as custom fields
+    for (const [key, value] of Object.entries(customFields)) {
+      if (EXCLUDE_CF_KEYS.has(key)) continue; // never surface CIA fields as custom fields
       if (configuredKeys.has(key)) {
         if (!EXCLUDE_CF_KEYS.has(key)) nextValues[key] = String(value ?? "");
       } else {
         orphanFields.push({ key, value: String(value ?? "") });
       }
-    });
+    }
 
     // Initialize CIA strictly from dedicated columns; default to 1..5 range
     const cCol = (asset as any).ciaConfidentiality;
@@ -436,10 +435,10 @@ export default function EditAssetPage({
       if (existing != null && Number.isFinite(m) && m > 0) nextTypeId = m;
     }
     console.log("Resolved type ID for submission:", nextTypeId);
-    if (nextTypeId !== null) {
-      nextAsset.type_id = nextTypeId;
-    } else {
+    if (nextTypeId === null) {
       delete nextAsset.type_id;
+    } else {
+      nextAsset.type_id = nextTypeId;
     }
     console.log("Outgoing asset payload type_id:", nextAsset.type_id);
     logAssetUpdated(nextAsset.id, nextAsset.name, "admin@company.com", {
@@ -540,7 +539,7 @@ export default function EditAssetPage({
                             catName
                           )[0];
                           setAssetTypeId(
-                            firstType?.id != null ? String(firstType.id) : ""
+                            firstType?.id == null ? "" : String(firstType.id)
                           );
                         }}
                         className={`rounded-lg px-4 py-2 text-sm font-medium transition ${
@@ -721,7 +720,10 @@ export default function EditAssetPage({
 
               <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
                 <div>
-                  <label className="mb-2 block text-sm font-medium">
+                  <label
+                    htmlFor="purchaseCost"
+                    className="mb-2 block text-sm font-medium"
+                  >
                     Purchase Cost *
                   </label>
                   <div className="relative">
@@ -729,6 +731,7 @@ export default function EditAssetPage({
                       {currencySymbol}
                     </span>
                     <input
+                      id="purchaseCost"
                       type="number"
                       min="0"
                       step="0.01"
@@ -741,12 +744,15 @@ export default function EditAssetPage({
                     />
                   </div>
                 </div>
-
                 <div>
-                  <label className="mb-2 block text-sm font-medium">
+                  <label
+                    htmlFor="purchaseDate"
+                    className="mb-2 block text-sm font-medium"
+                  >
                     Purchase Date *
                   </label>
                   <input
+                    id="purchaseDate"
                     type="date"
                     required
                     value={formData.purchaseDate}
@@ -756,12 +762,15 @@ export default function EditAssetPage({
                     className="w-full rounded-lg border bg-card px-4 py-2.5"
                   />
                 </div>
-
                 <div>
-                  <label className="mb-2 block text sm font-medium">
+                  <label
+                    htmlFor="eosDate"
+                    className="mb-2 block text-sm font-medium"
+                  >
                     End of Support
                   </label>
                   <input
+                    id="eosDate"
                     type="date"
                     value={formData.eosDate}
                     onChange={(event) =>
@@ -770,12 +779,15 @@ export default function EditAssetPage({
                     className="w-full rounded-lg border bg-card px-4 py-2.5"
                   />
                 </div>
-
                 <div>
-                  <label className="mb-2 block text-sm font-medium">
+                  <label
+                    htmlFor="eolDate"
+                    className="mb-2 block text-sm font-medium"
+                  >
                     End of Life
                   </label>
                   <input
+                    id="eolDate"
                     type="date"
                     value={formData.eolDate}
                     onChange={(event) =>

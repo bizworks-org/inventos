@@ -29,19 +29,23 @@ export async function POST(req: NextRequest) {
                  legal_name, trading_name, registration_number, incorporation_date, incorporation_country,
                  registered_office_address, corporate_office_address, nature_of_business, business_category, service_coverage_area,
                  pan_tax_id, bank_name, account_number, ifsc_swift_code, payment_terms, preferred_currency, vendor_credit_limit,
-                 contacts
+                 contacts, specifications
                ) VALUES (
                  :id, :name, :type, :contact_person, :email, :phone, :status, :contract_value, :contract_expiry, :rating,
                  :legal_name, :trading_name, :registration_number, :incorporation_date, :incorporation_country,
                  :registered_office_address, :corporate_office_address, :nature_of_business, :business_category, :service_coverage_area,
                  :pan_tax_id, :bank_name, :account_number, :ifsc_swift_code, :payment_terms, :preferred_currency, :vendor_credit_limit,
-                 :contacts
+                 :contacts, :specifications
                )`;
 
   // Ensure contacts is stored as JSON string when provided
   const params = {
     ...body,
     contacts: body.contacts ? JSON.stringify(body.contacts) : null,
+    specifications:
+      body.specifications && typeof body.specifications === "object"
+        ? JSON.stringify(body.specifications)
+        : body.specifications ?? null,
   };
   await query(sql, params);
   // Notify admins about new vendor

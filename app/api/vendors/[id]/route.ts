@@ -65,12 +65,17 @@ export async function PUT(req: NextRequest, ctx: any) {
     ,payment_terms=:payment_terms
     ,preferred_currency=:preferred_currency
     ,vendor_credit_limit=:vendor_credit_limit
+    ,specifications=:specifications
     WHERE id=:id`;
   // If contacts provided, serialize to JSON for DB storage
   const params = {
     ...body,
     id,
     contacts: body.contacts ? JSON.stringify(body.contacts) : null,
+    specifications:
+      body.specifications && typeof body.specifications === "object"
+        ? JSON.stringify(body.specifications)
+        : body.specifications ?? null,
   };
   const sqlWithContacts = sql.replace(
     "\n    WHERE id=:id",

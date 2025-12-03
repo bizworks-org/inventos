@@ -32,8 +32,8 @@ export function EditVendorPage({
   vendorId,
   onNavigate,
   onSearch,
-}: EditVendorPageProps) {
-  const { currencySymbol, formatCurrency } = usePrefs();
+}: Readonly<EditVendorPageProps>) {
+  const { currencySymbol } = usePrefs();
   const [vendor, setVendor] = useState<Vendor | undefined>(undefined);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -207,19 +207,37 @@ export function EditVendorPage({
         if (profileRes.ok) {
           const prof = await profileRes.json();
           // normalize some fields
+          let authorizedHardware: string[] = [];
+          if (prof?.authorized_hardware) {
+            if (typeof prof.authorized_hardware === "string") {
+              try {
+                authorizedHardware = JSON.parse(prof.authorized_hardware);
+              } catch {
+                authorizedHardware = [];
+              }
+            } else {
+              authorizedHardware = prof.authorized_hardware;
+            }
+          }
+
+          let evaluationCommittee: string[] = [];
+          if (prof?.evaluation_committee) {
+            if (typeof prof.evaluation_committee === "string") {
+              try {
+                evaluationCommittee = JSON.parse(prof.evaluation_committee);
+              } catch {
+                evaluationCommittee = [];
+              }
+            } else {
+              evaluationCommittee = prof.evaluation_committee;
+            }
+          }
+
           setProfile((prev) => ({
             ...prev,
             ...prof,
-            authorized_hardware: prof?.authorized_hardware
-              ? typeof prof.authorized_hardware === "string"
-                ? JSON.parse(prof.authorized_hardware)
-                : prof.authorized_hardware
-              : [],
-            evaluation_committee: prof?.evaluation_committee
-              ? typeof prof.evaluation_committee === "string"
-                ? JSON.parse(prof.evaluation_committee)
-                : prof.evaluation_committee
-              : [],
+            authorized_hardware: authorizedHardware,
+            evaluation_committee: evaluationCommittee,
           }));
         }
       } catch (e) {

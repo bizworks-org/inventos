@@ -527,15 +527,18 @@ export default function ManageUsersPage() {
             {(editing
               ? allowedRolesForTarget(editing)
               : allowedRolesForTarget(null)
-            ).map((r) => (
-              <option key={r} value={r}>
-                {r === "superadmin"
-                  ? "Superadmin"
-                  : r === "admin"
-                  ? "Admin"
-                  : "User"}
-              </option>
-            ))}
+            ).map((r) => {
+              const getLabel = () => {
+                if (r === "superadmin") return "Superadmin";
+                if (r === "admin") return "Admin";
+                return "User";
+              };
+              return (
+                <option key={r} value={r}>
+                  {getLabel()}
+                </option>
+              );
+            })}
           </select>
         </div>
         <div className="mt-4 flex items-center gap-3">

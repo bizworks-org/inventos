@@ -11,15 +11,15 @@ import {
   RefreshCcw,
 } from "lucide-react";
 import { AssetFlowLayout } from "../layout/AssetFlowLayout";
-import { Asset } from "../../../lib/data";
-import { fetchAssets, deleteAsset } from "../../../lib/api";
-import { exportAssetsToCSV } from "../../../lib/export";
-import { importAssets, parseAssetsFile, parseCSV } from "../../../lib/import";
+import { Asset } from "@/lib/data";
+import { fetchAssets, deleteAsset } from "@/lib/api";
+import { exportAssetsToCSV } from "@/lib/export";
+import { importAssets, parseAssetsFile, parseCSV } from "@/lib/import";
 import AssetImportModal from "./AssetImportModal";
 import { toast } from "@/components/ui/sonner";
 import { AssetsTable } from "./AssetsTable";
 // removed unused Tabs import
-import { getMe, type ClientMe } from "../../../lib/auth/client";
+import { getMe, type ClientMe } from "@/lib/auth/client";
 import { Button } from "@/components/ui/button";
 
 interface AssetsPageProps {
@@ -28,7 +28,7 @@ interface AssetsPageProps {
 }
 
 export type AssetStatus = "All" | Asset["status"];
-export type AssetCategory = "All" | string;
+export type AssetCategory = string;
 
 export function AssetsPage({
   onNavigate,
@@ -39,7 +39,6 @@ export function AssetsPage({
   const [selectedStatus, setSelectedStatus] = useState<AssetStatus>("All");
   const [searchQuery, setSearchQuery] = useState("");
   const [assets, setAssets] = useState<Asset[]>([]);
-  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [me, setMe] = useState<ClientMe>(null);
   // Catalog UI type and cached catalog state (used to map types -> categories)
@@ -64,7 +63,7 @@ export function AssetsPage({
       } catch (e: any) {
         if (!cancelled) setError(e?.message || String(e));
       } finally {
-        if (!cancelled) setLoading(false);
+        // no-op
       }
     };
     load();
@@ -501,10 +500,14 @@ export function AssetsPage({
             <div className="flex items-center gap-3">
               {filteredAssets.length >= 30 && (
                 <>
-                  <label className="text-sm text-[#64748b]">
+                  <label
+                    htmlFor="itemsPerPage"
+                    className="text-sm text-[#64748b]"
+                  >
                     Items per page
                   </label>
                   <select
+                    id="itemsPerPage"
                     value={perPage}
                     onChange={(e) => setPerPage(Number(e.target.value))}
                     className="px-2 py-1 rounded-lg bg-white border"

@@ -38,8 +38,15 @@ export async function PUT(req: NextRequest, ctx: any) {
     );
   const { id } = await resolveParams(ctx);
   const body = await req.json();
+  // Normalize specifications if provided as object
+  if (body && typeof body.specifications === "object") {
+    try {
+      body.specifications = JSON.stringify(body.specifications);
+    } catch {}
+  }
+
   const sql = `UPDATE licenses SET name=:name, vendor=:vendor, type=:type, seats=:seats, seats_used=:seats_used,
-    expiration_date=:expiration_date, cost=:cost, owner=:owner, compliance=:compliance, renewal_date=:renewal_date WHERE id=:id`;
+    expiration_date=:expiration_date, cost=:cost, owner=:owner, compliance=:compliance, renewal_date=:renewal_date, specifications=:specifications WHERE id=:id`;
   await query(sql, { ...body, id });
   // Notify admins about license update
   try {

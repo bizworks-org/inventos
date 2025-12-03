@@ -1,15 +1,21 @@
 // Lightweight API client with mapping between DB snake_case and UI camelCase shapes
-import type { Asset, License, Vendor, Activity as UiActivity, Event as UiEvent, AssetFieldDef } from './data';
-import type { SystemEvent } from './events';
+import type {
+  Asset,
+  License,
+  Vendor,
+  Activity as UiActivity,
+  AssetFieldDef,
+} from "./data";
+import type { SystemEvent } from "./events";
 
 // Generic fetch helper
 async function http<T>(input: RequestInfo, init?: RequestInit): Promise<T> {
+  const headers: HeadersInit = { "Content-Type": "application/json" };
+  if (init?.headers) Object.assign(headers, init.headers);
+
   const res = await fetch(input, {
     ...init,
-    headers: {
-      'Content-Type': 'application/json',
-      ...(init?.headers || {}),
-    },
+    headers,
   });
   if (!res.ok) {
     let msg = `Request failed: ${res.status}`;
@@ -22,6 +28,31 @@ async function http<T>(input: RequestInfo, init?: RequestInit): Promise<T> {
   return res.json() as Promise<T>;
 }
 
+// Normalize various DB date representations into 'YYYY-MM-DD' for date inputs
+function normalizeDate(input: unknown): string {
+  if (input === null || input === undefined) return "";
+  // If already a string like 'YYYY-MM-DD' or any string, try to slice first 10 chars safely
+  if (typeof input === "string") {
+    // Many drivers serialize DATE as ISO with time 'YYYY-MM-DDTHH:mm:ss.sssZ'
+    if (input.length >= 10) return input.slice(0, 10);
+    // Fallback: attempt Date parse
+    const d = new Date(input);
+    if (!Number.isNaN(d.getTime())) return d.toISOString().slice(0, 10);
+    return "";
+  }
+  // If Date object
+  if (input instanceof Date) {
+    if (!Number.isNaN(input.getTime())) return input.toISOString().slice(0, 10);
+    return "";
+  }
+  // Unknown type -> try coercion
+  try {
+    const d = new Date(input as any);
+    if (!Number.isNaN(d.getTime())) return d.toISOString().slice(0, 10);
+  } catch {}
+  return "";
+}
+
 // Assets
 type DbAsset = {
   id: string;
@@ -30,61 +61,39 @@ type DbAsset = {
   serial_number: string;
   assigned_to: string;
   assigned_email?: string | null;
-  consent_status?: 'pending' | 'accepted' | 'rejected' | 'none';
+  consent_status?: "pending" | "accepted" | "rejected" | "none";
   department: string;
-  status: Asset['status'];
+  status: Asset["status"];
   purchase_date: string; // ISO or YYYY-MM-DD
   end_of_support_date?: string | null;
   end_of_life_date?: string | null;
   warranty_expiry: string;
   cost: number;
   location: string;
-  specifications: any | null;
+  specifications: any;
   // CIA columns
   cia_confidentiality?: number | null;
   cia_integrity?: number | null;
   cia_availability?: number | null;
 };
 
-// Normalize various DB date representations into 'YYYY-MM-DD' for date inputs
-function normalizeDate(input: unknown): string {
-  if (input === null || input === undefined) return '';
-  // If already a string like 'YYYY-MM-DD' or any string, try to slice first 10 chars safely
-  if (typeof input === 'string') {
-    // Many drivers serialize DATE as ISO with time 'YYYY-MM-DDTHH:mm:ss.sssZ'
-    if (input.length >= 10) return input.slice(0, 10);
-    // Fallback: attempt Date parse
-    const d = new Date(input);
-    if (!isNaN(d.getTime())) return d.toISOString().slice(0, 10);
-    return '';
-  }
-  // If Date object
-  if (input instanceof Date) {
-    if (!isNaN(input.getTime())) return input.toISOString().slice(0, 10);
-    return '';
-  }
-  // Unknown type -> try coercion
-  try {
-    const d = new Date(input as any);
-    if (!isNaN(d.getTime())) return d.toISOString().slice(0, 10);
-  } catch {}
-  return '';
-}
-
 function mapDbAsset(a: DbAsset): Asset {
-  let specs: any | undefined = undefined;
+  let specs: any = undefined;
   if (a.specifications !== null && a.specifications !== undefined) {
-    if (typeof a.specifications === 'string') {
-      try { specs = JSON.parse(a.specifications); } catch { specs = undefined; }
+    if (typeof a.specifications === "string") {
+      try {
+        specs = JSON.parse(a.specifications);
+      } catch {
+        specs = undefined;
+      }
     } else {
-      specs = a.specifications as any;
+      specs = a.specifications;
     }
   }
-  console.log('specs for asset', a);
   return {
     id: a.id,
     name: a.name,
-    typeId: a.type_id || '',
+    typeId: a.type_id || "",
     serialNumber: a.serial_number,
     assignedTo: a.assigned_to,
     // @ts-ignore augment type at runtime
@@ -93,17 +102,17 @@ function mapDbAsset(a: DbAsset): Asset {
     department: a.department,
     status: a.status,
     purchaseDate: normalizeDate(a.purchase_date),
-    eosDate: normalizeDate((a as any).end_of_support_date ?? ''),
-    eolDate: normalizeDate((a as any).end_of_life_date ?? ''),
+    eosDate: normalizeDate((a as any).end_of_support_date ?? ""),
+    eolDate: normalizeDate((a as any).end_of_life_date ?? ""),
     // Deprecated field kept to avoid breaking older views; not used going forward
     warrantyExpiry: normalizeDate(a.warranty_expiry),
     cost: Number(a.cost),
     location: a.location,
     specifications: specs,
-  // Only use dedicated CIA columns; do not read from customFields
-  ciaConfidentiality: (a as any).cia_confidentiality as any,
-  ciaIntegrity: (a as any).cia_integrity as any,
-  ciaAvailability: (a as any).cia_availability as any,
+    // Only use dedicated CIA columns; do not read from customFields
+    ciaConfidentiality: (a as any).cia_confidentiality ?? undefined,
+    ciaIntegrity: (a as any).cia_integrity ?? undefined,
+    ciaAvailability: (a as any).cia_availability ?? undefined,
   };
 }
 
@@ -113,7 +122,7 @@ function mapUiAssetToDb(a: Asset): DbAsset {
   let outgoingTypeId: number | undefined = undefined;
   if (rawType !== null && rawType !== undefined) {
     const s = String(rawType).trim();
-    if (s !== '') {
+    if (s !== "") {
       const n = Number(s);
       if (Number.isFinite(n) && n > 0) outgoingTypeId = n;
     }
@@ -145,30 +154,43 @@ function mapUiAssetToDb(a: Asset): DbAsset {
 }
 
 export async function fetchAssets(): Promise<Asset[]> {
-  const rows = await http<DbAsset[]>('/api/assets');
+  const rows = await http<DbAsset[]>("/api/assets");
   return rows.map(mapDbAsset);
 }
 
 export async function fetchAssetById(id: string): Promise<Asset> {
   const row = await http<DbAsset>(`/api/assets/${encodeURIComponent(id)}`);
-  console.log('Fetched asset row:', row, encodeURIComponent(id));
   return mapDbAsset(row);
 }
 
 export async function createAsset(asset: Asset): Promise<void> {
-  await http('/api/assets', { method: 'POST', body: JSON.stringify(mapUiAssetToDb(asset)) });
+  await http("/api/assets", {
+    method: "POST",
+    body: JSON.stringify(mapUiAssetToDb(asset)),
+  });
 }
 
 export async function updateAsset(id: string, asset: Asset): Promise<void> {
-  await http(`/api/assets/${encodeURIComponent(id)}`, { method: 'PUT', body: JSON.stringify(mapUiAssetToDb(asset)) });
+  await http(`/api/assets/${encodeURIComponent(id)}`, {
+    method: "PUT",
+    body: JSON.stringify(mapUiAssetToDb(asset)),
+  });
 }
 
 export async function deleteAsset(id: string): Promise<void> {
-  await http(`/api/assets/${encodeURIComponent(id)}`, { method: 'DELETE' });
+  await http(`/api/assets/${encodeURIComponent(id)}`, { method: "DELETE" });
 }
 
-export async function sendAssetConsent(input: { assetId: string; email: string; assetName?: string; assignedBy?: string }): Promise<{ ok: true; expiresAt: string }>{
-  return http('/api/assets/consent', { method: 'POST', body: JSON.stringify(input) });
+export async function sendAssetConsent(input: {
+  assetId: string;
+  email: string;
+  assetName?: string;
+  assignedBy?: string;
+}): Promise<{ ok: true; expiresAt: string }> {
+  return http("/api/assets/consent", {
+    method: "POST",
+    body: JSON.stringify(input),
+  });
 }
 
 // Licenses
@@ -176,17 +198,29 @@ type DbLicense = {
   id: string;
   name: string;
   vendor: string;
-  type: License['type'];
+  type: License["type"];
   seats: number;
   seats_used: number;
   expiration_date: string;
   cost: number;
   owner: string;
-  compliance: License['compliance'];
+  compliance: License["compliance"];
   renewal_date: string;
+  specifications?: any;
 };
 
 function mapDbLicense(l: DbLicense): License {
+  const specs = (() => {
+    if (!l.specifications) return undefined;
+    if (typeof l.specifications === "string") {
+      try {
+        return JSON.parse(l.specifications);
+      } catch {
+        return undefined;
+      }
+    }
+    return l.specifications;
+  })();
   return {
     id: l.id,
     name: l.name,
@@ -199,10 +233,18 @@ function mapDbLicense(l: DbLicense): License {
     owner: l.owner,
     compliance: l.compliance,
     renewalDate: normalizeDate(l.renewal_date as any),
+    // expose customFields on the License type for existing UI — read from specifications.customFields if present
+    customFields:
+      (specs && typeof specs === "object"
+        ? (specs.customFields as Record<string, string> | undefined)
+        : undefined) ?? undefined,
   };
 }
 
 function mapUiLicenseToDb(l: License): DbLicense {
+  const specs =
+    (l as any).specifications ??
+    (l.customFields ? { customFields: l.customFields } : undefined);
   return {
     id: l.id,
     name: l.name,
@@ -215,11 +257,12 @@ function mapUiLicenseToDb(l: License): DbLicense {
     owner: l.owner,
     compliance: l.compliance,
     renewal_date: l.renewalDate,
+    specifications: specs ?? null,
   };
 }
 
 export async function fetchLicenses(): Promise<License[]> {
-  const rows = await http<DbLicense[]>('/api/licenses');
+  const rows = await http<DbLicense[]>("/api/licenses");
   return rows.map(mapDbLicense);
 }
 
@@ -228,27 +271,36 @@ export async function fetchLicenseById(id: string): Promise<License> {
   return mapDbLicense(row);
 }
 
-export async function updateLicense(id: string, license: License): Promise<void> {
-  await http(`/api/licenses/${encodeURIComponent(id)}`, { method: 'PUT', body: JSON.stringify(mapUiLicenseToDb(license)) });
+export async function updateLicense(
+  id: string,
+  license: License
+): Promise<void> {
+  await http(`/api/licenses/${encodeURIComponent(id)}`, {
+    method: "PUT",
+    body: JSON.stringify(mapUiLicenseToDb(license)),
+  });
 }
 
 export async function createLicense(l: License): Promise<void> {
-  await http('/api/licenses', { method: 'POST', body: JSON.stringify(mapUiLicenseToDb(l)) });
+  await http("/api/licenses", {
+    method: "POST",
+    body: JSON.stringify(mapUiLicenseToDb(l)),
+  });
 }
 
 export async function deleteLicense(id: string): Promise<void> {
-  await http(`/api/licenses/${encodeURIComponent(id)}`, { method: 'DELETE' });
+  await http(`/api/licenses/${encodeURIComponent(id)}`, { method: "DELETE" });
 }
 
 // Vendors
 type DbVendor = {
   id: string;
   name: string;
-  type: Vendor['type'];
+  type: Vendor["type"];
   contact_person: string;
   email: string;
   phone: string;
-  status: Vendor['status'];
+  status: Vendor["status"];
   contract_value: number;
   contract_expiry: string;
   rating: number;
@@ -272,7 +324,8 @@ type DbVendor = {
   vendor_credit_limit?: number | null;
   // GST certificate is now stored in vendor_documents table; remove blob fields from vendor row
   // contacts stored as JSON in DB
-  contacts?: any | null;
+  contacts?: any;
+  specifications?: any;
 };
 
 function mapDbVendor(v: DbVendor): Vendor {
@@ -291,30 +344,50 @@ function mapDbVendor(v: DbVendor): Vendor {
     legalName: (v as any).legal_name ?? undefined,
     tradingName: (v as any).trading_name ?? undefined,
     registrationNumber: (v as any).registration_number ?? undefined,
-    incorporationDate: normalizeDate((v as any).incorporation_date ?? ''),
+    incorporationDate: normalizeDate((v as any).incorporation_date ?? ""),
     incorporationCountry: (v as any).incorporation_country ?? undefined,
     registeredOfficeAddress: (v as any).registered_office_address ?? undefined,
     corporateOfficeAddress: (v as any).corporate_office_address ?? undefined,
     natureOfBusiness: (v as any).nature_of_business ?? undefined,
     businessCategory: (v as any).business_category ?? undefined,
     serviceCoverageArea: (v as any).service_coverage_area ?? undefined,
-  // financial fields
-  panTaxId: (v as any).pan_tax_id ?? undefined,
-  bankName: (v as any).bank_name ?? undefined,
-  accountNumber: (v as any).account_number ?? undefined,
-  ifscSwiftCode: (v as any).ifsc_swift_code ?? undefined,
-  paymentTerms: (v as any).payment_terms ?? undefined,
-  preferredCurrency: (v as any).preferred_currency ?? undefined,
-  vendorCreditLimit: (v as any).vendor_credit_limit ? Number((v as any).vendor_credit_limit) : undefined,
-  // gstCertificateName removed — GST files are stored in vendor_documents
+    // financial fields
+    panTaxId: (v as any).pan_tax_id ?? undefined,
+    bankName: (v as any).bank_name ?? undefined,
+    accountNumber: (v as any).account_number ?? undefined,
+    ifscSwiftCode: (v as any).ifsc_swift_code ?? undefined,
+    paymentTerms: (v as any).payment_terms ?? undefined,
+    preferredCurrency: (v as any).preferred_currency ?? undefined,
+    vendorCreditLimit: (v as any).vendor_credit_limit
+      ? Number((v as any).vendor_credit_limit)
+      : undefined,
+    // gstCertificateName removed — GST files are stored in vendor_documents
     // parse contacts JSON if present
     contacts: (() => {
       const c = (v as any).contacts;
       if (!c) return undefined;
-      if (typeof c === 'string') {
-        try { return JSON.parse(c); } catch { return undefined; }
+      if (typeof c === "string") {
+        try {
+          return JSON.parse(c);
+        } catch {
+          return undefined;
+        }
       }
       return c;
+    })(),
+    // expose customFields stored under specifications.customFields for backward-compatible UI access
+    customFields: (() => {
+      const s = (v as any).specifications;
+      if (!s) return undefined;
+      if (typeof s === "string") {
+        try {
+          const parsed = JSON.parse(s);
+          return parsed?.customFields;
+        } catch {
+          return undefined;
+        }
+      }
+      return s && typeof s === "object" ? s.customFields : undefined;
     })(),
   };
 }
@@ -341,30 +414,36 @@ function mapUiVendorToDb(v: Vendor): DbVendor {
     nature_of_business: (v as any).natureOfBusiness ?? null,
     business_category: (v as any).businessCategory ?? null,
     service_coverage_area: (v as any).serviceCoverageArea ?? null,
-  pan_tax_id: (v as any).panTaxId ?? null,
-  bank_name: (v as any).bankName ?? null,
-  account_number: (v as any).accountNumber ?? null,
-  ifsc_swift_code: (v as any).ifscSwiftCode ?? null,
-  payment_terms: (v as any).paymentTerms ?? null,
-  preferred_currency: (v as any).preferredCurrency ?? null,
-  vendor_credit_limit: (v as any).vendorCreditLimit ?? null,
-  // gst_certificate columns removed from vendors table
+    pan_tax_id: (v as any).panTaxId ?? null,
+    bank_name: (v as any).bankName ?? null,
+    account_number: (v as any).accountNumber ?? null,
+    ifsc_swift_code: (v as any).ifscSwiftCode ?? null,
+    payment_terms: (v as any).paymentTerms ?? null,
+    preferred_currency: (v as any).preferredCurrency ?? null,
+    vendor_credit_limit: (v as any).vendorCreditLimit ?? null,
+    // gst_certificate columns removed from vendors table
     // contacts serialized as object; HTTP client will stringify further where needed
     contacts: (v as any).contacts ?? null,
+    specifications:
+      (v as any).specifications ??
+      (v.customFields ? { customFields: v.customFields } : null),
   };
 }
 
 export async function fetchVendors(): Promise<Vendor[]> {
-  const rows = await http<DbVendor[]>('/api/vendors');
+  const rows = await http<DbVendor[]>("/api/vendors");
   return rows.map(mapDbVendor);
 }
 
 export async function createVendor(v: Vendor): Promise<void> {
-  await http('/api/vendors', { method: 'POST', body: JSON.stringify(mapUiVendorToDb(v)) });
+  await http("/api/vendors", {
+    method: "POST",
+    body: JSON.stringify(mapUiVendorToDb(v)),
+  });
 }
 
 export async function deleteVendor(id: string): Promise<void> {
-  await http(`/api/vendors/${encodeURIComponent(id)}`, { method: 'DELETE' });
+  await http(`/api/vendors/${encodeURIComponent(id)}`, { method: "DELETE" });
 }
 
 export async function fetchVendorById(id: string): Promise<Vendor> {
@@ -372,7 +451,10 @@ export async function fetchVendorById(id: string): Promise<Vendor> {
   return mapDbVendor(row);
 }
 export async function updateVendor(id: string, vendor: Vendor): Promise<void> {
-  await http(`/api/vendors/${encodeURIComponent(id)}`, { method: 'PUT', body: JSON.stringify(mapUiVendorToDb(vendor)) });
+  await http(`/api/vendors/${encodeURIComponent(id)}`, {
+    method: "PUT",
+    body: JSON.stringify(mapUiVendorToDb(vendor)),
+  });
 }
 
 // Activities for dashboard
@@ -384,7 +466,7 @@ type DbActivity = {
   entity: string;
   entity_id: string;
   details: string;
-  severity: UiActivity['severity'];
+  severity: UiActivity["severity"];
 };
 
 function mapDbActivity(a: DbActivity): UiActivity {
@@ -401,7 +483,7 @@ function mapDbActivity(a: DbActivity): UiActivity {
 }
 
 export async function fetchActivities(limit = 100): Promise<UiActivity[]> {
-  const rows = await http<DbActivity[]>('/api/activities');
+  const rows = await http<DbActivity[]>("/api/activities");
   return rows.slice(0, limit).map(mapDbActivity);
 }
 
@@ -409,23 +491,24 @@ export async function fetchActivities(limit = 100): Promise<UiActivity[]> {
 type DbEvent = {
   id: string;
   ts: string;
-  severity: SystemEvent['severity'];
-  entity_type: SystemEvent['entityType'];
+  severity: SystemEvent["severity"];
+  entity_type: SystemEvent["entityType"];
   entity_id: string;
   action: string;
   user: string;
   details: string;
-  metadata: any | null;
+  metadata: any;
 };
 
 function mapDbEvent(e: DbEvent): SystemEvent {
   // Normalize metadata: DB may store JSON as LONGTEXT string
   let metadata: Record<string, any> = {};
   if (e.metadata !== null && e.metadata !== undefined) {
-    if (typeof e.metadata === 'string') {
+    if (typeof e.metadata === "string") {
       try {
         const parsed = JSON.parse(e.metadata);
-        metadata = (parsed && typeof parsed === 'object') ? parsed : { raw: e.metadata };
+        metadata =
+          parsed && typeof parsed === "object" ? parsed : { raw: e.metadata };
       } catch {
         metadata = { raw: e.metadata };
       }
@@ -447,7 +530,7 @@ function mapDbEvent(e: DbEvent): SystemEvent {
 }
 
 export async function fetchEvents(limit = 1000): Promise<SystemEvent[]> {
-  const rows = await http<DbEvent[]>('/api/events');
+  const rows = await http<DbEvent[]>("/api/events");
   return rows.slice(0, limit).map(mapDbEvent);
 }
 
@@ -457,7 +540,7 @@ export type ServerSettings = {
   name: string;
   prefs: any;
   notify: any;
-  mode: 'light' | 'dark' | 'system';
+  mode: "light" | "dark" | "system";
   events: any;
   integrations: any;
   assetFields?: AssetFieldDef[]; // global asset custom fields definitions
@@ -466,7 +549,9 @@ export type ServerSettings = {
   licenseFields?: AssetFieldDef[];
 };
 
-export async function fetchSettings(email: string): Promise<ServerSettings | null> {
+export async function fetchSettings(
+  email: string
+): Promise<ServerSettings | null> {
   const res = await fetch(`/api/settings?email=${encodeURIComponent(email)}`);
   if (!res.ok) return null;
   const data = (await res.json()) as ServerSettings | null;
@@ -474,5 +559,5 @@ export async function fetchSettings(email: string): Promise<ServerSettings | nul
 }
 
 export async function saveSettings(payload: ServerSettings): Promise<void> {
-  await http('/api/settings', { method: 'PUT', body: JSON.stringify(payload) });
+  await http("/api/settings", { method: "PUT", body: JSON.stringify(payload) });
 }

@@ -43,13 +43,11 @@ export default function LoginPage() {
           // Update SSR hint attributes client-side (best-effort) to avoid any visual flicker
           try {
             const isAdminLike = me.role === "admin" || me.role === "superadmin";
-            document.documentElement.setAttribute(
-              "data-admin",
-              isAdminLike ? "true" : "false"
-            );
-            document.documentElement.setAttribute(
-              "data-ssr-me",
-              encodeURIComponent(JSON.stringify(me))
+            document.documentElement.dataset.admin = isAdminLike
+              ? "true"
+              : "false";
+            document.documentElement.dataset.ssrMe = encodeURIComponent(
+              JSON.stringify(me)
             );
           } catch {}
         }

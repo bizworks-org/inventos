@@ -84,8 +84,15 @@ export async function POST(req: NextRequest) {
   try {
     await allocateIdIfNeeded(body);
 
-    const sql = `INSERT INTO licenses (id, name, vendor, type, seats, seats_used, expiration_date, cost, owner, compliance, renewal_date)
-                 VALUES (:id, :name, :vendor, :type, :seats, :seats_used, :expiration_date, :cost, :owner, :compliance, :renewal_date)`;
+    // Normalize specifications if provided as object (store as JSON string)
+    if (body && typeof body.specifications === "object") {
+      try {
+        body.specifications = JSON.stringify(body.specifications);
+      } catch {}
+    }
+
+    const sql = `INSERT INTO licenses (id, name, vendor, type, seats, seats_used, expiration_date, cost, owner, compliance, renewal_date, specifications)
+                 VALUES (:id, :name, :vendor, :type, :seats, :seats_used, :expiration_date, :cost, :owner, :compliance, :renewal_date, :specifications)`;
     await query(sql, body);
   } catch (e: any) {
     console.error("POST /api/licenses failed:", e);
