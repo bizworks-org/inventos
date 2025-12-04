@@ -13,19 +13,40 @@ import { usePathname } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 
 // Sanitize image URLs coming from untrusted sources (e.g., dataset or API).
-// Allow only http(s) absolute URLs or data:image/* URIs. Return `null` for anything else.
+// Allow only http(s) absolute URLs or specific safe data:image/... URIs (no SVG/text-based images).
+// Return `null` for anything else to avoid DOM-based XSS via <img src>.
 function sanitizeImageUrl(u?: string | null): string | null {
   if (!u) return null;
   try {
-    // Allow data URLs for images (data:image/...).
-    if (u.trim().startsWith("data:image/")) return u.trim();
-    // If running in a non-browser environment, reject everything except data: URLs.
-    if (globalThis.window === undefined) return null;
+    const s = u.trim();
+
+    // Disallow empty after trim
+    if (!s) return null;
+
+    // If running in a non-browser environment, only allow safe data: URLs (no http fetch on server)
+    const runningInBrowser = typeof globalThis !== "undefined" && typeof globalThis.window !== "undefined";
+
+    // Allow only a restricted set of raster image data URLs (explicitly disallow SVG and other text-based images).
+    // We require base64 data for these types to avoid tricky encodings.
+    const allowedDataImageRE = /^data:image\/(png|jpeg|jpg|webp|gif|avif);base64,[A-Za-z0-9+/=\s]+$/i;
+    if (s.startsWith("data:image/")) {
+      // Normalize by removing whitespace then validate structure and mime type
+      const normalized = s.replace(/\s+/g, "");
+      if (allowedDataImageRE.test(normalized)) return normalized;
+      return null;
+    }
+
+    if (!runningInBrowser) return null;
+
     // Use the URL constructor to resolve relative URLs against the current origin.
-    const parsed = new URL(u, globalThis.window.location.origin);
-    if (parsed.protocol === "http:" || parsed.protocol === "https:") {
+    const parsed = new URL(s, globalThis.window.location.origin);
+
+    // Only allow http(s) protocols; also reject overly long URLs to reduce abuse surface.
+    if ((parsed.protocol === "http:" || parsed.protocol === "https:") && parsed.href.length < 2000) {
+      // Normalize and return the absolute href
       return parsed.href;
     }
+
     return null;
   } catch {
     return null;
