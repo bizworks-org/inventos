@@ -14,6 +14,7 @@ export function UserActions({
   onRemove,
   meRole,
   visiblePassword,
+  rowDisabled,
 }: Readonly<{
   user: User;
   meId?: string;
@@ -25,6 +26,7 @@ export function UserActions({
   onRemove: (id: string) => void;
   meRole?: Role;
   visiblePassword?: string;
+  rowDisabled?: boolean;
 }>) {
   const isSelf = meId === user.id;
   const targetIsSuper = (user.roles || []).includes("superadmin");
@@ -49,16 +51,56 @@ export function UserActions({
 
   if (!canViewActions) return null;
 
+  // If the user is currently deactivated, only show the Activate button
+  // (and avoid rendering Edit/Reset/Delete). This mirrors the optimistic
+  // behavior when deactivating: the row is highlighted and other actions
+  // are hidden/disabled.
+  if (!user.active) {
+    return (
+      <div className="flex gap-2 items-center">
+        <button
+          onClick={() => onActivate(user.id)}
+          disabled={!!rowDisabled}
+          className="px-3 py-2 rounded-lg text-sm font-medium text-white shadow-sm hover:shadow-md focus:outline-none focus:ring-2 focus:ring-emerald-500/40 transition-all"
+          style={
+            rowDisabled
+              ? undefined
+              : {
+                  backgroundImage:
+                    "linear-gradient(to right, #10b981, #059669)",
+                }
+          }
+        >
+          Activate
+        </button>
+        {visiblePassword && (
+          <div className="ml-3 flex items-center gap-2">
+            <span className="px-3 py-2 rounded-lg bg-[#f8fafc] border border-[#e2e8f0] text-sm font-medium font-mono">
+              {visiblePassword}
+            </span>
+          </div>
+        )}
+      </div>
+    );
+  }
+
   return (
     <div className="flex gap-2 items-center">
       {/* Edit - always visible when canViewActions is true */}
       <button
         type="button"
         onClick={() => onEdit(user)}
-        className="px-3 py-2 rounded-lg text-sm font-medium text-white shadow-sm hover:shadow-md focus:outline-none focus:ring-2 focus:ring-indigo-500/40 transition-all"
-        style={{
-          backgroundImage: "linear-gradient(to right, #6366f1, #8b5cf6)",
-        }}
+        disabled={!!rowDisabled}
+        className={`px-3 py-2 rounded-lg text-sm font-medium shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/40 transition-all ${
+          rowDisabled
+            ? "bg-[#f3f4f6] text-[#9ca3af] cursor-not-allowed"
+            : "text-white hover:shadow-md"
+        }`}
+        style={
+          rowDisabled
+            ? undefined
+            : { backgroundImage: "linear-gradient(to right, #6366f1, #8b5cf6)" }
+        }
       >
         <span className="inline-flex items-center gap-1">
           <Pencil className="h-4 w-4" /> Edit
@@ -91,14 +133,14 @@ export function UserActions({
         return (
           <button
             onClick={() => onDeactivate(user.id)}
-            disabled={shouldDisableDeactivate}
+            disabled={shouldDisableDeactivate || !!rowDisabled}
             className={`px-3 py-2 rounded-lg transition-all text-sm font-medium ${
-              shouldDisableDeactivate
+              shouldDisableDeactivate || rowDisabled
                 ? "bg-[#f3f4f6] text-[#9ca3af] cursor-not-allowed"
                 : "text-white shadow-sm hover:shadow-md focus:outline-none focus:ring-2 focus:ring-[#f59e0b]/40"
             }`}
             style={
-              shouldDisableDeactivate
+              shouldDisableDeactivate || rowDisabled
                 ? undefined
                 : {
                     backgroundImage:
@@ -127,19 +169,39 @@ export function UserActions({
           <>
             <button
               onClick={() => onResetPassword(user.id)}
-              className="px-3 py-2 rounded-lg text-sm font-medium text-white shadow-sm hover:shadow-md focus:outline-none focus:ring-2 focus:ring-sky-500/40 transition-all"
-              style={{
-                backgroundImage: "linear-gradient(to right, #06b6d4, #3b82f6)",
-              }}
+              disabled={!!rowDisabled}
+              className={`px-3 py-2 rounded-lg text-sm font-medium shadow-sm focus:outline-none focus:ring-2 focus:ring-sky-500/40 transition-all ${
+                rowDisabled
+                  ? "bg-[#f3f4f6] text-[#9ca3af] cursor-not-allowed"
+                  : "text-white hover:shadow-md"
+              }`}
+              style={
+                rowDisabled
+                  ? undefined
+                  : {
+                      backgroundImage:
+                        "linear-gradient(to right, #06b6d4, #3b82f6)",
+                    }
+              }
             >
               Reset Password
             </button>
             <button
               onClick={() => onRemove(user.id)}
-              className="px-3 py-2 rounded-lg text-sm font-medium text-white shadow-sm hover:shadow-md focus:outline-none focus:ring-2 focus:ring-[#ef4444]/40 transition-all"
-              style={{
-                backgroundImage: "linear-gradient(to right, #ef4444, #b91c1c)",
-              }}
+              disabled={!!rowDisabled}
+              className={`px-3 py-2 rounded-lg text-sm font-medium shadow-sm focus:outline-none focus:ring-2 focus:ring-[#ef4444]/40 transition-all ${
+                rowDisabled
+                  ? "bg-[#f3f4f6] text-[#9ca3af] cursor-not-allowed"
+                  : "text-white hover:shadow-md"
+              }`}
+              style={
+                rowDisabled
+                  ? undefined
+                  : {
+                      backgroundImage:
+                        "linear-gradient(to right, #ef4444, #b91c1c)",
+                    }
+              }
             >
               Delete
             </button>

@@ -4,10 +4,11 @@ import React, {
   createContext,
   useContext,
   useEffect,
-  useMemo,
   useState,
+  useMemo,
 } from "react";
 
+// ---------- Types ----------
 type Language =
   | "en"
   | "hi"
@@ -40,9 +41,16 @@ type PrefsContextType = Prefs & {
   currencySymbol: string;
 };
 
+// ---------- Constants & Maps ----------
 const PrefsContext = createContext<PrefsContextType | null>(null);
 
-const allowedLanguages: Language[] = [
+const DEFAULT_PREFS: Prefs = {
+  language: "en",
+  currency: "INR",
+  density: "comfortable",
+};
+
+const ALLOWED_LANGUAGES: Set<Language> = new Set([
   "en",
   "hi",
   "ta",
@@ -59,48 +67,56 @@ const allowedLanguages: Language[] = [
   "kok",
   "ur",
   "ar",
-];
+]);
 
+const LANGUAGE_TO_LOCALE: Record<Language, string> = {
+  en: "en",
+  hi: "hi-IN",
+  ta: "ta-IN",
+  te: "te-IN",
+  bn: "bn-IN",
+  mr: "mr-IN",
+  gu: "gu-IN",
+  kn: "kn-IN",
+  ml: "ml-IN",
+  pa: "pa-IN",
+  or: "or-IN",
+  as: "as-IN",
+  sa: "sa-IN",
+  kok: "kok-IN",
+  ur: "ur-IN",
+  ar: "ar",
+};
+
+const DENSITIES = ["comfortable", "compact", "ultra-compact"] as const;
+
+// ---------- Helpers ----------
 function getLocaleForLanguage(lang: Language): string {
-  const map: Record<Language, string> = {
-    en: "en",
-    hi: "hi-IN",
-    ta: "ta-IN",
-    te: "te-IN",
-    bn: "bn-IN",
-    mr: "mr-IN",
-    gu: "gu-IN",
-    kn: "kn-IN",
-    ml: "ml-IN",
-    pa: "pa-IN",
-    or: "or-IN",
-    as: "as-IN",
-    sa: "sa-IN",
-    kok: "kok-IN",
-    ur: "ur-IN",
-    ar: "ar",
-  };
-  return map[lang] || "en";
+  return LANGUAGE_TO_LOCALE[lang] || LANGUAGE_TO_LOCALE.en;
+}
+
+function isValidDensity(v: any): v is Prefs["density"] {
+  return DENSITIES.includes(v);
 }
 
 function readPrefsFromStorage(): Prefs {
   try {
     const raw = localStorage.getItem("assetflow:settings");
-    if (raw) {
-      const parsed = JSON.parse(raw);
-      const lang = allowedLanguages.includes(parsed?.prefs?.language)
-        ? parsed.prefs.language
-        : "en";
-      const currency = (parsed?.prefs?.currency as Currency) || "INR";
-      const density = (
-        ["comfortable", "compact", "ultra-compact"] as const
-      ).includes(parsed?.prefs?.density as any)
-        ? (parsed.prefs.density as Prefs["density"])
-        : "comfortable";
-      return { language: lang, currency, density };
-    }
-  } catch {}
-  return { language: "en", currency: "INR", density: "comfortable" };
+    if (!raw) return DEFAULT_PREFS;
+    const parsed = JSON.parse(raw || "{}");
+    const provided = parsed?.prefs ?? parsed;
+    const language = ALLOWED_LANGUAGES.has(provided?.language)
+      ? (provided.language as Language)
+      : DEFAULT_PREFS.language;
+    const currency = (provided?.currency as Currency) || DEFAULT_PREFS.currency;
+    const density = isValidDensity(provided?.density)
+      ? provided.density
+      : DEFAULT_PREFS.density;
+    return { language, currency, density };
+  } catch (e) {
+    // If anything goes wrong parsing, fall back to defaults
+    return DEFAULT_PREFS;
+  }
 }
 
 const translations: Record<Language, Record<string, string>> = {
@@ -136,6 +152,7 @@ const translations: Record<Language, Record<string, string>> = {
     loadingAsset: "جاري تحميل الأصل...",
     annualSpend: "الإنفاق السنوي",
   },
+  // Other locales intentionally left empty (fallback to English keys)
   ta: {},
   te: {},
   bn: {},
@@ -152,116 +169,78 @@ const translations: Record<Language, Record<string, string>> = {
 
 function getCurrencySymbolFor(locale: string, currency: Currency): string {
   try {
-    const parts = new Intl.NumberFormat(locale, {
-      style: "currency",
-      currency,
-    }).formatToParts(0);
-    const sym = parts.find((p) => p.type === "currency")?.value;
-    return sym || currency;
+    const parts = new Intl.NumberFormat(locale, { style: "currency", currency }).formatToParts(0);
+    return parts.find((p) => p.type === "currency")?.value ?? currency;
   } catch {
     return currency;
   }
 }
 
-export function PrefsProvider({ children }: { children: React.ReactNode }) {
-  // Use a stable default on both server and first client render to avoid hydration mismatches,
-  // then load real prefs from localStorage after mount.
-  const [prefs, setPrefs] = useState<Prefs>({
-    language: "en",
-    currency: "INR",
-    density: "comfortable",
-  });
+// ---------- Provider ----------
+export function PrefsProvider({ children }: Readonly<{ children: React.ReactNode }>) {
+  // Stable defaults on first render to avoid hydration mismatch; we'll load real prefs after mount.
+  const [prefs, setPrefs] = useState<Prefs>(DEFAULT_PREFS);
 
   useEffect(() => {
-    // Load initial prefs from storage post-mount
-    try {
-      setPrefs(readPrefsFromStorage());
-    } catch {}
+    // Load saved prefs after mount
+    setPrefs(readPrefsFromStorage());
 
     const onStorage = (e: StorageEvent) => {
       if (e.key === "assetflow:settings") setPrefs(readPrefsFromStorage());
     };
 
-    // Accept custom events with detail to update prefs immediately without relying on localStorage
     const onCustom = (ev: Event) => {
       try {
         const ce = ev as CustomEvent & { detail?: any };
-        if (ce?.detail && ce.detail.prefs) {
-          const p = ce.detail.prefs as Prefs;
+        if (ce?.detail?.prefs) {
+          const p = ce.detail.prefs as Partial<Prefs>;
           setPrefs((prev) => ({ ...prev, ...p }));
           return;
         }
-      } catch {}
-      // Fallback: read from storage (for backward compatibility)
+      } catch {
+        // ignore malformed custom event
+      }
+      // fallback: read storage
       setPrefs(readPrefsFromStorage());
     };
 
-    window.addEventListener("storage", onStorage);
-    window.addEventListener("assetflow:prefs-updated", onCustom as any);
+    globalThis.addEventListener("storage", onStorage);
+    globalThis.addEventListener("assetflow:prefs-updated", onCustom as any);
     return () => {
-      window.removeEventListener("storage", onStorage);
-      window.removeEventListener("assetflow:prefs-updated", onCustom as any);
+      globalThis.removeEventListener("storage", onStorage);
+      globalThis.removeEventListener("assetflow:prefs-updated", onCustom as any);
     };
   }, []);
 
-  const locale = getLocaleForLanguage(prefs.language);
-  const currencySymbol = "₹";
+  const value = useMemo<PrefsContextType>(() => {
+    const locale = getLocaleForLanguage(prefs.language);
+    const currencySymbol = getCurrencySymbolFor(locale, prefs.currency);
 
-  const t = (key: string) =>
-    translations[prefs.language]?.[key] || translations.en[key] || key;
-  const formatCurrency = (amount: number, opts?: Intl.NumberFormatOptions) =>
-    new Intl.NumberFormat(locale, {
-      style: "currency",
-      currency: "INR",
-      ...opts,
-    }).format(amount);
+    const t = (key: string) => translations[prefs.language]?.[key] ?? translations.en[key] ?? key;
+    const formatCurrency = (amount: number, opts?: Intl.NumberFormatOptions) =>
+      new Intl.NumberFormat(locale, { style: "currency", currency: prefs.currency, ...opts }).format(amount);
 
-  const value: PrefsContextType = {
-    language: prefs.language,
-    currency: "INR",
-    density: prefs.density,
-    t,
-    formatCurrency,
-    currencySymbol,
-  };
-  return (
-    <PrefsContext.Provider value={value}>{children}</PrefsContext.Provider>
-  );
+    return { language: prefs.language, currency: prefs.currency, density: prefs.density, t, formatCurrency, currencySymbol };
+  }, [prefs.language, prefs.currency, prefs.density]);
+
+  return <PrefsContext.Provider value={value}>{children}</PrefsContext.Provider>;
 }
 
+// ---------- Hook ----------
 export function usePrefs() {
   const ctx = useContext(PrefsContext);
   if (ctx) return ctx;
-  // Fallback: derive prefs from storage/defaults so callers don't crash
-  const fallback = ((): PrefsContextType => {
-    const raw =
-      typeof window !== "undefined"
-        ? readPrefsFromStorage()
-        : ({
-            language: "en",
-            currency: "INR",
-            density: "comfortable",
-          } as Prefs);
-    const language = (
-      allowedLanguages.includes(raw.language as Language) ? raw.language : "en"
-    ) as Language;
-    const currency = "INR";
-    const density = (
-      ["comfortable", "compact", "ultra-compact"] as const
-    ).includes(raw.density as any)
-      ? raw.density
-      : "comfortable";
-    const locale = getLocaleForLanguage(language);
-    const currencySymbol = "₹";
-    const t = (key: string) =>
-      translations[language]?.[key] || translations.en[key] || key;
-    const formatCurrency = (amount: number, opts?: Intl.NumberFormatOptions) =>
-      new Intl.NumberFormat(locale, {
-        style: "currency",
-        currency: "INR",
-        ...opts,
-      }).format(amount);
-    return { language, currency, density, t, formatCurrency, currencySymbol };
-  })();
-  return fallback;
+
+  // Fallback: derive prefs from storage or defaults, so callers outside provider still work.
+  const raw = typeof window === "undefined" ? DEFAULT_PREFS : readPrefsFromStorage();
+  const language = ALLOWED_LANGUAGES.has(raw.language) ? raw.language : DEFAULT_PREFS.language;
+  const currency = DEFAULT_PREFS.currency;
+  const density = isValidDensity(raw.density) ? raw.density : DEFAULT_PREFS.density;
+  const locale = getLocaleForLanguage(language);
+  const currencySymbol = "₹";
+  const t = (key: string) => translations[language]?.[key] ?? translations.en[key] ?? key;
+  const formatCurrency = (amount: number, opts?: Intl.NumberFormatOptions) =>
+    new Intl.NumberFormat(locale, { style: "currency", currency: "INR", ...opts }).format(amount);
+
+  return { language, currency, density, t, formatCurrency, currencySymbol };
 }

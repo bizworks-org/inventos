@@ -51,6 +51,12 @@ export default function ManageUsersPage() {
     Record<string, string>
   >({});
   const [allRoles, setAllRoles] = useState<Role[]>([]);
+  // Track rows that are temporarily disabled (optimistic UI during activate/deactivate)
+  const [rowDisabled, setRowDisabled] = useState<Record<string, boolean>>({});
+  // Track per-row pending actions: 'activating' | 'deactivating'
+  const [rowPendingAction, setRowPendingAction] = useState<
+    Record<string, "activating" | "deactivating">
+  >({});
   const router = useRouter();
 
   // NOTE: Gradients for permissions no longer used here after extraction.
@@ -264,20 +270,55 @@ export default function ManageUsersPage() {
     }, 500);
   };
   const deactivate = async (id: string) => {
-    const res = await fetch("/api/admin/users", {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ id, active: false }),
-    });
-    if (!res.ok) {
-      let msg = "Update failed";
-      try {
-        const d = await res.json();
-        if (d?.error) msg = d.error;
-      } catch {}
-      return toast.error(msg);
+    // Optimistic UI: mark row disabled and set active=false locally
+    setRowDisabled((s) => ({ ...s, [id]: true }));
+    setRowPendingAction((s) => ({ ...s, [id]: "deactivating" }));
+    setUsers((cur) =>
+      cur.map((u) => (u.id === id ? { ...u, active: false } : u))
+    );
+    try {
+      const res = await fetch("/api/admin/users", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id, active: false }),
+      });
+      if (!res.ok) {
+        let msg = "Update failed";
+        try {
+          const d = await res.json();
+          if (d?.error) msg = d.error;
+        } catch {}
+        throw new Error(msg);
+      }
+      // success: clear disabled and refresh
+      setRowDisabled((s) => {
+        const copy = { ...s };
+        delete copy[id];
+        return copy;
+      });
+      setRowPendingAction((s) => {
+        const copy = { ...s };
+        delete copy[id];
+        return copy;
+      });
+      load();
+    } catch (err: any) {
+      // rollback optimistic changes
+      setRowDisabled((s) => {
+        const copy = { ...s };
+        delete copy[id];
+        return copy;
+      });
+      setRowPendingAction((s) => {
+        const copy = { ...s };
+        delete copy[id];
+        return copy;
+      });
+      setUsers((cur) =>
+        cur.map((u) => (u.id === id ? { ...u, active: true } : u))
+      );
+      toast.error(err?.message || "Failed to update user");
     }
-    load();
   };
   const remove = async (id: string) => {
     if (!confirm("Delete this user?")) return;
@@ -288,21 +329,55 @@ export default function ManageUsersPage() {
     load();
   };
   const activate = async (id: string) => {
-    const res = await fetch("/api/admin/users", {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ id, active: true }),
-    });
-    if (!res.ok) {
-      let msg = "Update failed";
-      try {
-        const d = await res.json();
-        if (d?.error) msg = d.error;
-      } catch {}
-      return toast.error(msg);
+    // Optimistic UI: mark row disabled while activating
+    setRowDisabled((s) => ({ ...s, [id]: true }));
+    setRowPendingAction((s) => ({ ...s, [id]: "activating" }));
+    setUsers((cur) =>
+      cur.map((u) => (u.id === id ? { ...u, active: true } : u))
+    );
+    try {
+      const res = await fetch("/api/admin/users", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id, active: true }),
+      });
+      if (!res.ok) {
+        let msg = "Update failed";
+        try {
+          const d = await res.json();
+          if (d?.error) msg = d.error;
+        } catch {}
+        throw new Error(msg);
+      }
+      setRowDisabled((s) => {
+        const copy = { ...s };
+        delete copy[id];
+        return copy;
+      });
+      setRowPendingAction((s) => {
+        const copy = { ...s };
+        delete copy[id];
+        return copy;
+      });
+      toast.success("User activated");
+      load();
+    } catch (err: any) {
+      // rollback optimistic
+      setRowDisabled((s) => {
+        const copy = { ...s };
+        delete copy[id];
+        return copy;
+      });
+      setRowPendingAction((s) => {
+        const copy = { ...s };
+        delete copy[id];
+        return copy;
+      });
+      setUsers((cur) =>
+        cur.map((u) => (u.id === id ? { ...u, active: false } : u))
+      );
+      toast.error(err?.message || "Failed to activate user");
     }
-    toast.success("User activated");
-    load();
   };
   // fallback copy using execCommand for older browsers
   const fallbackCopyToClipboard = (text: string) => {
@@ -426,8 +501,13 @@ export default function ManageUsersPage() {
   };
 
   const renderUserRow = (u: User) => {
-    const rowClass =
+    let rowClass =
       me?.id === u.id ? "bg-indigo-50 border-l-4 border-indigo-800" : "";
+    // If the user is deactivated, or a deactivate request is currently in-flight
+    // highlight the row so the state change is visible optimistically.
+    if (!u.active || rowPendingAction[u.id] === "deactivating") {
+      rowClass = `${rowClass} bg-yellow-50 border-l-4 border-yellow-400`.trim();
+    }
 
     return (
       <tr key={u.id} className={`border-b border-[#f1f5f9] ${rowClass}`}>
@@ -489,6 +569,7 @@ export default function ManageUsersPage() {
             onDeactivate={deactivate}
             onResetPassword={resetPassword}
             onRemove={remove}
+            rowDisabled={!!rowDisabled[u.id]}
           />
         </td>
       </tr>

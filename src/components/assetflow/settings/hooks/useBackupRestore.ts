@@ -28,8 +28,10 @@ export function useBackupRestore() {
       a.download = `inventos-backup-${new Date()
         .toISOString()
         .replace(/[:.]/g, "-")}.bin`;
-      document.body.appendChild(a);
+      a.rel = "noopener noreferrer";
+      // Do not append the element to the DOM to avoid potential DOM XSS vectors.
       a.click();
+      // Ensure the element is not retained.
       a.remove();
       URL.revokeObjectURL(url);
       toast.success("Backup downloaded");

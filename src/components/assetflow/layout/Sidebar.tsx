@@ -12,6 +12,26 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 
+// Sanitize image URLs coming from untrusted sources (e.g., dataset or API).
+// Allow only http(s) absolute URLs or data:image/* URIs. Return `null` for anything else.
+function sanitizeImageUrl(u?: string | null): string | null {
+  if (!u) return null;
+  try {
+    // Allow data URLs for images (data:image/...).
+    if (u.trim().startsWith("data:image/")) return u.trim();
+    // If running in a non-browser environment, reject everything except data: URLs.
+    if (globalThis.window === undefined) return null;
+    // Use the URL constructor to resolve relative URLs against the current origin.
+    const parsed = new URL(u, globalThis.window.location.origin);
+    if (parsed.protocol === "http:" || parsed.protocol === "https:") {
+      return parsed.href;
+    }
+    return null;
+  } catch {
+    return null;
+  }
+}
+
 type Role = "admin" | "user" | "superadmin";
 
 interface NavItem {
@@ -79,7 +99,7 @@ export function Sidebar({
   const [brandLogo, setBrandLogo] = useState<string | null>(() => {
     if (typeof document === "undefined") return null;
     const v = document.documentElement.dataset.brandLogo || "";
-    return v || null;
+    return sanitizeImageUrl(v);
   });
   const [brandName, setBrandName] = useState<string>(() => {
     if (typeof document === "undefined") return "Inventos";
@@ -126,7 +146,7 @@ export function Sidebar({
         const res = await fetch("/api/branding", { cache: "no-store" });
         if (res.ok) {
           const data = await res.json();
-          if (data?.logoUrl) setBrandLogo(data.logoUrl);
+          if (data?.logoUrl) setBrandLogo(sanitizeImageUrl(data.logoUrl));
           if (data?.brandName) setBrandName(data.brandName);
         }
       } catch {}
@@ -153,7 +173,7 @@ export function Sidebar({
       setServerAdminHint(adminV);
       if (adminV) setEverAdmin(true);
       const logoV = el.dataset.brandLogo || "";
-      setBrandLogo(logoV || null);
+      setBrandLogo(sanitizeImageUrl(logoV));
       const nameV = el.dataset.brandName || "Inventos";
       setBrandName(nameV);
     };
