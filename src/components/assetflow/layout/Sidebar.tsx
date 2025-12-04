@@ -291,15 +291,9 @@ export function Sidebar({
   // Keep non-admin items static even if me is unknown; avoid indefinite loading states
   const loadingProfile = false;
 
-  const isSafeUrl = (url: string) => {
-    try {
-      const parsed = new URL(url);
-      return ["http:", "https:"].includes(parsed.protocol);
-    } catch {
-      return false;
-    }
-  };
-  const safeSrc = isSafeUrl(safeBrandLogo) ? safeBrandLogo : null;
+  // Sanitize the brand logo URL before using it in img src attribute
+  // This prevents DOM-based XSS via script injection through src
+  const safeSrc = sanitizeImageUrl(brandLogo ?? undefined);
 
   return (
     <aside className="fixed left-0 top-0 z-40 h-screen w-64 bg-gradient-to-b from-[#1a1d2e] to-[#0f1218] border-r border-[rgba(255,255,255,0.1)]">
