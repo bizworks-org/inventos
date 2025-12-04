@@ -127,7 +127,7 @@ export function EventsPage({
       ];
       const others = Array.from(keySet)
         .filter((k) => !preferred.includes(k))
-        .sort();
+        .sort((a, b) => a.localeCompare(b));
       const headers = [...preferred.filter((k) => keySet.has(k)), ...others];
 
       const serializeValue = (v: any) => {
@@ -160,7 +160,21 @@ export function EventsPage({
       const when = new Date().toISOString().slice(0, 19).replace(/[:T]/g, "-");
       const a = document.createElement("a");
       a.href = url;
-      a.download = `events-log-all-${selectedEntityType}-${selectedSeverity}-${selectedTimeFilter}-${when}.csv`;
+      // Sanitize pieces used in the filename to avoid injecting unsafe characters
+      const sanitizeFileName = (v?: string | number | null, max = 120) => {
+        if (v === undefined || v === null) return "-";
+        const s = String(v);
+        // Replace anything that's not alphanumeric, dot, underscore or dash with a hyphen
+        const cleaned = s
+          .replace(/[^A-Za-z0-9._-]+/g, "-")
+          .replace(/(^-+|-+$)/g, "");
+        return cleaned.slice(0, max) || "-";
+      };
+
+      const safeEntity = sanitizeFileName(String(selectedEntityType));
+      const safeSeverity = sanitizeFileName(String(selectedSeverity));
+      const safeTime = sanitizeFileName(String(selectedTimeFilter));
+      a.download = `events-log-all-${safeEntity}-${safeSeverity}-${safeTime}-${when}.csv`;
       document.body.appendChild(a);
       a.click();
       a.remove();

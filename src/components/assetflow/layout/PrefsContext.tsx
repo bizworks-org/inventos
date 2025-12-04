@@ -169,7 +169,10 @@ const translations: Record<Language, Record<string, string>> = {
 
 function getCurrencySymbolFor(locale: string, currency: Currency): string {
   try {
-    const parts = new Intl.NumberFormat(locale, { style: "currency", currency }).formatToParts(0);
+    const parts = new Intl.NumberFormat(locale, {
+      style: "currency",
+      currency,
+    }).formatToParts(0);
     return parts.find((p) => p.type === "currency")?.value ?? currency;
   } catch {
     return currency;
@@ -177,7 +180,9 @@ function getCurrencySymbolFor(locale: string, currency: Currency): string {
 }
 
 // ---------- Provider ----------
-export function PrefsProvider({ children }: Readonly<{ children: React.ReactNode }>) {
+export function PrefsProvider({
+  children,
+}: Readonly<{ children: React.ReactNode }>) {
   // Stable defaults on first render to avoid hydration mismatch; we'll load real prefs after mount.
   const [prefs, setPrefs] = useState<Prefs>(DEFAULT_PREFS);
 
@@ -208,7 +213,10 @@ export function PrefsProvider({ children }: Readonly<{ children: React.ReactNode
     globalThis.addEventListener("assetflow:prefs-updated", onCustom as any);
     return () => {
       globalThis.removeEventListener("storage", onStorage);
-      globalThis.removeEventListener("assetflow:prefs-updated", onCustom as any);
+      globalThis.removeEventListener(
+        "assetflow:prefs-updated",
+        onCustom as any
+      );
     };
   }, []);
 
@@ -216,14 +224,28 @@ export function PrefsProvider({ children }: Readonly<{ children: React.ReactNode
     const locale = getLocaleForLanguage(prefs.language);
     const currencySymbol = getCurrencySymbolFor(locale, prefs.currency);
 
-    const t = (key: string) => translations[prefs.language]?.[key] ?? translations.en[key] ?? key;
+    const t = (key: string) =>
+      translations[prefs.language]?.[key] ?? translations.en[key] ?? key;
     const formatCurrency = (amount: number, opts?: Intl.NumberFormatOptions) =>
-      new Intl.NumberFormat(locale, { style: "currency", currency: prefs.currency, ...opts }).format(amount);
+      new Intl.NumberFormat(locale, {
+        style: "currency",
+        currency: prefs.currency,
+        ...opts,
+      }).format(amount);
 
-    return { language: prefs.language, currency: prefs.currency, density: prefs.density, t, formatCurrency, currencySymbol };
+    return {
+      language: prefs.language,
+      currency: prefs.currency,
+      density: prefs.density,
+      t,
+      formatCurrency,
+      currencySymbol,
+    };
   }, [prefs.language, prefs.currency, prefs.density]);
 
-  return <PrefsContext.Provider value={value}>{children}</PrefsContext.Provider>;
+  return (
+    <PrefsContext.Provider value={value}>{children}</PrefsContext.Provider>
+  );
 }
 
 // ---------- Hook ----------
@@ -232,15 +254,25 @@ export function usePrefs() {
   if (ctx) return ctx;
 
   // Fallback: derive prefs from storage or defaults, so callers outside provider still work.
-  const raw = typeof window === "undefined" ? DEFAULT_PREFS : readPrefsFromStorage();
-  const language = ALLOWED_LANGUAGES.has(raw.language) ? raw.language : DEFAULT_PREFS.language;
+  const raw =
+    typeof window === "undefined" ? DEFAULT_PREFS : readPrefsFromStorage();
+  const language = ALLOWED_LANGUAGES.has(raw.language)
+    ? raw.language
+    : DEFAULT_PREFS.language;
   const currency = DEFAULT_PREFS.currency;
-  const density = isValidDensity(raw.density) ? raw.density : DEFAULT_PREFS.density;
+  const density = isValidDensity(raw.density)
+    ? raw.density
+    : DEFAULT_PREFS.density;
   const locale = getLocaleForLanguage(language);
   const currencySymbol = "₹";
-  const t = (key: string) => translations[language]?.[key] ?? translations.en[key] ?? key;
+  const t = (key: string) =>
+    translations[language]?.[key] ?? translations.en[key] ?? key;
   const formatCurrency = (amount: number, opts?: Intl.NumberFormatOptions) =>
-    new Intl.NumberFormat(locale, { style: "currency", currency: "INR", ...opts }).format(amount);
+    new Intl.NumberFormat(locale, {
+      style: "currency",
+      currency: "INR",
+      ...opts,
+    }).format(amount);
 
   return { language, currency, density, t, formatCurrency, currencySymbol };
 }

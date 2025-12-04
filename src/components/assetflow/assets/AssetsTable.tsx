@@ -1,7 +1,7 @@
 import { motion } from "motion/react";
 import { Edit2, Trash2, ExternalLink, Mail, Eye } from "lucide-react";
 import { Asset } from "../../../lib/data";
-import { useEffect, useState, useMemo, Fragment } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { usePrefs } from "../layout/PrefsContext";
 import { sendAssetConsent } from "../../../lib/api";
 import { toast } from "@/components/ui/sonner";
