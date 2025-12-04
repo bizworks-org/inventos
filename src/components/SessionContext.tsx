@@ -44,7 +44,7 @@ export function useSession() {
 }
 
 interface SessionProviderProps {
-  children: ReactNode;
+  readonly children: ReactNode;
 }
 
 export function SessionProvider({ children }: SessionProviderProps) {

@@ -11,6 +11,7 @@ import {
   verifyPassword,
 } from "@/lib/auth/server";
 import { query } from "@/lib/db";
+import { randomFillSync } from "node:crypto";
 
 async function requireAdmin() {
   const token = await readAuthToken();
@@ -31,24 +32,41 @@ async function requireAdmin() {
     return null;
   }
 }
-
 function generatePassword(length = 12) {
   const chars =
     "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_";
   let pwd = "";
   // Ensure at least one lowercase, one uppercase, one number; underscore optional
-  const pick = (set: string) => set[Math.floor(Math.random() * set.length)];
+
+  // Secure random integer in [0, max)
+  const secureRandomInt = (max: number) => {
+    if (max <= 0) throw new Error("max must be > 0");
+    const buf = Buffer.allocUnsafe(4);
+    const range = 0x100000000; // 2^32
+    const limit = range - (range % max);
+    while (true) {
+      randomFillSync(buf);
+      const val = buf.readUInt32BE(0);
+      if (val < limit) return val % max;
+    }
+  };
+
+  const pick = (set: string) => set[secureRandomInt(set.length)];
   pwd += pick("abcdefghijklmnopqrstuvwxyz");
   pwd += pick("ABCDEFGHIJKLMNOPQRSTUVWXYZ");
   pwd += pick("0123456789");
   while (pwd.length < length) {
     pwd += pick(chars);
   }
-  // shuffle
-  return pwd
-    .split("")
-    .sort(() => Math.random() - 0.5)
-    .join("");
+  // secure shuffle using Fisher-Yates with secure randomness
+  const arr = pwd.split("");
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = secureRandomInt(i + 1);
+    const tmp = arr[i];
+    arr[i] = arr[j];
+    arr[j] = tmp;
+  }
+  return arr.join("");
 }
 
 export async function POST(req: NextRequest) {
@@ -90,15 +108,15 @@ export async function POST(req: NextRequest) {
       );
     }
     // Log success (non-sensitive): indicate reset completed for this user
-        try {
-          if (process.env.NODE_ENV !== "production")
-            console.info("Password reset completed for", user.email, {
-              userId: userId,
-            });
-        } catch (e) {
-          // If logging fails, record the error so it can be investigated
-          console.error("Failed to log password reset for", user.email, e);
-        }
+    try {
+      if (process.env.NODE_ENV !== "production")
+        console.info("Password reset completed for", user.email, {
+          userId: userId,
+        });
+    } catch (e) {
+      // If logging fails, record the error so it can be investigated
+      console.error("Failed to log password reset for", user.email, e);
+    }
   } catch (e) {
     console.error("Error verifying reset password for", user.email, e);
     return NextResponse.json(
