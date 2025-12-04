@@ -42,15 +42,25 @@ export async function POST(req: NextRequest) {
     const oldLogoUrl = rows?.[0]?.logo_url;
 
     // Delete old blob if it exists and is from Vercel Blob storage
-    if (
-      oldLogoUrl &&
-      (oldLogoUrl.includes("vercel-storage.com") ||
-        oldLogoUrl.includes("blob.vercel-storage.com"))
-    ) {
+    if (oldLogoUrl) {
       try {
+      // Parse and validate the URL before attempting deletion
+      const parsed = new URL(oldLogoUrl);
+      const allowedHosts = new Set(["blob.vercel-storage.com", "vercel-storage.com"]);
+
+      // Only allow HTTPS and known Vercel Blob hosts
+      if (parsed.protocol === "https:" && allowedHosts.has(parsed.hostname)) {
+        try {
         await del(oldLogoUrl);
-      } catch (e) {
+        } catch (e) {
         console.warn("Failed to delete old logo blob:", e);
+        }
+      } else {
+        console.warn("Skipping delete for disallowed or non-HTTPS host:", parsed.hostname);
+      }
+      } catch (e) {
+      // oldLogoUrl was not a valid absolute URL — skip deletion
+      console.warn("Invalid oldLogoUrl, skipping delete:", e);
       }
     }
 
