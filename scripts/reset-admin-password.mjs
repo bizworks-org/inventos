@@ -4,13 +4,41 @@ import { scryptSync, randomBytes } from 'node:crypto';
 
 function generatePassword(length = 12) {
   const chars = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_';
-  let pwd = '';
-  const pick = (set) => set[Math.floor(Math.random() * set.length)];
-  pwd += pick('abcdefghijklmnopqrstuvwxyz');
-  pwd += pick('ABCDEFGHIJKLMNOPQRSTUVWXYZ');
-  pwd += pick('0123456789');
-  while (pwd.length < length) pwd += pick(chars);
-  return pwd.split('').sort(() => Math.random() - 0.5).join('');
+  // Ensure at least one lowercase, uppercase, digit.
+  let pwdArr = [];
+  // Helper to securely pick a char from a given set.
+  function securePick(set) {
+    const max = set.length;
+    // Find a random byte < max.
+    let idx;
+    while (true) {
+      const byte = randomBytes(1)[0];
+      if (byte < Math.floor(256 / max) * max) {
+        idx = byte % max;
+        break;
+      }
+    }
+    return set[idx];
+  }
+  pwdArr.push(securePick('abcdefghijklmnopqrstuvwxyz'));
+  pwdArr.push(securePick('ABCDEFGHIJKLMNOPQRSTUVWXYZ'));
+  pwdArr.push(securePick('0123456789'));
+  // Fill the rest with secure picks from full set.
+  while (pwdArr.length < length) pwdArr.push(securePick(chars));
+  // Now securely shuffle with Fisher-Yates and secure randomness.
+  for (let i = pwdArr.length - 1; i > 0; i--) {
+    // Get secure random integer between 0 and i
+    let j;
+    while (true) {
+      const byte = randomBytes(1)[0];
+      if (byte < Math.floor(256 / (i + 1)) * (i + 1)) {
+        j = byte % (i + 1);
+        break;
+      }
+    }
+    [pwdArr[i], pwdArr[j]] = [pwdArr[j], pwdArr[i]];
+  }
+  return pwdArr.join('');
 }
 
 function hash(password, N = 16384) {
