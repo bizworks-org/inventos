@@ -122,6 +122,9 @@ export function Sidebar({
     const v = document.documentElement.dataset.brandLogo || "";
     return sanitizeImageUrl(v);
   });
+  // Re-validate/sanitize at render-time to ensure any client-side changes are checked
+  // before being used in a DOM-sensitive attribute like `src`.
+  const safeBrandLogo = sanitizeImageUrl(brandLogo ?? undefined);
   const [brandName, setBrandName] = useState<string>(() => {
     if (typeof document === "undefined") return "Inventos";
     return document.documentElement.dataset.brandName || "Inventos";
@@ -286,15 +289,14 @@ export function Sidebar({
     <aside className="fixed left-0 top-0 z-40 h-screen w-64 bg-gradient-to-b from-[#1a1d2e] to-[#0f1218] border-r border-[rgba(255,255,255,0.1)]">
       {/* Logo */}
       <div className="flex h-16 items-center px-6 border-b border-[rgba(255,255,255,0.1)]">
-        <Link
-          href={pathById.dashboard}
-          className="flex items-center gap-3 focus:outline-none focus:ring-2 focus:ring-[#6366f1]/40 rounded"
-        >
-          {brandLogo ? (
+        <Link href="/" className="flex items-center gap-3">
+          {safeBrandLogo ? (
             <img
-              key={brandLogo}
-              src={brandLogo}
+              key={safeBrandLogo}
+              src={safeBrandLogo}
               alt={brandName || "Logo"}
+              referrerPolicy="no-referrer"
+              onError={() => setBrandLogo(null)}
               className="h-8 w-8 rounded-lg object-contain bg-white"
             />
           ) : (

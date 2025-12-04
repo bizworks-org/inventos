@@ -34,7 +34,7 @@ export async function GET(
 
     // 1. Get current audit details
     const currentAuditRes = await query(
-      "SELECT location, timestamp FROM audits WHERE id = ?",
+      "SELECT location, ts FROM audits WHERE audit_id = ?",
       [auditId]
     );
     const currentAudit = currentAuditRes[0];
@@ -50,19 +50,19 @@ export async function GET(
     let previousAuditRes;
     if (currentAudit.location) {
       previousAuditRes = await query(
-        `SELECT id, name FROM audits 
-         WHERE location = ? AND timestamp < ? 
-         ORDER BY timestamp DESC 
+        `SELECT audit_id, name FROM audits 
+         WHERE location = ? AND ts < ? 
+         ORDER BY ts DESC 
          LIMIT 1`,
-        [currentAudit.location, currentAudit.timestamp]
+        [currentAudit.location, currentAudit.ts]
       );
     } else {
       previousAuditRes = await query(
-        `SELECT id, name FROM audits 
-         WHERE location IS NULL AND timestamp < ? 
-         ORDER BY timestamp DESC 
+        `SELECT audit_id, name FROM audits 
+         WHERE location IS NULL AND ts < ? 
+         ORDER BY ts DESC 
          LIMIT 1`,
-        [currentAudit.timestamp]
+        [currentAudit.ts]
       );
     }
 
@@ -89,7 +89,7 @@ export async function GET(
       ),
       query(
         "SELECT serial_number, asset_status_snapshot FROM audit_items WHERE audit_id = ?",
-        [previousAudit.id]
+        [previousAudit.audit_id]
       ),
     ]);
 
