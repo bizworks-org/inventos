@@ -8,7 +8,6 @@ import { signToken, verifyPassword, type Role } from "@/lib/auth/server";
 import { query } from "@/lib/db";
 import { randomUUID, createHash } from "node:crypto";
 import logger from "@/lib/logger";
-import { secureId } from "@/lib/secure";
 
 async function tryVerifyPassword(password: string, hash?: string) {
   if (!hash) return false;

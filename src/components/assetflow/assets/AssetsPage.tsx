@@ -28,14 +28,12 @@ interface AssetsPageProps {
 }
 
 export type AssetStatus = "All" | Asset["status"];
-export type AssetCategory = string;
 
 export function AssetsPage({
   onNavigate,
   onSearch,
 }: Readonly<AssetsPageProps>) {
-  const [selectedCategory, setSelectedCategory] =
-    useState<AssetCategory>("All");
+  const [selectedCategory, setSelectedCategory] = useState<string>("All");
   const [selectedStatus, setSelectedStatus] = useState<AssetStatus>("All");
   const [searchQuery, setSearchQuery] = useState("");
   const [assets, setAssets] = useState<Asset[]>([]);
@@ -128,7 +126,7 @@ export function AssetsPage({
     return { idToCategory, nameToCategory };
   }, [catalog]);
 
-  const mapAssetToCategory = (asset: Asset): Exclude<AssetCategory, "All"> => {
+  const mapAssetToCategory = (asset: Asset): Exclude<string, "All"> => {
     // Prefer explicit DB type_id if present on the object
     const rawTypeId = (asset as any).type_id ?? (asset as any).typeId;
     if (rawTypeId !== undefined && rawTypeId !== null) {
@@ -192,13 +190,13 @@ export function AssetsPage({
     return filteredAssets.slice(start, start + perPage);
   }, [filteredAssets, page, perPage]);
 
-  const assetCategories: AssetCategory[] = useMemo(() => {
+  const assetCategories: string[] = useMemo(() => {
     if (catalog?.length) return ["All", ...catalog.map((c) => c.name)];
     return ["All"];
   }, [catalog]);
   const canWriteAssets = me?.role === "admin" || me?.role === "superadmin";
 
-  const getCategoryCount = (cat: AssetCategory) => {
+  const getCategoryCount = (cat: string) => {
     if (cat === "All") return assets.length;
     return assets.filter((a) => mapAssetToCategory(a) === cat).length;
   };
@@ -219,7 +217,6 @@ export function AssetsPage({
   // Import preview state for assets
   const [assetPreviewOpen, setAssetPreviewOpen] = useState(false);
   const [assetPreviewItems, setAssetPreviewItems] = useState<Asset[]>([]);
-  const [assetPreviewHeaders, setAssetPreviewHeaders] = useState<string[]>([]);
   const [assetPreviewMissingHeaders, setAssetPreviewMissingHeaders] = useState<
     string[]
   >([]);
@@ -283,7 +280,6 @@ export function AssetsPage({
                   setAssetPreviewLoading(true);
                   // clear previous preview state while parsing
                   setAssetPreviewItems([]);
-                  setAssetPreviewHeaders([]);
                   setAssetPreviewMissingHeaders([]);
                   // schedule parsing on the next macrotask so React can render the modal and spinner
                   setTimeout(async () => {
@@ -307,12 +303,11 @@ export function AssetsPage({
                       );
 
                       console.log("asset-import: headers=", headers);
+                      console.log("asset-import: headers=", headers);
                       console.log("asset-import: parsed items=", items.length);
-                      setAssetPreviewHeaders(headers);
                       setAssetPreviewItems(items.slice(0, 200));
                       setAssetPreviewMissingHeaders(missing);
                       setAssetPreviewLoading(false);
-
                       try {
                         toast?.(
                           `Preview ready — ${Math.min(

@@ -223,39 +223,31 @@ Let's plan an amazing trip together!
     return true; // Return true to indicate success
   }, [session, currentUser, generateUserId, generateSessionLink, sendInviteEmail]);
 
-  const copySessionLink = useCallback(() => {
+  const copySessionLink = useCallback(async () => {
     const link = generateSessionLink();
-    
+    if (!link) return;
+
     // Try modern clipboard API first
-    if (navigator.clipboard && (globalThis as any).isSecureContext) {
-      return navigator.clipboard.writeText(link);
-    } else {
-      // Fallback for when clipboard API is blocked
-      return new Promise<void>((resolve, reject) => {
-        try {
-          // Create a temporary textarea element
-          const textArea = document.createElement('textarea');
-          textArea.value = link;
-          textArea.style.position = 'fixed';
-          textArea.style.left = '-999999px';
-          textArea.style.top = '-999999px';
-          document.body.appendChild(textArea);
-          textArea.focus();
-          textArea.select();
-          
-          // Use the older execCommand method (cast to any to avoid TypeScript's deprecated signature error)
-          const successful = (document as any).execCommand('copy');
-          textArea.remove();
-          
-          if (successful) {
-            resolve();
-          } else {
-            reject(new Error('Copy command failed'));
-          }
-        } catch (error) {
-          reject(error);
-        }
-      });
+    try {
+      if (navigator.clipboard && (globalThis as any).isSecureContext) {
+        await navigator.clipboard.writeText(link);
+        return;
+      }
+    } catch (e) {
+      // If clipboard API fails, fall through to the prompt fallback
+      // Log the error for visibility during development/debugging
+      // eslint-disable-next-line no-console
+      console.warn('Clipboard API failed, falling back to prompt.', e);
+    }
+
+    // Fallback: avoid injecting DOM with unsanitized content; use a native prompt so the link isn't interpreted as HTML
+    try {
+      // globalThis.prompt does not parse HTML and lets the user copy the plain text safely
+      (globalThis as any).prompt('Copy this link:', link);
+    } catch (e) {
+      // last resort: log and silently fail
+      // eslint-disable-next-line no-console
+      console.error('Could not copy session link', e);
     }
   }, [generateSessionLink]);
 

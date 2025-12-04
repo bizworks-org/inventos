@@ -2,12 +2,7 @@
 import mysql from 'mysql2/promise';
 import { scryptSync, randomBytes } from 'node:crypto';
 
-function generatePassword(length = 12) {
-  const chars = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_';
-  // Ensure at least one lowercase, uppercase, digit.
-  let pwdArr = [];
-  // Helper to securely pick a char from a given set.
-  function securePick(set) {
+function securePick(set) {
     const max = set.length;
     // Find a random byte < max.
     let idx;
@@ -20,9 +15,17 @@ function generatePassword(length = 12) {
     }
     return set[idx];
   }
-  pwdArr.push(securePick('abcdefghijklmnopqrstuvwxyz'));
-  pwdArr.push(securePick('ABCDEFGHIJKLMNOPQRSTUVWXYZ'));
-  pwdArr.push(securePick('0123456789'));
+
+function generatePassword(length = 12) {
+  const chars = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_';
+  // Ensure at least one lowercase, uppercase, digit.
+  let pwdArr = [
+    securePick('abcdefghijklmnopqrstuvwxyz'),
+    securePick('ABCDEFGHIJKLMNOPQRSTUVWXYZ'),
+    securePick('0123456789'),
+  ];
+  // Helper to securely pick a char from a given set.
+  
   // Fill the rest with secure picks from full set.
   while (pwdArr.length < length) pwdArr.push(securePick(chars));
   // Now securely shuffle with Fisher-Yates and secure randomness.
