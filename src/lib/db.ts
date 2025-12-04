@@ -26,7 +26,7 @@ export function getPool() {
 
     pool = mysql.createPool({
       host: MYSQL_HOST,
-      port: parseInt(MYSQL_PORT, 10),
+      port: Number.parseInt(MYSQL_PORT, 10),
       user: MYSQL_USER,
       password: MYSQL_PASSWORD,
       database: MYSQL_DATABASE,
@@ -43,43 +43,24 @@ export async function query<T = any>(sql: string, params?: any): Promise<T[]> {
   // Robust query wrapper: retry once on transient connection errors and
   // recreate the pool if necessary. This helps when the DB closes idle
   // connections or there are brief network hiccups (ECONNRESET).
-  let attempts = 0;
-  while (true) {
-    attempts += 1;
+  for (let attempts = 1; attempts <= 2; attempts++) {
     try {
-      const pool = getPool();
-      const [rows] = await pool.query(sql, params);
+      const [rows] = await getPool().query(sql, params);
       return rows as T[];
     } catch (err: any) {
-      // If this was a transient connection error, attempt one reset+retry
-      const retryable =
-        err &&
-        (err.code === "ECONNRESET" ||
-          err.code === "PROTOCOL_CONNECTION_LOST" ||
-          err.fatal);
-      console.error(
-        "DB query error (attempt",
-        attempts,
-        "):",
-        err?.code || err?.message || err
-      );
-      if (attempts >= 2 || !retryable) {
+      const code = err?.code;
+      const retryable = err?.fatal || code === "ECONNRESET" || code === "PROTOCOL_CONNECTION_LOST";
+      console.error("DB query error (attempt", attempts, "):", code || err?.message || err);
+      if (!retryable || attempts === 2) {
         throw err;
       }
-      // Reset pool and retry once
       try {
-        if (pool) {
-          try {
-            await pool.end();
-          } catch {}
-        }
+        __resetPool();
       } catch {}
-      pool = null;
-      // small delay before retrying
       await new Promise((res) => setTimeout(res, 250));
-      continue;
     }
   }
+  throw new Error("Unreachable");
 }
 
 // Allow runtime reset when DB config is updated via settings

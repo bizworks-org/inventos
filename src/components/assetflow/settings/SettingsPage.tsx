@@ -278,9 +278,9 @@ function useIntegrationsState() {
 
 // Helper functions to reduce complexity
 function useInitialDataLoad(params: {
-  loadUserProfile: () => void;
-  loadLocalSettings: () => void;
-  loadServerSettings: () => void;
+  loadUserProfile: () => void | Promise<void>;
+  loadLocalSettings: () => void | Promise<void>;
+  loadServerSettings: () => void | Promise<void>;
 }) {
   useEffect(() => {
     params.loadUserProfile();
@@ -426,7 +426,6 @@ function SettingsPageImpl({
     pwdNew2,
     setPwdNew2,
     profileMsg,
-    setProfileMsg,
     saveProfile: saveProfileHandler,
   } = profileManagement;
 
@@ -457,7 +456,7 @@ function SettingsPageImpl({
     try {
       const raw = localStorage.getItem("assetflow:settings");
       const base = raw ? JSON.parse(raw) : {};
-      const mergedPrefs = { ...(base.prefs || {}), ...prefs, ...next };
+      const mergedPrefs = { ...base.prefs, ...prefs, ...next };
       const merged = { ...base, name, email, prefs: mergedPrefs };
       try {
         localStorage.setItem("assetflow:settings", JSON.stringify(merged));
@@ -479,7 +478,7 @@ function SettingsPageImpl({
           } as any;
           await saveSettings(payload);
         } catch (e) {
-          console.error("Failed to persist prefs to server:", e);
+          console.error("Failed to persist prefs to server:", e, serverError);
         }
       })();
     } catch {}
@@ -504,7 +503,6 @@ function SettingsPageImpl({
     mailTestTo,
     setMailTestTo,
     mailMsg,
-    mailBusy,
     mailTestBusy,
   } = mailManagement;
 

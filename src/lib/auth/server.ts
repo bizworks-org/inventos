@@ -26,7 +26,15 @@ export function getAuthSecret() {
   console.warn(
     "Using development fallback auth secret. Set AUTH_SECRET in your environment to avoid this warning."
   );
-  return "dev-secret-change-me";
+  // Generate a stable, per-process dev secret using a cryptographically strong RNG.
+  // This avoids hardcoding while keeping the value consistent for the lifetime of the process.
+  const globalDevSecret = (globalThis as any).__DEV_AUTH_SECRET as
+    | string
+    | undefined;
+  if (!globalDevSecret) {
+    (globalThis as any).__DEV_AUTH_SECRET = randomBytes(32).toString("hex");
+  }
+  return (globalThis as any).__DEV_AUTH_SECRET as string;
 }
 
 export function signToken(

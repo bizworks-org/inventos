@@ -9,7 +9,12 @@ function getKey(): Buffer {
     throw new Error('Missing APP_CONFIG_SECRET (min 16 chars) for secure config encryption');
   }
   // Derive a 32-byte key using scrypt
-  return crypto.scryptSync(secret, 'assetflow.salt', 32);
+  const saltEnv = process.env.APP_CONFIG_SALT;
+  if (!saltEnv) {
+    throw new Error('Missing APP_CONFIG_SALT (base64) for key derivation salt');
+  }
+  const salt = Buffer.from(saltEnv, 'base64');
+  return crypto.scryptSync(secret, salt, 32);
 }
 
 export function encryptJson(payload: unknown): { iv: string; tag: string; cipher: string } {

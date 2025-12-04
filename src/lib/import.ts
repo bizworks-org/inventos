@@ -33,16 +33,16 @@ function normalizeDateString(input: unknown): string {
     if (/^\d{4}-\d{2}-\d{2}/.test(s)) return s.slice(0, 10);
     // Try to parse with Date
     const d = new Date(s);
-    if (!isNaN(d.getTime())) return d.toISOString().slice(0, 10);
+    if (!Number.isNaN(d.getTime())) return d.toISOString().slice(0, 10);
     return "";
   }
   if (input instanceof Date) {
-    if (!isNaN(input.getTime())) return input.toISOString().slice(0, 10);
+    if (!Number.isNaN(input.getTime())) return input.toISOString().slice(0, 10);
     return "";
   }
   try {
     const d = new Date(input as any);
-    if (!isNaN(d.getTime())) return d.toISOString().slice(0, 10);
+    if (!Number.isNaN(d.getTime())) return d.toISOString().slice(0, 10);
   } catch {}
   return "";
 }
@@ -53,49 +53,84 @@ export function parseCSV(text: string): string[][] {
   let row: string[] = [];
   let field = "";
   let inQuotes = false;
-  for (let i = 0; i < text.length; i++) {
-    const ch = text[i];
-    if (inQuotes) {
-      if (ch === '"') {
-        if (text[i + 1] === '"') {
-          // escaped quote
-          field += '"';
-          i++;
-        } else {
-          inQuotes = false;
-        }
+  let skipNextChar = false;
+
+  const pushField = () => {
+    row.push(field);
+    field = "";
+  };
+
+  const pushRowIfNeeded = () => {
+    if (row.length > 1 || (row.length === 1 && row[0] !== "")) {
+      rows.push(row);
+    }
+    row = [];
+  };
+
+  const handleQuotedChar = (ch: string, nextChar: string) => {
+    if (ch === '"') {
+      // Handle escaped quotes inside a quoted field ("")
+      if (nextChar === '"') {
+        field += '"';
+        skipNextChar = true; // skip the second quote on next iteration
       } else {
-        field += ch;
+        inQuotes = false;
       }
     } else {
-      if (ch === '"') {
-        inQuotes = true;
-      } else if (ch === ",") {
-        row.push(field);
-        field = "";
-      } else if (ch === "\n") {
-        row.push(field);
-        rows.push(row);
-        row = [];
-        field = "";
-      } else if (ch === "\r") {
-        // ignore \r; handle on \n
-      } else {
-        field += ch;
-      }
+      field += ch;
     }
+  };
+
+  const handleNonQuotedChar = (ch: string) => {
+    switch (ch) {
+      case '"':
+        inQuotes = true;
+        break;
+      case ",":
+        pushField();
+        break;
+      case "\n":
+        pushField();
+        pushRowIfNeeded();
+        break;
+      case "\r":
+        // ignore \r; handle on \n
+        break;
+      default:
+        field += ch;
+        break;
+    }
+  };
+
+  for (let i = 0; i < text.length; i++) {
+    if (skipNextChar) {
+      skipNextChar = false;
+      continue;
+    }
+
+    const ch = text[i];
+    const nextChar = text[i + 1];
+
+    if (inQuotes) {
+      handleQuotedChar(ch, nextChar ?? "");
+      continue;
+    }
+
+    handleNonQuotedChar(ch);
   }
-  // push last field
-  row.push(field);
-  if (row.length > 1 || (row.length === 1 && row[0] !== "")) rows.push(row);
+
+  // push last field and row
+  pushField();
+  pushRowIfNeeded();
+
   return rows;
 }
 
 function headerIndexMap(headers: string[]): Record<string, number> {
   const map: Record<string, number> = {};
-  headers.forEach((h, idx) => {
+  for (const [idx, h] of headers.entries()) {
     map[h.trim().toLowerCase()] = idx;
-  });
+  }
   return map;
 }
 
@@ -105,6 +140,7 @@ export function parseAssetsCSV(text: string): Asset[] {
   const headers = rows[0].map((h) => h.trim());
   const hi = headerIndexMap(headers);
   const get = (r: string[], name: string) => r[hi[name] ?? -1] ?? "";
+
   // Determine per-column custom fields: any header not part of known asset columns
   const known = new Set([
     "id",
@@ -129,26 +165,22 @@ export function parseAssetsCSV(text: string): Asset[] {
   const customColumnHeaders = headers
     .map((h) => h.trim())
     .filter((h) => h && !known.has(h.toLowerCase()));
-  const out: Asset[] = [];
-  for (let i = 1; i < rows.length; i++) {
-    const r = rows[i];
-    if (!r || r.length === 0) continue;
-    // Do not generate long client-side IDs here. Leave id empty so server
-    // will assign a canonical asset id (AST-0001 style) when creating.
-    const id = (get(r, "id") || "").trim() || "";
-    const cost = parseFloat((get(r, "cost") || "0").trim());
-    // Parse custom fields. Support old single JSON "Custom Fields" column AND per-column custom fields
-    let customFields: Record<string, string> | undefined = undefined;
-    // 1) parse JSON blob if provided
+
+  const parseCustomFields = (
+    r: string[]
+  ): Record<string, string> | undefined => {
+    let customFields: Record<string, string> | undefined;
     const cfRaw = get(r, "custom fields");
-    if (cfRaw && cfRaw.trim()) {
+    if (cfRaw?.trim()) {
       try {
         const parsed = JSON.parse(cfRaw);
         if (parsed && typeof parsed === "object") {
           customFields = Object.fromEntries(
-            Object.entries(parsed as Record<string, unknown>).map(([k, v]) => [
+            Object.entries(parsed as Record<string, null>).map(([k, v]) => [
               k,
-              String(v),
+              typeof v === "object" && v !== null
+                ? JSON.stringify(v)
+                : String(v),
             ])
           );
         }
@@ -156,41 +188,53 @@ export function parseAssetsCSV(text: string): Asset[] {
         // ignore malformed JSON; we'll still try per-column fields
       }
     }
-    // 2) extract per-column custom fields (these override JSON keys)
-    customColumnHeaders.forEach((header) => {
+    for (const header of customColumnHeaders) {
       const raw = get(r, header);
       if (raw !== undefined && raw !== null && String(raw).trim() !== "") {
         if (!customFields) customFields = {};
         customFields[header] = raw;
       }
-    });
-    const asset: Asset = {
+    }
+    return customFields;
+  };
+
+  const buildAsset = (r: string[]): Asset => {
+    const id = (get(r, "id") || "").trim() || "";
+    const cost = Number.parseFloat((get(r, "cost") || "0").trim());
+    const assignedTo = get(r, "assigned to") || "";
+    const status =
+      (get(r, "status") as Asset["status"]) ||
+      ((assignedTo.trim() ? "Allocated" : "In Store (New)") as Asset["status"]);
+
+    return {
       id,
       name: get(r, "name") || "",
-      typeId: (get(r, "type") as Asset["typeId"]) || "Laptop",
+      typeId: get(r, "type") || "Laptop",
       serialNumber: get(r, "serial number") || "",
-      assignedTo: get(r, "assigned to") || "",
+      assignedTo,
       department: get(r, "department") || "",
-      status:
-        (get(r, "status") as Asset["status"]) ||
-        (((get(r, "assigned to") || "").trim()
-          ? "Allocated"
-          : "In Store (New)") as Asset["status"]),
+      status,
       purchaseDate: get(r, "purchase date") || "",
       // Prefer new lifecycle columns; fallback to legacy warranty expiry if present
       eosDate: get(r, "end of support") || get(r, "warranty expiry") || "",
       eolDate: get(r, "end of life") || "",
-      cost: isNaN(cost) ? 0 : cost,
+      cost: Number.isNaN(cost) ? 0 : cost,
       location: get(r, "location") || "",
       specifications: {
         processor: get(r, "processor") || undefined,
         ram: get(r, "ram") || undefined,
         storage: get(r, "storage") || undefined,
         os: get(r, "os") || undefined,
-        customFields,
+        customFields: parseCustomFields(r),
       },
     };
-    out.push(asset);
+  };
+
+  const out: Asset[] = [];
+  for (let i = 1; i < rows.length; i++) {
+    const r = rows[i];
+    if (!r || r.length === 0) continue;
+    out.push(buildAsset(r));
   }
   return out;
 }
@@ -207,19 +251,19 @@ export function parseLicensesCSV(text: string): License[] {
     // Do not fabricate long client-side license IDs. Leave id empty so server
     // can assign a canonical short LIC-0001 style id, or accept an explicit id from CSV.
     const id = (get(r, "id") || "").trim() || "";
-    const seats = parseInt((get(r, "seats") || "0").trim());
-    const seatsUsed = parseInt((get(r, "seats used") || "0").trim());
-    const cost = parseFloat((get(r, "cost") || "0").trim());
+    const seats = Number.parseInt((get(r, "seats") || "0").trim());
+    const seatsUsed = Number.parseInt((get(r, "seats used") || "0").trim());
+    const cost = Number.parseFloat((get(r, "cost") || "0").trim());
     const license: License = {
       id,
       name: get(r, "name") || "",
       vendor: get(r, "vendor") || "",
       type: (get(r, "type") as License["type"]) || "SaaS",
-      seats: isNaN(seats) ? 0 : seats,
-      seatsUsed: isNaN(seatsUsed) ? 0 : seatsUsed,
+      seats: Number.isNaN(seats) ? 0 : seats,
+      seatsUsed: Number.isNaN(seatsUsed) ? 0 : seatsUsed,
       expirationDate: normalizeDateString(get(r, "expiration date") || ""),
       renewalDate: normalizeDateString(get(r, "renewal date") || ""),
-      cost: isNaN(cost) ? 0 : cost,
+      cost: Number.isNaN(cost) ? 0 : cost,
       owner: get(r, "owner") || "",
       compliance:
         (get(r, "compliance") as License["compliance"]) || "Compliant",
@@ -239,8 +283,8 @@ export function parseVendorsCSV(text: string): Vendor[] {
   for (let i = 1; i < rows.length; i++) {
     const r = rows[i];
     const id = (get(r, "id") || "").trim() || generateId("VND");
-    const value = parseFloat((get(r, "contract value") || "0").trim());
-    const rating = parseFloat((get(r, "rating") || "0").trim());
+    const value = Number.parseFloat((get(r, "contract value") || "0").trim());
+    const rating = Number.parseFloat((get(r, "rating") || "0").trim());
     const vendor: Vendor = {
       id,
       name: get(r, "name") || "",
@@ -249,9 +293,9 @@ export function parseVendorsCSV(text: string): Vendor[] {
       email: get(r, "email") || "",
       phone: get(r, "phone") || "",
       status: (get(r, "status") as Vendor["status"]) || "Approved",
-      contractValue: isNaN(value) ? 0 : value,
+      contractValue: Number.isNaN(value) ? 0 : value,
       contractExpiry: get(r, "contract expiry") || "",
-      rating: isNaN(rating) ? 0 : rating,
+      rating: Number.isNaN(rating) ? 0 : rating,
     };
     out.push(vendor);
   }
@@ -272,6 +316,7 @@ export async function importAssets(items: Asset[]): Promise<ImportSummary> {
         await createAsset(a);
         summary.created++;
       } catch (e) {
+        console.error("Create asset failed, trying update:", e);
         await updateAsset(a.id, a);
         summary.updated++;
       }
@@ -297,6 +342,7 @@ export async function importLicenses(items: License[]): Promise<ImportSummary> {
         await createLicense(l);
         summary.created++;
       } catch (e) {
+        console.error("Create license failed, trying update:", e);
         await updateLicense(l.id, l);
         summary.updated++;
       }
@@ -322,6 +368,7 @@ export async function importVendors(items: Vendor[]): Promise<ImportSummary> {
         await createVendor(v);
         summary.created++;
       } catch (e) {
+        console.error("Create vendor failed, trying update:", e);
         await updateVendor(v.id, v);
         summary.updated++;
       }

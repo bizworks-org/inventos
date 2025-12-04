@@ -1,7 +1,7 @@
 import { readAuthToken, verifyToken, type Role } from "./server";
-import { dbGetUserPermissions, dbFindUserById } from "./db-users";
+import { dbFindUserById } from "./db-users";
 import { query } from "@/lib/db";
-import { createHash } from "crypto";
+import { createHash } from "node:crypto";
 
 export type MePayload = {
   id: string;
@@ -20,7 +20,7 @@ export async function readMeFromCookie(): Promise<MePayload | null> {
   if (process.env.AUTH_ENFORCE_SESSIONS === "1") {
     try {
       const th = createHash("sha256")
-        .update(token as string)
+        .update(token)
         .digest();
       const rows = await query<any>(
         `SELECT id FROM sessions WHERE token_hash = :th AND revoked_at IS NULL AND (expires_at IS NULL OR expires_at > CURRENT_TIMESTAMP) LIMIT 1`,
@@ -44,49 +44,42 @@ export async function readMeFromCookie(): Promise<MePayload | null> {
   };
 }
 
+function resolveRoleFromList(roles?: string[]): Role | undefined {
+  if (!Array.isArray(roles) || roles.length === 0) return undefined;
+  if (roles.includes("superadmin")) return "superadmin";
+  if (roles.includes("admin")) return "admin";
+  if (roles.includes("user")) return "user";
+  return undefined;
+}
+
+async function inferRole(me: MePayload): Promise<Role | undefined> {
+  if (me.role) return me.role;
+  const fromMe = resolveRoleFromList(me.roles);
+  if (fromMe) return fromMe;
+  try {
+    const dbUser = await dbFindUserById(me.id);
+    return resolveRoleFromList(dbUser?.roles);
+  } catch {
+    return undefined;
+  }
+}
+
 export async function requirePermission(
   permission: string
 ): Promise<{ ok: true; me: MePayload } | { ok: false; status: 401 | 403 }> {
   const me = await readMeFromCookie();
   if (!me?.id) return { ok: false, status: 401 };
 
-  // Determine role
-  let role: string | undefined = me.role;
-  if (!role) {
-    const roles = me.roles || [];
-    if (roles.includes("superadmin")) role = "superadmin";
-    else if (roles.includes("admin")) role = "admin";
-    else if (roles.includes("user")) role = "user";
-  }
+  const role = await inferRole(me);
+  if (!role) return { ok: false, status: 403 };
 
-  // If still no role, check DB
-  if (!role) {
-    try {
-      const dbUser = await dbFindUserById(me.id);
-      if (dbUser && Array.isArray(dbUser.roles)) {
-        if (dbUser.roles.includes("superadmin")) role = "superadmin";
-        else if (dbUser.roles.includes("admin")) role = "admin";
-        else if (dbUser.roles.includes("user")) role = "user";
-      }
-    } catch {}
-  }
-
-  // Role-based access control
-  // Admin and Superadmin: full read/write access
   if (role === "admin" || role === "superadmin") {
-    return { ok: true, me: { ...me, role: role as Role } };
+    return { ok: true, me: { ...me, role } };
   }
 
-  // User role: read-only access
-  if (role === "user") {
-    // Allow read permissions only
-    if (permission.endsWith("_read")) {
-      return { ok: true, me: { ...me, role: "user" } };
-    }
-    // Deny write permissions
-    return { ok: false, status: 403 };
+  if (role === "user" && permission.endsWith("_read")) {
+    return { ok: true, me: { ...me, role } };
   }
 
-  // No valid role found
   return { ok: false, status: 403 };
 }

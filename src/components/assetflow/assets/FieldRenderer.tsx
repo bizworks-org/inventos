@@ -1,6 +1,11 @@
 "use client";
-import React, { useEffect, useState } from "react";
+import React from "react";
 import { AssetFieldDef } from "../../../lib/data";
+import StarField from "./StarField";
+import InputField from "./InputField";
+import TextareaField from "./TextareaField";
+import NumberField from "./NumberField";
+import DateField from "./DateField";
 
 type Props = {
   def: AssetFieldDef;
@@ -9,65 +14,69 @@ type Props = {
   onChange: (v: string) => void;
 };
 
-export default function FieldRenderer({ def, value, onChange, id }: Props) {
+export default function FieldRenderer({
+  def,
+  value,
+  onChange,
+  id,
+}: Readonly<Props>) {
   const val = value ?? "";
+  // star rating with label
+  if (def.type === "star") {
+    return (
+      <div className="flex items-center gap-2">
+        <label className="text-sm font-medium text-slate-700">
+          {def.label}
+        </label>
+        <StarField
+          def={def}
+          value={String(value ?? "0")}
+          onChange={(v) => onChange(String(v))}
+          id={id}
+        />
+      </div>
+    );
+  }
 
+  // delegated components
   if (def.type === "textarea") {
     return (
-      <textarea
-        id={id}
-        required={!!def.required}
-        value={val}
-        onChange={(e) => onChange(e.target.value)}
-        placeholder={def.placeholder || ""}
-        className="w-full px-3 py-2 rounded-lg bg-[#f8f9ff] border border-[rgba(0,0,0,0.08)]"
+      <TextareaField
+        def={def}
+        value={String(value ?? "")}
+        onChange={(v) => onChange(v)}
       />
     );
   }
 
   if (def.type === "number" || def.type === "currency") {
     return (
-      <input
-        id={id}
-        type="number"
-        step={def.type === "currency" ? "0.01" : "1"}
-        required={!!def.required}
-        value={val}
-        onChange={(e) => onChange(e.target.value)}
-        className="w-full px-3 py-2 rounded-lg bg-[#f8f9ff] border border-[rgba(0,0,0,0.08)]"
+      <NumberField
+        def={def}
+        value={String(value ?? "")}
+        onChange={(v) => onChange(v)}
       />
     );
   }
 
   if (def.type === "date" || def.type === "datetime") {
     return (
-      <input
-        id={id}
-        type={def.type === "date" ? "date" : "datetime-local"}
-        required={!!def.required}
-        value={val}
-        onChange={(e) => onChange(e.target.value)}
-        className="w-full px-3 py-2 rounded-lg bg-[#f8f9ff] border border-[rgba(0,0,0,0.08)]"
+      <DateField
+        def={def}
+        value={String(value ?? "")}
+        onChange={(v) => onChange(v)}
       />
     );
   }
 
+  // simple input types (phone/email/url/text)
   if (def.type === "phone" || def.type === "email" || def.type === "url") {
-    const t = def.type as "tel" | "email" | "url";
-    const typeMap: Record<string, string> = {
-      phone: "tel",
-      email: "email",
-      url: "url",
-    };
     return (
-      <input
+      <InputField
+        def={def}
+        value={String(value ?? "")}
+        onChange={(v) => onChange(v)}
         id={id}
-        type={typeMap[def.type] || "text"}
-        required={!!def.required}
-        value={val}
-        onChange={(e) => onChange(e.target.value)}
-        placeholder={def.placeholder || ""}
-        className="w-full px-3 py-2 rounded-lg bg-[#f8f9ff] border border-[rgba(0,0,0,0.08)]"
       />
     );
   }
@@ -130,51 +139,13 @@ export default function FieldRenderer({ def, value, onChange, id }: Props) {
     );
   }
 
-  if (def.type === "star") {
-    const [internal, setInternal] = useState<number>(Number(val || "0"));
-    useEffect(() => {
-      setInternal(Number(val || "0"));
-    }, [val]);
-    const max = Math.max(1, Math.min(10, def.max ?? 5));
-    const current = Number(val || "0");
-    const displayMax = Math.max(max, current || 0);
-    return (
-      <div
-        role="group"
-        aria-label={def.label || "Star rating"}
-        className="flex flex-col"
-      >
-        <select
-          id={id}
-          value={String(internal)}
-          onChange={(e) => {
-            const n = Number(e.target.value || "0");
-            setInternal(n);
-            onChange(String(n));
-          }}
-          className="w-full px-3 py-2 rounded-lg bg-[#f8f9ff] border border-[rgba(0,0,0,0.08)]"
-        >
-          <option value="0">No rating</option>
-          {Array.from({ length: displayMax }, (_, i) => i + 1).map((n) => (
-            <option key={n} value={String(n)}>
-              {"★".repeat(n)}
-            </option>
-          ))}
-        </select>
-        <div className="text-xs text-[rgba(0,0,0,0.5)] mt-1">0 = No rating</div>
-      </div>
-    );
-  }
-
+  // default to text input
   return (
-    <input
+    <InputField
+      def={def}
+      value={String(value ?? "")}
+      onChange={(v) => onChange(v)}
       id={id}
-      type="text"
-      required={!!def.required}
-      value={val}
-      onChange={(e) => onChange(e.target.value)}
-      placeholder={def.placeholder || ""}
-      className="w-full px-3 py-2 rounded-lg bg-[#f8f9ff] border border-[rgba(0,0,0,0.08)]"
     />
   );
 }
