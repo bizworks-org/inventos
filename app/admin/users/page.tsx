@@ -181,12 +181,30 @@ export default function ManageUsersPage() {
     const digits = "0123456789";
     const extra = "_";
     const all = lowers + uppers + digits + extra;
-    const pick = (set: string) => set[Math.floor(Math.random() * set.length)];
+
+    // Use Web Crypto API for cryptographically secure randomness when available.
+    const getRandomInt = (max: number) => {
+      try {
+        if (
+          typeof globalThis !== "undefined" &&
+          globalThis.crypto?.getRandomValues
+        ) {
+          const arr = new Uint32Array(1);
+          globalThis.crypto.getRandomValues(arr);
+          return arr[0] % max;
+        }
+      } catch {
+        // fall through to Math.random fallback below
+      }
+      return Math.floor(Math.random() * max);
+    };
+
+    const pick = (set: string) => set[getRandomInt(set.length)];
     let pwd = pick(lowers) + pick(uppers) + pick(digits);
     while (pwd.length < length) pwd += pick(all);
     const arr = pwd.split("");
     for (let i = arr.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
+      const j = getRandomInt(i + 1);
       [arr[i], arr[j]] = [arr[j], arr[i]];
     }
     return arr.join("");

@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { createContext, useContext, useState, useEffect, useMemo, useCallback, ReactNode } from 'react';
 import { secureId, secureChoice } from '../lib/secure';
 
 export interface User {
@@ -80,23 +80,39 @@ export function SessionProvider({ children }: SessionProviderProps) {
     }
   }, [currentUser]);
 
-  const generateUserId = () => {
-    return secureId('user_');
-  };
+  const generateUserId = useCallback(() => {
+    if (typeof crypto !== 'undefined' && typeof (crypto as any).randomUUID === 'function') {
+      return `user_${(crypto as any).randomUUID()}`;
+    } else if (typeof crypto !== 'undefined' && typeof crypto.getRandomValues === 'function') {
+      const bytes = crypto.getRandomValues(new Uint8Array(16));
+      return 'user_' + Array.from(bytes).map(b => b.toString(16).padStart(2, '0')).join('');
+    } else {
+      // Fallback for very old environments (may use Math.random inside secureId)
+      return secureId('user_');
+    }
+  }, []);
 
-  const generateSessionId = () => {
-    return secureId('session_');
-  };
+  const generateSessionId = useCallback(() => {
+    if (typeof crypto !== 'undefined' && typeof (crypto as any).randomUUID === 'function') {
+      return `session_${(crypto as any).randomUUID()}`;
+    } else if (typeof crypto !== 'undefined' && typeof crypto.getRandomValues === 'function') {
+      const bytes = crypto.getRandomValues(new Uint8Array(16));
+      return 'session_' + Array.from(bytes).map(b => b.toString(16).padStart(2, '0')).join('');
+    } else {
+      // Fallback for very old environments (may use Math.random inside secureId)
+      return secureId('session_');
+    }
+  }, []);
 
-  const generateAnonymousName = () => {
+  const generateAnonymousName = useCallback(() => {
     const adjectives = ['Happy', 'Sunny', 'Brave', 'Clever', 'Kind', 'Swift', 'Bright', 'Cool'];
     const nouns = ['Traveler', 'Explorer', 'Adventurer', 'Wanderer', 'Tourist', 'Nomad', 'Voyager', 'Guest'];
     const adj = secureChoice(adjectives);
     const noun = secureChoice(nouns);
     return `${adj} ${noun}`;
-  };
+  }, []);
 
-  const createSession = () => {
+  const createSession = useCallback(() => {
     const hostId = generateUserId();
     const sessionId = generateSessionId();
     
@@ -116,9 +132,9 @@ export function SessionProvider({ children }: SessionProviderProps) {
 
     setSession(newSession);
     setCurrentUser(host);
-  };
+  }, [generateUserId, generateSessionId]);
 
-  const joinSession = (sessionId: string, email?: string) => {
+  const joinSession = useCallback((sessionId: string, email?: string) => {
     // In a real app, this would fetch from a backend
     // For now, we'll simulate joining an existing session
     const userId = generateUserId();
@@ -140,10 +156,44 @@ export function SessionProvider({ children }: SessionProviderProps) {
       setSession(updatedSession);
       setCurrentUser(newUser);
     }
-  };
+  }, [session, generateUserId, generateAnonymousName]);
 
-  const inviteUserByEmail = (email: string) => {
-    if (!session || !currentUser?.isHost) return;
+  const sendInviteEmail = useCallback((email: string, sessionLink: string) => {
+    // Simulate sending email - in a real app this would call a backend API
+    console.log(`Sending invite email to: ${email}`);
+    console.log(`Session link: ${sessionLink}`);
+    
+    // Mock email content
+    const emailSubject = "You're invited to plan a trip together!";
+    const emailBody = `
+Hi there!
+
+You've been invited to join a collaborative trip planning session. 
+
+Click the link below to join and share your travel preferences:
+${sessionLink}
+
+Or visit the app and enter this session code: ${session?.id}
+
+Let's plan an amazing trip together!
+    `.trim();
+
+    // In a real app, you would send this via an email service like SendGrid, Mailgun, etc.
+    // For demonstration, we'll log it and show a toast
+    console.log('Email Subject:', emailSubject);
+    console.log('Email Body:', emailBody);
+    
+    // Simulate email sending - in a real app this would be handled by backend
+  }, [session]);
+
+  const generateSessionLink = useCallback(() => {
+    if (!session) return '';
+    const baseUrl = (globalThis as any).location?.origin ?? '';
+    return `${baseUrl}/join/${session.id}`;
+  }, [session]);
+
+  const inviteUserByEmail = useCallback((email: string) => {
+    if (!session || !currentUser?.isHost) return false;
 
     // Check if user already invited
     const existingUser = session.users.find(u => u.email === email);
@@ -171,19 +221,13 @@ export function SessionProvider({ children }: SessionProviderProps) {
     sendInviteEmail(email, sessionLink);
     
     return true; // Return true to indicate success
-  };
+  }, [session, currentUser, generateUserId, generateSessionLink, sendInviteEmail]);
 
-  const generateSessionLink = () => {
-    if (!session) return '';
-    const baseUrl = window.location.origin;
-    return `${baseUrl}/join/${session.id}`;
-  };
-
-  const copySessionLink = () => {
+  const copySessionLink = useCallback(() => {
     const link = generateSessionLink();
     
     // Try modern clipboard API first
-    if (navigator.clipboard && window.isSecureContext) {
+    if (navigator.clipboard && (globalThis as any).isSecureContext) {
       return navigator.clipboard.writeText(link);
     } else {
       // Fallback for when clipboard API is blocked
@@ -199,9 +243,9 @@ export function SessionProvider({ children }: SessionProviderProps) {
           textArea.focus();
           textArea.select();
           
-          // Use the older execCommand method
-          const successful = document.execCommand('copy');
-          document.body.removeChild(textArea);
+          // Use the older execCommand method (cast to any to avoid TypeScript's deprecated signature error)
+          const successful = (document as any).execCommand('copy');
+          textArea.remove();
           
           if (successful) {
             resolve();
@@ -213,9 +257,9 @@ export function SessionProvider({ children }: SessionProviderProps) {
         }
       });
     }
-  };
+  }, [generateSessionLink]);
 
-  const removeUser = (userId: string) => {
+  const removeUser = useCallback((userId: string) => {
     if (!session || !currentUser?.isHost) return;
 
     const updatedSession = {
@@ -224,9 +268,9 @@ export function SessionProvider({ children }: SessionProviderProps) {
     };
 
     setSession(updatedSession);
-  };
+  }, [session, currentUser]);
 
-  const completePreferences = () => {
+  const completePreferences = useCallback(() => {
     if (!session || !currentUser) return;
 
     const updatedUser = {
@@ -244,39 +288,11 @@ export function SessionProvider({ children }: SessionProviderProps) {
 
     setSession(updatedSession);
     setCurrentUser(updatedUser);
-  };
-
-  const sendInviteEmail = (email: string, sessionLink: string) => {
-    // Simulate sending email - in a real app this would call a backend API
-    console.log(`Sending invite email to: ${email}`);
-    console.log(`Session link: ${sessionLink}`);
-    
-    // Mock email content
-    const emailSubject = "You're invited to plan a trip together!";
-    const emailBody = `
-Hi there!
-
-You've been invited to join a collaborative trip planning session. 
-
-Click the link below to join and share your travel preferences:
-${sessionLink}
-
-Or visit the app and enter this session code: ${session?.id}
-
-Let's plan an amazing trip together!
-    `.trim();
-
-    // In a real app, you would send this via an email service like SendGrid, Mailgun, etc.
-    // For demonstration, we'll log it and show a toast
-    console.log('Email Subject:', emailSubject);
-    console.log('Email Body:', emailBody);
-    
-    // Simulate email sending - in a real app this would be handled by backend
-  };
+  }, [session, currentUser]);
 
   const isHost = currentUser?.isHost || false;
 
-  const value: SessionContextType = {
+  const value: SessionContextType = useMemo(() => ({
     session,
     currentUser,
     isHost,
@@ -288,7 +304,19 @@ Let's plan an amazing trip together!
     removeUser,
     completePreferences,
     sendInviteEmail,
-  };
+  }), [
+    session,
+    currentUser,
+    isHost,
+    createSession,
+    joinSession,
+    inviteUserByEmail,
+    generateSessionLink,
+    copySessionLink,
+    removeUser,
+    completePreferences,
+    sendInviteEmail,
+  ]);
 
   return (
     <SessionContext.Provider value={value}>
