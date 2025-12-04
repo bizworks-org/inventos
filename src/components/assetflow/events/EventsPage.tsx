@@ -164,8 +164,10 @@ export function EventsPage({
       const sanitizeFileName = (v?: string | number | null, max = 120) => {
         if (v === undefined || v === null) return "-";
         const s = String(v);
+        // Remove control characters, newlines and tabs
+        const noControl = s.replace(/[\x00-\x1F\x7F]+/g, "-");
         // Replace anything that's not alphanumeric, dot, underscore or dash with a hyphen
-        const cleaned = s
+        const cleaned = noControl
           .replace(/[^A-Za-z0-9._-]+/g, "-")
           .replace(/(^-+|-+$)/g, "");
         return cleaned.slice(0, max) || "-";
@@ -174,7 +176,12 @@ export function EventsPage({
       const safeEntity = sanitizeFileName(String(selectedEntityType));
       const safeSeverity = sanitizeFileName(String(selectedSeverity));
       const safeTime = sanitizeFileName(String(selectedTimeFilter));
-      a.download = `events-log-all-${safeEntity}-${safeSeverity}-${safeTime}-${when}.csv`;
+      const filename = `events-log-all-${safeEntity}-${safeSeverity}-${safeTime}-${when}.csv`;
+
+      // Use setAttribute and keep the anchor hidden to avoid any chance of DOM injection
+      a.setAttribute("href", url);
+      a.setAttribute("download", filename);
+      a.style.display = "none";
       document.body.appendChild(a);
       a.click();
       a.remove();
