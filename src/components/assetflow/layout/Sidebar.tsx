@@ -24,11 +24,14 @@ function sanitizeImageUrl(u?: string | null): string | null {
     if (!s) return null;
 
     // If running in a non-browser environment, only allow safe data: URLs (no http fetch on server)
-    const runningInBrowser = typeof globalThis !== "undefined" && typeof globalThis.window !== "undefined";
+    const runningInBrowser =
+      typeof globalThis !== "undefined" &&
+      typeof globalThis.window !== "undefined";
 
     // Allow only a restricted set of raster image data URLs (explicitly disallow SVG and other text-based images).
     // We require base64 data for these types to avoid tricky encodings.
-    const allowedDataImageRE = /^data:image\/(png|jpeg|jpg|webp|gif|avif);base64,[A-Za-z0-9+/=\s]+$/i;
+    const allowedDataImageRE =
+      /^data:image\/(png|jpeg|jpg|webp|gif|avif);base64,[A-Za-z0-9+/=\s]+$/i;
     if (s.startsWith("data:image/")) {
       // Normalize by removing whitespace then validate structure and mime type
       const normalized = s.replace(/\s+/g, "");
@@ -42,7 +45,10 @@ function sanitizeImageUrl(u?: string | null): string | null {
     const parsed = new URL(s, globalThis.window.location.origin);
 
     // Only allow http(s) protocols; also reject overly long URLs to reduce abuse surface.
-    if ((parsed.protocol === "http:" || parsed.protocol === "https:") && parsed.href.length < 2000) {
+    if (
+      (parsed.protocol === "http:" || parsed.protocol === "https:") &&
+      parsed.href.length < 2000
+    ) {
       // Normalize and return the absolute href
       return parsed.href;
     }
@@ -285,15 +291,25 @@ export function Sidebar({
   // Keep non-admin items static even if me is unknown; avoid indefinite loading states
   const loadingProfile = false;
 
+  const isSafeUrl = (url: string) => {
+    try {
+      const parsed = new URL(url);
+      return ["http:", "https:"].includes(parsed.protocol);
+    } catch {
+      return false;
+    }
+  };
+  const safeSrc = isSafeUrl(safeBrandLogo) ? safeBrandLogo : null;
+
   return (
     <aside className="fixed left-0 top-0 z-40 h-screen w-64 bg-gradient-to-b from-[#1a1d2e] to-[#0f1218] border-r border-[rgba(255,255,255,0.1)]">
       {/* Logo */}
       <div className="flex h-16 items-center px-6 border-b border-[rgba(255,255,255,0.1)]">
         <Link href="/" className="flex items-center gap-3">
-          {safeBrandLogo ? (
+          {safeSrc ? (
             <img
-              key={safeBrandLogo}
-              src={safeBrandLogo}
+              key={safeSrc}
+              src={safeSrc}
               alt={brandName || "Logo"}
               referrerPolicy="no-referrer"
               onError={() => setBrandLogo(null)}
