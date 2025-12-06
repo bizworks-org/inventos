@@ -186,9 +186,7 @@ export function CustomizationPage({ onNavigate, onSearch }: Readonly<Props>) {
     (idx: number) => (e: React.ChangeEvent<HTMLInputElement>) => {
       const v = e.target.value;
       const n =
-        v === ""
-          ? undefined
-          : Math.max(1, Math.min(10, Number(v) || 1));
+        v === "" ? undefined : Math.max(1, Math.min(10, Number(v) || 1));
       updateCurrentField(idx, { max: n });
     };
 
@@ -566,8 +564,11 @@ export function CustomizationPage({ onNavigate, onSearch }: Readonly<Props>) {
                   <div className="p-4">
                     <div className="mb-3 grid grid-cols-1 md:grid-cols-4 gap-2">
                       <div>
-                        <Label className="mb-1 block">Code (required)</Label>
+                        <Label htmlFor="newloc-code" className="mb-1 block">
+                          Code (required)
+                        </Label>
                         <Input
+                          id="newloc-code"
                           value={newLocation.code}
                           onChange={(e) =>
                             setNewLocation({
@@ -579,8 +580,11 @@ export function CustomizationPage({ onNavigate, onSearch }: Readonly<Props>) {
                         />
                       </div>
                       <div>
-                        <Label className="mb-1 block">Name (required)</Label>
+                        <Label htmlFor="newloc-name" className="mb-1 block">
+                          Name (required)
+                        </Label>
                         <Input
+                          id="newloc-name"
                           value={newLocation.name}
                           onChange={(e) =>
                             setNewLocation({
@@ -592,8 +596,11 @@ export function CustomizationPage({ onNavigate, onSearch }: Readonly<Props>) {
                         />
                       </div>
                       <div>
-                        <Label className="mb-1 block">Address</Label>
+                        <Label htmlFor="newloc-address" className="mb-1 block">
+                          Address
+                        </Label>
                         <Input
+                          id="newloc-address"
                           value={newLocation.address}
                           onChange={(e) =>
                             setNewLocation({
@@ -605,8 +612,11 @@ export function CustomizationPage({ onNavigate, onSearch }: Readonly<Props>) {
                         />
                       </div>
                       <div>
-                        <Label className="mb-1 block">ZipCode (6 digits)</Label>
+                        <Label htmlFor="newloc-zipcode" className="mb-1 block">
+                          ZipCode (6 digits)
+                        </Label>
                         <Input
+                          id="newloc-zipcode"
                           value={newLocation.zipcode}
                           onChange={(e) =>
                             setNewLocation({
@@ -722,8 +732,11 @@ export function CustomizationPage({ onNavigate, onSearch }: Readonly<Props>) {
                   </CardHeader>
                   <CardContent>
                     <div className="p-2">
-                      <Label className="mb-1 block">Asset ID Prefix</Label>
+                      <Label htmlFor="asset-id-prefix" className="mb-1 block">
+                        Asset ID Prefix
+                      </Label>
                       <Input
+                        id="asset-id-prefix"
                         value={assetIdPrefix}
                         onChange={(e) => setAssetIdPrefix(e.target.value)}
                         placeholder="e.g., AST"
@@ -848,16 +861,28 @@ export function CustomizationPage({ onNavigate, onSearch }: Readonly<Props>) {
                       <div key={idx * 2} className="space-y-3">
                         <div className="grid grid-cols-1 md:grid-cols-4 gap-3 items-start">
                           <div>
-                            <Label className="mb-1 block">Label</Label>
+                            <Label
+                              htmlFor={`custom-${customTarget}-${idx}-label`}
+                              className="mb-1 block"
+                            >
+                              Label
+                            </Label>
                             <Input
+                              id={`custom-${customTarget}-${idx}-label`}
                               value={f.label}
                               onChange={makeOnFieldLabelChange(idx)}
                               placeholder="e.g., Asset Tag"
                             />
                           </div>
                           <div>
-                            <Label className="mb-1 block">Key</Label>
+                            <Label
+                              htmlFor={`custom-${customTarget}-${idx}-key`}
+                              className="mb-1 block"
+                            >
+                              Key
+                            </Label>
                             <Input
+                              id={`custom-${customTarget}-${idx}-key`}
                               value={f.key}
                               onChange={makeOnFieldKeyChange(idx)}
                               placeholder="e.g., assetTag"
@@ -868,16 +893,28 @@ export function CustomizationPage({ onNavigate, onSearch }: Readonly<Props>) {
                             </p>
                           </div>
                           <div>
-                            <Label className="mb-1 block">Placeholder</Label>
+                            <Label
+                              htmlFor={`custom-${customTarget}-${idx}-placeholder`}
+                              className="mb-1 block"
+                            >
+                              Placeholder
+                            </Label>
                             <Input
-                              value={(f.placeholder ?? "")}
+                              id={`custom-${customTarget}-${idx}-placeholder`}
+                              value={f.placeholder ?? ""}
                               onChange={makeOnFieldPlaceholderChange(idx)}
                               placeholder="e.g., TAG-00123"
                             />
                           </div>
                           <div>
-                            <Label className="mb-1 block">Type</Label>
+                            <Label
+                              htmlFor={`custom-${customTarget}-${idx}-type`}
+                              className="mb-1 block"
+                            >
+                              Type
+                            </Label>
                             <select
+                              id={`custom-${customTarget}-${idx}-type`}
                               className="w-full px-3 py-2 rounded-lg bg-[#f8f9ff] border border-[rgba(0,0,0,0.08)]"
                               value={f.type ?? "text"}
                               onChange={makeOnFieldTypeChange(idx)}
@@ -911,12 +948,16 @@ export function CustomizationPage({ onNavigate, onSearch }: Readonly<Props>) {
 
                         {(f.type === "select" || f.type === "multiselect") && (
                           <div>
-                            <Label className="mb-1 block">
+                            <Label
+                              htmlFor={`custom-${customTarget}-${idx}-options`}
+                              className="mb-1 block"
+                            >
                               Options (comma separated)
                             </Label>
                             <Input
+                              id={`custom-${customTarget}-${idx}-options`}
                               value={(f.options || []).join(", ")}
-                                  onChange={makeOnFieldOptionsChange(idx)}
+                              onChange={makeOnFieldOptionsChange(idx)}
                               placeholder="Option1, Option2, Option3"
                             />
                             <p className="text-xs text-[#94a3b8] mt-1">
@@ -927,8 +968,14 @@ export function CustomizationPage({ onNavigate, onSearch }: Readonly<Props>) {
 
                         {f.type === "star" && (
                           <div>
-                            <Label className="mb-1 block">Max value</Label>
+                            <Label
+                              htmlFor={`custom-${customTarget}-${idx}-max`}
+                              className="mb-1 block"
+                            >
+                              Max value
+                            </Label>
                             <Input
+                              id={`custom-${customTarget}-${idx}-max`}
                               type="number"
                               min={1}
                               max={10}

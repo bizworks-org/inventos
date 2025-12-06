@@ -6,7 +6,7 @@ import {
   createCipheriv,
   createDecipheriv,
   createHash,
-} from "node:crypto";
+} from "@/lib/node-crypto.server";
 
 // AES-256-GCM encryption helpers
 function getKey(): Buffer {

@@ -22,13 +22,13 @@ export type AuditItem = {
 async function http<T>(input: RequestInfo, init?: RequestInit): Promise<T> {
   const res = await fetch(input, {
     ...init,
-    headers: { "Content-Type": "application/json", ...(init?.headers || {}) },
+    headers: { "Content-Type": "application/json", ...(init?.headers) },
   });
   if (!res.ok) {
     let msg = `Request failed: ${res.status}`;
     try {
       const data = await res.json();
-      if ((data as any)?.error) msg = (data as any).error;
+      if (data?.error) msg = data.error;
     } catch {}
     throw new Error(msg);
   }
@@ -113,13 +113,12 @@ export function computeAuditDiff(
   const removed: string[] = [];
   const statusChanged: { serialNumber: string; from: string; to: string }[] =
     [];
-  for (const [sn, item] of currMap) if (!prevMap.has(sn)) added.push(sn);
+  for (const [sn] of currMap) if (!prevMap.has(sn)) added.push(sn);
   for (const [sn] of prevMap) if (!currMap.has(sn)) removed.push(sn);
   for (const [sn, item] of currMap) {
     const prevItem = prevMap.get(sn);
     if (
-      prevItem &&
-      prevItem.statusSnapshot &&
+      prevItem?.statusSnapshot &&
       item.statusSnapshot &&
       prevItem.statusSnapshot !== item.statusSnapshot
     ) {

@@ -18,3 +18,54 @@ summary,
 [data-cursor-default] {
 	cursor: default !important;
 }
+
+/* Page loading/progress styles */
+.page-loading-root {
+	position: fixed;
+	top: 0;
+	left: 0;
+	right: 0;
+	height: 4px;
+	z-index: 9999;
+	pointer-events: none;
+}
+
+.page-loading-bar {
+	position: absolute;
+	left: 0;
+	top: 0;
+	height: 4px;
+	width: 0%;
+	background: linear-gradient(90deg, #06b6d4, #3b82f6);
+	box-shadow: 0 0 10px rgba(59,130,246,0.6);
+	animation: page-loading-grow 1.6s ease-in-out infinite;
+}
+
+.page-loading-spinner {
+	position: absolute;
+	right: 12px;
+	top: -6px;
+	width: 12px;
+	height: 12px;
+	border-radius: 50%;
+	background: #3b82f6;
+	box-shadow: 0 0 8px rgba(59,130,246,0.6);
+	animation: page-loading-spin 1s linear infinite;
+}
+
+@keyframes page-loading-grow {
+	0% { width: 0%; opacity: 0.8; transform: translateX(-2%); }
+	40% { width: 45%; opacity: 1; }
+	80% { width: 75%; opacity: 0.9; }
+	100% { width: 100%; opacity: 0; transform: translateX(2%); }
+}
+
+@keyframes page-loading-spin {
+	0% { transform: rotate(0deg); }
+	100% { transform: rotate(360deg); }
+}
+
+/* Small accessibility: hide visually but keep for screen readers if needed */
+.page-loading-root[aria-hidden="true"] {
+	visibility: visible;
+}

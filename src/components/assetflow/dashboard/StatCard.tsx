@@ -12,9 +12,11 @@ interface StatCardProps {
     value: string;
     isPositive: boolean;
   };
+  subtitle?: string;
   gradient: string;
   delay?: number;
   href?: string;
+  onClick?: () => void;
 }
 
 export function StatCard({
@@ -22,16 +24,23 @@ export function StatCard({
   value,
   icon: Icon,
   trend,
+  subtitle,
   gradient,
   delay = 0,
   href,
+  onClick,
 }: Readonly<StatCardProps>) {
+  const Container: any = onClick ? motion.button : motion.div;
+
   return (
-    <motion.div
+    <Container
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5, delay }}
-      className="relative overflow-hidden rounded-2xl bg-white border border-[rgba(0,0,0,0.08)] p-6 shadow-sm hover:shadow-md transition-shadow duration-300"
+      onClick={onClick}
+      className={`relative overflow-hidden rounded-2xl bg-white border border-[rgba(0,0,0,0.08)] p-6 shadow-sm ${
+        onClick ? "cursor-pointer" : ""
+      } hover:shadow-md transition-shadow duration-300`}
     >
       {/* Background gradient overlay */}
       <div
@@ -56,6 +65,12 @@ export function StatCard({
               <span className="text-xs text-[#94a3b8]">vs last month</span>
             </div>
           )}
+
+          {subtitle && !trend && (
+            <div className="mt-3">
+              <span className="text-xs text-[#94a3b8]">{subtitle}</span>
+            </div>
+          )}
         </div>
 
         <div
@@ -66,7 +81,7 @@ export function StatCard({
       </div>
 
       {/* Footer row: arrow pinned to bottom-right */}
-      {href && (
+      {href && !onClick && (
         <div className="flex justify-end">
           <Link
             href={href}
@@ -77,6 +92,6 @@ export function StatCard({
           </Link>
         </div>
       )}
-    </motion.div>
+    </Container>
   );
 }

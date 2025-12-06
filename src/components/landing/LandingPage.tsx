@@ -19,7 +19,7 @@ import styles from './LandingPage.module.css';
 
 function hexToRgba(hex: string, alpha: number) {
   const sanitized = hex.replace('#', '');
-  const bigint = parseInt(sanitized, 16);
+  const bigint = Number.parseInt(sanitized, 16);
   const r = (bigint >> 16) & 255;
   const g = (bigint >> 8) & 255;
   const b = bigint & 255;
@@ -30,7 +30,7 @@ interface LandingPageProps {
   onEnterApp?: () => void;
 }
 
-export function LandingPage({ onEnterApp }: LandingPageProps) {
+export function LandingPage({ onEnterApp }: Readonly<LandingPageProps>) {
   return (
     <div className={styles.root}>
       <HeroSection onEnterApp={onEnterApp} />
@@ -44,18 +44,18 @@ export function LandingPage({ onEnterApp }: LandingPageProps) {
 }
 
 // Hero Section with animated orbiting nodes
-function HeroSection({ onEnterApp }: { onEnterApp?: () => void }) {
+function HeroSection({ onEnterApp }: Readonly<{ onEnterApp?: () => void }>) {
   const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
 
   useEffect(() => {
     const handleMouseMove = (e: MouseEvent) => {
       setMousePosition({
-        x: (e.clientX / window.innerWidth - 0.5) * 20,
-        y: (e.clientY / window.innerHeight - 0.5) * 20,
+        x: (e.clientX / globalThis.innerWidth - 0.5) * 20,
+        y: (e.clientY / globalThis.innerHeight - 0.5) * 20,
       });
     };
-    window.addEventListener('mousemove', handleMouseMove);
-    return () => window.removeEventListener('mousemove', handleMouseMove);
+    globalThis.addEventListener('mousemove', handleMouseMove);
+    return () => globalThis.removeEventListener('mousemove', handleMouseMove);
   }, []);
 
   return (
@@ -138,7 +138,7 @@ function HeroSection({ onEnterApp }: { onEnterApp?: () => void }) {
 }
 
 // Orbiting nodes component
-function OrbitingNodes({ mousePosition }: { mousePosition: { x: number; y: number } }) {
+function OrbitingNodes({ mousePosition }: Readonly<{ mousePosition: { x: number; y: number } }>) {
   const nodes = [
     { icon: Server, color: '#6366f1', delay: 0, radius: 200, speed: 20 },
     { icon: Laptop, color: '#8b5cf6', delay: 1, radius: 250, speed: 25 },
@@ -185,13 +185,13 @@ function OrbitingNode({
   delay,
   radius,
   speed,
-}: {
+}: Readonly<{
   icon: any;
   color: string;
   delay: number;
   radius: number;
   speed: number;
-}) {
+}>) {
   return (
     <motion.div
       className={styles.orbitWrapper}
@@ -553,7 +553,7 @@ function SocialProofSection() {
 }
 
 // CTA Banner
-function CTABanner({ onEnterApp }: { onEnterApp?: () => void }) {
+function CTABanner({ onEnterApp }: Readonly<{ onEnterApp?: () => void }>) {
   const [isMounted, setIsMounted] = useState(false);
 
   useEffect(() => {
@@ -570,11 +570,11 @@ function CTABanner({ onEnterApp }: { onEnterApp?: () => void }) {
 
       {isMounted && (
         <div className={styles.ctaShapeLayer}>
-          {[...Array(5)].map((_, idx) => {
-            const viewportWidth = typeof window !== 'undefined' ? window.innerWidth : 1200;
+          {Array.from({ length: 5 }).map((_, idx) => {
+            const viewportWidth = globalThis.window === undefined ? 1200 : globalThis.window.innerWidth;
             return (
               <motion.div
-                key={idx}
+                key={idx + idx}
                 className={styles.floatingShape}
                 initial={{
                   x: Math.random() * viewportWidth,

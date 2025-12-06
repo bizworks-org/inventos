@@ -432,7 +432,11 @@ export function AssetsPage({
           {/* Search */}
           <div className="flex-1 relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-[#a0a4b8]" />
+            <label htmlFor="assets-search" className="sr-only">
+              Search assets
+            </label>
             <input
+              id="assets-search"
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
@@ -450,7 +454,11 @@ export function AssetsPage({
           {/* Status Filter */}
           <div className="relative md:w-60">
             <Filter className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-[#a0a4b8] pointer-events-none" />
+            <label htmlFor="assets-status" className="sr-only">
+              Filter assets by status
+            </label>
             <select
+              id="assets-status"
               value={selectedStatus}
               onChange={(e) => setSelectedStatus(e.target.value as AssetStatus)}
               className="

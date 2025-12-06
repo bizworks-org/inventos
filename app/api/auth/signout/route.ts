@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { readAuthToken, verifyToken } from "@/lib/auth/server";
 import { query } from "@/lib/db";
-import { createHash } from "node:crypto";
+import { createHash } from "@/lib/node-crypto.server";
 import logger from "@/lib/logger";
 
 async function lookupSessionId(hash: Buffer): Promise<string | null> {

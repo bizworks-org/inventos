@@ -29,10 +29,14 @@ export default function VendorContactPanel({
       </h3>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div className="md:col-span-2">
-          <label className="block text-sm font-medium text-[#1a1d2e] mb-2">
+          <label
+            htmlFor="contact-person"
+            className="block text-sm font-medium text-[#1a1d2e] mb-2"
+          >
             Contact Person
           </label>
           <input
+            id="contact-person"
             type="text"
             value={formData.contactPerson}
             onChange={(e) => handleInputChange("contactPerson", e.target.value)}
@@ -42,12 +46,16 @@ export default function VendorContactPanel({
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-[#1a1d2e] mb-2">
+          <label
+            htmlFor="contact-email"
+            className="block text-sm font-medium text-[#1a1d2e] mb-2"
+          >
             Email
           </label>
           <div className="flex items-center gap-2">
             <Mail className="h-4 w-4 text-[#64748b]" />
             <input
+              id="contact-email"
               type="email"
               value={formData.email}
               onChange={(e) => handleInputChange("email", e.target.value)}
@@ -58,12 +66,16 @@ export default function VendorContactPanel({
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-[#1a1d2e] mb-2">
+          <label
+            htmlFor="contact-phone"
+            className="block text-sm font-medium text-[#1a1d2e] mb-2"
+          >
             Phone
           </label>
           <div className="flex items-center gap-2">
             <Phone className="h-4 w-4 text-[#64748b]" />
             <input
+              id="contact-phone"
               type="tel"
               inputMode="tel"
               pattern="^\+?\d{7,20}$"
@@ -125,10 +137,14 @@ export default function VendorContactPanel({
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                   <div>
-                    <label className="block text-xs text-[#1a1d2e] mb-1">
+                    <label
+                      htmlFor={`contact-${idx}-type`}
+                      className="block text-xs text-[#1a1d2e] mb-1"
+                    >
                       Contact Type
                     </label>
                     <input
+                      id={`contact-${idx}-type`}
                       type="text"
                       value={c.contactType || ""}
                       onChange={(e) =>
@@ -145,10 +161,14 @@ export default function VendorContactPanel({
                     />
                   </div>
                   <div>
-                    <label className="block text-xs text-[#1a1d2e] mb-1">
+                    <label
+                      htmlFor={`contact-${idx}-name`}
+                      className="block text-xs text-[#1a1d2e] mb-1"
+                    >
                       Name
                     </label>
                     <input
+                      id={`contact-${idx}-name`}
                       type="text"
                       value={c.name || ""}
                       onChange={(e) =>
@@ -165,10 +185,14 @@ export default function VendorContactPanel({
                     />
                   </div>
                   <div>
-                    <label className="block text-xs text-[#1a1d2e] mb-1">
+                    <label
+                      htmlFor={`contact-${idx}-designation`}
+                      className="block text-xs text-[#1a1d2e] mb-1"
+                    >
                       Designation
                     </label>
                     <input
+                      id={`contact-${idx}-designation`}
                       type="text"
                       value={c.designation || ""}
                       onChange={(e) =>
@@ -185,10 +209,14 @@ export default function VendorContactPanel({
                     />
                   </div>
                   <div>
-                    <label className="block text-xs text-[#1a1d2e] mb-1">
+                    <label
+                      htmlFor={`contact-${idx}-phone`}
+                      className="block text-xs text-[#1a1d2e] mb-1"
+                    >
                       Phone
                     </label>
                     <input
+                      id={`contact-${idx}-phone`}
                       type="tel"
                       value={c.phone || ""}
                       onChange={(e) =>
@@ -205,10 +233,14 @@ export default function VendorContactPanel({
                     />
                   </div>
                   <div>
-                    <label className="block text-xs text-[#1a1d2e] mb-1">
+                    <label
+                      htmlFor={`contact-${idx}-email`}
+                      className="block text-xs text-[#1a1d2e] mb-1"
+                    >
                       Email
                     </label>
                     <input
+                      id={`contact-${idx}-email`}
                       type="email"
                       value={c.email || ""}
                       onChange={(e) =>
@@ -225,10 +257,14 @@ export default function VendorContactPanel({
                     />
                   </div>
                   <div className="md:col-span-2">
-                    <label className="block text-xs text-[#1a1d2e] mb-1">
+                    <label
+                      htmlFor={`contact-${idx}-technical`}
+                      className="block text-xs text-[#1a1d2e] mb-1"
+                    >
                       Technical Support Contact Details (optional)
                     </label>
                     <input
+                      id={`contact-${idx}-technical`}
                       type="text"
                       value={c.technicalDetails || ""}
                       onChange={(e) =>
@@ -245,10 +281,14 @@ export default function VendorContactPanel({
                     />
                   </div>
                   <div className="md:col-span-2">
-                    <label className="block text-xs text-[#1a1d2e] mb-1">
+                    <label
+                      htmlFor={`contact-${idx}-billing`}
+                      className="block text-xs text-[#1a1d2e] mb-1"
+                    >
                       Billing / Finance Contact Details (optional)
                     </label>
                     <input
+                      id={`contact-${idx}-billing`}
                       type="text"
                       value={c.billingDetails || ""}
                       onChange={(e) =>

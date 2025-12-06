@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { query } from "@/lib/db";
 import { requirePermission } from "@/lib/auth/permissions";
-import { computeAuditDiff } from "@/lib/audit";
+import { computeAuditDiff, AuditItem } from "@/lib/audit";
 
 // Dynamic route params awaited per Next.js guidance.
 export async function GET(
@@ -71,10 +71,9 @@ export async function GET(
     if (!previousAudit) {
       return NextResponse.json(
         {
-          new: [],
-          missing: [],
-          statusChanges: [],
-          unchanged: [],
+          added: [],
+          removed: [],
+          statusChanged: [],
           message: "No previous audit found to compare against.",
         },
         { status: 200 }
@@ -82,7 +81,7 @@ export async function GET(
     }
 
     // 3. Fetch items for both audits
-    const [currentItems, previousItems] = await Promise.all([
+    const [currentRows, previousRows] = await Promise.all([
       query(
         "SELECT serial_number, asset_status_snapshot FROM audit_items WHERE audit_id = ?",
         [auditId]
@@ -93,8 +92,21 @@ export async function GET(
       ),
     ]);
 
-    // 4. Compute and return the diff
-    const diff = computeAuditDiff(currentItems, previousItems);
+    // Map DB rows to AuditItem minimal shape
+    const toItems = (rows: any[], auditIdStr: string): AuditItem[] =>
+      rows.map((r) => ({
+        id: 0,
+        auditId: auditIdStr,
+        serialNumber: String(r.serial_number),
+        found: true,
+        statusSnapshot: r.asset_status_snapshot ?? undefined,
+      }));
+
+    const currentItems = toItems(currentRows, auditId);
+    const previousItems = toItems(previousRows, String(previousAudit.audit_id));
+
+    // 4. Compute and return the diff (prev vs curr)
+    const diff = computeAuditDiff(previousItems, currentItems);
 
     return NextResponse.json(diff);
   } catch (e: any) {

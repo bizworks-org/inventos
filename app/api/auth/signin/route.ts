@@ -6,7 +6,7 @@ import {
 } from "@/lib/auth/db-users";
 import { signToken, verifyPassword, type Role } from "@/lib/auth/server";
 import { query } from "@/lib/db";
-import { randomUUID, createHash } from "node:crypto";
+import { randomUUID, createHash } from "@/lib/node-crypto.server";
 import logger from "@/lib/logger";
 
 async function tryVerifyPassword(password: string, hash?: string) {

@@ -226,12 +226,17 @@ export function PrefsProvider({
 
     const t = (key: string) =>
       translations[prefs.language]?.[key] ?? translations.en[key] ?? key;
-    const formatCurrency = (amount: number, opts?: Intl.NumberFormatOptions) =>
-      new Intl.NumberFormat(locale, {
-        style: "currency",
-        currency: prefs.currency,
+    const formatCurrency = (
+      amount: number,
+      opts?: Intl.NumberFormatOptions
+    ) => {
+      const formatted = new Intl.NumberFormat(locale, {
+        minimumFractionDigits: opts?.minimumFractionDigits ?? 2,
+        maximumFractionDigits: opts?.maximumFractionDigits ?? 2,
         ...opts,
       }).format(amount);
+      return `₹${formatted}`;
+    };
 
     return {
       language: prefs.language,
@@ -267,12 +272,14 @@ export function usePrefs() {
   const currencySymbol = "₹";
   const t = (key: string) =>
     translations[language]?.[key] ?? translations.en[key] ?? key;
-  const formatCurrency = (amount: number, opts?: Intl.NumberFormatOptions) =>
-    new Intl.NumberFormat(locale, {
-      style: "currency",
-      currency: "INR",
+  const formatCurrency = (amount: number, opts?: Intl.NumberFormatOptions) => {
+    const formatted = new Intl.NumberFormat(locale, {
+      minimumFractionDigits: opts?.minimumFractionDigits ?? 2,
+      maximumFractionDigits: opts?.maximumFractionDigits ?? 2,
       ...opts,
     }).format(amount);
+    return `₹${formatted}`;
+  };
 
   return { language, currency, density, t, formatCurrency, currencySymbol };
 }

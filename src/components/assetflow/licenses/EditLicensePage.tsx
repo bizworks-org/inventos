@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import useFetchOnMount from "../hooks/useFetchOnMount";
+import FullPageLoader from "@/components/ui/FullPageLoader";
 import { usePrefs } from "../layout/PrefsContext";
 import { motion } from "motion/react";
 import { Save, X, Calendar, DollarSign } from "lucide-react";
@@ -36,30 +38,20 @@ export function EditLicensePage({
 }: Readonly<EditLicensePageProps>) {
   const { currencySymbol, formatCurrency } = usePrefs();
   const [license, setLicense] = useState<License | undefined>(undefined);
-  const [loading, setLoading] = useState(true);
+
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
 
-  useEffect(() => {
-    let cancelled = false;
-    setLoading(true);
-    fetchLicenseById(licenseId)
-      .then((l) => {
-        if (!cancelled) {
-          setLicense(l);
-          setError(null);
-        }
-      })
-      .catch((e) => {
-        if (!cancelled) setError(e.message || "Failed to load license");
-      })
-      .finally(() => {
-        if (!cancelled) setLoading(false);
-      });
-    return () => {
-      cancelled = true;
-    };
+  const { loading: initialLoading } = useFetchOnMount(async () => {
+    try {
+      const l = await fetchLicenseById(licenseId);
+      setLicense(l);
+      setError(null);
+    } catch (e: any) {
+      setError(e?.message || "Failed to load license");
+      throw e;
+    }
   }, [licenseId]);
 
   const [formData, setFormData] = useState({
@@ -199,7 +191,7 @@ export function EditLicensePage({
     }
   };
 
-  if (loading) {
+  if (initialLoading) {
     return (
       <AssetFlowLayout
         breadcrumbs={[
@@ -210,7 +202,7 @@ export function EditLicensePage({
         currentPage="licenses"
         onSearch={onSearch}
       >
-        <div className="p-6">Loading license...</div>
+        <FullPageLoader message="Loading license..." />
       </AssetFlowLayout>
     );
   }
@@ -491,19 +483,25 @@ export function EditLicensePage({
                   const val = customFieldValues[def.key] ?? "";
                   const onChange = (newVal: string) =>
                     setCustomFieldValues((v) => ({ ...v, [def.key]: newVal }));
+                  const fid = `license-cf-${def.key}`;
                   return (
                     <div key={def.key}>
-                      <label className="block text-sm font-medium text-[#1a1d2e] mb-2">
+                      <label
+                        htmlFor={fid}
+                        className="block text-sm font-medium text-[#1a1d2e] mb-2"
+                      >
                         <span className="block mb-2">
                           {def.label}
                           {def.required ? " *" : ""}
                         </span>
-                        <FieldRenderer
-                          def={def}
-                          value={val}
-                          onChange={onChange}
-                        />
                       </label>
+                      <FieldRenderer
+                        def={def}
+                        value={val}
+                        onChange={onChange}
+                        id={fid}
+                      />
+                      <input id={fid} type="hidden" value={val} readOnly />
                     </div>
                   );
                 })}

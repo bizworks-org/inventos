@@ -21,9 +21,9 @@ export function buildUpdatedVendor(
     email: formData.email,
     phone: formData.phone,
     status: formData.status,
-    contractValue: parseFloat(formData.contractValue || "0"),
+    contractValue: Number.parseFloat(formData.contractValue || "0"),
     contractExpiry: formData.contractExpiry,
-    rating: parseFloat(formData.rating || "0"),
+    rating: Number.parseFloat(formData.rating || "0"),
   };
 
   if (fieldDefs && fieldDefs.length > 0) {

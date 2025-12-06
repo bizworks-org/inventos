@@ -1161,21 +1161,23 @@ export function AddAssetPage(props: Readonly<AddAssetPageProps>) {
                   const val = customFieldValues[def.key] ?? "";
                   const onChange = (newVal: string) =>
                     setCustomFieldValues((v) => ({ ...v, [def.key]: newVal }));
+                  const fid = `asset-cf-${def.key}`;
                   return (
                     <div key={def.key}>
                       <label
-                        htmlFor={def.key}
+                        htmlFor={fid}
                         className="block text-sm font-medium text-[#1a1d2e] mb-2"
                       >
                         {def.label}
                         {def.required ? " *" : ""}
                       </label>
                       <FieldRenderer
-                        id={def.key}
+                        id={fid}
                         def={def}
                         value={val}
                         onChange={onChange}
                       />
+                      <input id={fid} type="hidden" value={val} readOnly />
                     </div>
                   );
                 })}

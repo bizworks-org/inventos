@@ -1,8 +1,11 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import useFetchOnMount from "../hooks/useFetchOnMount";
+import FullPageLoader from "@/components/ui/FullPageLoader";
+import { useRouter, useSearchParams } from "next/navigation";
 import { motion } from "motion/react";
-import { Plus, Download, Upload, Search, AlertTriangle } from "lucide-react";
+import { Plus, Download, Upload, Search } from "lucide-react";
 import { AssetFlowLayout } from "../layout/AssetFlowLayout";
 import { License } from "../../../lib/data";
 import { fetchLicenses, deleteLicense } from "../../../lib/api";
@@ -10,7 +13,6 @@ import { LicensesTable } from "./LicensesTable";
 import { exportLicensesToCSV } from "../../../lib/export";
 import { importLicenses, parseLicensesFile } from "../../../lib/import";
 import { toast } from "@/components/ui/sonner";
-import { usePrefs } from "../layout/PrefsContext";
 import { getMe, type ClientMe } from "../../../lib/auth/client";
 import { Button } from "@/components/ui/button";
 
@@ -27,7 +29,7 @@ export type ComplianceFilter =
   | "Non-Compliant";
 
 export function LicensesPage({ onNavigate, onSearch }: LicensesPageProps) {
-  const { formatCurrency, t } = usePrefs();
+  const searchParams = useSearchParams();
   const [selectedType, setSelectedType] = useState<LicenseTypeFilter>("All");
   const [selectedCompliance, setSelectedCompliance] =
     useState<ComplianceFilter>("All");
@@ -36,27 +38,39 @@ export function LicensesPage({ onNavigate, onSearch }: LicensesPageProps) {
   const [me, setMe] = useState<ClientMe>(null);
   const [expiringOnly, setExpiringOnly] = useState<boolean>(false);
 
-  useEffect(() => {
-    let cancelled = false;
-    getMe()
-      .then(setMe)
-      .catch(() => setMe(null));
-    fetchLicenses()
-      .then((rows) => {
-        if (!cancelled) {
-          setLicenses(rows);
-        }
-      })
-      .catch(() => {
-        if (!cancelled) {
-          // Intentionally not storing an error state; errors are logged/handled elsewhere as needed.
-          console.error("Failed to load licenses");
-        }
-      });
-    return () => {
-      cancelled = true;
-    };
+  const { loading: initialLoading } = useFetchOnMount(async () => {
+    const meRes = await getMe().catch(() => null);
+    setMe(meRes);
+    const rows = await fetchLicenses();
+    setLicenses(rows);
   }, []);
+
+  // Initialize filters from URL params (e.g. ?expiringOnly=1 or ?compliance=Compliant)
+  useEffect(() => {
+    if (!searchParams) return;
+    const exp =
+      searchParams.get("expiringOnly") || searchParams.get("expiring");
+    if (exp === "1" || exp === "true") setExpiringOnly(true);
+    const comp = searchParams.get("compliance");
+    if (comp) setSelectedCompliance(comp as ComplianceFilter);
+  }, [searchParams]);
+
+  const router = useRouter();
+
+  const clearFilters = () => {
+    setSelectedCompliance("All");
+    setSelectedType("All");
+    setSearchQuery("");
+    setExpiringOnly(false);
+    router.push("/licenses");
+  };
+
+  const activeFilters: string[] = [];
+  if (selectedType !== "All") activeFilters.push(`Type: ${selectedType}`);
+  if (selectedCompliance !== "All")
+    activeFilters.push(`Compliance: ${selectedCompliance}`);
+  if (expiringOnly) activeFilters.push("Expiring Soon");
+  if (searchQuery) activeFilters.push(`Search: ${searchQuery}`);
 
   // Filter licenses based on selected filters
   const filteredLicenses = useMemo(
@@ -118,30 +132,6 @@ export function LicensesPage({ onNavigate, onSearch }: LicensesPageProps) {
     return licenses.filter((l) => l.type === type).length;
   };
 
-  // Get expiring licenses count
-  const expiringCount = useMemo(() => {
-    const now = new Date();
-    const future = new Date(now.getTime() + 90 * 24 * 60 * 60 * 1000);
-    return licenses.filter((l) => {
-      const d = new Date(l.expirationDate);
-      return d <= future && d >= now;
-    }).length;
-  }, [licenses]);
-
-  // Calculate total license value
-  const totalValue = useMemo(
-    () => licenses.reduce((sum, license) => sum + license.cost, 0),
-    [licenses]
-  );
-
-  // Total monthly spend (sum of cost/12)
-  const totalMonthlySpend = useMemo(
-    () => licenses.reduce((sum, license) => sum + (license.cost || 0) / 12, 0),
-    [licenses]
-  );
-
-  // Seat UI removed; keep backend values intact but don't display aggregated seat stats
-
   const handleDelete = async (id: string) => {
     // Capture current state so we can restore on failure
     const previous = licenses;
@@ -166,6 +156,7 @@ export function LicensesPage({ onNavigate, onSearch }: LicensesPageProps) {
       onSearch={onSearch}
     >
       {/* Header */}
+      {initialLoading && <FullPageLoader message="Loading licenses..." />}
       <div className="flex items-center justify-between mb-8">
         <div>
           <h1 className="text-3xl font-bold text-[#1a1d2e] mb-2">
@@ -243,104 +234,6 @@ export function LicensesPage({ onNavigate, onSearch }: LicensesPageProps) {
         </motion.div>
       </div>
 
-      {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6">
-        <motion.button
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.3, delay: 0.1 }}
-          onClick={() => {
-            setSelectedType("All");
-            setSelectedCompliance("All");
-            setSearchQuery("");
-            setExpiringOnly(false);
-          }}
-          type="button"
-          className="bg-white rounded-xl border border-[rgba(0,0,0,0.08)] p-6 shadow-sm cursor-pointer hover:border-[#6366f1]/40 hover:shadow-md"
-        >
-          <div className="flex items-center justify-between mb-2">
-            <p className="text-sm text-[#64748b]">Total Licenses</p>
-            <div className="h-10 w-10 rounded-lg bg-gradient-to-br from-[#6366f1] to-[#8b5cf6] flex items-center justify-center">
-              <span className="text-white font-bold">{licenses.length}</span>
-            </div>
-          </div>
-          <p className="text-2xl font-bold text-[#1a1d2e]">
-            {formatCurrency(totalValue)}
-          </p>
-          <p className="text-xs text-[#94a3b8] mt-1">{t("annualSpend")}</p>
-        </motion.button>
-
-        <motion.button
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.3, delay: 0.15 }}
-          onClick={() => {
-            setExpiringOnly(true);
-            setSelectedCompliance("All");
-          }}
-          type="button"
-          className="bg-white rounded-xl border border-[rgba(0,0,0,0.08)] p-6 shadow-sm cursor-pointer hover:border-[#f59e0b]/40 hover:shadow-md"
-        >
-          <div className="flex items-center justify-between mb-2">
-            <p className="text-sm text-[#64748b]">Expiring Soon</p>
-            <AlertTriangle className="h-5 w-5 text-[#f59e0b]" />
-          </div>
-          <p className="text-2xl font-bold text-[#f59e0b]">{expiringCount}</p>
-          <p className="text-xs text-[#94a3b8] mt-1">Within 90 days</p>
-        </motion.button>
-
-        {/* Total Monthly Spend */}
-        <motion.button
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.3, delay: 0.2 }}
-          onClick={() => {
-            // No specific filter; act as a reset of expiring filter
-            setExpiringOnly(false);
-          }}
-          type="button"
-          className="bg-white rounded-xl border border-[rgba(0,0,0,0.08)] p-6 shadow-sm cursor-pointer hover:border-[#6366f1]/40 hover:shadow-md"
-        >
-          <div className="flex items-center justify-between mb-2">
-            <p className="text-sm text-[#64748b]">Total Monthly Spend</p>
-            <div className="h-10 w-10 rounded-lg bg-gradient-to-br from-[#6366f1] to-[#8b5cf6] flex items-center justify-center">
-              <span className="text-white font-bold">₹</span>
-            </div>
-          </div>
-          <p className="text-2xl font-bold text-[#1a1d2e]">
-            {formatCurrency(totalMonthlySpend)}
-          </p>
-          <p className="text-xs text-[#94a3b8] mt-1">
-            Monthly spend across licenses
-          </p>
-        </motion.button>
-
-        {/* Seat utilization tile removed from UI */}
-
-        <motion.button
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.3, delay: 0.25 }}
-          onClick={() => {
-            setSelectedCompliance("Compliant");
-            setExpiringOnly(false);
-          }}
-          type="button"
-          className="bg-white rounded-xl border border-[rgba(0,0,0,0.08)] p-6 shadow-sm cursor-pointer hover:border-[#10b981]/40 hover:shadow-md"
-        >
-          <div className="flex items-center justify-between mb-2">
-            <p className="text-sm text-[#64748b]">Compliance Status</p>
-            <div className="h-10 w-10 rounded-lg bg-gradient-to-br from-[#10b981] to-[#14b8a6] flex items-center justify-center">
-              <span className="text-white font-bold text-xs">OK</span>
-            </div>
-          </div>
-          <p className="text-2xl font-bold text-[#10b981]">
-            {licenses.filter((l) => l.compliance === "Compliant").length}
-          </p>
-          <p className="text-xs text-[#94a3b8] mt-1">Compliant licenses</p>
-        </motion.button>
-      </div>
-
       {/* Filters Card */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
@@ -388,7 +281,11 @@ export function LicensesPage({ onNavigate, onSearch }: LicensesPageProps) {
           {/* Search */}
           <div className="flex-1 relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-[#a0a4b8]" />
+            <label htmlFor="licenses-search" className="sr-only">
+              Search licenses
+            </label>
             <input
+              id="licenses-search"
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
@@ -405,7 +302,11 @@ export function LicensesPage({ onNavigate, onSearch }: LicensesPageProps) {
 
           {/* Compliance Filter */}
           <div className="relative">
+            <label htmlFor="licenses-compliance" className="sr-only">
+              Filter licenses by compliance status
+            </label>
             <select
+              id="licenses-compliance"
               value={selectedCompliance}
               onChange={(e) =>
                 setSelectedCompliance(e.target.value as ComplianceFilter)
@@ -464,6 +365,25 @@ export function LicensesPage({ onNavigate, onSearch }: LicensesPageProps) {
           </div>
         </div>
       </motion.div>
+      {activeFilters.length > 0 && (
+        <div className="mb-4 flex items-center justify-between">
+          <div className="flex items-center gap-2 flex-wrap">
+            {activeFilters.map((f) => (
+              <span
+                key={f}
+                className="text-sm bg-[#f1f5f9] text-[#0f172a] px-2 py-1 rounded"
+              >
+                {f}
+              </span>
+            ))}
+          </div>
+          <div>
+            <Button onClick={clearFilters} className="px-3 py-1">
+              Clear filters
+            </Button>
+          </div>
+        </div>
+      )}
 
       {/* Licenses Table */}
       <LicensesTable

@@ -1,5 +1,10 @@
 import { cookies } from "next/headers";
-import { createHmac, randomBytes, scryptSync, timingSafeEqual } from "crypto";
+import {
+  createHmac,
+  randomBytes,
+  scryptSync,
+  timingSafeEqual,
+} from "@/lib/node-crypto.server";
 
 export type Role = "admin" | "user" | "superadmin";
 export type User = {

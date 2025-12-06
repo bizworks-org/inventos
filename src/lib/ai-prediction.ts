@@ -3,8 +3,8 @@
 
 export interface AssetPredictionInput {
   assetType: string;
-  usagePattern: 'Light' | 'Medium' | 'Heavy';
-  maintenanceHistory: 'Good' | 'Fair' | 'Poor';
+  usagePattern: "Light" | "Medium" | "Heavy";
+  maintenanceHistory: "Good" | "Fair" | "Poor";
   ageInMonths: number;
   originalCost: number;
 }
@@ -26,33 +26,35 @@ export async function predictAssetReplacementCycle(
   input: AssetPredictionInput
 ): Promise<AssetPredictionOutput> {
   // Simulate API call delay
-  await new Promise(resolve => setTimeout(resolve, 1500));
+  await new Promise((resolve) => setTimeout(resolve, 1500));
 
   // Base replacement timeline by asset type (in months)
   const baseTimelines: Record<string, number> = {
-    'Laptop': 36,
-    'Desktop': 48,
-    'Server': 60,
-    'Monitor': 60,
-    'Phone': 24,
-    'Printer': 48
+    Laptop: 36,
+    Desktop: 48,
+    Server: 60,
+    Monitor: 60,
+    Phone: 24,
+    Printer: 48,
   };
 
   const baseMonths = baseTimelines[input.assetType] || 36;
-  
+
   // Adjust based on usage pattern
-  const usageMultiplier = {
-    'Light': 1.3,
-    'Medium': 1.0,
-    'Heavy': 0.7
-  }[input.usagePattern] || 1.0;
+  const usageMultiplier =
+    {
+      Light: 1.3,
+      Medium: 1,
+      Heavy: 0.7,
+    }[input.usagePattern] || 1;
 
   // Adjust based on maintenance history
-  const maintenanceMultiplier = {
-    'Good': 1.2,
-    'Fair': 1.0,
-    'Poor': 0.8
-  }[input.maintenanceHistory] || 1.0;
+  const maintenanceMultiplier =
+    {
+      Good: 1.2,
+      Fair: 1,
+      Poor: 0.8,
+    }[input.maintenanceHistory] || 1;
 
   // Calculate predicted months
   const predictedMonths = Math.round(
@@ -63,12 +65,18 @@ export async function predictAssetReplacementCycle(
   const remainingMonths = Math.max(0, predictedMonths - input.ageInMonths);
 
   // Calculate costs
-  const annualMaintenanceRate = input.maintenanceHistory === 'Poor' ? 0.15 : 
-                                input.maintenanceHistory === 'Fair' ? 0.10 : 0.05;
+  let annualMaintenanceRate: number;
+  if (input.maintenanceHistory === "Poor") {
+    annualMaintenanceRate = 0.15;
+  } else if (input.maintenanceHistory === "Fair") {
+    annualMaintenanceRate = 0.1;
+  } else {
+    annualMaintenanceRate = 0.05;
+  }
   const maintenanceCost = Math.round(
     input.originalCost * annualMaintenanceRate * (remainingMonths / 12)
   );
-  
+
   const replacementCost = Math.round(input.originalCost * 1.1); // Assume 10% price increase
   const totalCostOfOwnership = maintenanceCost + replacementCost;
 
@@ -94,8 +102,8 @@ export async function predictAssetReplacementCycle(
     costProjection: {
       maintenanceCost,
       replacementCost,
-      totalCostOfOwnership
-    }
+      totalCostOfOwnership,
+    },
   };
 }
 
@@ -104,33 +112,38 @@ function generateReasoning(
   totalLifespan: number,
   remainingMonths: number
 ): string {
-  const parts = [];
+  const baseIntro = `Based on the analysis of your ${input.assetType.toLowerCase()}, which is currently ${input.ageInMonths} months old,`;
+  const lifespanStmt = `I've determined an expected total lifespan of approximately ${totalLifespan} months.`;
 
-  parts.push(`Based on the analysis of your ${input.assetType.toLowerCase()}, which is currently ${input.ageInMonths} months old,`);
-  
-  parts.push(`I've determined an expected total lifespan of approximately ${totalLifespan} months.`);
-
-  if (input.usagePattern === 'Heavy') {
-    parts.push(`The heavy usage pattern accelerates wear and tear, reducing the typical replacement cycle.`);
-  } else if (input.usagePattern === 'Light') {
-    parts.push(`The light usage pattern extends the asset's viable operational life beyond typical expectations.`);
+  let usagePart = "";
+  if (input.usagePattern === "Heavy") {
+    usagePart = `The heavy usage pattern accelerates wear and tear, reducing the typical replacement cycle.`;
+  } else if (input.usagePattern === "Light") {
+    usagePart = `The light usage pattern extends the asset's viable operational life beyond typical expectations.`;
   }
 
-  if (input.maintenanceHistory === 'Good') {
-    parts.push(`The excellent maintenance history suggests the asset has been well-cared for, potentially extending its useful life.`);
-  } else if (input.maintenanceHistory === 'Poor') {
-    parts.push(`The suboptimal maintenance history indicates accelerated degradation and increased failure risk.`);
+  let maintenancePart = "";
+  if (input.maintenanceHistory === "Good") {
+    maintenancePart = `The excellent maintenance history suggests the asset has been well-cared for, potentially extending its useful life.`;
+  } else if (input.maintenanceHistory === "Poor") {
+    maintenancePart = `The suboptimal maintenance history indicates accelerated degradation and increased failure risk.`;
   }
 
+  let remainingPart = "";
   if (remainingMonths <= 6) {
-    parts.push(`With only ${remainingMonths} months remaining, immediate replacement planning is recommended.`);
+    remainingPart = `With only ${remainingMonths} months remaining, immediate replacement planning is recommended.`;
   } else if (remainingMonths <= 12) {
-    parts.push(`With ${remainingMonths} months of serviceable life remaining, you should begin budgeting for replacement soon.`);
+    remainingPart = `With ${remainingMonths} months of serviceable life remaining, you should begin budgeting for replacement soon.`;
   } else {
-    parts.push(`The asset has approximately ${remainingMonths} months of optimal performance remaining before replacement consideration.`);
+    remainingPart = `The asset has approximately ${remainingMonths} months of optimal performance remaining before replacement consideration.`;
   }
 
-  return parts.join(' ');
+  const parts = [baseIntro, lifespanStmt]
+    .concat(usagePart ? [usagePart] : [])
+    .concat(maintenancePart ? [maintenancePart] : [])
+    .concat(remainingPart ? [remainingPart] : []);
+
+  return parts.join(" ");
 }
 
 function generateSuggestedActions(
@@ -139,35 +152,49 @@ function generateSuggestedActions(
   maintenanceCost: number,
   replacementCost: number
 ): string[] {
-  const actions: string[] = [];
+  const actions: string[] = (() => {
+    if (remainingMonths <= 3) {
+      return [
+        "🚨 Initiate immediate replacement procurement process",
+        "📋 Develop data migration and transition plan",
+        "💰 Secure budget approval for replacement (₹" +
+          replacementCost.toLocaleString() +
+          ")",
+      ];
+    } else if (remainingMonths <= 6) {
+      return [
+        "📅 Schedule replacement within next quarter",
+        "🔍 Research current market options and pricing",
+        "💾 Begin backup and data inventory process",
+      ];
+    } else if (remainingMonths <= 12) {
+      return [
+        "📊 Add to next fiscal year capital expenditure plan",
+        "🔧 Increase maintenance monitoring frequency",
+        "📈 Track performance metrics for replacement timing",
+      ];
+    } else {
+      return [
+        "✅ Continue current maintenance schedule",
+        "📝 Document asset performance and issues",
+        "💡 Consider early replacement if new technology provides significant ROI",
+      ];
+    }
+  })();
 
-  if (remainingMonths <= 3) {
-    actions.push('🚨 Initiate immediate replacement procurement process');
-    actions.push('📋 Develop data migration and transition plan');
-    actions.push('💰 Secure budget approval for replacement ($' + replacementCost.toLocaleString() + ')');
-  } else if (remainingMonths <= 6) {
-    actions.push('📅 Schedule replacement within next quarter');
-    actions.push('🔍 Research current market options and pricing');
-    actions.push('💾 Begin backup and data inventory process');
-  } else if (remainingMonths <= 12) {
-    actions.push('📊 Add to next fiscal year capital expenditure plan');
-    actions.push('🔧 Increase maintenance monitoring frequency');
-    actions.push('📈 Track performance metrics for replacement timing');
-  } else {
-    actions.push('✅ Continue current maintenance schedule');
-    actions.push('📝 Document asset performance and issues');
-    actions.push('💡 Consider early replacement if new technology provides significant ROI');
-  }
+  const finalActions: string[] = [
+    ...actions,
+    ...(maintenanceCost > replacementCost * 0.3
+      ? [
+          "⚠️ High projected maintenance costs suggest earlier replacement may be cost-effective",
+        ]
+      : []),
+    ...(input.maintenanceHistory === "Poor"
+      ? ["🛠️ Implement improved maintenance protocols to extend asset lifespan"]
+      : []),
+  ];
 
-  if (maintenanceCost > replacementCost * 0.3) {
-    actions.push('⚠️ High projected maintenance costs suggest earlier replacement may be cost-effective');
-  }
-
-  if (input.maintenanceHistory === 'Poor') {
-    actions.push('🛠️ Implement improved maintenance protocols to extend asset lifespan');
-  }
-
-  return actions;
+  return finalActions;
 }
 
 function calculateConfidence(input: AssetPredictionInput): number {
@@ -179,9 +206,9 @@ function calculateConfidence(input: AssetPredictionInput): number {
   }
 
   // Adjust for maintenance history quality
-  if (input.maintenanceHistory === 'Poor') {
+  if (input.maintenanceHistory === "Poor") {
     confidence -= 5;
-  } else if (input.maintenanceHistory === 'Good') {
+  } else if (input.maintenanceHistory === "Good") {
     confidence += 5;
   }
 

@@ -1,14 +1,12 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import useFetchOnMount from "../hooks/useFetchOnMount";
+import FullPageLoader from "@/components/ui/FullPageLoader";
 import { usePrefs } from "../layout/PrefsContext";
-import { motion } from "motion/react";
-import { ArrowLeft, Save, X, Mail, Phone, Star } from "lucide-react";
+import { ArrowLeft, Save, X} from "lucide-react";
 import { AssetFlowLayout } from "../layout/AssetFlowLayout";
 import { Vendor, AssetFieldDef } from "@/lib/data";
-import FieldRenderer from "../assets/FieldRenderer";
-import FileDropzone from "../../ui/FileDropzone";
-import { uploadWithProgress } from "@/lib/upload";
 import { fetchVendorById, updateVendor } from "@/lib/api";
 import { toast } from "@/components/ui/sonner";
 import { logVendorUpdated } from "@/lib/events";
@@ -22,7 +20,7 @@ import VendorComplianceTab from "./VendorComplianceTab";
 import VendorFinancialTab from "./VendorFinancialTab";
 import VendorContractTab from "./VendorContractTab";
 import VendorCustomFieldsTab from "./VendorCustomFieldsTab";
-import { normalizePhone, buildUpdatedVendor } from "./vendorUtils";
+import { buildUpdatedVendor } from "./vendorUtils";
 
 interface EditVendorPageProps {
   vendorId: string;
@@ -45,7 +43,7 @@ export function EditVendorPage({
 }: Readonly<EditVendorPageProps>) {
   const { currencySymbol } = usePrefs();
   const [vendor, setVendor] = useState<Vendor | undefined>(undefined);
-  const [loading, setLoading] = useState(true);
+
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
@@ -65,25 +63,15 @@ export function EditVendorPage({
     { id: "custom", label: "Custom Fields" },
   ];
 
-  useEffect(() => {
-    let cancelled = false;
-    setLoading(true);
-    fetchVendorById(vendorId)
-      .then((v) => {
-        if (!cancelled) {
-          setVendor(v);
-          setError(null);
-        }
-      })
-      .catch((e) => {
-        if (!cancelled) setError(e.message || "Failed to load vendor");
-      })
-      .finally(() => {
-        if (!cancelled) setLoading(false);
-      });
-    return () => {
-      cancelled = true;
-    };
+  const { loading: initialLoading } = useFetchOnMount(async () => {
+    try {
+      const v = await fetchVendorById(vendorId);
+      setVendor(v);
+      setError(null);
+    } catch (e: any) {
+      setError(e?.message || "Failed to load vendor");
+      throw e;
+    }
   }, [vendorId]);
 
   const [formData, setFormData] = useState<any>({
@@ -198,56 +186,46 @@ export function EditVendorPage({
       contacts: (vendor as any).contacts ?? [],
     });
     // fetch vendor documents
-    (async () => {
-      try {
-        const [docsRes, profileRes] = await Promise.all([
-          fetch(`/api/vendors/${vendorId}/documents`),
-          fetch(`/api/vendors/${vendorId}/profile`),
-        ]);
-        if (docsRes.ok) {
-          const docs = await docsRes.json();
-          setFormDocs(docs);
-        }
-        if (profileRes.ok) {
-          const prof = await profileRes.json();
-          // normalize some fields
-          let authorizedHardware: string[] = [];
-          if (prof?.authorized_hardware) {
-            if (typeof prof.authorized_hardware === "string") {
-              try {
-                authorizedHardware = JSON.parse(prof.authorized_hardware);
-              } catch {
-                authorizedHardware = [];
-              }
-            } else {
-              authorizedHardware = prof.authorized_hardware;
+        const parseArrayField = (v: any): string[] => {
+          if (!v) return [];
+          if (Array.isArray(v)) return v;
+          if (typeof v === "string") {
+            try {
+              const p = JSON.parse(v);
+              return Array.isArray(p) ? p : [];
+            } catch {
+              return [];
             }
           }
-
-          let evaluationCommittee: string[] = [];
-          if (prof?.evaluation_committee) {
-            if (typeof prof.evaluation_committee === "string") {
-              try {
-                evaluationCommittee = JSON.parse(prof.evaluation_committee);
-              } catch {
-                evaluationCommittee = [];
-              }
-            } else {
-              evaluationCommittee = prof.evaluation_committee;
+          return [];
+        };
+    
+        const fetchDocsAndProfile = async () => {
+          try {
+            const [docsRes, profileRes] = await Promise.all([
+              fetch(`/api/vendors/${vendorId}/documents`),
+              fetch(`/api/vendors/${vendorId}/profile`),
+            ]);
+            if (docsRes.ok) {
+              const docs = await docsRes.json();
+              setFormDocs(docs);
             }
+            if (profileRes.ok) {
+              const prof = await profileRes.json();
+    
+              setProfile((prev) => ({
+                ...prev,
+                ...prof,
+                authorized_hardware: parseArrayField(prof?.authorized_hardware),
+                evaluation_committee: parseArrayField(prof?.evaluation_committee),
+              }));
+            }
+          } catch (e) {
+            console.error("Failed to fetch vendor documents or profile", e);
           }
-
-          setProfile((prev) => ({
-            ...prev,
-            ...prof,
-            authorized_hardware: authorizedHardware,
-            evaluation_committee: evaluationCommittee,
-          }));
-        }
-      } catch (e) {
-        console.error("Failed to fetch vendor documents or profile", e);
-      }
-    })();
+        };
+    
+        fetchDocsAndProfile();
   }, [vendor]);
 
   const handleInputChange = (field: string, value: string) => {
@@ -408,7 +386,7 @@ export function EditVendorPage({
     }
   };
 
-  if (loading) {
+  if (initialLoading) {
     return (
       <AssetFlowLayout
         breadcrumbs={[
@@ -419,7 +397,7 @@ export function EditVendorPage({
         currentPage="vendors"
         onSearch={onSearch}
       >
-        <div className="p-6">Loading vendor...</div>
+        <FullPageLoader message="Loading vendor..." />
       </AssetFlowLayout>
     );
   }

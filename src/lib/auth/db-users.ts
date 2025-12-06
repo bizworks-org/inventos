@@ -1,4 +1,4 @@
-import { randomUUID } from "crypto";
+import { randomUUID } from "@/lib/node-crypto.server";
 import { query } from "@/lib/db";
 import type { Role } from "./server";
 
@@ -175,7 +175,7 @@ export async function dbUpdateUserPassword(
 
 export async function dbDeleteUser(id: string): Promise<boolean> {
   await query(`DELETE FROM user_roles WHERE user_id = :id`, { id });
-  const res = await query<any>(`DELETE FROM users WHERE id = :id`, { id });
+  await query<any>(`DELETE FROM users WHERE id = :id`, { id });
   // mysql2 returns OkPacket in different way; treat as success if no error and attempt completed
   return true;
 }

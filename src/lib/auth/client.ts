@@ -15,5 +15,5 @@ export async function getMe(): Promise<ClientMe> {
 
 export async function signOut() {
   await fetch("/api/auth/signout", { method: "POST" });
-  if (typeof window !== "undefined") window.location.href = "/login";
+  if (globalThis.window !== undefined) globalThis.window.location.href = "/login";
 }

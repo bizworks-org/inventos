@@ -46,20 +46,22 @@ export function MailConfigForm({
       <CardContent className="space-y-6">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
-            <Label className="mb-1 block">
+            <Label htmlFor="mail-host" className="mb-1 block">
               SMTP Host<span className="text-red-500"> *</span>
             </Label>
             <Input
+              id="mail-host"
               value={mailForm.host}
               onChange={(e) => onFormChange({ host: e.target.value })}
               placeholder="smtp.example.com"
             />
           </div>
           <div>
-            <Label className="mb-1 block">
+            <Label htmlFor="mail-port" className="mb-1 block">
               Port<span className="text-red-500"> *</span>
             </Label>
             <Input
+              id="mail-port"
               type="number"
               value={mailForm.port}
               onChange={(e) => onFormChange({ port: e.target.value })}
@@ -67,16 +69,22 @@ export function MailConfigForm({
             />
           </div>
           <div>
-            <Label className="mb-1 block">Username</Label>
+            <Label htmlFor="mail-user" className="mb-1 block">
+              Username
+            </Label>
             <Input
+              id="mail-user"
               value={mailForm.user}
               onChange={(e) => onFormChange({ user: e.target.value })}
               placeholder="Optional"
             />
           </div>
           <div>
-            <Label className="mb-1 block">Password</Label>
+            <Label htmlFor="mail-password" className="mb-1 block">
+              Password
+            </Label>
             <Input
+              id="mail-password"
               type="password"
               value={mailForm.password}
               onChange={(e) => onFormChange({ password: e.target.value })}
@@ -84,18 +92,22 @@ export function MailConfigForm({
             />
           </div>
           <div>
-            <Label className="mb-1 block">From Name</Label>
+            <Label htmlFor="mail-fromName" className="mb-1 block">
+              From Name
+            </Label>
             <Input
+              id="mail-fromName"
               value={mailForm.fromName}
               onChange={(e) => onFormChange({ fromName: e.target.value })}
               placeholder="AssetFlow"
             />
           </div>
           <div>
-            <Label className="mb-1 block">
+            <Label htmlFor="mail-fromEmail" className="mb-1 block">
               From Email<span className="text-red-500"> *</span>
             </Label>
             <Input
+              id="mail-fromEmail"
               type="email"
               value={mailForm.fromEmail}
               onChange={(e) => onFormChange({ fromEmail: e.target.value })}

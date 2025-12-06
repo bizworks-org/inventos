@@ -25,7 +25,10 @@ export default function FieldRenderer({
   if (def.type === "star") {
     return (
       <div className="flex items-center gap-2">
-        <label className="text-sm font-medium text-slate-700">
+        <label
+          htmlFor={id ?? `cf-${def.key}`}
+          className="text-sm font-medium text-slate-700"
+        >
           {def.label}
         </label>
         <StarField
@@ -45,6 +48,7 @@ export default function FieldRenderer({
         def={def}
         value={String(value ?? "")}
         onChange={(v) => onChange(v)}
+        id={id}
       />
     );
   }
@@ -55,6 +59,7 @@ export default function FieldRenderer({
         def={def}
         value={String(value ?? "")}
         onChange={(v) => onChange(v)}
+        id={id}
       />
     );
   }
@@ -65,6 +70,7 @@ export default function FieldRenderer({
         def={def}
         value={String(value ?? "")}
         onChange={(v) => onChange(v)}
+        id={id}
       />
     );
   }

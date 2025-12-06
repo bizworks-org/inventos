@@ -11,23 +11,25 @@ import { Label } from "../../../ui/label";
 import { Input } from "../../../ui/input";
 import { Button } from "../../../ui/button";
 
-export default function DatabaseTab(props: Readonly<{
-  techTabsDisabled: boolean;
-  dbForm: {
-    host: string;
-    port: string;
-    user: string;
-    password: string;
-    database: string;
-  };
-  setDbForm: (fn: (v: any) => any) => void;
-  dbMsg: string | null;
-  dbTestBusy: boolean;
-  dbBusy: boolean;
-  onTestConnection: () => Promise<void>;
-  onSaveConfig: () => Promise<void>;
-  onInitialize: () => Promise<void>;
-}>) {
+export default function DatabaseTab(
+  props: Readonly<{
+    techTabsDisabled: boolean;
+    dbForm: {
+      host: string;
+      port: string;
+      user: string;
+      password: string;
+      database: string;
+    };
+    setDbForm: (fn: (v: any) => any) => void;
+    dbMsg: string | null;
+    dbTestBusy: boolean;
+    dbBusy: boolean;
+    onTestConnection: () => Promise<void>;
+    onSaveConfig: () => Promise<void>;
+    onInitialize: () => Promise<void>;
+  }>
+) {
   const {
     techTabsDisabled,
     dbForm,
@@ -52,8 +54,11 @@ export default function DatabaseTab(props: Readonly<{
       <CardContent className="space-y-4">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
-            <Label className="mb-1 block">Host</Label>
+            <Label htmlFor="db-host" className="mb-1 block">
+              Host
+            </Label>
             <Input
+              id="db-host"
               value={dbForm.host}
               onChange={(e) =>
                 setDbForm((v: any) => ({ ...v, host: e.target.value }))
@@ -62,8 +67,11 @@ export default function DatabaseTab(props: Readonly<{
             />
           </div>
           <div>
-            <Label className="mb-1 block">Port</Label>
+            <Label htmlFor="db-port" className="mb-1 block">
+              Port
+            </Label>
             <Input
+              id="db-port"
               value={dbForm.port}
               onChange={(e) =>
                 setDbForm((v: any) => ({ ...v, port: e.target.value }))
@@ -72,8 +80,11 @@ export default function DatabaseTab(props: Readonly<{
             />
           </div>
           <div>
-            <Label className="mb-1 block">User</Label>
+            <Label htmlFor="db-user" className="mb-1 block">
+              User
+            </Label>
             <Input
+              id="db-user"
               value={dbForm.user}
               onChange={(e) =>
                 setDbForm((v: any) => ({ ...v, user: e.target.value }))
@@ -82,8 +93,11 @@ export default function DatabaseTab(props: Readonly<{
             />
           </div>
           <div>
-            <Label className="mb-1 block">Password</Label>
+            <Label htmlFor="db-password" className="mb-1 block">
+              Password
+            </Label>
             <Input
+              id="db-password"
               type="password"
               value={dbForm.password}
               onChange={(e) =>
@@ -92,8 +106,11 @@ export default function DatabaseTab(props: Readonly<{
             />
           </div>
           <div className="md:col-span-2">
-            <Label className="mb-1 block">Database</Label>
+            <Label htmlFor="db-database" className="mb-1 block">
+              Database
+            </Label>
             <Input
+              id="db-database"
               value={dbForm.database}
               onChange={(e) =>
                 setDbForm((v: any) => ({ ...v, database: e.target.value }))

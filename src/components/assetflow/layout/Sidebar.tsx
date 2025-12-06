@@ -25,13 +25,12 @@ function sanitizeImageUrl(u?: string | null): string | null {
 
     // If running in a non-browser environment, only allow safe data: URLs (no http fetch on server)
     const runningInBrowser =
-      typeof globalThis !== "undefined" &&
-      typeof globalThis.window !== "undefined";
+      typeof globalThis !== "undefined" && globalThis.window !== undefined;
 
     // Allow only a restricted set of raster image data URLs (explicitly disallow SVG and other text-based images).
     // We require base64 data for these types to avoid tricky encodings.
     const allowedDataImageRE =
-      /^data:image\/(png|jpeg|jpg|webp|gif|avif);base64,[A-Za-z0-9+/=\s]+$/i;
+      /^data:image\/(png|jpeg|jpg|webp|gif|avif);base64,[A-Za-z0-9+/=]+$/i;
     if (s.startsWith("data:image/")) {
       // Normalize by removing whitespace then validate structure and mime type
       const normalized = s.replace(/\s+/g, "");
@@ -130,7 +129,6 @@ export function Sidebar({
   });
   // Re-validate/sanitize at render-time to ensure any client-side changes are checked
   // before being used in a DOM-sensitive attribute like `src`.
-  const safeBrandLogo = sanitizeImageUrl(brandLogo ?? undefined);
   const [brandName, setBrandName] = useState<string>(() => {
     if (typeof document === "undefined") return "Inventos";
     return document.documentElement.dataset.brandName || "Inventos";

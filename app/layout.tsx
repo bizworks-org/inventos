@@ -3,7 +3,7 @@ import "./globals.css";
 import { ThemeProvider } from "../src/components/ui/theme-provider";
 import { Toaster } from "@/components/ui/sonner";
 import { PrefsProvider } from "../src/components/assetflow/layout/PrefsContext";
-import { cookies } from "next/headers";
+import { cookies, headers } from "next/headers";
 import { verifyToken } from "@/lib/auth/server";
 import { dbFindUserById } from "@/lib/auth/db-users";
 import { query } from "@/lib/db";
@@ -43,9 +43,15 @@ async function getAuthInfo(): Promise<{ isAdmin: boolean; me: MeType | null }> {
       const dbUser = await dbFindUserById((payload as any).id);
       if (dbUser) {
         let roleComputed: "admin" | "user" | "superadmin";
-        if (Array.isArray(dbUser.roles) && dbUser.roles.includes("superadmin")) {
+        if (
+          Array.isArray(dbUser.roles) &&
+          dbUser.roles.includes("superadmin")
+        ) {
           roleComputed = "superadmin";
-        } else if (Array.isArray(dbUser.roles) && dbUser.roles.includes("admin")) {
+        } else if (
+          Array.isArray(dbUser.roles) &&
+          dbUser.roles.includes("admin")
+        ) {
           roleComputed = "admin";
         } else {
           roleComputed = "user";
@@ -97,6 +103,10 @@ export default async function RootLayout({
 }>) {
   const { isAdmin, me } = await getAuthInfo();
   const { brandLogo, brandName, consentRequired } = await getBranding();
+  // Read middleware-inserted nonce for CSP so inline scripts (e.g. next-themes)
+  // rendered by server components can include the nonce attribute and pass CSP.
+  // `headers()` may be async in this Next.js version, await it to get the Headers.
+  const nonce = (await headers()).get("x-nonce") ?? undefined;
 
   return (
     <html
@@ -109,7 +119,12 @@ export default async function RootLayout({
       data-consent-required={consentRequired ? "true" : "false"}
     >
       <body>
-        <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
+        <ThemeProvider
+          attribute="class"
+          defaultTheme="system"
+          enableSystem
+          nonce={nonce}
+        >
           <PrefsProvider>
             {/* Provide SSR me to client components to eliminate flicker */}
             <MeProvider initialMe={me}>{children}</MeProvider>

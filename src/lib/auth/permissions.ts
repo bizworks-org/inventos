@@ -1,7 +1,7 @@
 import { readAuthToken, verifyToken, type Role } from "./server";
 import { dbFindUserById } from "./db-users";
 import { query } from "@/lib/db";
-import { createHash } from "node:crypto";
+import { createHash } from "@/lib/node-crypto.server";
 
 export type MePayload = {
   id: string;
@@ -19,9 +19,7 @@ export async function readMeFromCookie(): Promise<MePayload | null> {
   // Optional session enforcement: only check the sessions table when explicitly enabled
   if (process.env.AUTH_ENFORCE_SESSIONS === "1") {
     try {
-      const th = createHash("sha256")
-        .update(token)
-        .digest();
+      const th = createHash("sha256").update(token).digest();
       const rows = await query<any>(
         `SELECT id FROM sessions WHERE token_hash = :th AND revoked_at IS NULL AND (expires_at IS NULL OR expires_at > CURRENT_TIMESTAMP) LIMIT 1`,
         { th }

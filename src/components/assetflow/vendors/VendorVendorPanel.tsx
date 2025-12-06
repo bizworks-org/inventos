@@ -32,10 +32,14 @@ export default function VendorVendorPanel({
       </h3>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div className="md:col-span-2">
-          <label className="block text-sm font-medium text-[#1a1d2e] mb-2">
+          <label
+            htmlFor="vendor-name"
+            className="block text-sm font-medium text-[#1a1d2e] mb-2"
+          >
             Vendor Name *
           </label>
           <input
+            id="vendor-name"
             type="text"
             required
             value={formData.name}
@@ -46,10 +50,14 @@ export default function VendorVendorPanel({
         </div>
 
         <div className="md:col-span-2">
-          <label className="block text-sm font-medium text-[#1a1d2e] mb-2">
+          <label
+            htmlFor="vendor-legalName"
+            className="block text-sm font-medium text-[#1a1d2e] mb-2"
+          >
             Vendor Legal Name
           </label>
           <input
+            id="vendor-legalName"
             type="text"
             value={formData.legalName}
             onChange={(e) => handleInputChange("legalName", e.target.value)}
@@ -59,10 +67,14 @@ export default function VendorVendorPanel({
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-[#1a1d2e] mb-2">
+          <label
+            htmlFor="vendor-type"
+            className="block text-sm font-medium text-[#1a1d2e] mb-2"
+          >
             Type *
           </label>
           <select
+            id="vendor-type"
             required
             value={formData.type}
             onChange={(e) => handleInputChange("type", e.target.value)}
@@ -77,10 +89,14 @@ export default function VendorVendorPanel({
         </div>
 
         <div className="md:col-span-2">
-          <label className="block text-sm font-medium text-[#1a1d2e] mb-2">
+          <label
+            htmlFor="vendor-status"
+            className="block text-sm font-medium text-[#1a1d2e] mb-2"
+          >
             Status *
           </label>
           <select
+            id="vendor-status"
             required
             value={formData.status}
             onChange={(e) => handleInputChange("status", e.target.value)}
@@ -95,10 +111,14 @@ export default function VendorVendorPanel({
         </div>
 
         <div className="md:col-span-2">
-          <label className="block text-sm font-medium text-[#1a1d2e] mb-2">
+          <label
+            htmlFor="vendor-registeredOfficeAddress"
+            className="block text-sm font-medium text-[#1a1d2e] mb-2"
+          >
             Registered Office Address
           </label>
           <input
+            id="vendor-registeredOfficeAddress"
             type="text"
             value={formData.registeredOfficeAddress}
             onChange={(e) =>
@@ -110,10 +130,14 @@ export default function VendorVendorPanel({
         </div>
 
         <div className="md:col-span-2">
-          <label className="block text-sm font-medium text-[#1a1d2e] mb-2">
+          <label
+            htmlFor="vendor-corporateOfficeAddress"
+            className="block text-sm font-medium text-[#1a1d2e] mb-2"
+          >
             Corporate Office Address
           </label>
           <input
+            id="vendor-corporateOfficeAddress"
             type="text"
             value={formData.corporateOfficeAddress}
             onChange={(e) =>

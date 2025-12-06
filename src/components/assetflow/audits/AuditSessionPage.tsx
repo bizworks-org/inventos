@@ -1,13 +1,13 @@
 "use client";
-import { useEffect, useState, useMemo } from "react";
+import { useState, useMemo } from "react";
+import useFetchOnMount from "../hooks/useFetchOnMount";
+import FullPageLoader from "@/components/ui/FullPageLoader";
 import { Download } from "lucide-react";
-import { motion } from "motion/react";
 import { Button } from "@/components/ui/button";
 import { AssetFlowLayout } from "../layout/AssetFlowLayout";
 import {
   fetchAuditItems,
   importAuditSerialNumbers,
-  fetchAuditDiff,
   computeAuditDiff,
   AuditItem,
 } from "../../../lib/audit";
@@ -16,14 +16,13 @@ export function AuditSessionPage({
   auditId,
   previousAuditId,
   onSearch,
-}: {
+}: Readonly<{
   auditId: string;
   previousAuditId?: string;
   onSearch?: (query: string) => void;
-}) {
+}>) {
   const [items, setItems] = useState<AuditItem[]>([]);
-  const [prevItems, setPrevItems] = useState<AuditItem[]>([]);
-  const [loading, setLoading] = useState(true);
+
   const [error, setError] = useState<string | null>(null);
   // File upload state
   const [file, setFile] = useState<File | null>(null);
@@ -35,21 +34,17 @@ export function AuditSessionPage({
     statusChanged: { serialNumber: string; from: string; to: string }[];
   } | null>(null);
 
-  useEffect(() => {
-    (async () => {
-      try {
-        setItems(await fetchAuditItems(auditId));
-        if (previousAuditId) {
-          const prev = await fetchAuditItems(previousAuditId);
-          setPrevItems(prev);
-          setDiff(computeAuditDiff(prev, await fetchAuditItems(auditId)));
-        }
-      } catch (e: any) {
-        setError(e?.message || String(e));
-      } finally {
-        setLoading(false);
+  const { loading: initialLoading } = useFetchOnMount(async () => {
+    try {
+      setItems(await fetchAuditItems(auditId));
+      if (previousAuditId) {
+        const prev = await fetchAuditItems(previousAuditId);
+        setDiff(computeAuditDiff(prev, await fetchAuditItems(auditId)));
       }
-    })();
+    } catch (e: any) {
+      setError(e?.message || String(e));
+      throw e;
+    }
   }, [auditId, previousAuditId]);
 
   const handleFileChange = async (f: File | null) => {
@@ -66,7 +61,7 @@ export function AuditSessionPage({
       // Simple line split for serial numbers: first column per row.
       // Support both headered and plain single-column CSV.
       const lines = text.split(/\r?\n/).filter((l) => l.trim().length > 0);
-      if (!lines.length) {
+      if (lines.length === 0) {
         setParsedSerials([]);
       } else {
         // Detect header if it contains non-serial hints
@@ -97,7 +92,6 @@ export function AuditSessionPage({
       setItems(await fetchAuditItems(auditId));
       if (previousAuditId) {
         const prev = await fetchAuditItems(previousAuditId);
-        setPrevItems(prev);
         setDiff(computeAuditDiff(prev, await fetchAuditItems(auditId)));
       }
       setFile(null);
@@ -146,7 +140,7 @@ export function AuditSessionPage({
     document.body.appendChild(a);
     a.click();
     setTimeout(() => {
-      document.body.removeChild(a);
+      a.remove();
       URL.revokeObjectURL(url);
     }, 0);
   };
@@ -172,6 +166,7 @@ export function AuditSessionPage({
         <h1 className="text-2xl font-bold text-[#1a1d2e]">Audit {auditId}</h1>
       </div>
       {error && <p className="text-sm text-red-600 mb-4">{error}</p>}
+      {initialLoading && <FullPageLoader message="Loading audit session..." />}
       <div className="grid md:grid-cols-3 gap-4 mb-8">
         <div className="p-4 rounded-lg border bg-white">
           <p className="text-xs text-[#64748b]">Total Items</p>
@@ -281,10 +276,10 @@ export function AuditSessionPage({
             </button>
           </div>
         </div>
-        {loading && (
+        {initialLoading && (
           <p className="text-xs text-[#64748b] px-6 py-4">Loading…</p>
         )}
-        {!loading && (
+        {!initialLoading && (
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead>

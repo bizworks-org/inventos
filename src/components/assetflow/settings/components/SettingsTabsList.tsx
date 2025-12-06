@@ -23,7 +23,7 @@ export function SettingsTabsList({
   techTabsDisabled,
   canEditMail,
   isAdmin,
-}: SettingsTabsListProps) {
+}: Readonly<SettingsTabsListProps>) {
   const getTabClasses = (isActive: boolean) =>
     `${
       isActive

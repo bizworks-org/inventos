@@ -12,5 +12,5 @@ if (!password) {
   console.error('Usage: node scripts/hash-password.mjs <password> [workFactor]');
   process.exit(1);
 }
-const N = nArg ? parseInt(nArg, 10) : 16384;
+const N = nArg ? Number.parseInt(nArg, 10) : 16384;
 console.log(hash(password, N));

@@ -14,7 +14,7 @@ const Toaster = ({ ...props }: ToasterProps) => {
   useEffect(() => {
     console.log("[Toaster] MOUNTED", { sonnerToast: typeof sonnerToast });
     // Expose toast globally for debugging
-    (window as any).__toast = sonnerToast;
+    (globalThis as any).__toast = sonnerToast;
     return () => {
       console.log("[Toaster] UNMOUNTED");
     };
@@ -44,4 +44,5 @@ const Toaster = ({ ...props }: ToasterProps) => {
 };
 
 // Re-export the shared toast singleton from sonner so all app modules use the same instance.
-export { Toaster, sonnerToast as toast };
+export { Toaster };
+export { toast } from "sonner@2.0.3";

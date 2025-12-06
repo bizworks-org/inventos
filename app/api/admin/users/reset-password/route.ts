@@ -11,7 +11,7 @@ import {
   verifyPassword,
 } from "@/lib/auth/server";
 import { query } from "@/lib/db";
-import { randomFillSync } from "node:crypto";
+import { randomFillSync } from "@/lib/node-crypto.server";
 
 async function requireAdmin() {
   const token = await readAuthToken();

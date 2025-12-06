@@ -144,9 +144,9 @@ export function AddVendorPage({ onNavigate, onSearch }: AddVendorPageProps) {
       email: formData.email,
       phone: formData.phone,
       status: formData.status,
-      contractValue: parseFloat(formData.contractValue || "0"),
+      contractValue: Number.parseFloat(formData.contractValue || "0"),
       contractExpiry: formData.contractExpiry,
-      rating: parseFloat(formData.rating || "0"),
+      rating: Number.parseFloat(formData.rating || "0"),
     };
 
     // attach extended fields
@@ -262,7 +262,7 @@ export function AddVendorPage({ onNavigate, onSearch }: AddVendorPageProps) {
     }
   };
 
-  const ratingValue = parseFloat(formData.rating) || 0;
+  const ratingValue = Number.parseFloat(formData.rating) || 0;
 
   return (
     <AssetFlowLayout
@@ -379,10 +379,14 @@ export function AddVendorPage({ onNavigate, onSearch }: AddVendorPageProps) {
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                   {/* Vendor Name */}
                   <div className="md:col-span-2">
-                    <label className="block text-sm font-medium text-[#1a1d2e] mb-2">
+                    <label
+                      htmlFor="vendorName"
+                      className="block text-sm font-medium text-[#1a1d2e] mb-2"
+                    >
                       Vendor Name *
                     </label>
                     <input
+                      id="vendorName"
                       type="text"
                       required
                       value={formData.name}
@@ -396,10 +400,14 @@ export function AddVendorPage({ onNavigate, onSearch }: AddVendorPageProps) {
 
                   {/* Vendor Legal Name */}
                   <div className="md:col-span-2">
-                    <label className="block text-sm font-medium text-[#1a1d2e] mb-2">
+                    <label
+                      htmlFor="legalName"
+                      className="block text-sm font-medium text-[#1a1d2e] mb-2"
+                    >
                       Vendor Legal Name
                     </label>
                     <input
+                      id="legalName"
                       type="text"
                       value={formData.legalName}
                       onChange={(e) =>
@@ -412,10 +420,14 @@ export function AddVendorPage({ onNavigate, onSearch }: AddVendorPageProps) {
 
                   {/* Trading / Brand Name */}
                   <div className="md:col-span-2">
-                    <label className="block text-sm font-medium text-[#1a1d2e] mb-2">
+                    <label
+                      htmlFor="tradingName"
+                      className="block text-sm font-medium text-[#1a1d2e] mb-2"
+                    >
                       Trading / Brand Name
                     </label>
                     <input
+                      id="tradingName"
                       type="text"
                       value={formData.tradingName}
                       onChange={(e) =>
@@ -428,10 +440,14 @@ export function AddVendorPage({ onNavigate, onSearch }: AddVendorPageProps) {
 
                   {/* Registration / GSTIN */}
                   <div>
-                    <label className="block text-sm font-medium text-[#1a1d2e] mb-2">
+                    <label
+                      htmlFor="registrationNumber"
+                      className="block text-sm font-medium text-[#1a1d2e] mb-2"
+                    >
                       Company Registration Number / GSTIN
                     </label>
                     <input
+                      id="registrationNumber"
                       type="text"
                       value={formData.registrationNumber}
                       onChange={(e) =>
@@ -444,10 +460,14 @@ export function AddVendorPage({ onNavigate, onSearch }: AddVendorPageProps) {
 
                   {/* Website */}
                   <div>
-                    <label className="block text-sm font-medium text-[#1a1d2e] mb-2">
+                    <label
+                      htmlFor="website"
+                      className="block text-sm font-medium text-[#1a1d2e] mb-2"
+                    >
                       Website
                     </label>
                     <input
+                      id="website"
                       type="url"
                       value={formData.website}
                       onChange={(e) =>
@@ -460,10 +480,14 @@ export function AddVendorPage({ onNavigate, onSearch }: AddVendorPageProps) {
 
                   {/* Registered Office Address */}
                   <div className="md:col-span-2">
-                    <label className="block text-sm font-medium text-[#1a1d2e] mb-2">
+                    <label
+                      htmlFor="registeredOfficeAddress"
+                      className="block text-sm font-medium text-[#1a1d2e] mb-2"
+                    >
                       Registered Office Address
                     </label>
                     <input
+                      id="registeredOfficeAddress"
                       type="text"
                       value={formData.registeredOfficeAddress}
                       onChange={(e) =>
@@ -479,10 +503,14 @@ export function AddVendorPage({ onNavigate, onSearch }: AddVendorPageProps) {
 
                   {/* Corporate Office Address */}
                   <div className="md:col-span-2">
-                    <label className="block text-sm font-medium text-[#1a1d2e] mb-2">
+                    <label
+                      htmlFor="corporateOfficeAddress"
+                      className="block text-sm font-medium text-[#1a1d2e] mb-2"
+                    >
                       Corporate Office Address
                     </label>
                     <input
+                      id="corporateOfficeAddress"
                       type="text"
                       value={formData.corporateOfficeAddress}
                       onChange={(e) =>
@@ -498,10 +526,14 @@ export function AddVendorPage({ onNavigate, onSearch }: AddVendorPageProps) {
 
                   {/* Nature of Business */}
                   <div>
-                    <label className="block text-sm font-medium text-[#1a1d2e] mb-2">
+                    <label
+                      htmlFor="natureOfBusiness"
+                      className="block text-sm font-medium text-[#1a1d2e] mb-2"
+                    >
                       Nature of Business
                     </label>
                     <input
+                      id="natureOfBusiness"
                       type="text"
                       value={formData.natureOfBusiness}
                       onChange={(e) =>
@@ -514,10 +546,14 @@ export function AddVendorPage({ onNavigate, onSearch }: AddVendorPageProps) {
 
                   {/* Business Category */}
                   <div>
-                    <label className="block text-sm font-medium text-[#1a1d2e] mb-2">
+                    <label
+                      htmlFor="businessCategory"
+                      className="block text-sm font-medium text-[#1a1d2e] mb-2"
+                    >
                       Business Category
                     </label>
                     <input
+                      id="businessCategory"
                       type="text"
                       value={formData.businessCategory}
                       onChange={(e) =>
@@ -530,10 +566,14 @@ export function AddVendorPage({ onNavigate, onSearch }: AddVendorPageProps) {
 
                   {/* Service Coverage Area */}
                   <div className="md:col-span-2">
-                    <label className="block text-sm font-medium text-[#1a1d2e] mb-2">
+                    <label
+                      htmlFor="serviceCoverageArea"
+                      className="block text-sm font-medium text-[#1a1d2e] mb-2"
+                    >
                       Service Coverage Area
                     </label>
                     <input
+                      id="serviceCoverageArea"
                       type="text"
                       value={formData.serviceCoverageArea}
                       onChange={(e) =>
@@ -563,10 +603,14 @@ export function AddVendorPage({ onNavigate, onSearch }: AddVendorPageProps) {
                 </h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm font-medium text-[#1a1d2e] mb-2">
+                    <label
+                      htmlFor="requestType"
+                      className="block text-sm font-medium text-[#1a1d2e] mb-2"
+                    >
                       Request Type
                     </label>
                     <select
+                      id="requestType"
                       value={profile.request_type}
                       onChange={(e) =>
                         setProfile((p: any) => ({
@@ -582,10 +626,14 @@ export function AddVendorPage({ onNavigate, onSearch }: AddVendorPageProps) {
                   </div>
 
                   <div className="md:col-span-2">
-                    <label className="block text-sm font-medium text-[#1a1d2e] mb-2">
+                    <label
+                      htmlFor="businessJustification"
+                      className="block text-sm font-medium text-[#1a1d2e] mb-2"
+                    >
                       Business Justification / Purpose of Onboarding
                     </label>
                     <textarea
+                      id="businessJustification"
                       value={profile.business_justification}
                       onChange={(e) =>
                         setProfile((p: any) => ({
@@ -599,10 +647,14 @@ export function AddVendorPage({ onNavigate, onSearch }: AddVendorPageProps) {
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-[#1a1d2e] mb-2">
+                    <label
+                      htmlFor="estimatedAnnualSpend"
+                      className="block text-sm font-medium text-[#1a1d2e] mb-2"
+                    >
                       Estimated Annual Spend
                     </label>
                     <input
+                      id="estimatedAnnualSpend"
                       type="number"
                       min="0"
                       step="0.01"
@@ -618,10 +670,14 @@ export function AddVendorPage({ onNavigate, onSearch }: AddVendorPageProps) {
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-[#1a1d2e] mb-2">
+                    <label
+                      htmlFor="evaluationCommittee"
+                      className="block text-sm font-medium text-[#1a1d2e] mb-2"
+                    >
                       Evaluation Committee / Approver Name(s)
                     </label>
                     <input
+                      id="evaluationCommittee"
                       type="text"
                       placeholder="Comma-separated emails or names"
                       value={(profile.evaluation_committee || []).join(", ")}
@@ -639,10 +695,14 @@ export function AddVendorPage({ onNavigate, onSearch }: AddVendorPageProps) {
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-[#1a1d2e] mb-2">
+                    <label
+                      htmlFor="riskAssessment"
+                      className="block text-sm font-medium text-[#1a1d2e] mb-2"
+                    >
                       Risk Assessment Notes
                     </label>
                     <select
+                      id="riskAssessment"
                       value={profile.risk_assessment}
                       onChange={(e) =>
                         setProfile((p: any) => ({
@@ -659,10 +719,14 @@ export function AddVendorPage({ onNavigate, onSearch }: AddVendorPageProps) {
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-[#1a1d2e] mb-2">
+                    <label
+                      htmlFor="legalInfosecReviewStatus"
+                      className="block text-sm font-medium text-[#1a1d2e] mb-2"
+                    >
                       Legal & InfoSec Review Status
                     </label>
                     <select
+                      id="legalInfosecReviewStatus"
                       value={profile.legal_infosec_review_status}
                       onChange={(e) =>
                         setProfile((p: any) => ({
@@ -812,10 +876,14 @@ export function AddVendorPage({ onNavigate, onSearch }: AddVendorPageProps) {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {/* Contact Person */}
                   <div className="md:col-span-2">
-                    <label className="block text-sm font-medium text-[#1a1d2e] mb-2">
+                    <label
+                      htmlFor="vendor-contactPerson"
+                      className="block text-sm font-medium text-[#1a1d2e] mb-2"
+                    >
                       Contact Person *
                     </label>
                     <input
+                      id="vendor-contactPerson"
                       type="text"
                       required
                       value={formData.contactPerson}
@@ -829,10 +897,14 @@ export function AddVendorPage({ onNavigate, onSearch }: AddVendorPageProps) {
 
                   {/* Email */}
                   <div>
-                    <label className="block text-sm font-medium text-[#1a1d2e] mb-2">
+                    <label
+                      htmlFor="vendor-email"
+                      className="block text-sm font-medium text-[#1a1d2e] mb-2"
+                    >
                       Email *
                     </label>
                     <input
+                      id="vendor-email"
                       type="email"
                       required
                       value={formData.email}
@@ -846,10 +918,14 @@ export function AddVendorPage({ onNavigate, onSearch }: AddVendorPageProps) {
 
                   {/* Phone */}
                   <div>
-                    <label className="block text-sm font-medium text-[#1a1d2e] mb-2">
+                    <label
+                      htmlFor="vendor-phone"
+                      className="block text-sm font-medium text-[#1a1d2e] mb-2"
+                    >
                       Phone *
                     </label>
                     <input
+                      id="vendor-phone"
                       type="tel"
                       inputMode="tel"
                       pattern="^\+?\d{7,20}$"
@@ -921,10 +997,14 @@ export function AddVendorPage({ onNavigate, onSearch }: AddVendorPageProps) {
                           </div>
                           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                             <div>
-                              <label className="block text-xs text-[#1a1d2e] mb-1">
+                              <label
+                                htmlFor={`additional-${idx}-type`}
+                                className="block text-xs text-[#1a1d2e] mb-1"
+                              >
                                 Contact Type
                               </label>
                               <input
+                                id={`additional-${idx}-type`}
                                 type="text"
                                 value={c.contactType || ""}
                                 onChange={(e) =>
@@ -941,10 +1021,14 @@ export function AddVendorPage({ onNavigate, onSearch }: AddVendorPageProps) {
                               />
                             </div>
                             <div>
-                              <label className="block text-xs text-[#1a1d2e] mb-1">
+                              <label
+                                htmlFor={`additional-${idx}-name`}
+                                className="block text-xs text-[#1a1d2e] mb-1"
+                              >
                                 Name
                               </label>
                               <input
+                                id={`additional-${idx}-name`}
                                 type="text"
                                 value={c.name || ""}
                                 onChange={(e) =>
@@ -961,10 +1045,14 @@ export function AddVendorPage({ onNavigate, onSearch }: AddVendorPageProps) {
                               />
                             </div>
                             <div>
-                              <label className="block text-xs text-[#1a1d2e] mb-1">
+                              <label
+                                htmlFor={`additional-${idx}-designation`}
+                                className="block text-xs text-[#1a1d2e] mb-1"
+                              >
                                 Designation
                               </label>
                               <input
+                                id={`additional-${idx}-designation`}
                                 type="text"
                                 value={c.designation || ""}
                                 onChange={(e) =>
@@ -981,10 +1069,14 @@ export function AddVendorPage({ onNavigate, onSearch }: AddVendorPageProps) {
                               />
                             </div>
                             <div>
-                              <label className="block text-xs text-[#1a1d2e] mb-1">
+                              <label
+                                htmlFor={`additional-${idx}-phone`}
+                                className="block text-xs text-[#1a1d2e] mb-1"
+                              >
                                 Phone
                               </label>
                               <input
+                                id={`additional-${idx}-phone`}
                                 type="tel"
                                 inputMode="tel"
                                 pattern="^\+?\d{7,20}$"
@@ -1004,10 +1096,14 @@ export function AddVendorPage({ onNavigate, onSearch }: AddVendorPageProps) {
                               />
                             </div>
                             <div>
-                              <label className="block text-xs text-[#1a1d2e] mb-1">
+                              <label
+                                htmlFor={`additional-${idx}-email`}
+                                className="block text-xs text-[#1a1d2e] mb-1"
+                              >
                                 Email
                               </label>
                               <input
+                                id={`additional-${idx}-email`}
                                 type="email"
                                 value={c.email || ""}
                                 onChange={(e) =>
@@ -1024,10 +1120,14 @@ export function AddVendorPage({ onNavigate, onSearch }: AddVendorPageProps) {
                               />
                             </div>
                             <div className="md:col-span-2">
-                              <label className="block text-xs text-[#1a1d2e] mb-1">
+                              <label
+                                htmlFor={`additional-${idx}-technical`}
+                                className="block text-xs text-[#1a1d2e] mb-1"
+                              >
                                 Technical Support Contact Details (optional)
                               </label>
                               <input
+                                id={`additional-${idx}-technical`}
                                 type="text"
                                 value={c.technicalDetails || ""}
                                 onChange={(e) =>
@@ -1044,10 +1144,14 @@ export function AddVendorPage({ onNavigate, onSearch }: AddVendorPageProps) {
                               />
                             </div>
                             <div className="md:col-span-2">
-                              <label className="block text-xs text-[#1a1d2e] mb-1">
+                              <label
+                                htmlFor={`additional-${idx}-billing`}
+                                className="block text-xs text-[#1a1d2e] mb-1"
+                              >
                                 Billing / Finance Contact Details (optional)
                               </label>
                               <input
+                                id={`additional-${idx}-billing`}
                                 type="text"
                                 value={c.billingDetails || ""}
                                 onChange={(e) =>
@@ -1105,7 +1209,10 @@ export function AddVendorPage({ onNavigate, onSearch }: AddVendorPageProps) {
                   </div>
 
                   <div className="md:col-span-2">
-                    <label className="block text-sm font-medium text-[#1a1d2e] mb-2">
+                    <label
+                      htmlFor="dropzone-information_security_policy"
+                      className="block text-sm font-medium text-[#1a1d2e] mb-2"
+                    >
                       Information Security Policy Proof
                     </label>
                     <FileDropzone
@@ -1150,10 +1257,14 @@ export function AddVendorPage({ onNavigate, onSearch }: AddVendorPageProps) {
                   </div>
 
                   <div className="md:col-span-2">
-                    <label className="block text-sm font-medium text-[#1a1d2e] mb-2">
+                    <label
+                      htmlFor="network-endpoint-overview"
+                      className="block text-sm font-medium text-[#1a1d2e] mb-2"
+                    >
                       Network and Endpoint Security Measures Overview
                     </label>
                     <textarea
+                      id="network-endpoint-overview"
                       value={profile.network_endpoint_overview}
                       onChange={(e) =>
                         setProfile((p: any) => ({
@@ -1167,10 +1278,14 @@ export function AddVendorPage({ onNavigate, onSearch }: AddVendorPageProps) {
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-[#1a1d2e] mb-2">
+                    <label
+                      htmlFor="authorized-hardware"
+                      className="block text-sm font-medium text-[#1a1d2e] mb-2"
+                    >
                       Authorized Hardware Brands / Product Lines
                     </label>
                     <select
+                      id="authorized-hardware"
                       multiple
                       value={profile.authorized_hardware}
                       onChange={(e) =>
@@ -1201,10 +1316,14 @@ export function AddVendorPage({ onNavigate, onSearch }: AddVendorPageProps) {
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-[#1a1d2e] mb-2">
+                    <label
+                      htmlFor="support-warranty"
+                      className="block text-sm font-medium text-[#1a1d2e] mb-2"
+                    >
                       Support and Warranty Policy Details
                     </label>
                     <textarea
+                      id="support-warranty"
                       value={profile.support_warranty}
                       onChange={(e) =>
                         setProfile((p: any) => ({
@@ -1236,17 +1355,19 @@ export function AddVendorPage({ onNavigate, onSearch }: AddVendorPageProps) {
                 </h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm font-medium text-[#1a1d2e] mb-2">
+                    <label
+                      htmlFor="contractValue"
+                      className="block text-sm font-medium text-[#1a1d2e] mb-2"
+                    >
                       Contract Value *
                     </label>
                     <div className="relative">
                       <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[#64748b]">
-                        $
+                        ₹
                       </span>
                       <input
+                        id="contractValue"
                         type="number"
-                        required
-                        min="0"
                         step="0.01"
                         value={formData.contractValue}
                         onChange={(e) =>
@@ -1259,14 +1380,17 @@ export function AddVendorPage({ onNavigate, onSearch }: AddVendorPageProps) {
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-[#1a1d2e] mb-2">
+                    <label
+                      htmlFor="contractExpiry"
+                      className="block text-sm font-medium text-[#1a1d2e] mb-2"
+                    >
                       Contract Expiry *
                     </label>
                     <div className="relative">
                       <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-[#64748b] pointer-events-none" />
                       <input
+                        id="contractExpiry"
                         type="date"
-                        required
                         value={formData.contractExpiry}
                         onChange={(e) =>
                           handleInputChange("contractExpiry", e.target.value)
@@ -1294,10 +1418,14 @@ export function AddVendorPage({ onNavigate, onSearch }: AddVendorPageProps) {
                   Performance & Notes
                 </h3>
                 <div className="space-y-4">
-                  <label className="block text-sm font-medium text-[#1a1d2e] mb-2">
+                  <label
+                    htmlFor="performanceRating"
+                    className="block text-sm font-medium text-[#1a1d2e] mb-2"
+                  >
                     Performance Rating *
                   </label>
                   <input
+                    id="performanceRating"
                     type="range"
                     min="0"
                     max="5"
@@ -1332,10 +1460,14 @@ export function AddVendorPage({ onNavigate, onSearch }: AddVendorPageProps) {
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-[#1a1d2e] mb-2">
+                    <label
+                      htmlFor="vendorNotes"
+                      className="block text-sm font-medium text-[#1a1d2e] mb-2"
+                    >
                       Notes
                     </label>
                     <textarea
+                      id="vendorNotes"
                       value={formData.notes}
                       onChange={(e) =>
                         handleInputChange("notes", e.target.value)
@@ -1366,10 +1498,14 @@ export function AddVendorPage({ onNavigate, onSearch }: AddVendorPageProps) {
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm font-medium text-[#1a1d2e] mb-2">
+                    <label
+                      htmlFor="panTaxId"
+                      className="block text-sm font-medium text-[#1a1d2e] mb-2"
+                    >
                       PAN / Tax Identification Number
                     </label>
                     <input
+                      id="panTaxId"
                       type="text"
                       value={(formData as any).panTaxId || ""}
                       onChange={(e) =>
@@ -1382,10 +1518,14 @@ export function AddVendorPage({ onNavigate, onSearch }: AddVendorPageProps) {
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-[#1a1d2e] mb-2">
+                    <label
+                      htmlFor="bankName"
+                      className="block text-sm font-medium text-[#1a1d2e] mb-2"
+                    >
                       Bank Name
                     </label>
                     <input
+                      id="bankName"
                       type="text"
                       value={(formData as any).bankName || ""}
                       onChange={(e) =>
@@ -1398,10 +1538,14 @@ export function AddVendorPage({ onNavigate, onSearch }: AddVendorPageProps) {
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-[#1a1d2e] mb-2">
+                    <label
+                      htmlFor="accountNumber"
+                      className="block text-sm font-medium text-[#1a1d2e] mb-2"
+                    >
                       Account Number
                     </label>
                     <input
+                      id="accountNumber"
                       type="text"
                       value={(formData as any).accountNumber || ""}
                       onChange={(e) =>
@@ -1414,10 +1558,14 @@ export function AddVendorPage({ onNavigate, onSearch }: AddVendorPageProps) {
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-[#1a1d2e] mb-2">
+                    <label
+                      htmlFor="ifscSwiftCode"
+                      className="block text-sm font-medium text-[#1a1d2e] mb-2"
+                    >
                       IFSC / SWIFT Code
                     </label>
                     <input
+                      id="ifscSwiftCode"
                       type="text"
                       value={(formData as any).ifscSwiftCode || ""}
                       onChange={(e) =>
@@ -1430,10 +1578,14 @@ export function AddVendorPage({ onNavigate, onSearch }: AddVendorPageProps) {
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-[#1a1d2e] mb-2">
+                    <label
+                      htmlFor="paymentTerms"
+                      className="block text-sm font-medium text-[#1a1d2e] mb-2"
+                    >
                       Payment Terms
                     </label>
                     <select
+                      id="paymentTerms"
                       value={(formData as any).paymentTerms || "Net 30"}
                       onChange={(e) =>
                         setFormData((f: any) => ({
@@ -1449,35 +1601,18 @@ export function AddVendorPage({ onNavigate, onSearch }: AddVendorPageProps) {
                     </select>
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-[#1a1d2e] mb-2">
-                      Preferred Currency
-                    </label>
-                    <select
-                      value={(formData as any).preferredCurrency || "USD"}
-                      onChange={(e) =>
-                        setFormData((f: any) => ({
-                          ...f,
-                          preferredCurrency: e.target.value,
-                        }))
-                      }
-                      className="w-full px-4 py-2.5 rounded-lg bg-[#f8f9ff] border"
+                    <label
+                      htmlFor="vendorCreditLimit"
+                      className="block text-sm font-medium text-[#1a1d2e] mb-2"
                     >
-                      <option value="USD">USD</option>
-                      <option value="INR">INR</option>
-                      <option value="EUR">EUR</option>
-                      <option value="GBP">GBP</option>
-                      <option value="AUD">AUD</option>
-                    </select>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-[#1a1d2e] mb-2">
                       Vendor Credit Limit
                     </label>
                     <div className="relative">
                       <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[#64748b]">
-                        {(formData as any).preferredCurrency || "USD"}
+                        ₹
                       </span>
                       <input
+                        id="vendorCreditLimit"
                         type="number"
                         min="0"
                         step="0.01"
@@ -1497,7 +1632,10 @@ export function AddVendorPage({ onNavigate, onSearch }: AddVendorPageProps) {
                     </div>
                   </div>
                   <div className="md:col-span-2">
-                    <label className="block text-sm font-medium text-[#1a1d2e] mb-2">
+                    <label
+                      htmlFor="dropzone-gst-add"
+                      className="block text-sm font-medium text-[#1a1d2e] mb-2"
+                    >
                       GST Certificate / Tax Registration Certificate
                     </label>
                     <FileDropzone
@@ -1557,7 +1695,10 @@ export function AddVendorPage({ onNavigate, onSearch }: AddVendorPageProps) {
                       }));
                     return (
                       <div key={def.key}>
-                        <label className="block text-sm font-medium text-[#1a1d2e] mb-2">
+                        <label
+                          htmlFor={`v-cf-${def.key}`}
+                          className="block text-sm font-medium text-[#1a1d2e] mb-2"
+                        >
                           {def.label}
                           {def.required ? " *" : ""}
                         </label>
@@ -1565,6 +1706,13 @@ export function AddVendorPage({ onNavigate, onSearch }: AddVendorPageProps) {
                           def={def}
                           value={val}
                           onChange={onChange}
+                          id={`v-cf-${def.key}`}
+                        />
+                        <input
+                          id={`v-cf-${def.key}`}
+                          type="hidden"
+                          value={val}
+                          readOnly
                         />
                       </div>
                     );

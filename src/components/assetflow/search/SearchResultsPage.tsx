@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import useFetchOnMount from "../hooks/useFetchOnMount";
+import FullPageLoader from "@/components/ui/FullPageLoader";
 import { AssetFlowLayout } from "../layout/AssetFlowLayout";
 import { motion } from "motion/react";
 import { Search, Edit2 } from "lucide-react";
@@ -23,7 +25,7 @@ export default function SearchResultsPage({
   const [assetsTotal, setAssetsTotal] = useState<number>(0);
   const [vendorsTotal, setVendorsTotal] = useState<number>(0);
   const [licensesTotal, setLicensesTotal] = useState<number>(0);
-  const [loading, setLoading] = useState(false);
+
   const [page, setPage] = useState<number>(1);
   const [perPage] = useState<number>(10);
   const q = (query || "").trim();
@@ -33,7 +35,7 @@ export default function SearchResultsPage({
     setPage(1);
   }, [query]);
 
-  useEffect(() => {
+  const { loading } = useFetchOnMount(async () => {
     if (!q) {
       setAssets([]);
       setVendors([]);
@@ -41,37 +43,20 @@ export default function SearchResultsPage({
       setAssetsTotal(0);
       setVendorsTotal(0);
       setLicensesTotal(0);
-      setLoading(false);
       return;
     }
-    let cancelled = false;
-    setLoading(true);
-    (async () => {
-      try {
-        const res = await fetch(
-          `/api/search?q=${encodeURIComponent(
-            q
-          )}&page=${page}&per_page=${perPage}`,
-          { credentials: "same-origin" }
-        );
-        if (!res.ok) throw new Error(`Search failed: ${res.status}`);
-        const json = await res.json();
-        if (cancelled) return;
-        setAssets(json.assets?.results ?? []);
-        setAssetsTotal(json.assets?.total ?? 0);
-        setVendors(json.vendors?.results ?? []);
-        setVendorsTotal(json.vendors?.total ?? 0);
-        setLicenses(json.licenses?.results ?? []);
-        setLicensesTotal(json.licenses?.total ?? 0);
-      } catch (err) {
-        console.error("Search API error", err);
-      } finally {
-        if (!cancelled) setLoading(false);
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
+    const res = await fetch(
+      `/api/search?q=${encodeURIComponent(q)}&page=${page}&per_page=${perPage}`,
+      { credentials: "same-origin" }
+    );
+    if (!res.ok) throw new Error(`Search failed: ${res.status}`);
+    const json = await res.json();
+    setAssets(json.assets?.results ?? []);
+    setAssetsTotal(json.assets?.total ?? 0);
+    setVendors(json.vendors?.results ?? []);
+    setVendorsTotal(json.vendors?.total ?? 0);
+    setLicenses(json.licenses?.results ?? []);
+    setLicensesTotal(json.licenses?.total ?? 0);
   }, [q, page, perPage]);
 
   return (
@@ -97,7 +82,7 @@ export default function SearchResultsPage({
       </div>
 
       {loading ? (
-        <div className="p-6">Loading search results…</div>
+        <FullPageLoader message="Searching…" />
       ) : (
         <div className="space-y-6">
           <section>

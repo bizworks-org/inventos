@@ -1,14 +1,15 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import useFetchOnMount from "../hooks/useFetchOnMount";
+import FullPageLoader from "@/components/ui/FullPageLoader";
+import { useRouter, useSearchParams } from "next/navigation";
 import { motion } from "motion/react";
 import {
   Plus,
   Download,
   Upload,
   Search,
-  Star,
-  TrendingUp,
   ChevronLeft,
   ChevronRight,
 } from "lucide-react";
@@ -16,7 +17,6 @@ import { AssetFlowLayout } from "../layout/AssetFlowLayout";
 import { Vendor } from "../../../lib/data";
 import { fetchVendors, deleteVendor } from "../../../lib/api";
 import { VendorsTable } from "./VendorsTable";
-import { usePrefs } from "../layout/PrefsContext";
 import { exportVendorsToCSV } from "../../../lib/export";
 import { importVendors, parseVendorsFile, parseCSV } from "../../../lib/import";
 import {
@@ -44,37 +44,51 @@ export type VendorTypeFilter =
   | "Cloud";
 export type VendorStatusFilter = "All" | "Approved" | "Pending" | "Rejected";
 
-export function VendorsPage({ onNavigate, onSearch }: VendorsPageProps) {
-  const { formatCurrency } = usePrefs();
+export function VendorsPage({
+  onNavigate,
+  onSearch,
+}: Readonly<VendorsPageProps>) {
+  const searchParams = useSearchParams();
   const [selectedType, setSelectedType] = useState<VendorTypeFilter>("All");
   const [selectedStatus, setSelectedStatus] =
     useState<VendorStatusFilter>("All");
   const [searchQuery, setSearchQuery] = useState("");
   const [vendors, setVendors] = useState<Vendor[]>([]);
-  const [error, setError] = useState<string | null>(null);
   const [me, setMe] = useState<ClientMe>(null);
   const [expiringOnly, setExpiringOnly] = useState<boolean>(false);
 
-  useEffect(() => {
-    let cancelled = false;
-    getMe()
-      .then(setMe)
-      .catch(() => setMe(null));
-    fetchVendors()
-      .then((rows) => {
-        if (!cancelled) {
-          setVendors(rows);
-          setError(null);
-        }
-      })
-      .catch((e) => {
-        if (!cancelled) setError(e.message || "Failed to load vendors");
-      });
-    return () => {
-      cancelled = true;
-    };
+  const { loading: initialLoading } = useFetchOnMount(async () => {
+    const meRes = await getMe().catch(() => null);
+    setMe(meRes);
+    const rows = await fetchVendors();
+    setVendors(rows);
   }, []);
 
+  // Initialize filters from URL params
+  useEffect(() => {
+    if (!searchParams) return;
+    const exp =
+      searchParams.get("expiring") || searchParams.get("expiringOnly");
+    if (exp === "1" || exp === "true") setExpiringOnly(true);
+    const status =
+      searchParams.get("status") || searchParams.get("selectedStatus");
+    if (status) setSelectedStatus(status as VendorStatusFilter);
+  }, [searchParams]);
+  const router = useRouter();
+
+  const clearFilters = () => {
+    setSelectedStatus("All");
+    setSelectedType("All");
+    setSearchQuery("");
+    setExpiringOnly(false);
+    router.push("/vendors");
+  };
+
+  const activeFilters: string[] = [];
+  if (selectedType !== "All") activeFilters.push(`Type: ${selectedType}`);
+  if (selectedStatus !== "All") activeFilters.push(`Status: ${selectedStatus}`);
+  if (expiringOnly) activeFilters.push("Expiring Soon");
+  if (searchQuery) activeFilters.push(`Search: ${searchQuery}`);
   // Filter vendors based on selected filters
   const filteredVendors = useMemo(
     () =>
@@ -130,49 +144,14 @@ export function VendorsPage({ onNavigate, onSearch }: VendorsPageProps) {
     return vendors.filter((v) => v.type === type).length;
   };
 
-  // Calculate total contract value
-  const totalContractValue = useMemo(
-    () => vendors.reduce((sum, vendor) => sum + vendor.contractValue, 0),
-    [vendors]
-  );
-
-  // Calculate average rating
-  const averageRating = useMemo(
-    () =>
-      vendors.length
-        ? vendors.reduce((sum, vendor) => sum + vendor.rating, 0) /
-          vendors.length
-        : 0,
-    [vendors]
-  );
-
-  // Count approved vendors
-  const approvedCount = useMemo(
-    () => vendors.filter((v) => v.status === "Approved").length,
-    [vendors]
-  );
-
-  // Count contracts expiring soon (within 90 days)
-  const expiringCount = useMemo(
-    () =>
-      vendors.filter((vendor) => {
-        const expiryDate = new Date(vendor.contractExpiry);
-        const now = new Date();
-        const daysUntilExpiry = Math.floor(
-          (expiryDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)
-        );
-        return daysUntilExpiry <= 90 && daysUntilExpiry >= 0;
-      }).length,
-    [vendors]
-  );
-
   const handleDelete = async (id: string) => {
+    const prev = vendors;
     const keep = vendors.filter((v) => v.id !== id);
     setVendors(keep);
     try {
       await deleteVendor(id);
     } catch (e) {
-      setVendors(vendors);
+      setVendors(prev);
       console.error(e);
     }
   };
@@ -180,7 +159,6 @@ export function VendorsPage({ onNavigate, onSearch }: VendorsPageProps) {
   // Import preview state
   const [previewOpen, setPreviewOpen] = useState(false);
   const [previewItems, setPreviewItems] = useState<Vendor[]>([]);
-  const [previewHeaders, setPreviewHeaders] = useState<string[]>([]);
   const [previewMissingHeaders, setPreviewMissingHeaders] = useState<string[]>(
     []
   );
@@ -202,6 +180,7 @@ export function VendorsPage({ onNavigate, onSearch }: VendorsPageProps) {
       onSearch={onSearch}
     >
       {/* Header */}
+      {initialLoading && <FullPageLoader message="Loading vendors..." />}
       <div className="flex items-center justify-between mb-8">
         <div>
           <h1 className="text-3xl font-bold text-[#1a1d2e] mb-2">
@@ -251,6 +230,7 @@ export function VendorsPage({ onNavigate, onSearch }: VendorsPageProps) {
                 const items = parseVendorsFile(file.name, text);
 
                 // determine missing headers (case-insensitive)
+                // determine missing headers (case-insensitive)
                 const lowerHeaders = new Set(
                   headers.map((h) => h.toLowerCase())
                 );
@@ -258,7 +238,6 @@ export function VendorsPage({ onNavigate, onSearch }: VendorsPageProps) {
                   (c) => !lowerHeaders.has(c)
                 );
 
-                setPreviewHeaders(headers);
                 setPreviewItems(items.slice(0, 200)); // preview up to 200 rows
                 setPreviewMissingHeaders(missing);
                 setPreviewOpen(true);
@@ -288,118 +267,6 @@ export function VendorsPage({ onNavigate, onSearch }: VendorsPageProps) {
             </Button>
           )}
         </motion.div>
-      </div>
-
-      {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6">
-        <motion.button
-          type="button"
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.3, delay: 0.1 }}
-          onClick={() => {
-            // Reset all filters
-            setSelectedType("All");
-            setSelectedStatus("All");
-            setSearchQuery("");
-            setExpiringOnly(false);
-          }}
-          className="bg-white rounded-xl border border-[rgba(0,0,0,0.08)] p-6 shadow-sm cursor-pointer hover:border-[#6366f1]/40 hover:shadow-md"
-        >
-          <div className="flex items-center justify-between mb-2">
-            <p className="text-sm text-[#64748b]">Total Contract Value</p>
-            <div className="h-10 w-10 rounded-lg bg-gradient-to-br from-[#6366f1] to-[#8b5cf6] flex items-center justify-center">
-              <TrendingUp className="h-5 w-5 text-white" />
-            </div>
-          </div>
-          <p className="text-2xl font-bold text-[#1a1d2e]">
-            {formatCurrency(totalContractValue)}
-          </p>
-          <p className="text-xs text-[#94a3b8] mt-1">
-            Across {vendors.length} vendors
-          </p>
-        </motion.button>
-
-        <motion.button
-          type="button"
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.3, delay: 0.15 }}
-          onClick={() => {
-            // Focus vendors with higher ratings by setting type to All and clearing other filters
-            setSelectedType("All");
-            setSelectedStatus("All");
-            setExpiringOnly(false);
-          }}
-          className="bg-white rounded-xl border border-[rgba(0,0,0,0.08)] p-6 shadow-sm cursor-pointer hover:border-[#f59e0b]/40 hover:shadow-md"
-        >
-          <div className="flex items-center justify-between mb-2">
-            <p className="text-sm text-[#64748b]">Average Rating</p>
-            <div className="h-10 w-10 rounded-lg bg-gradient-to-br from-[#f59e0b] to-[#f97316] flex items-center justify-center">
-              <Star className="h-5 w-5 text-white fill-white" />
-            </div>
-          </div>
-          <div className="flex items-baseline gap-2">
-            <p className="text-2xl font-bold text-[#1a1d2e]">
-              {averageRating.toFixed(1)}
-            </p>
-            <div className="flex gap-0.5">
-              {[1, 2, 3, 4, 5].map((star) => (
-                <Star
-                  key={star}
-                  className={`h-3.5 w-3.5 ${
-                    star <= Math.round(averageRating)
-                      ? "text-[#f59e0b] fill-[#f59e0b]"
-                      : "text-[#e5e7eb]"
-                  }`}
-                />
-              ))}
-            </div>
-          </div>
-          <p className="text-xs text-[#94a3b8] mt-1">Vendor performance</p>
-        </motion.button>
-
-        <motion.button
-          type="button"
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.3, delay: 0.2 }}
-          onClick={() => {
-            setSelectedStatus("Approved");
-            setExpiringOnly(false);
-          }}
-          className="bg-white rounded-xl border border-[rgba(0,0,0,0.08)] p-6 shadow-sm cursor-pointer hover:border-[#10b981]/40 hover:shadow-md"
-        >
-          <div className="flex items-center justify-between mb-2">
-            <p className="text-sm text-[#64748b]">Approved Vendors</p>
-            <div className="h-10 w-10 rounded-lg bg-gradient-to-br from-[#10b981] to-[#14b8a6] flex items-center justify-center">
-              <span className="text-white font-bold text-xs">✓</span>
-            </div>
-          </div>
-          <p className="text-2xl font-bold text-[#10b981]">{approvedCount}</p>
-          <p className="text-xs text-[#94a3b8] mt-1">Active partnerships</p>
-        </motion.button>
-
-        <motion.button
-          type="button"
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.3, delay: 0.25 }}
-          onClick={() => {
-            setExpiringOnly(true);
-            setSelectedStatus("All");
-          }}
-          className="bg-white rounded-xl border border-[rgba(0,0,0,0.08)] p-6 shadow-sm cursor-pointer hover:border-[#f59e0b]/40 hover:shadow-md"
-        >
-          <div className="flex items-center justify-between mb-2">
-            <p className="text-sm text-[#64748b]">Expiring Soon</p>
-            <div className="h-10 w-10 rounded-lg bg-gradient-to-br from-[#f59e0b] to-[#f97316] flex items-center justify-center">
-              <span className="text-white font-bold">{expiringCount}</span>
-            </div>
-          </div>
-          <p className="text-2xl font-bold text-[#f59e0b]">{expiringCount}</p>
-          <p className="text-xs text-[#94a3b8] mt-1">Within 90 days</p>
-        </motion.button>
       </div>
 
       {/* Filters Card */}
@@ -522,6 +389,25 @@ export function VendorsPage({ onNavigate, onSearch }: VendorsPageProps) {
           </div>
         </div>
       </motion.div>
+      {activeFilters.length > 0 && (
+        <div className="mb-4 flex items-center justify-between">
+          <div className="flex items-center gap-2 flex-wrap">
+            {activeFilters.map((f) => (
+              <span
+                key={f}
+                className="text-sm bg-[#f1f5f9] text-[#0f172a] px-2 py-1 rounded"
+              >
+                {f}
+              </span>
+            ))}
+          </div>
+          <div>
+            <Button onClick={clearFilters} className="px-3 py-1">
+              Clear filters
+            </Button>
+          </div>
+        </div>
+      )}
 
       {/* Vendors Table */}
       <VendorsTable
