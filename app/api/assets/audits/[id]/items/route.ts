@@ -80,6 +80,11 @@ export async function POST(
     const { id } = await params;
     const auditId = String(id || "").trim();
 
+    // Clear existing audit items for this audit so import replaces previous data
+    await query(`DELETE FROM audit_items WHERE audit_id = :audit_id`, {
+      audit_id: auditId,
+    });
+
     let inserted = 0;
     let matched = 0;
 

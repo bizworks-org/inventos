@@ -10,7 +10,7 @@ import {
   importAuditSerialNumbers,
   computeAuditDiff,
   AuditItem,
-} from "../../../lib/audit";
+} from "@/lib/audit";
 
 export function AuditSessionPage({
   auditId,
@@ -88,6 +88,26 @@ export function AuditSessionPage({
   const handleImport = async () => {
     if (!parsedSerials.length) return;
     try {
+      // Check if this audit already has items - confirm replacement
+      try {
+        const existingRes = await fetch(
+          `/api/assets/audits/${encodeURIComponent(auditId)}/items`,
+          { cache: "no-store" }
+        );
+        if (existingRes.ok) {
+          const existing = await existingRes.json();
+          if (Array.isArray(existing) && existing.length > 0) {
+            const ok = window.confirm(
+              "This import will replace the existing items for this audit. Do you want to continue?"
+            );
+            if (!ok) return;
+          }
+        }
+      } catch (err) {
+        // If check fails, proceed but warn in console
+        console.warn("Failed to check existing audit items before import", err);
+      }
+
       await importAuditSerialNumbers(auditId, parsedSerials);
       setItems(await fetchAuditItems(auditId));
       if (previousAuditId) {
@@ -183,44 +203,97 @@ export function AuditSessionPage({
       </div>
       <div className="bg-white border rounded-lg p-4 mb-6">
         <h2 className="font-medium mb-2">Import Serial Numbers (CSV file)</h2>
-        <input
-          type="file"
-          accept=".csv,text/csv"
-          onChange={(e) => handleFileChange(e.target.files?.[0] || null)}
-          className="block w-full text-sm mb-4 mt-4 cursor-pointer"
-        />
-        {file && (
-          <p className="text-xs text-[#64748b] mb-2">
-            Selected: <span className="font-medium">{file.name}</span>
-          </p>
-        )}
-        {parsing && <p className="text-xs text-[#64748b] mb-2">Parsing…</p>}
-        {!parsing && parsedSerials.length > 0 && (
-          <p className="text-xs text-[#64748b] mb-2">
-            Parsed {parsedSerials.length} serial number
-            {parsedSerials.length === 1 ? "" : "s"}.
-          </p>
-        )}
-        <div className="flex gap-2">
-          <Button
-            onClick={handleImport}
-            disabled={parsing || parsedSerials.length === 0}
-            className="px-4 py-2"
+        <div className="mb-4">
+          <label
+            htmlFor="audit-import-input"
+            onDrop={(e) => {
+              e.preventDefault();
+              const f = e.dataTransfer?.files?.[0] || null;
+              handleFileChange(f as File | null);
+            }}
+            onDragOver={(e) => e.preventDefault()}
+            className="block w-full cursor-pointer p-4 border-2 border-dashed rounded-lg hover:border-[#6366f1] transition-colors bg-white"
           >
-            Import
-          </Button>
-          {parsedSerials.length > 0 && (
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="flex items-center justify-center h-10 w-10 rounded bg-[#f3f4ff] text-[#6366f1]">
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    className="h-5 w-5"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth="2"
+                      d="M12 3v12m0 0l4-4m-4 4L8 11"
+                    />
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth="2"
+                      d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"
+                    />
+                  </svg>
+                </div>
+                <div>
+                  <div className="text-sm font-medium text-[#1a1d2e]">
+                    Click or drop a CSV file to import serial numbers
+                  </div>
+                  <div className="text-xs text-[#64748b]">
+                    Only .csv files are supported — first column parsed as
+                    serial
+                  </div>
+                </div>
+              </div>
+              <div className="text-xs text-[#64748b]">
+                {file ? (
+                  <span className="font-medium">{file.name}</span>
+                ) : (
+                  <span className="underline">Choose file</span>
+                )}
+              </div>
+            </div>
+            <input
+              id="audit-import-input"
+              type="file"
+              accept=".csv,text/csv"
+              onChange={(e) => handleFileChange(e.target.files?.[0] || null)}
+              className="sr-only"
+            />
+          </label>
+
+          {parsing && <p className="text-xs text-[#64748b] mt-2">Parsing…</p>}
+          {!parsing && parsedSerials.length > 0 && (
+            <p className="text-xs text-[#64748b] mt-2">
+              Parsed <span className="font-medium">{parsedSerials.length}</span>{" "}
+              serial number{parsedSerials.length === 1 ? "" : "s"}.
+            </p>
+          )}
+
+          <div className="flex gap-2 mt-3">
             <Button
-              variant="outline"
-              onClick={() => {
-                setFile(null);
-                setParsedSerials([]);
-              }}
+              onClick={handleImport}
+              disabled={parsing || parsedSerials.length === 0}
               className="px-4 py-2"
             >
-              Reset
+              Import
             </Button>
-          )}
+            {parsedSerials.length > 0 && (
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setFile(null);
+                  setParsedSerials([]);
+                }}
+                className="px-4 py-2"
+              >
+                Reset
+              </Button>
+            )}
+          </div>
         </div>
         {parsedSerials.length > 0 && (
           <details className="mt-3">
