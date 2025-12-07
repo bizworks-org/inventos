@@ -1,5 +1,11 @@
 import { Asset, License, Vendor } from "./data";
 
+// Sanitizes a filename to prevent XSS attacks
+function sanitizeFilename(filename: string): string {
+  // Remove any potentially dangerous characters and limit to safe alphanumeric, dash, underscore, and dot
+  return filename.replace(/[^a-zA-Z0-9._-]/g, "_").slice(0, 255);
+}
+
 // Escapes a value for safe inclusion in CSV
 function csvEscape(value: null): string {
   if (value === null || value === undefined) return "";
@@ -96,7 +102,7 @@ export function exportAssetsToCSV(assets: Asset[], filename?: string) {
   const date = new Date();
   const defaultName = `assets_export_${date.toISOString().slice(0, 10)}.csv`;
   link.href = url;
-  link.setAttribute("download", filename || defaultName);
+  link.setAttribute("download", sanitizeFilename(filename || defaultName));
   document.body.appendChild(link);
   link.click();
   link.remove();
@@ -172,7 +178,7 @@ export function exportLicensesToCSV(licenses: License[], filename?: string) {
   const date = new Date();
   const defaultName = `licenses_export_${date.toISOString().slice(0, 10)}.csv`;
   link.href = url;
-  link.setAttribute("download", filename || defaultName);
+  link.setAttribute("download", sanitizeFilename(filename || defaultName));
   document.body.appendChild(link);
   link.click();
   link.remove();
@@ -246,7 +252,7 @@ export function exportVendorsToCSV(vendors: Vendor[], filename?: string) {
   const date = new Date();
   const defaultName = `vendors_export_${date.toISOString().slice(0, 10)}.csv`;
   link.href = url;
-  link.setAttribute("download", filename || defaultName);
+  link.setAttribute("download", sanitizeFilename(filename || defaultName));
   document.body.appendChild(link);
   link.click();
   link.remove();

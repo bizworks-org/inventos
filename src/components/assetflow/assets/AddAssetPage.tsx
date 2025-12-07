@@ -10,7 +10,12 @@ import { AssetFlowLayout } from "../layout/AssetFlowLayout";
 import { Asset, AssetFieldDef } from "../../../lib/data";
 import { createAsset, sendAssetConsent } from "../../../lib/api";
 import { logAssetCreated } from "../../../lib/events";
-import FieldRenderer from "./FieldRenderer";
+import BasicInformation from "./components/BasicInformation";
+import FinancialLifecycle from "./components/FinancialLifecycle";
+import TechnicalSpecifications from "./components/TechnicalSpecifications";
+import CiaEvaluation from "./components/CiaEvaluation";
+import CustomFieldsSection from "./components/CustomFieldsSection";
+import SidebarSummary from "./components/SidebarSummary";
 import Barcode from "../../ui/Barcode";
 
 interface AddAssetPageProps {
@@ -528,6 +533,17 @@ export function AddAssetPage(props: Readonly<AddAssetPageProps>) {
     assetType
   );
 
+  const setAssetTypeIdFromString = (v: string) => {
+    if (/^\d+$/.test(v)) {
+      setAssetTypeId(Number(v));
+      const name = catalogMaps.idToName.get(v);
+      if (name) setAssetType(name);
+    } else {
+      setAssetType(String(v));
+      setAssetTypeId(v);
+    }
+  };
+
   // Extracted handlers to reduce nesting in JSX
   const handleExtraFieldKeyChange = (idx: number, value: string) => {
     setExtraFields((arr) =>
@@ -580,467 +596,47 @@ export function AddAssetPage(props: Readonly<AddAssetPageProps>) {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Main Form - Takes 2 columns */}
           <div className="lg:col-span-2 space-y-6">
-            {/* Basic Information */}
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.4 }}
-              className="bg-white rounded-2xl border border-[rgba(0,0,0,0.08)] p-6 shadow-sm"
             >
-              <h3 className="text-lg font-semibold text-[#1a1d2e] mb-4">
-                Basic Information
-              </h3>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {/* Asset Category */}
-                <div className="md:col-span-2">
-                  <label
-                    htmlFor="asset-category"
-                    className="block text-sm font-medium text-[#1a1d2e] mb-2"
-                  >
-                    Asset Category *
-                  </label>
-                  <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
-                    {categoryList.map((cat) => (
-                      <Button
-                        key={cat}
-                        type="button"
-                        onClick={() => {
-                          setCategory(cat);
-                          const options = typesByCategoryWithIds(cat);
-                          if (options.length) {
-                            const first = options[0];
-                            if (first.id !== undefined && first.id !== null) {
-                              setAssetTypeId(first.id);
-                              setAssetType(first.name);
-                            } else {
-                              setAssetType(first.name);
-                              setAssetTypeId("");
-                            }
-                          }
-                        }}
-                        className={`
-                          px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200
-                          ${
-                            category === cat
-                              ? "bg-gradient-to-r from-[#6366f1] to-[#8b5cf6] text-white shadow-md"
-                              : "bg-[#f8f9ff] text-[#64748b] hover:bg-[#e0e7ff] hover:text-[#6366f1]"
-                          }
-                        `}
-                      >
-                        {cat}
-                      </Button>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Asset Type (by Category) */}
-                <div>
-                  <label
-                    htmlFor="asset-type"
-                    className="block text-sm font-medium text-[#1a1d2e] mb-2"
-                  >
-                    Asset Type *
-                  </label>
-                  <select
-                    id="asset-type"
-                    required
-                    value={assetTypeId ? String(assetTypeId) : assetType}
-                    onChange={(e) => {
-                      const v = e.target.value;
-                      // Prefer numeric id values when present in catalog
-                      if (catalog?.length && catalogMaps.idToName.has(v)) {
-                        setAssetTypeId(Number(v));
-                        setAssetType(catalogMaps.idToName.get(v));
-                      } else {
-                        // legacy: name value
-                        setAssetType(String(v));
-                        setAssetTypeId("");
-                      }
-                    }}
-                    className="w-full px-4 py-2.5 rounded-lg bg-[#f8f9ff] border border-[rgba(0,0,0,0.05)] text-[#1a1d2e] focus:outline-none focus:ring-2 focus:ring-[#6366f1]/20 focus:border-[#6366f1] transition-all duration-200 cursor-pointer"
-                  >
-                    {(() => {
-                      let opts: Array<{ id?: number; name: string }>;
-                      if (typesByCategoryWithIds(category).length) {
-                        opts = typesByCategoryWithIds(category);
-                      } else if (catalog?.length) {
-                        opts = catalog.flatMap((c) => c.types);
-                      } else {
-                        opts = assetTypes.map((n) => ({ name: n } as any));
-                      }
-                      return opts.map((t: any) => (
-                        <option
-                          key={t.id ?? t.name}
-                          value={
-                            t.id !== undefined && t.id !== null
-                              ? String(t.id)
-                              : t.name
-                          }
-                        >
-                          {t.name}
-                        </option>
-                      ));
-                    })()}
-                  </select>
-                </div>
-
-                {/* Asset Name */}
-                <div className="md:col-span-2">
-                  <label
-                    htmlFor="asset-name"
-                    className="block text-sm font-medium text-[#1a1d2e] mb-2"
-                  >
-                    Asset Name *
-                  </label>
-                  <input
-                    id="asset-name"
-                    type="text"
-                    required
-                    value={formData.name}
-                    onChange={(e) => handleInputChange("name", e.target.value)}
-                    placeholder='e.g., MacBook Pro 16"'
-                    className="w-full px-4 py-2.5 rounded-lg bg-[#f8f9ff] border border-[rgba(0,0,0,0.05)] text-[#1a1d2e] placeholder:text-[#a0a4b8] focus:outline-none focus:ring-2 focus:ring-[#6366f1]/20 focus:border-[#6366f1] transition-all duration-200"
-                  />
-                </div>
-
-                {/* Serial Number */}
-                <div>
-                  <label
-                    htmlFor="serial-number"
-                    className="block text-sm font-medium text-[#1a1d2e] mb-2"
-                  >
-                    Serial Number *
-                  </label>
-                  <input
-                    id="serial-number"
-                    type="text"
-                    required
-                    value={formData.serialNumber}
-                    onChange={(e) =>
-                      handleInputChange("serialNumber", e.target.value)
-                    }
-                    placeholder="e.g., MBP-2024-001"
-                    className="w-full px-4 py-2.5 rounded-lg bg-[#f8f9ff] border border-[rgba(0,0,0,0.05)] text-[#1a1d2e] placeholder:text-[#a0a4b8] focus:outline-none focus:ring-2 focus:ring-[#6366f1]/20 focus:border-[#6366f1] transition-all duration-200"
-                  />
-                </div>
-
-                {/* Status */}
-                <div>
-                  <label
-                    htmlFor="status"
-                    className="block text-sm font-medium text-[#1a1d2e] mb-2"
-                  >
-                    Status *
-                  </label>
-                  <select
-                    id="status"
-                    required
-                    value={formData.status}
-                    onChange={(e) =>
-                      handleInputChange("status", e.target.value)
-                    }
-                    className="w-full px-4 py-2.5 rounded-lg bg-[#f8f9ff] border border-[rgba(0,0,0,0.05)] text-[#1a1d2e] focus:outline-none focus:ring-2 focus:ring-[#6366f1]/20 focus:border-[#6366f1] transition-all duration-200 cursor-pointer"
-                  >
-                    {assetStatuses.map((status) => (
-                      <option key={status} value={status}>
-                        {status}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                {/* Assigned To (required only when Allocated) */}
-                <div>
-                  <label
-                    htmlFor="assigned-to"
-                    className="block text-sm font-medium text-[#1a1d2e] mb-2"
-                  >
-                    Assigned To
-                    {formData.status === "Allocated" ? " *" : " (optional)"}
-                  </label>
-                  <input
-                    id="assigned-to"
-                    type="text"
-                    required={formData.status === "Allocated"}
-                    value={formData.assignedTo}
-                    onChange={(e) =>
-                      handleInputChange("assignedTo", e.target.value)
-                    }
-                    placeholder="e.g., John Doe"
-                    className="w-full px-4 py-2.5 rounded-lg bg-[#f8f9ff] border border-[rgba(0,0,0,0.05)] text-[#1a1d2e] placeholder:text-[#a0a4b8] focus:outline-none focus:ring-2 focus:ring-[#6366f1]/20 focus:border-[#6366f1] transition-all duration-200"
-                  />
-                </div>
-
-                {/* Assigned To Email */}
-                <div>
-                  <label
-                    htmlFor="assigned-email"
-                    className="block text-sm font-medium text-[#1a1d2e] mb-2"
-                  >
-                    Assigned To Email
-                    {formData.assignedTo.trim() ? " *" : " (optional)"}
-                  </label>
-                  <input
-                    id="assigned-email"
-                    type="email"
-                    required={!!formData.assignedTo.trim()}
-                    value={formData.assignedEmail}
-                    onChange={(e) =>
-                      handleInputChange("assignedEmail", e.target.value)
-                    }
-                    placeholder="e.g., john.doe@example.com"
-                    className="w-full px-4 py-2.5 rounded-lg bg-[#f8f9ff] border border-[rgba(0,0,0,0.05)] text-[#1a1d2e] placeholder:text-[#a0a4b8] focus:outline-none focus:ring-2 focus:ring-[#6366f1]/20 focus:border-[#6366f1] transition-all duration-200"
-                  />
-                  <p className="text-xs text-[#94a3b8] mt-1">
-                    {consentRequired
-                      ? "If provided, we'll email this person to accept or reject the assignment."
-                      : "Stored with the asset; no consent email will be sent."}
-                  </p>
-                </div>
-
-                {/* Department */}
-                <div>
-                  <label
-                    htmlFor="department"
-                    className="block text-sm font-medium text-[#1a1d2e] mb-2"
-                  >
-                    Department *
-                  </label>
-                  <input
-                    id="department"
-                    type="text"
-                    required
-                    value={formData.department}
-                    onChange={(e) =>
-                      handleInputChange("department", e.target.value)
-                    }
-                    placeholder="e.g., Engineering"
-                    className="w-full px-4 py-2.5 rounded-lg bg-[#f8f9ff] border border-[rgba(0,0,0,0.05)] text-[#1a1d2e] placeholder:text-[#a0a4b8] focus:outline-none focus:ring-2 focus:ring-[#6366f1]/20 focus:border-[#6366f1] transition-all duration-200"
-                  />
-                </div>
-
-                {/* Location */}
-                <div className="md:col-span-2">
-                  <label
-                    htmlFor="location"
-                    className="block text-sm font-medium text-[#1a1d2e] mb-2"
-                  >
-                    Location *
-                  </label>
-                  <select
-                    id="location"
-                    required
-                    value={formData.location ?? ""}
-                    onChange={(e) =>
-                      handleInputChange("location", e.target.value)
-                    }
-                    className="w-full px-4 py-2.5 rounded-lg bg-[#f8f9ff] border border-[rgba(0,0,0,0.05)] text-[#1a1d2e] placeholder:text-[#a0a4b8] focus:outline-none focus:ring-2 focus:ring-[#6366f1]/20 focus:border-[#6366f1] transition-all duration-200"
-                  >
-                    <option value="">Select location</option>
-                    {locationsList.map((l) => (
-                      <option key={l.id ?? l.code} value={l.code ?? l.name}>
-                        {l.code ?? l.name}
-                        {l.name ? ` — ${l.name}` : ""}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              </div>
+              <BasicInformation
+                categoryOptions={categoryList}
+                category={category}
+                setCategory={setCategory}
+                typesForSelectedCategory={typesByCategoryWithIds(category)}
+                assetTypeId={assetTypeId ? String(assetTypeId) : ""}
+                setAssetTypeId={setAssetTypeIdFromString}
+                formData={formData}
+                handleInputChange={handleInputChange}
+                locationsList={locationsList}
+              />
             </motion.div>
 
-            {/* CIA Evaluation */}
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.4, delay: 0.22 }}
-              className="bg-white rounded-2xl border border-[rgba(0,0,0,0.08)] p-6 shadow-sm"
             >
-              <h3 className="text-lg font-semibold text-[#1a1d2e] mb-4">
-                CIA Evaluation
-              </h3>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div>
-                  <label
-                    htmlFor="cia-confidentiality"
-                    className="block text-sm font-medium text-[#1a1d2e] mb-2"
-                  >
-                    Confidentiality
-                  </label>
-                  <select
-                    id="cia-confidentiality"
-                    value={String(cia.c)}
-                    onChange={(e) =>
-                      setCia((v) => ({ ...v, c: Number(e.target.value) }))
-                    }
-                    className="w-full px-3 py-2.5 rounded-lg bg-[#f8f9ff] border border-[rgba(0,0,0,0.08)]"
-                  >
-                    {[1, 2, 3, 4, 5].map((n) => (
-                      <option key={n} value={n}>
-                        {n}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                <div>
-                  <label
-                    htmlFor="cia-integrity"
-                    className="block text-sm font-medium text-[#1a1d2e] mb-2"
-                  >
-                    Integrity
-                  </label>
-                  <select
-                    id="cia-integrity"
-                    value={String(cia.i)}
-                    onChange={(e) =>
-                      setCia((v) => ({ ...v, i: Number(e.target.value) }))
-                    }
-                    className="w-full px-3 py-2.5 rounded-lg bg-[#f8f9ff] border border-[rgba(0,0,0,0.08)]"
-                  >
-                    {[1, 2, 3, 4, 5].map((n) => (
-                      <option key={n} value={n}>
-                        {n}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                <div>
-                  <label
-                    htmlFor="cia-availability"
-                    className="block text-sm font-medium text-[#1a1d2e] mb-2"
-                  >
-                    Availability
-                  </label>
-                  <select
-                    id="cia-availability"
-                    value={String(cia.a)}
-                    onChange={(e) =>
-                      setCia((v) => ({ ...v, a: Number(e.target.value) }))
-                    }
-                    className="w-full px-3 py-2.5 rounded-lg bg-[#f8f9ff] border border-[rgba(0,0,0,0.08)]"
-                  >
-                    {[1, 2, 3, 4, 5].map((n) => (
-                      <option key={n} value={n}>
-                        {n}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
-                <div className="p-3 m-4 rounded-lg bg-[#f8f9ff] border border-[rgba(0,0,0,0.05)] flex items-center justify-between">
-                  <span className="p-2 text-sm text-[#64748b]">Total</span>
-                  <span className="p-2 text-base font-semibold text-[#1a1d2e]">
-                    {ciaTotal}
-                  </span>
-                </div>
-                <div className="p-3 m-4 rounded-lg bg-[#f8f9ff] border border-[rgba(0,0,0,0.05)] flex items-center justify-between">
-                  <span className="p-2 text-sm text-[#64748b]">CIA Score</span>
-                  <span className="p-2 text-base font-semibold text-[#1a1d2e]">
-                    {ciaAvg.toFixed(2)}
-                  </span>
-                </div>
-              </div>
+              <CiaEvaluation
+                cia={cia}
+                setCia={setCia}
+                ciaTotal={ciaTotal}
+                ciaAvg={ciaAvg}
+              />
             </motion.div>
 
-            {/* Financial & Lifecycle */}
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.4, delay: 0.1 }}
-              className="bg-white rounded-2xl border border-[rgba(0,0,0,0.08)] p-6 shadow-sm"
             >
-              <h3 className="text-lg font-semibold text-[#1a1d2e] mb-4">
-                Financial & Lifecycle
-              </h3>
-
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                {/* Cost */}
-                <div>
-                  <label
-                    htmlFor="purchase-cost"
-                    className="block text-sm font-medium text-[#1a1d2e] mb-2"
-                  >
-                    Purchase Cost *
-                  </label>
-                  <div className="relative">
-                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[#64748b]">
-                      {currencySymbol}
-                    </span>
-                    <input
-                      id="purchase-cost"
-                      type="number"
-                      required
-                      min="0"
-                      step="0.01"
-                      value={formData.cost}
-                      onChange={(e) =>
-                        handleInputChange("cost", e.target.value)
-                      }
-                      placeholder="0.00"
-                      className="w-full pl-8 pr-4 py-2.5 rounded-lg bg-[#f8f9ff] border border-[rgba(0,0,0,0.05)] text-[#1a1d2e] placeholder:text-[#a0a4b8] focus:outline-none focus:ring-2 focus:ring-[#6366f1]/20 focus:border-[#6366f1] transition-all duration-200"
-                    />
-                  </div>
-                </div>
-
-                {/* Purchase Date */}
-                <div>
-                  <label
-                    htmlFor="purchase-date"
-                    className="block text-sm font-medium text-[#1a1d2e] mb-2"
-                  >
-                    Purchase Date *
-                  </label>
-                  <input
-                    id="purchase-date"
-                    type="date"
-                    required
-                    value={formData.purchaseDate}
-                    onChange={(e) =>
-                      handleInputChange("purchaseDate", e.target.value)
-                    }
-                    className="w-full px-4 py-2.5 rounded-lg bg-[#f8f9ff] border border-[rgba(0,0,0,0.05)] text-[#1a1d2e] focus:outline-none focus:ring-2 focus:ring-[#6366f1]/20 focus:border-[#6366f1] transition-all duration-200"
-                  />
-                </div>
-
-                {/* End of Support */}
-                <div>
-                  <label
-                    htmlFor="eos-date"
-                    className="block text-sm font-medium text-[#1a1d2e] mb-2"
-                  >
-                    End of Support
-                  </label>
-                  <input
-                    id="eos-date"
-                    type="date"
-                    value={formData.eosDate}
-                    onChange={(e) =>
-                      handleInputChange("eosDate", e.target.value)
-                    }
-                    className="w-full px-4 py-2.5 rounded-lg bg-[#f8f9ff] border border-[rgba(0,0,0,0.05)] text-[#1a1d2e] focus:outline-none focus:ring-2 focus:ring-[#6366f1]/20 focus:border-[#6366f1] transition-all duration-200"
-                  />
-                </div>
-
-                {/* End of Life */}
-                <div>
-                  <label
-                    htmlFor="eol-date"
-                    className="block text-sm font-medium text-[#1a1d2e] mb-2"
-                  >
-                    End of Life
-                  </label>
-                  <input
-                    id="eol-date"
-                    type="date"
-                    value={formData.eolDate}
-                    onChange={(e) =>
-                      handleInputChange("eolDate", e.target.value)
-                    }
-                    className="w-full px-4 py-2.5 rounded-lg bg-[#f8f9ff] border border-[rgba(0,0,0,0.05)] text-[#1a1d2e] focus:outline-none focus:ring-2 focus:ring-[#6366f1]/20 focus:border-[#6366f1] transition-all duration-200"
-                  />
-                </div>
-              </div>
+              <FinancialLifecycle
+                formData={formData}
+                handleInputChange={handleInputChange}
+                currencySymbol={currencySymbol}
+              />
             </motion.div>
 
             {/* Specifications (conditional) */}
@@ -1049,180 +645,28 @@ export function AddAssetPage(props: Readonly<AddAssetPageProps>) {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.4, delay: 0.2 }}
-                className="bg-white rounded-2xl border border-[rgba(0,0,0,0.08)] p-6 shadow-sm"
               >
-                <h3 className="text-lg font-semibold text-[#1a1d2e] mb-4">
-                  Technical Specifications
-                </h3>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {/* Processor */}
-                  <div>
-                    <label
-                      htmlFor="processor"
-                      className="block text-sm font-medium text-[#1a1d2e] mb-2"
-                    >
-                      Processor
-                    </label>
-                    <input
-                      id="processor"
-                      type="text"
-                      value={formData.processor}
-                      onChange={(e) =>
-                        handleInputChange("processor", e.target.value)
-                      }
-                      placeholder="e.g., M2 Pro, Intel Core i7"
-                      className="w-full px-4 py-2.5 rounded-lg bg-[#f8f9ff] border border-[rgba(0,0,0,0.05)] text-[#1a1d2e] placeholder:text-[#a0a4b8] focus:outline-none focus:ring-2 focus:ring-[#6366f1]/20 focus:border-[#6366f1] transition-all duration-200"
-                    />
-                  </div>
-
-                  {/* RAM */}
-                  <div>
-                    <label
-                      htmlFor="ram"
-                      className="block text-sm font-medium text-[#1a1d2e] mb-2"
-                    >
-                      RAM
-                    </label>
-                    <input
-                      id="ram"
-                      type="text"
-                      value={formData.ram}
-                      onChange={(e) => handleInputChange("ram", e.target.value)}
-                      placeholder="e.g., 16GB, 32GB"
-                      className="w-full px-4 py-2.5 rounded-lg bg-[#f8f9ff] border border-[rgba(0,0,0,0.05)] text-[#1a1d2e] placeholder:text-[#a0a4b8] focus:outline-none focus:ring-2 focus:ring-[#6366f1]/20 focus:border-[#6366f1] transition-all duration-200"
-                    />
-                  </div>
-
-                  {/* Storage */}
-                  <div>
-                    <label
-                      htmlFor="storage"
-                      className="block text-sm font-medium text-[#1a1d2e] mb-2"
-                    >
-                      Storage
-                    </label>
-                    <input
-                      id="storage"
-                      type="text"
-                      value={formData.storage}
-                      onChange={(e) =>
-                        handleInputChange("storage", e.target.value)
-                      }
-                      placeholder="e.g., 512GB SSD, 1TB SSD"
-                      className="w-full px-4 py-2.5 rounded-lg bg-[#f8f9ff] border border-[rgba(0,0,0,0.05)] text-[#1a1d2e] placeholder:text-[#a0a4b8] focus:outline-none focus:ring-2 focus:ring-[#6366f1]/20 focus:border-[#6366f1] transition-all duration-200"
-                    />
-                  </div>
-
-                  {/* Operating System */}
-                  <div>
-                    <label
-                      htmlFor="os"
-                      className="block text-sm font-medium text-[#1a1d2e] mb-2"
-                    >
-                      Operating System
-                    </label>
-                    <input
-                      id="os"
-                      type="text"
-                      value={formData.os}
-                      onChange={(e) => handleInputChange("os", e.target.value)}
-                      placeholder="e.g., macOS Sonoma, Windows 11"
-                      className="w-full px-4 py-2.5 rounded-lg bg-[#f8f9ff] border border-[rgba(0,0,0,0.05)] text-[#1a1d2e] placeholder:text-[#a0a4b8] focus:outline-none focus:ring-2 focus:ring-[#6366f1]/20 focus:border-[#6366f1] transition-all duration-200"
-                    />
-                  </div>
-                </div>
+                <TechnicalSpecifications
+                  showSpecifications={showSpecifications}
+                  formData={formData}
+                  handleInputChange={handleInputChange}
+                />
               </motion.div>
             )}
 
-            {/* Custom Fields (from Settings) */}
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.4, delay: 0.25 }}
-              className="bg-white rounded-2xl border border-[rgba(0,0,0,0.08)] p-6 shadow-sm"
             >
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="text-lg font-semibold text-[#1a1d2e]">
-                  Custom Fields
-                </h3>
-              </div>
-              <p className="text-sm text-[#64748b] mb-3">
-                These fields are defined globally in Settings.
-              </p>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {fieldDefs.length === 0 && (
-                  <p className="text-sm text-[#94a3b8] md:col-span-2">
-                    No custom fields configured. Add them in Settings → Asset
-                    Fields.
-                  </p>
-                )}
-                {fieldDefs.map((def) => {
-                  const val = customFieldValues[def.key] ?? "";
-                  const onChange = (newVal: string) =>
-                    setCustomFieldValues((v) => ({ ...v, [def.key]: newVal }));
-                  const fid = `asset-cf-${def.key}`;
-                  return (
-                    <div key={def.key}>
-                      <label
-                        htmlFor={fid}
-                        className="block text-sm font-medium text-[#1a1d2e] mb-2"
-                      >
-                        {def.label}
-                        {def.required ? " *" : ""}
-                      </label>
-                      <FieldRenderer
-                        id={fid}
-                        def={def}
-                        value={val}
-                        onChange={onChange}
-                      />
-                      <input id={fid} type="hidden" value={val} readOnly />
-                    </div>
-                  );
-                })}
-              </div>
+              <CustomFieldsSection
+                fieldDefs={fieldDefs}
+                customFieldValues={customFieldValues}
+                setCustomFieldValues={setCustomFieldValues}
+                extraFields={extraFields}
+                setExtraFields={setExtraFields}
+              />
 
-              {/* Backward-compat additional fields (optional) */}
-              {extraFields.length > 0 && (
-                <div className="mt-6">
-                  <h4 className="text-sm font-semibold text-[#1a1d2e] mb-2">
-                    Additional Fields
-                  </h4>
-                  <div className="space-y-3">
-                    {extraFields.map((cf, idx) => (
-                      <div
-                        key={JSON.stringify(cf)}
-                        className="grid grid-cols-1 md:grid-cols-12 gap-3 items-center"
-                      >
-                        <input
-                          placeholder="Key"
-                          value={cf.key}
-                          onChange={(e) =>
-                            handleExtraFieldKeyChange(idx, e.target.value)
-                          }
-                          className="md:col-span-5 w-full px-3 py-2 rounded-lg bg-[#f8f9ff] border border-[rgba(0,0,0,0.08)]"
-                        />
-                        <input
-                          placeholder="Value"
-                          value={cf.value}
-                          onChange={(e) =>
-                            handleExtraFieldValueChange(idx, e.target.value)
-                          }
-                          className="md:col-span-6 w-full px-3 py-2 rounded-lg bg-[#f8f9ff] border border-[rgba(0,0,0,0.08)]"
-                        />
-                        <Button
-                          type="button"
-                          onClick={() => handleRemoveExtraField(idx)}
-                          className="md:col-span-1 px-3 py-2 rounded-lg bg-white border border-[rgba(0,0,0,0.08)] hover:bg-[#fee2e2] text-[#ef4444]"
-                        >
-                          Remove
-                        </Button>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
               {/* Barcode Section */}
               <div className="mt-8 border-t border-[rgba(0,0,0,0.06)] pt-6">
                 <h4 className="text-sm font-semibold text-[#1a1d2e] mb-3">

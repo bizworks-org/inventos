@@ -17,11 +17,11 @@ import { fetchAssetById, updateAsset } from "../../../lib/api";
 import { logAssetUpdated } from "../../../lib/events";
 
 // Small extracted sections
-import BasicInformation from "./edit/BasicInformation";
-import FinancialLifecycle from "./edit/FinancialLifecycle";
-import TechnicalSpecifications from "./edit/TechnicalSpecifications";
-import CiaEvaluation from "./edit/CiaEvaluation";
-import CustomFieldsSection from "./edit/CustomFieldsSection";
+import BasicInformation from "./components/BasicInformation";
+import FinancialLifecycle from "./components/FinancialLifecycle";
+import TechnicalSpecifications from "./components/TechnicalSpecifications";
+import CiaEvaluation from "./components/CiaEvaluation";
+import CustomFieldsSection from "./components/CustomFieldsSection";
 
 type UiCategory = {
   id: number;
