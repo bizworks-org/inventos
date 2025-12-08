@@ -1,14 +1,13 @@
 "use client";
 import React from "react";
-import FileDropzone from "../../ui/FileDropzone";
+import FileDropzone from "../../../ui/FileDropzone";
 import { uploadWithProgress } from "@/lib/upload";
 import { toast } from "@/components/ui/sonner";
+import { vendorTypes, vendorStatuses } from "../constants";
 
 type Props = {
   formData: any;
   handleInputChange: (f: string, v: string) => void;
-  vendorTypes: string[];
-  vendorStatuses: string[];
   currencySymbol: string;
   vendorId: string;
   setFormData: (updater: any) => void;
@@ -17,8 +16,6 @@ type Props = {
 export default function VendorInfoTab({
   formData,
   handleInputChange,
-  vendorTypes,
-  vendorStatuses,
   currencySymbol,
   vendorId,
   setFormData,

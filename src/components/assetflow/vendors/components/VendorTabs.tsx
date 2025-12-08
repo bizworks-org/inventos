@@ -1,19 +1,21 @@
 "use client";
 import { Button } from "@/components/ui/button";
 
+type VendorTabsProps = {
+  tabs: { id: string; label: string }[];
+  activeTab: string;
+  setActiveTab: (id: string) => void;
+};
+
 export default function VendorTabs({
   tabs,
   activeTab,
   setActiveTab,
-}: {
-  tabs: { id: string; label: string }[];
-  activeTab: string;
-  setActiveTab: (id: string) => void;
-}) {
+}: VendorTabsProps) {
   return (
     <nav
       role="tablist"
-      aria-label="Edit vendor tabs"
+      aria-label="Vendor tabs"
       className="flex w-full flex-wrap gap-2 rounded-xl border border-[rgba(0,0,0,0.08)] bg-[#f8f9ff] p-2"
       onKeyDown={(e) => {
         const idx = tabs.findIndex((t) => t.id === activeTab);

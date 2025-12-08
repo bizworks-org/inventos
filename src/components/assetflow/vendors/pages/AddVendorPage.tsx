@@ -3,27 +3,20 @@
 import { useEffect, useState } from "react";
 import { motion } from "motion/react";
 import { ArrowLeft, Save, X, Building2, Star, Calendar } from "lucide-react";
-import { AssetFlowLayout } from "../layout/AssetFlowLayout";
-import { Vendor, AssetFieldDef } from "../../../lib/data";
-import { createVendor } from "../../../lib/api";
-import { logVendorCreated } from "../../../lib/events";
-import FieldRenderer from "../assets/FieldRenderer";
-import FileDropzone from "../../ui/FileDropzone";
-import { uploadWithProgress } from "../../../lib/upload";
+import { AssetFlowLayout } from "../../layout/AssetFlowLayout";
+import { Vendor, AssetFieldDef } from "../../../../lib/data";
+import { createVendor } from "../../../../lib/api";
+import { logVendorCreated } from "../../../../lib/events";
+import FieldRenderer from "../../assets/FieldRenderer";
+import FileDropzone from "../../../ui/FileDropzone";
+import { uploadWithProgress } from "../../../../lib/upload";
+import { vendorTypes, vendorStatuses } from "../constants";
 import { Button } from "@/components/ui/button";
 
 interface AddVendorPageProps {
   onNavigate?: (page: string) => void;
   onSearch?: (query: string) => void;
 }
-
-const vendorTypes: Vendor["type"][] = [
-  "Hardware",
-  "Software",
-  "Services",
-  "Cloud",
-];
-const vendorStatuses: Vendor["status"][] = ["Approved", "Pending", "Rejected"];
 
 export function AddVendorPage({ onNavigate, onSearch }: AddVendorPageProps) {
   const tabs = [

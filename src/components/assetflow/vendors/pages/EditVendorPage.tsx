@@ -1,40 +1,35 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import useFetchOnMount from "../hooks/useFetchOnMount";
+import useFetchOnMount from "../../hooks/useFetchOnMount";
 import FullPageLoader from "@/components/ui/FullPageLoader";
-import { usePrefs } from "../layout/PrefsContext";
-import { ArrowLeft, Save, X} from "lucide-react";
-import { AssetFlowLayout } from "../layout/AssetFlowLayout";
+import { usePrefs } from "../../layout/PrefsContext";
+import { ArrowLeft, Save, X } from "lucide-react";
+import { AssetFlowLayout } from "../../layout/AssetFlowLayout";
 import { Vendor, AssetFieldDef } from "@/lib/data";
 import { fetchVendorById, updateVendor } from "@/lib/api";
 import { toast } from "@/components/ui/sonner";
 import { logVendorUpdated } from "@/lib/events";
 import { Button } from "@/components/ui/button";
-import VendorInfoTab from "./VendorInfoTab";
-import VendorContactTab from "./VendorContactTab";
-import VendorITTab from "./VendorITTab";
-import VendorPerformanceTab from "./VendorPerformanceTab";
-import VendorProcurementTab from "./VendorProcurementTab";
-import VendorComplianceTab from "./VendorComplianceTab";
-import VendorFinancialTab from "./VendorFinancialTab";
-import VendorContractTab from "./VendorContractTab";
-import VendorCustomFieldsTab from "./VendorCustomFieldsTab";
-import { buildUpdatedVendor } from "./vendorUtils";
+import VendorInfoTab from "../tabs/VendorInfoTab";
+import VendorContactTab from "../tabs/VendorContactTab";
+import VendorITTab from "../tabs/VendorITTab";
+import VendorPerformanceTab from "../tabs/VendorPerformanceTab";
+import VendorProcurementTab from "../tabs/VendorProcurementTab";
+import VendorComplianceTab from "../tabs/VendorComplianceTab";
+import VendorFinancialTab from "../tabs/VendorFinancialTab";
+import VendorContractTab from "../tabs/VendorContractTab";
+import VendorCustomFieldsTab from "../tabs/VendorCustomFieldsTab";
+import { buildUpdatedVendor } from "../vendorUtils";
+import VendorHeader from "../components/VendorHeader";
+import VendorTabs from "../components/VendorTabs";
+import { vendorTabs, vendorTypes, vendorStatuses } from "../constants";
 
 interface EditVendorPageProps {
   vendorId: string;
   onNavigate?: (page: string, id?: string) => void;
   onSearch?: (query: string) => void;
 }
-
-const vendorTypes: Vendor["type"][] = [
-  "Hardware",
-  "Software",
-  "Services",
-  "Cloud",
-];
-const vendorStatuses: Vendor["status"][] = ["Approved", "Pending", "Rejected"];
 
 export function EditVendorPage({
   vendorId,
@@ -48,20 +43,6 @@ export function EditVendorPage({
   const [saving, setSaving] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [activeTab, setActiveTab] = useState<string>("vendor");
-  // Phone normalization moved to `vendorUtils.normalizePhone`
-  // (imported above) — keeps this component focused on form UI and state
-  // Define tabs centrally so we can reuse for keyboard navigation and ARIA
-  const tabs = [
-    { id: "vendor", label: "Vendor Info" },
-    { id: "contact", label: "Contact" },
-    { id: "it", label: "IT & Security" },
-    { id: "performance", label: "Performance" },
-    { id: "procurement", label: "Procurement" },
-    { id: "compliance", label: "Compliance" },
-    { id: "financial", label: "Financial" },
-    { id: "contract", label: "Contract" },
-    { id: "custom", label: "Custom Fields" },
-  ];
 
   const { loading: initialLoading } = useFetchOnMount(async () => {
     try {
@@ -186,46 +167,46 @@ export function EditVendorPage({
       contacts: (vendor as any).contacts ?? [],
     });
     // fetch vendor documents
-        const parseArrayField = (v: any): string[] => {
-          if (!v) return [];
-          if (Array.isArray(v)) return v;
-          if (typeof v === "string") {
-            try {
-              const p = JSON.parse(v);
-              return Array.isArray(p) ? p : [];
-            } catch {
-              return [];
-            }
-          }
+    const parseArrayField = (v: any): string[] => {
+      if (!v) return [];
+      if (Array.isArray(v)) return v;
+      if (typeof v === "string") {
+        try {
+          const p = JSON.parse(v);
+          return Array.isArray(p) ? p : [];
+        } catch {
           return [];
-        };
-    
-        const fetchDocsAndProfile = async () => {
-          try {
-            const [docsRes, profileRes] = await Promise.all([
-              fetch(`/api/vendors/${vendorId}/documents`),
-              fetch(`/api/vendors/${vendorId}/profile`),
-            ]);
-            if (docsRes.ok) {
-              const docs = await docsRes.json();
-              setFormDocs(docs);
-            }
-            if (profileRes.ok) {
-              const prof = await profileRes.json();
-    
-              setProfile((prev) => ({
-                ...prev,
-                ...prof,
-                authorized_hardware: parseArrayField(prof?.authorized_hardware),
-                evaluation_committee: parseArrayField(prof?.evaluation_committee),
-              }));
-            }
-          } catch (e) {
-            console.error("Failed to fetch vendor documents or profile", e);
-          }
-        };
-    
-        fetchDocsAndProfile();
+        }
+      }
+      return [];
+    };
+
+    const fetchDocsAndProfile = async () => {
+      try {
+        const [docsRes, profileRes] = await Promise.all([
+          fetch(`/api/vendors/${vendorId}/documents`),
+          fetch(`/api/vendors/${vendorId}/profile`),
+        ]);
+        if (docsRes.ok) {
+          const docs = await docsRes.json();
+          setFormDocs(docs);
+        }
+        if (profileRes.ok) {
+          const prof = await profileRes.json();
+
+          setProfile((prev) => ({
+            ...prev,
+            ...prof,
+            authorized_hardware: parseArrayField(prof?.authorized_hardware),
+            evaluation_committee: parseArrayField(prof?.evaluation_committee),
+          }));
+        }
+      } catch (e) {
+        console.error("Failed to fetch vendor documents or profile", e);
+      }
+    };
+
+    fetchDocsAndProfile();
   }, [vendor]);
 
   const handleInputChange = (field: string, value: string) => {
@@ -476,17 +457,18 @@ export function EditVendorPage({
             tabIndex={0}
             className="flex w-full flex-wrap gap-2 rounded-xl border border-[rgba(0,0,0,0.08)] bg-[#f8f9ff] p-2"
             onKeyDown={(e) => {
-              const idx = tabs.findIndex((t) => t.id === activeTab);
+              const idx = vendorTabs.findIndex((t) => t.id === activeTab);
               if (e.key === "ArrowRight") {
-                const next = tabs[(idx + 1) % tabs.length];
+                const next = vendorTabs[(idx + 1) % vendorTabs.length];
                 setActiveTab(next.id);
               } else if (e.key === "ArrowLeft") {
-                const prev = tabs[(idx - 1 + tabs.length) % tabs.length];
+                const prev =
+                  vendorTabs[(idx - 1 + vendorTabs.length) % vendorTabs.length];
                 setActiveTab(prev.id);
               }
             }}
           >
-            {tabs.map((t) => (
+            {vendorTabs.map((t) => (
               <Button
                 key={t.id}
                 id={`tab-${t.id}`}
@@ -513,8 +495,6 @@ export function EditVendorPage({
             <VendorInfoTab
               formData={formData}
               handleInputChange={handleInputChange}
-              vendorTypes={vendorTypes}
-              vendorStatuses={vendorStatuses}
               currencySymbol={currencySymbol}
               vendorId={vendorId}
               setFormData={setFormData}

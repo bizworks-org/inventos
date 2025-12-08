@@ -1,7 +1,7 @@
 "use client";
 import React from "react";
 import { motion } from "motion/react";
-import FileDropzone from "../../ui/FileDropzone";
+import FileDropzone from "../../../ui/FileDropzone";
 import { uploadWithProgress } from "@/lib/upload";
 import { Button } from "@/components/ui/button";
 import { toast } from "@/components/ui/sonner";

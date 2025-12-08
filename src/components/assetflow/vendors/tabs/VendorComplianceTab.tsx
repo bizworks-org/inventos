@@ -1,7 +1,7 @@
 "use client";
 import React from "react";
 import { motion } from "motion/react";
-import FileDropzone from "../../ui/FileDropzone";
+import FileDropzone from "../../../ui/FileDropzone";
 import { Button } from "@/components/ui/button";
 
 type Props = {

@@ -1,20 +1,15 @@
 "use client";
 import { motion } from "motion/react";
 import { Button } from "@/components/ui/button";
-import { AssetFlowLayout } from "../layout/AssetFlowLayout"; // unused but keeps path context
-import { Vendor } from "../../../lib/data";
+import { vendorTypes, vendorStatuses } from "../constants";
 
 export default function VendorVendorPanel({
   formData,
   handleInputChange,
-  vendorTypes,
-  vendorStatuses,
   currencySymbol,
 }: {
   formData: any;
   handleInputChange: (field: string, value: string) => void;
-  vendorTypes: string[];
-  vendorStatuses: string[];
   currencySymbol: string | undefined;
 }) {
   return (

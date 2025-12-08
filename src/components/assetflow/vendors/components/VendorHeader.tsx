@@ -2,15 +2,19 @@
 import { ArrowLeft, Save, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
+type VendorHeaderProps = {
+  vendorName?: string;
+  onNavigate?: (page: string) => void;
+  saving: boolean;
+  isEdit?: boolean;
+};
+
 export default function VendorHeader({
   vendorName,
   onNavigate,
   saving,
-}: {
-  vendorName?: string;
-  onNavigate?: (page: string) => void;
-  saving: boolean;
-}) {
+  isEdit = true,
+}: VendorHeaderProps) {
   return (
     <div className="flex items-center justify-between mb-6">
       <div className="flex items-center gap-4">
@@ -24,10 +28,13 @@ export default function VendorHeader({
         </Button>
         <div>
           <h1 className="text-3xl font-bold text-[#1a1d2e] mb-1">
-            Edit Vendor
+            {isEdit ? "Edit Vendor" : "Add New Vendor"}
           </h1>
           <p className="text-[#64748b]">
-            {vendorName ?? "Modify vendor details and documents"}
+            {vendorName ??
+              (isEdit
+                ? "Modify vendor details and documents"
+                : "Register a new vendor in the system")}
           </p>
         </div>
       </div>

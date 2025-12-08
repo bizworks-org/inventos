@@ -1,3 +1,4 @@
+import { saveAs } from "file-saver";
 import { Asset, License, Vendor } from "./data";
 
 // Sanitizes a filename to prevent XSS attacks
@@ -94,19 +95,12 @@ export function buildAssetsCSV(assets: Asset[]): string {
 }
 
 export function exportAssetsToCSV(assets: Asset[], filename?: string) {
-  if (globalThis.window === undefined) return; // no-op on server
   const csv = buildAssetsCSV(assets);
   const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
-  const url = URL.createObjectURL(blob);
-  const link = document.createElement("a");
   const date = new Date();
   const defaultName = `assets_export_${date.toISOString().slice(0, 10)}.csv`;
-  link.href = url;
-  link.setAttribute("download", sanitizeFilename(filename || defaultName));
-  document.body.appendChild(link);
-  link.click();
-  link.remove();
-  URL.revokeObjectURL(url);
+
+  saveAs(blob, sanitizeFilename(filename || defaultName));
 }
 
 // ===== Licenses CSV =====
@@ -170,19 +164,12 @@ export function buildLicensesCSV(licenses: License[]): string {
 }
 
 export function exportLicensesToCSV(licenses: License[], filename?: string) {
-  if (globalThis.window === undefined) return;
   const csv = buildLicensesCSV(licenses);
   const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
-  const url = URL.createObjectURL(blob);
-  const link = document.createElement("a");
   const date = new Date();
   const defaultName = `licenses_export_${date.toISOString().slice(0, 10)}.csv`;
-  link.href = url;
-  link.setAttribute("download", sanitizeFilename(filename || defaultName));
-  document.body.appendChild(link);
-  link.click();
-  link.remove();
-  URL.revokeObjectURL(url);
+
+  saveAs(blob, sanitizeFilename(filename || defaultName));
 }
 
 // ===== Vendors CSV =====
@@ -244,17 +231,10 @@ export function buildVendorsCSV(vendors: Vendor[]): string {
 }
 
 export function exportVendorsToCSV(vendors: Vendor[], filename?: string) {
-  if (globalThis.window === undefined) return;
   const csv = buildVendorsCSV(vendors);
   const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
-  const url = URL.createObjectURL(blob);
-  const link = document.createElement("a");
   const date = new Date();
   const defaultName = `vendors_export_${date.toISOString().slice(0, 10)}.csv`;
-  link.href = url;
-  link.setAttribute("download", sanitizeFilename(filename || defaultName));
-  document.body.appendChild(link);
-  link.click();
-  link.remove();
-  URL.revokeObjectURL(url);
+
+  saveAs(blob, sanitizeFilename(filename || defaultName));
 }

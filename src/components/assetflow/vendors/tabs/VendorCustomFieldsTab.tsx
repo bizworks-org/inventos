@@ -1,7 +1,7 @@
 "use client";
 import React from "react";
 import { motion } from "motion/react";
-import FieldRenderer from "../assets/FieldRenderer";
+import FieldRenderer from "../../assets/FieldRenderer";
 
 type Props = {
   fieldDefs: any[];
