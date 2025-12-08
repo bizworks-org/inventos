@@ -281,11 +281,7 @@ export function LicensesPage({ onNavigate, onSearch }: LicensesPageProps) {
           {/* Search */}
           <div className="flex-1 relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-[#a0a4b8]" />
-            <label htmlFor="licenses-search" className="sr-only">
-              Search licenses
-            </label>
             <input
-              id="licenses-search"
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
@@ -302,11 +298,7 @@ export function LicensesPage({ onNavigate, onSearch }: LicensesPageProps) {
 
           {/* Compliance Filter */}
           <div className="relative">
-            <label htmlFor="licenses-compliance" className="sr-only">
-              Filter licenses by compliance status
-            </label>
             <select
-              id="licenses-compliance"
               value={selectedCompliance}
               onChange={(e) =>
                 setSelectedCompliance(e.target.value as ComplianceFilter)
