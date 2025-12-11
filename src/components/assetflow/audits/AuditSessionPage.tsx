@@ -206,10 +206,11 @@ export function AuditSessionPage({
         <div className="mb-4">
           <label
             htmlFor="audit-import-input"
+            aria-label="Upload CSV file for audit"
             onDrop={(e) => {
               e.preventDefault();
               const f = e.dataTransfer?.files?.[0] || null;
-              handleFileChange(f as File | null);
+              handleFileChange(f);
             }}
             onDragOver={(e) => e.preventDefault()}
             className="block w-full cursor-pointer p-4 border-2 border-dashed rounded-lg hover:border-[#6366f1] transition-colors bg-white"

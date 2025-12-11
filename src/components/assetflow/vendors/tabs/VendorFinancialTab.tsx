@@ -1,10 +1,7 @@
 "use client";
 import React from "react";
 import { motion } from "motion/react";
-import FileDropzone from "../../../ui/FileDropzone";
-import { uploadWithProgress } from "@/lib/upload";
 import { Button } from "@/components/ui/button";
-import { toast } from "@/components/ui/sonner";
 
 type Props = {
   formData: any;
@@ -33,9 +30,7 @@ export default function VendorFinancialTab({
       transition={{ duration: 0.4, delay: 0.15 }}
       className="bg-white rounded-2xl border border-[rgba(0,0,0,0.08)] p-6 shadow-sm"
     >
-      <h3 className="text-lg font-semibold text-[#1a1d2e] mb-4">
-        Financial & GST Certificate
-      </h3>
+      <h3 className="text-lg font-semibold text-[#1a1d2e] mb-4">Financial</h3>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
           <label
@@ -164,107 +159,7 @@ export default function VendorFinancialTab({
           </div>
         </div>
 
-        <div className="md:col-span-2">
-          <label
-            htmlFor="dropzone-gst"
-            className="block text-sm font-medium text-[#1a1d2e] mb-2"
-          >
-            GST Certificate / Tax Registration Certificate
-          </label>
-          <div className="flex items-center gap-2">
-            <FileDropzone
-              id="dropzone-gst"
-              accept=".pdf,.png,.jpg,.jpeg"
-              multiple={false}
-              uploadFile={async (file, onProgress) => {
-                const { promise } = uploadWithProgress(
-                  `/api/vendors/${vendorId}/gst-certificate`,
-                  file,
-                  {},
-                  onProgress
-                );
-                await promise;
-                toast.success("GST certificate uploaded");
-                setFormData((p: any) => ({
-                  ...p,
-                  gstCertificateName: file.name,
-                }));
-              }}
-            />
-            {formData.gstCertificateName && (
-              <>
-                <Button
-                  type="button"
-                  onClick={async () => {
-                    if (!vendor) return;
-                    try {
-                      const res = await fetch(
-                        `/api/vendors/${vendorId}/gst-certificate`
-                      );
-                      if (!res.ok) throw new Error("No certificate");
-                      const json = await res.json();
-                      const b64 = json.data as string;
-                      const name = json.name || "certificate";
-                      const binary = atob(b64);
-                      const len = binary.length;
-                      const bytes = new Uint8Array(len);
-                      for (let i = 0; i < len; i++)
-                        bytes[i] = binary.codePointAt(i) ?? 0;
-                      const blob = new Blob([bytes]);
-                      const url = URL.createObjectURL(blob);
-                      const a = document.createElement("a");
-                      // Sanitize filename to prevent DOM-based XSS via attributes
-                      const safeName = String(name).replace(
-                        /[^a-zA-Z0-9._-]/g,
-                        "_"
-                      );
-                      a.href = url;
-                      a.download = safeName || "certificate";
-                      // Do not append to DOM; trigger download from a detached element
-                      a.click();
-                      URL.revokeObjectURL(url);
-                    } catch (err) {
-                      console.error(err);
-                      toast.error("Failed to download certificate");
-                    }
-                  }}
-                  className="px-3 py-2 bg-white text-[#111827] border rounded-lg"
-                >
-                  Download
-                </Button>
-                <Button
-                  type="button"
-                  onClick={async () => {
-                    if (!vendor) return;
-                    try {
-                      const res = await fetch(
-                        `/api/vendors/${vendorId}/gst-certificate`,
-                        { method: "DELETE" }
-                      );
-                      if (!res.ok) throw new Error("Delete failed");
-                      setFormData((p: any) => ({
-                        ...p,
-                        gstCertificateName: null,
-                      }));
-                      toast.success("GST certificate removed");
-                    } catch (err) {
-                      console.error(err);
-                      toast.error("Failed to remove certificate");
-                    }
-                  }}
-                  className="px-3 py-2 bg-red-50 text-red-700 border rounded-lg"
-                >
-                  Delete
-                </Button>
-              </>
-            )}
-          </div>
-          {formData.gstCertificateName && (
-            <p className="text-sm text-[#64748b] mt-2">
-              Current file: <strong>{formData.gstCertificateName}</strong>
-            </p>
-          )}
-        </div>
+        {/* GST certificate handling moved to Compliance tab (vendor documents) */}
       </div>
     </motion.div>
   );

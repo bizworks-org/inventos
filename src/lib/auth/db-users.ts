@@ -212,7 +212,9 @@ export async function dbSetUserRoles(
       { userId }
     );
   } catch (e) {
-    // best-effort; ignore errors
+    // Best-effort: log the error so it's not silently ignored.
+    // This satisfies linters that require handling caught exceptions.
+    console.warn("dbSetUserRoles: failed to invalidate session permissions cache for user", userId, e);
   }
 }
 

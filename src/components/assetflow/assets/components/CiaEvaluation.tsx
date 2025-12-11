@@ -14,7 +14,7 @@ export default function CiaEvaluation({
   setCia,
   ciaTotal,
   ciaAvg,
-}: Props) {
+}: Readonly<Props>) {
   return (
     <div className="rounded-2xl border bg-card p-6">
       <h3 className="mb-4 text-lg font-semibold">CIA Evaluation</h3>

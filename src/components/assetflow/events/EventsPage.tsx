@@ -4,13 +4,10 @@ import { useState, useEffect } from "react";
 import { motion } from "motion/react";
 import {
   Download,
-  Search,
   RefreshCw,
   Activity,
   LogIn,
-  XCircle,
-  AlertTriangle,
-  CheckCircle,
+  XCircle
 } from "lucide-react";
 import { AssetFlowLayout } from "../layout/AssetFlowLayout";
 import { SystemEvent, EventSeverity, EntityType } from "../../../lib/events";

@@ -25,7 +25,7 @@ export default function BasicInformation({
   formData,
   handleInputChange,
   locationsList,
-}: Props) {
+}: Readonly<Props>) {
   return (
     <div className="rounded-2xl border bg-white p-6 shadow-sm">
       <h3 className="mb-4 text-lg font-semibold">Basic Information</h3>

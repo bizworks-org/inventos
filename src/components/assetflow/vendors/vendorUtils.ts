@@ -37,6 +37,7 @@ export function buildUpdatedVendor(
     "legalName",
     "tradingName",
     "registrationNumber",
+    "website",
     "incorporationDate",
     "incorporationCountry",
     "registeredOfficeAddress",
@@ -44,42 +45,33 @@ export function buildUpdatedVendor(
     "natureOfBusiness",
     "businessCategory",
     "serviceCoverageArea",
+    "notes",
   ];
   for (const k of extended) {
-    updated[k] = (formData as any)[k] ?? (vendor as any)[k] ?? undefined;
+    updated[k] = formData[k] ?? vendor[k] ?? undefined;
   }
 
   // contacts
-  const contactsFromForm = (formData as any).contacts;
+  const contactsFromForm = formData.contacts;
   if (Array.isArray(contactsFromForm)) {
     updated.contacts = contactsFromForm.slice(0, 5).map((c: any) => ({ ...c }));
-  } else if ((vendor as any).contacts) {
-    updated.contacts = (vendor as any).contacts;
+  } else if (vendor.contacts) {
+    updated.contacts = vendor.contacts;
   }
 
   // financial
-  updated.panTaxId =
-    (formData as any).panTaxId ?? (vendor as any).panTaxId ?? undefined;
-  updated.bankName =
-    (formData as any).bankName ?? (vendor as any).bankName ?? undefined;
+  updated.panTaxId = formData.panTaxId ?? vendor.panTaxId ?? undefined;
+  updated.bankName = formData.bankName ?? vendor.bankName ?? undefined;
   updated.accountNumber =
-    (formData as any).accountNumber ??
-    (vendor as any).accountNumber ??
-    undefined;
+    formData.accountNumber ?? vendor.accountNumber ?? undefined;
   updated.ifscSwiftCode =
-    (formData as any).ifscSwiftCode ??
-    (vendor as any).ifscSwiftCode ??
-    undefined;
+    formData.ifscSwiftCode ?? vendor.ifscSwiftCode ?? undefined;
   updated.paymentTerms =
-    (formData as any).paymentTerms ?? (vendor as any).paymentTerms ?? undefined;
+    formData.paymentTerms ?? vendor.paymentTerms ?? undefined;
   updated.preferredCurrency =
-    (formData as any).preferredCurrency ??
-    (vendor as any).preferredCurrency ??
-    "INR";
+    formData.preferredCurrency ?? vendor.preferredCurrency ?? "INR";
   updated.vendorCreditLimit =
-    (formData as any).vendorCreditLimit ??
-    (vendor as any).vendorCreditLimit ??
-    undefined;
+    formData.vendorCreditLimit ?? vendor.vendorCreditLimit ?? undefined;
 
   return updated as Vendor;
 }

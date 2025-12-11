@@ -18,7 +18,7 @@ export const vendorStatuses: Vendor["status"][] = [
 // Shared tab configuration
 export const vendorTabs = [
   { id: "vendor", label: "Vendor Info" },
-  { id: "contact", label: "Contact" },
+  // contact tab merged into Vendor Info
   { id: "it", label: "IT & Security" },
   { id: "performance", label: "Performance" },
   { id: "procurement", label: "Procurement" },

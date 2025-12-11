@@ -24,7 +24,7 @@ export default function CustomFieldsSection({
   setCustomFieldValues,
   extraFields,
   setExtraFields,
-}: Props) {
+}: Readonly<Props>) {
   return (
     <div className="rounded-2xl border bg-card p-6">
       <div className="mb-3">
@@ -70,7 +70,7 @@ export default function CustomFieldsSection({
             <h4 className="text-sm font-semibold">Additional Fields</h4>
             {extraFields.map((entry, index) => (
               <div
-                key={index}
+                key={entry.key}
                 className="grid grid-cols-1 items-center gap-3 md:grid-cols-12"
               >
                 <label htmlFor={`extra-key-${index}`} className="sr-only">

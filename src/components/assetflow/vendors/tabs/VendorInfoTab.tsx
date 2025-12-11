@@ -1,9 +1,6 @@
 "use client";
 import React from "react";
-import FileDropzone from "../../../ui/FileDropzone";
-import { uploadWithProgress } from "@/lib/upload";
-import { toast } from "@/components/ui/sonner";
-import { vendorTypes, vendorStatuses } from "../constants";
+// GST handling moved to Compliance tab; no file upload here
 
 type Props = {
   formData: any;
@@ -25,7 +22,7 @@ export default function VendorInfoTab({
       <h3 className="text-lg font-semibold text-[#1a1d2e] mb-4">
         Vendor Information
       </h3>
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         <div className="md:col-span-2">
           <label
             htmlFor="vendor-name"
@@ -44,35 +41,161 @@ export default function VendorInfoTab({
           />
         </div>
 
-        {/* ... other fields identical to original file ... */}
         <div className="md:col-span-2">
           <label
-            htmlFor="dropzone-gst"
+            htmlFor="legalName"
             className="block text-sm font-medium text-[#1a1d2e] mb-2"
           >
-            GST Certificate / Tax Registration Certificate
+            Vendor Legal Name
           </label>
-          <div className="flex items-center gap-2">
-            <FileDropzone
-              id="dropzone-gst"
-              accept=".pdf,.png,.jpg,.jpeg"
-              multiple={false}
-              uploadFile={async (file, onProgress) => {
-                const { promise } = uploadWithProgress(
-                  `/api/vendors/${vendorId}/gst-certificate`,
-                  file,
-                  {},
-                  onProgress
-                );
-                await promise;
-                toast.success("GST certificate uploaded");
-                setFormData((p: any) => ({
-                  ...p,
-                  gstCertificateName: file.name,
-                }));
-              }}
-            />
-          </div>
+          <input
+            id="legalName"
+            type="text"
+            value={formData.legalName}
+            onChange={(e) => handleInputChange("legalName", e.target.value)}
+            className="w-full px-4 py-2.5 rounded-lg bg-[#f8f9ff] border"
+          />
+        </div>
+
+        <div className="md:col-span-2">
+          <label
+            htmlFor="tradingName"
+            className="block text-sm font-medium text-[#1a1d2e] mb-2"
+          >
+            Trading / Brand Name
+          </label>
+          <input
+            id="tradingName"
+            type="text"
+            value={formData.tradingName}
+            onChange={(e) => handleInputChange("tradingName", e.target.value)}
+            className="w-full px-4 py-2.5 rounded-lg bg-[#f8f9ff] border"
+          />
+        </div>
+
+        <div>
+          <label
+            htmlFor="registrationNumber"
+            className="block text-sm font-medium text-[#1a1d2e] mb-2"
+          >
+            Company Registration Number / GSTIN
+          </label>
+          <input
+            id="registrationNumber"
+            type="text"
+            value={formData.registrationNumber}
+            onChange={(e) =>
+              handleInputChange("registrationNumber", e.target.value)
+            }
+            className="w-full px-4 py-2.5 rounded-lg bg-[#f8f9ff] border"
+          />
+        </div>
+
+        <div>
+          <label
+            htmlFor="vendorWebsite"
+            className="block text-sm font-medium text-[#1a1d2e] mb-2"
+          >
+            Website
+          </label>
+          <input
+            id="vendorWebsite"
+            type="url"
+            value={formData.website}
+            onChange={(e) => handleInputChange("website", e.target.value)}
+            placeholder="https://vendor.com"
+            className="w-full px-4 py-2.5 rounded-lg bg-[#f8f9ff] border"
+          />
+        </div>
+
+        <div className="md:col-span-2">
+          <label
+            htmlFor="registeredOfficeAddress"
+            className="block text-sm font-medium text-[#1a1d2e] mb-2"
+          >
+            Registered Office Address
+          </label>
+          <input
+            id="registeredOfficeAddress"
+            type="text"
+            value={formData.registeredOfficeAddress}
+            onChange={(e) =>
+              handleInputChange("registeredOfficeAddress", e.target.value)
+            }
+            className="w-full px-4 py-2.5 rounded-lg bg-[#f8f9ff] border"
+          />
+        </div>
+
+        <div className="md:col-span-2">
+          <label
+            htmlFor="corporateOfficeAddress"
+            className="block text-sm font-medium text-[#1a1d2e] mb-2"
+          >
+            Corporate Office Address
+          </label>
+          <input
+            id="corporateOfficeAddress"
+            type="text"
+            value={formData.corporateOfficeAddress}
+            onChange={(e) =>
+              handleInputChange("corporateOfficeAddress", e.target.value)
+            }
+            className="w-full px-4 py-2.5 rounded-lg bg-[#f8f9ff] border"
+          />
+        </div>
+
+        <div>
+          <label
+            htmlFor="natureOfBusiness"
+            className="block text-sm font-medium text-[#1a1d2e] mb-2"
+          >
+            Nature of Business
+          </label>
+          <input
+            id="natureOfBusiness"
+            type="text"
+            value={formData.natureOfBusiness}
+            onChange={(e) =>
+              handleInputChange("natureOfBusiness", e.target.value)
+            }
+            className="w-full px-4 py-2.5 rounded-lg bg-[#f8f9ff] border"
+          />
+        </div>
+
+        <div>
+          <label
+            htmlFor="businessCategory"
+            className="block text-sm font-medium text-[#1a1d2e] mb-2"
+          >
+            Business Category
+          </label>
+          <input
+            id="businessCategory"
+            type="text"
+            value={formData.businessCategory}
+            onChange={(e) =>
+              handleInputChange("businessCategory", e.target.value)
+            }
+            className="w-full px-4 py-2.5 rounded-lg bg-[#f8f9ff] border"
+          />
+        </div>
+
+        <div className="md:col-span-2">
+          <label
+            htmlFor="serviceCoverageArea"
+            className="block text-sm font-medium text-[#1a1d2e] mb-2"
+          >
+            Service Coverage Area
+          </label>
+          <input
+            id="serviceCoverageArea"
+            type="text"
+            value={formData.serviceCoverageArea}
+            onChange={(e) =>
+              handleInputChange("serviceCoverageArea", e.target.value)
+            }
+            className="w-full px-4 py-2.5 rounded-lg bg-[#f8f9ff] border"
+          />
         </div>
       </div>
     </div>

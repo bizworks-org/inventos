@@ -1,17 +1,16 @@
 "use client";
 import { motion } from "motion/react";
-import { Button } from "@/components/ui/button";
 import { vendorTypes, vendorStatuses } from "../constants";
 
 export default function VendorVendorPanel({
   formData,
   handleInputChange,
   currencySymbol,
-}: {
+}: Readonly<{
   formData: any;
   handleInputChange: (field: string, value: string) => void;
   currencySymbol: string | undefined;
-}) {
+}>) {
   return (
     <motion.div
       id="panel-vendor"

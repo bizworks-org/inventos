@@ -1,2 +1,3 @@
 2025-12-03T17:34:55.354Z [AUTH] session.end {"sessionId":"d53db77d-1ead-401e-b66f-af3290361c54","eventId":"SESS-d53db77d-1ead-401e-b66f-af3290361c54"}
 2025-12-03T17:35:13.136Z [AUTH] session.start {"user":"admin@inventos.io","sessionId":"61cb0bbe-1888-495b-8985-2f251d4bb203","ip":"::1","userAgent":"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36"}
+2025-12-10T20:07:15.492Z [AUTH] session.start {"user":"admin@inventos.io","sessionId":"5d92baee-13eb-4da8-be83-b9c701976480","ip":"::1","userAgent":"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36"}

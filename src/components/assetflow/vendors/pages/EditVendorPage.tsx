@@ -21,9 +21,7 @@ import VendorFinancialTab from "../tabs/VendorFinancialTab";
 import VendorContractTab from "../tabs/VendorContractTab";
 import VendorCustomFieldsTab from "../tabs/VendorCustomFieldsTab";
 import { buildUpdatedVendor } from "../vendorUtils";
-import VendorHeader from "../components/VendorHeader";
-import VendorTabs from "../components/VendorTabs";
-import { vendorTabs, vendorTypes, vendorStatuses } from "../constants";
+import { vendorTabs } from "../constants";
 
 interface EditVendorPageProps {
   vendorId: string;
@@ -65,6 +63,19 @@ export function EditVendorPage({
     contractValue: "0",
     contractExpiry: "",
     rating: "0",
+    website: "",
+    notes: "",
+    legalName: "",
+    tradingName: "",
+    registrationNumber: "",
+    incorporationDate: "",
+    incorporationCountry: "",
+    registeredOfficeAddress: "",
+    corporateOfficeAddress: "",
+    natureOfBusiness: "",
+    businessCategory: "",
+    serviceCoverageArea: "",
+    contacts: [],
     // financial fields
     panTaxId: "",
     bankName: "",
@@ -73,7 +84,6 @@ export function EditVendorPage({
     paymentTerms: "Net 30",
     preferredCurrency: "INR",
     vendorCreditLimit: "",
-    gstCertificateFile: null,
   });
   // Expand initial shape to include extended fields to satisfy TS inference
   // (fields will be populated after vendor is fetched)
@@ -91,6 +101,8 @@ export function EditVendorPage({
       natureOfBusiness: prev.natureOfBusiness ?? "",
       businessCategory: prev.businessCategory ?? "",
       serviceCoverageArea: prev.serviceCoverageArea ?? "",
+      website: prev.website ?? "",
+      notes: prev.notes ?? "",
       panTaxId: prev.panTaxId ?? "",
       bankName: prev.bankName ?? "",
       accountNumber: prev.accountNumber ?? "",
@@ -98,7 +110,6 @@ export function EditVendorPage({
       paymentTerms: prev.paymentTerms ?? "Net 30",
       preferredCurrency: prev.preferredCurrency ?? "INR",
       vendorCreditLimit: prev.vendorCreditLimit ?? "",
-      gstCertificateFile: null,
       contacts: prev.contacts ?? [],
     }));
     // only run once on mount
@@ -145,6 +156,8 @@ export function EditVendorPage({
       contractValue: String(vendor.contractValue),
       contractExpiry: vendor.contractExpiry,
       rating: String(vendor.rating),
+      website: (vendor as any).website ?? "",
+      notes: (vendor as any).notes ?? "",
       // extended
       legalName: (vendor as any).legalName ?? "",
       tradingName: (vendor as any).tradingName ?? "",
@@ -163,7 +176,6 @@ export function EditVendorPage({
       paymentTerms: (vendor as any).paymentTerms ?? "Net 30",
       preferredCurrency: (vendor as any).preferredCurrency ?? "INR",
       vendorCreditLimit: (vendor as any).vendorCreditLimit ?? "",
-      gstCertificateName: (vendor as any).gstCertificateName ?? null,
       contacts: (vendor as any).contacts ?? [],
     });
     // fetch vendor documents
@@ -322,7 +334,7 @@ export function EditVendorPage({
       const b64 = typeof json.data === "string" ? json.data : "";
       const rawName = typeof json.name === "string" ? json.name : "document";
       const safeName =
-        rawName.replace(/[^\w.\- ]/g, "_").slice(0, 255) || "document";
+        rawName.replaceAll(/[^\w.\- ]/g, "_").slice(0, 255) || "document";
 
       if (!b64) throw new Error("Invalid document data");
 
@@ -331,7 +343,7 @@ export function EditVendorPage({
       const len = binary.length;
       const bytes = new Uint8Array(len);
       for (let i = 0; i < len; i++) {
-        const code = binary.charCodeAt(i);
+        const code = binary.codePointAt(i) ?? 0;
         bytes[i] = code & 0xff;
       }
 
@@ -492,19 +504,22 @@ export function EditVendorPage({
 
         <div className="grid grid-cols-1 gap-6">
           <div className="space-y-6">
-            <VendorInfoTab
-              formData={formData}
-              handleInputChange={handleInputChange}
-              currencySymbol={currencySymbol}
-              vendorId={vendorId}
-              setFormData={setFormData}
-            />
-
-            <VendorContactTab
-              formData={formData}
-              handleInputChange={handleInputChange}
-              setFormData={setFormData}
-            />
+            {activeTab === "vendor" && (
+              <>
+                <VendorInfoTab
+                  formData={formData}
+                  handleInputChange={handleInputChange}
+                  currencySymbol={currencySymbol}
+                  vendorId={vendorId}
+                  setFormData={setFormData}
+                />
+                <VendorContactTab
+                  formData={formData}
+                  handleInputChange={handleInputChange}
+                  setFormData={setFormData}
+                />
+              </>
+            )}
 
             {activeTab === "it" && (
               <VendorITTab

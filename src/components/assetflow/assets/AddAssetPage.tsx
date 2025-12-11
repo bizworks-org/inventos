@@ -15,7 +15,6 @@ import FinancialLifecycle from "./components/FinancialLifecycle";
 import TechnicalSpecifications from "./components/TechnicalSpecifications";
 import CiaEvaluation from "./components/CiaEvaluation";
 import CustomFieldsSection from "./components/CustomFieldsSection";
-import SidebarSummary from "./components/SidebarSummary";
 import Barcode from "../../ui/Barcode";
 
 interface AddAssetPageProps {
@@ -374,15 +373,7 @@ export function AddAssetPage(props: Readonly<AddAssetPageProps>) {
     return buildMaps(catalog);
   }, [catalog]);
 
-  const assetTypes = useMemo(() => {
-    if (catalog?.length) {
-      const all: string[] = [];
-      for (const c of catalog)
-        for (const t of c.types) if (!all.includes(t.name)) all.push(t.name);
-      return all;
-    }
-    return [] as Asset["typeId"][];
-  }, [catalog]);
+  // assetTypes removed as it was unused; use typesByCategoryWithIds or catalogMaps directly when needed
 
   const typesByCategoryWithIds = (cat: string) => {
     if (!catalog) return [] as Array<{ id?: number; name: string }>;
@@ -542,23 +533,6 @@ export function AddAssetPage(props: Readonly<AddAssetPageProps>) {
       setAssetType(String(v));
       setAssetTypeId(v);
     }
-  };
-
-  // Extracted handlers to reduce nesting in JSX
-  const handleExtraFieldKeyChange = (idx: number, value: string) => {
-    setExtraFields((arr) =>
-      arr.map((it, i) => (i === idx ? { ...it, key: value } : it))
-    );
-  };
-
-  const handleExtraFieldValueChange = (idx: number, value: string) => {
-    setExtraFields((arr) =>
-      arr.map((it, i) => (i === idx ? { ...it, value } : it))
-    );
-  };
-
-  const handleRemoveExtraField = (idx: number) => {
-    setExtraFields((arr) => arr.filter((_, i) => i !== idx));
   };
 
   return (

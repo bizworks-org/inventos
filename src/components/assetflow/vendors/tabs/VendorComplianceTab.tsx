@@ -19,6 +19,10 @@ export default function VendorComplianceTab({
 }: Readonly<Props>) {
   const docs = [
     { key: "registration_cert", label: "Company Registration Certificate" },
+    {
+      key: "gst_certificate",
+      label: "GST Certificate / Tax Registration Certificate",
+    },
     { key: "nda", label: "Non-Disclosure Agreement (NDA)" },
     {
       key: "iso",
@@ -63,9 +67,11 @@ export default function VendorComplianceTab({
                 accept="application/pdf,image/*"
                 multiple={!!(docDef as any).multiple}
                 onFilesAdded={(arr) => {
-                  if ((docDef as any).multiple)
-                    arr.forEach((f) => uploadDocument(docDef.key, f));
-                  else if (arr[0]) uploadDocument(docDef.key, arr[0]);
+                  if ((docDef as any).multiple) {
+                    for (const f of arr) {
+                      uploadDocument(docDef.key, f);
+                    }
+                  } else if (arr[0]) uploadDocument(docDef.key, arr[0]);
                 }}
               />
             </div>

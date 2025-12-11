@@ -9,11 +9,8 @@ const ERROR_LOG = path.join(LOG_DIR, "error.log");
 const AUTH_LOG = path.join(LOG_DIR, "auth.log");
 
 function ensureLogDir() {
-  try {
-    fs.mkdirSync(LOG_DIR, { recursive: true });
-  } catch (e) {
-    // ignore
-  }
+  // Create the log directory; let errors surface so unexpected failures are not silently ignored.
+  fs.mkdirSync(LOG_DIR, { recursive: true });
 }
 
 ensureLogDir();

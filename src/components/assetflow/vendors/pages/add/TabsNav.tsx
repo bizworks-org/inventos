@@ -1,29 +1,32 @@
 "use client";
 import { Button } from "@/components/ui/button";
 
-type VendorTabsProps = {
-  tabs: { id: string; label: string }[];
+export type TabDef = { id: string; label: string };
+
+type Props = {
+  tabs: TabDef[];
   activeTab: string;
-  setActiveTab: (id: string) => void;
+  onChange: (id: string) => void;
 };
 
-export default function VendorTabs({
+export default function TabsNav({
   tabs,
   activeTab,
-  setActiveTab,
-}: VendorTabsProps) {
+  onChange,
+}: Readonly<Props>) {
   return (
     <nav
-      aria-label="Vendor tabs"
+      role="tablist"
+      aria-label="Add vendor tabs"
       className="flex w-full flex-wrap gap-2 rounded-xl border border-[rgba(0,0,0,0.08)] bg-[#f8f9ff] p-2"
       onKeyDown={(e) => {
         const idx = tabs.findIndex((t) => t.id === activeTab);
         if (e.key === "ArrowRight") {
           const next = tabs[(idx + 1) % tabs.length];
-          setActiveTab(next.id);
+          onChange(next.id);
         } else if (e.key === "ArrowLeft") {
           const prev = tabs[(idx - 1 + tabs.length) % tabs.length];
-          setActiveTab(prev.id);
+          onChange(prev.id);
         }
       }}
     >
@@ -36,7 +39,7 @@ export default function VendorTabs({
           aria-selected={activeTab === t.id}
           aria-controls={`panel-${t.id}`}
           tabIndex={activeTab === t.id ? 0 : -1}
-          onClick={() => setActiveTab(t.id)}
+          onClick={() => onChange(t.id)}
           className={`flex-1 text-center ${
             activeTab !== t.id
               ? "bg-white border border-[rgba(0,0,0,0.12)] shadow-md text-[#1a1d2e] font-semibold"

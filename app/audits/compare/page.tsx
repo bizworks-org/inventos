@@ -26,77 +26,81 @@ export default function AuditComparePage() {
   const [error, setError] = useState<string | null>(null);
   const [diff, setDiff] = useState<AuditDiff | null>(null);
 
+  const fetchAuditItems = async (id: string) => {
+    const res = await fetch(`/api/assets/audits/${id}/items`, { cache: "no-store" });
+    if (!res.ok) throw new Error("Failed to fetch audit items");
+    return res.json();
+  };
+
+  const buildMap = (items: any[]) => {
+    const map = new Map<string, any>();
+    for (const item of items) {
+      map.set(item.serial_number || item.serialNumber, item);
+    }
+    return map;
+  };
+
+  const computeDiffs = (prevMap: Map<string, any>, currMap: Map<string, any>) : AuditDiff => {
+    const added: string[] = [];
+    const removed: string[] = [];
+    const statusChanged: StatusChangeRow[] = [];
+
+    for (const [sn] of currMap) {
+      if (!prevMap.has(sn)) added.push(sn);
+    }
+
+    for (const [sn] of prevMap) {
+      if (!currMap.has(sn)) removed.push(sn);
+    }
+
+    for (const [sn, currItem] of currMap) {
+      const prevItem = prevMap.get(sn);
+      if (!prevItem) continue;
+      const prevStatus = prevItem.asset_status_snapshot || prevItem.statusSnapshot;
+      const currStatus = currItem.asset_status_snapshot || currItem.statusSnapshot;
+      if (prevStatus && currStatus && prevStatus !== currStatus) {
+        statusChanged.push({ serialNumber: sn, from: prevStatus, to: currStatus });
+      }
+    }
+
+    return { added, removed, statusChanged };
+  };
+
   useEffect(() => {
     let cancelled = false;
+
+    if (!left) {
+      setError("No audit selected to compare");
+      setLoading(false);
+      return;
+    }
+
+    if (!right) {
+      setError("No previous audit available for this location to compare.");
+      setLoading(false);
+      return;
+    }
+
     (async () => {
-      if (!left) {
-        setError("No audit selected to compare");
-        setLoading(false);
-        return;
-      }
-
-      if (!right) {
-        setError("No previous audit available for this location to compare.");
-        setLoading(false);
-        return;
-      }
-
       setLoading(true);
       try {
-        const [leftRes, rightRes] = await Promise.all([
-          fetch(`/api/assets/audits/${left}/items`, { cache: "no-store" }),
-          fetch(`/api/assets/audits/${right}/items`, { cache: "no-store" }),
+        const [leftItems, rightItems] = await Promise.all([
+          fetchAuditItems(left),
+          fetchAuditItems(right),
         ]);
-        if (!leftRes.ok || !rightRes.ok) {
-          throw new Error("Failed to fetch audit items");
-        }
-        const leftItems = await leftRes.json();
-        const rightItems = await rightRes.json();
 
-        const prevMap = new Map<string, any>();
-        for (const item of rightItems) {
-          prevMap.set(item.serial_number || item.serialNumber, item);
-        }
+        const prevMap = buildMap(rightItems);
+        const currMap = buildMap(leftItems);
+        const diffs = computeDiffs(prevMap, currMap);
 
-        const currMap = new Map<string, any>();
-        for (const item of leftItems) {
-          currMap.set(item.serial_number || item.serialNumber, item);
-        }
-
-        const added: string[] = [];
-        const removed: string[] = [];
-        const statusChanged: StatusChangeRow[] = [];
-
-        for (const [sn] of currMap) {
-          if (!prevMap.has(sn)) added.push(sn);
-        }
-        for (const [sn] of prevMap) {
-          if (!currMap.has(sn)) removed.push(sn);
-        }
-        for (const [sn, currItem] of currMap) {
-          const prevItem = prevMap.get(sn);
-          if (prevItem) {
-            const prevStatus =
-              prevItem.asset_status_snapshot || prevItem.statusSnapshot;
-            const currStatus =
-              currItem.asset_status_snapshot || currItem.statusSnapshot;
-            if (prevStatus && currStatus && prevStatus !== currStatus) {
-              statusChanged.push({
-                serialNumber: sn,
-                from: prevStatus,
-                to: currStatus,
-              });
-            }
-          }
-        }
-
-        if (!cancelled) setDiff({ added, removed, statusChanged });
+        if (!cancelled) setDiff(diffs);
       } catch (e: any) {
         if (!cancelled) setError(e?.message || String(e));
       } finally {
         if (!cancelled) setLoading(false);
       }
     })();
+
     return () => {
       cancelled = true;
     };

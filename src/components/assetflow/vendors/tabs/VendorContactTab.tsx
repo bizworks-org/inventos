@@ -1,5 +1,5 @@
 "use client";
-import React from "react";
+import React, { useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Mail, Phone } from "lucide-react";
 import { normalizePhone } from "../vendorUtils";
@@ -10,11 +10,59 @@ type Props = {
   setFormData: (updater: any) => void;
 };
 
+const generateId = () =>
+  typeof crypto !== "undefined" && "randomUUID" in crypto
+    ? (crypto as any).randomUUID()
+    : `${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}`;
+
 export default function VendorContactTab({
   formData,
   handleInputChange,
   setFormData,
 }: Readonly<Props>) {
+  useEffect(() => {
+    if (!Array.isArray(formData?.contacts)) return;
+    const needsId = formData.contacts.some((c: any) => !c?.id);
+    if (needsId) {
+      setFormData((f: any) => ({
+        ...f,
+        contacts: (f.contacts || []).map((c: any) => ({
+          ...c,
+          id: c?.id ?? generateId(),
+        })),
+      }));
+    }
+  }, [formData?.contacts, setFormData]);
+
+  // Helpers to reduce nesting and centralize state updates
+  const addContact = () => {
+    setFormData((f: any) => {
+      const contacts = Array.isArray(f.contacts) ? [...f.contacts] : [];
+      if (contacts.length >= 5) return f;
+      contacts.push({ id: generateId() });
+      return { ...f, contacts };
+    });
+  };
+
+  const removeContact = (index: number) => {
+    setFormData((f: any) => ({
+      ...f,
+      contacts: (f.contacts || []).filter((_: any, i: number) => i !== index),
+    }));
+  };
+
+  const updateContactField = (
+    index: number,
+    field: string,
+    value: any
+  ) => {
+    setFormData((f: any) => {
+      const contacts = Array.isArray(f.contacts) ? [...f.contacts] : [];
+      contacts[index] = { ...(contacts[index]), [field]: value };
+      return { ...f, contacts };
+    });
+  };
+
   return (
     <div className="bg-white rounded-2xl border border-[rgba(0,0,0,0.08)] p-6 shadow-sm">
       <h3 className="text-lg font-semibold text-[#1a1d2e] mb-4">
@@ -90,16 +138,7 @@ export default function VendorContactTab({
             </h4>
             <Button
               type="button"
-              onClick={() =>
-                setFormData((f: any) => {
-                  const contacts = Array.isArray(f.contacts)
-                    ? [...f.contacts]
-                    : [];
-                  if (contacts.length >= 5) return f;
-                  contacts.push({});
-                  return { ...f, contacts };
-                })
-              }
+              onClick={addContact}
               className="text-sm text-[#6366f1] hover:underline"
             >
               Add Contact
@@ -107,21 +146,14 @@ export default function VendorContactTab({
           </div>
 
           <div className="space-y-4">
-            {((formData as any).contacts || []).map((c: any, idx: number) => (
-              <div key={idx} className="p-4 border rounded-lg bg-[#fbfbff]">
+            {(formData?.contacts || []).map((c: any, idx: number) => (
+              <div key={c.id} className="p-4 border rounded-lg bg-[#fbfbff]">
                 <div className="flex justify-between items-center mb-2">
                   <div className="text-sm font-medium">Contact #{idx + 1}</div>
                   <div className="flex items-center gap-2">
                     <Button
                       type="button"
-                      onClick={() =>
-                        setFormData((f: any) => ({
-                          ...f,
-                          contacts: f.contacts.filter(
-                            (_: any, i: number) => i !== idx
-                          ),
-                        }))
-                      }
+                      onClick={() => removeContact(idx)}
                       className="text-xs text-red-600"
                     >
                       Remove
@@ -141,14 +173,7 @@ export default function VendorContactTab({
                       type="text"
                       value={c.contactType || ""}
                       onChange={(e) =>
-                        setFormData((f: any) => {
-                          const contacts = [...f.contacts];
-                          contacts[idx] = {
-                            ...contacts[idx],
-                            contactType: e.target.value,
-                          };
-                          return { ...f, contacts };
-                        })
+                        updateContactField(idx, "contactType", e.target.value)
                       }
                       className="w-full px-3 py-2 rounded-lg bg-white border"
                     />
@@ -164,16 +189,7 @@ export default function VendorContactTab({
                       id={`contact-${idx}-name`}
                       type="text"
                       value={c.name || ""}
-                      onChange={(e) =>
-                        setFormData((f: any) => {
-                          const contacts = [...f.contacts];
-                          contacts[idx] = {
-                            ...contacts[idx],
-                            name: e.target.value,
-                          };
-                          return { ...f, contacts };
-                        })
-                      }
+                      onChange={(e) => updateContactField(idx, "name", e.target.value)}
                       className="w-full px-3 py-2 rounded-lg bg-white border"
                     />
                   </div>
@@ -189,14 +205,7 @@ export default function VendorContactTab({
                       type="text"
                       value={c.designation || ""}
                       onChange={(e) =>
-                        setFormData((f: any) => {
-                          const contacts = [...f.contacts];
-                          contacts[idx] = {
-                            ...contacts[idx],
-                            designation: e.target.value,
-                          };
-                          return { ...f, contacts };
-                        })
+                        updateContactField(idx, "designation", e.target.value)
                       }
                       className="w-full px-3 py-2 rounded-lg bg-white border"
                     />
@@ -216,14 +225,7 @@ export default function VendorContactTab({
                       title="Enter digits only, optionally starting with + (7–20 digits)"
                       value={c.phone || ""}
                       onChange={(e) =>
-                        setFormData((f: any) => {
-                          const contacts = [...f.contacts];
-                          contacts[idx] = {
-                            ...contacts[idx],
-                            phone: normalizePhone(e.target.value),
-                          };
-                          return { ...f, contacts };
-                        })
+                        updateContactField(idx, "phone", normalizePhone(e.target.value))
                       }
                       className="w-full px-3 py-2 rounded-lg bg-white border"
                     />
@@ -239,16 +241,7 @@ export default function VendorContactTab({
                       id={`contact-${idx}-email`}
                       type="email"
                       value={c.email || ""}
-                      onChange={(e) =>
-                        setFormData((f: any) => {
-                          const contacts = [...f.contacts];
-                          contacts[idx] = {
-                            ...contacts[idx],
-                            email: e.target.value,
-                          };
-                          return { ...f, contacts };
-                        })
-                      }
+                      onChange={(e) => updateContactField(idx, "email", e.target.value)}
                       className="w-full px-3 py-2 rounded-lg bg-white border"
                     />
                   </div>
@@ -264,14 +257,7 @@ export default function VendorContactTab({
                       type="text"
                       value={c.technicalDetails || ""}
                       onChange={(e) =>
-                        setFormData((f: any) => {
-                          const contacts = [...f.contacts];
-                          contacts[idx] = {
-                            ...contacts[idx],
-                            technicalDetails: e.target.value,
-                          };
-                          return { ...f, contacts };
-                        })
+                        updateContactField(idx, "technicalDetails", e.target.value)
                       }
                       className="w-full px-3 py-2 rounded-lg bg-white border"
                     />
@@ -288,14 +274,7 @@ export default function VendorContactTab({
                       type="text"
                       value={c.billingDetails || ""}
                       onChange={(e) =>
-                        setFormData((f: any) => {
-                          const contacts = [...f.contacts];
-                          contacts[idx] = {
-                            ...contacts[idx],
-                            billingDetails: e.target.value,
-                          };
-                          return { ...f, contacts };
-                        })
+                        updateContactField(idx, "billingDetails", e.target.value)
                       }
                       className="w-full px-3 py-2 rounded-lg bg-white border"
                     />

@@ -80,7 +80,7 @@ const ChartStyle = ({
 }: {
   id: string;
   config: ChartConfig;
-  nonce?: string | undefined;
+  nonce?: string;
 }) => {
   const colorConfig = Object.entries(config).filter(
     ([, config]) => config.theme || config.color
@@ -151,7 +151,7 @@ function ChartTooltipContent({
     const itemConfig = getPayloadConfigFromPayload(config, item, key);
     const value =
       !labelKey && typeof label === "string"
-        ? config[label as keyof typeof config]?.label || label
+        ? config[label]?.label || label
         : itemConfig?.label;
 
     if (labelFormatter) {

@@ -2,26 +2,74 @@
 
 import { useEffect, useState } from "react";
 import { motion } from "motion/react";
-import { ArrowLeft, Save, X, Building2, Star, Calendar } from "lucide-react";
+import { Calendar, Star } from "lucide-react";
 import { AssetFlowLayout } from "../../layout/AssetFlowLayout";
-import { Vendor, AssetFieldDef } from "../../../../lib/data";
+import { AssetFieldDef, Vendor } from "../../../../lib/data";
 import { createVendor } from "../../../../lib/api";
 import { logVendorCreated } from "../../../../lib/events";
 import FieldRenderer from "../../assets/FieldRenderer";
 import FileDropzone from "../../../ui/FileDropzone";
 import { uploadWithProgress } from "../../../../lib/upload";
-import { vendorTypes, vendorStatuses } from "../constants";
-import { Button } from "@/components/ui/button";
+import VendorHeader from "../components/VendorHeader";
+import VendorTabs from "../components/VendorTabs";
+import ProcurementSection from "./add/ProcurementSection";
+import VendorInfoAndContacts from "./add/VendorInfoAndContacts";
+
+type ContactInput = {
+  contactType?: string;
+  name?: string;
+  designation?: string;
+  phone?: string;
+  email?: string;
+  technicalDetails?: string;
+  billingDetails?: string;
+};
+
+type PendingDoc = { type: string; file: File };
+
+type VendorFormData = {
+  name: string;
+  type: Vendor["type"];
+  contactPerson: string;
+  email: string;
+  phone: string;
+  status: Vendor["status"];
+  contractValue: string;
+  contractExpiry: string;
+  rating: string;
+  website: string;
+  notes: string;
+  legalName: string;
+  tradingName: string;
+  registrationNumber: string;
+  incorporationDate: string;
+  incorporationCountry: string;
+  registeredOfficeAddress: string;
+  corporateOfficeAddress: string;
+  natureOfBusiness: string;
+  businessCategory: string;
+  serviceCoverageArea: string;
+  contacts: ContactInput[];
+  panTaxId: string;
+  bankName: string;
+  accountNumber: string;
+  ifscSwiftCode: string;
+  paymentTerms: string;
+  vendorCreditLimit?: number;
+  _pendingDocs?: PendingDoc[];
+};
 
 interface AddVendorPageProps {
   onNavigate?: (page: string) => void;
   onSearch?: (query: string) => void;
 }
 
-export function AddVendorPage({ onNavigate, onSearch }: AddVendorPageProps) {
+export function AddVendorPage({
+  onNavigate,
+  onSearch,
+}: Readonly<AddVendorPageProps>) {
   const tabs = [
     { id: "vendor", label: "Vendor Info" },
-    { id: "contact", label: "Contact" },
     { id: "it", label: "IT & Security" },
     { id: "performance", label: "Performance" },
     { id: "procurement", label: "Procurement" },
@@ -30,9 +78,9 @@ export function AddVendorPage({ onNavigate, onSearch }: AddVendorPageProps) {
     { id: "contract", label: "Contract" },
     { id: "custom", label: "Custom Fields" },
   ];
-  const [activeTab, setActiveTab] = useState<string>("vendor");
 
-  // Profile-like state for IT / procurement fields
+  const [activeTab, setActiveTab] = useState<string>("vendor");
+  const [saving, setSaving] = useState(false);
   const [profile, setProfile] = useState<any>({
     data_protection_ack: false,
     network_endpoint_overview: "",
@@ -51,36 +99,27 @@ export function AddVendorPage({ onNavigate, onSearch }: AddVendorPageProps) {
     legal_infosec_review_status: "Pending",
   });
 
-  const [saving, setSaving] = useState(false);
-  // Normalize phone input to optional leading + followed by digits only, max 20 digits
   const normalizePhone = (raw: string) => {
     const hasLeadingPlus = raw.trim().startsWith("+");
-    const digits = raw.replace(/\D/g, "");
+    const digits = (raw.match(/\d/g) || []).join("");
     const normalized = (hasLeadingPlus ? "+" : "") + digits;
     return normalized.slice(0, 21);
   };
 
-  // pending documents to upload after vendor is created
-  useEffect(() => {
-    // noop placeholder to satisfy linter if needed
-  }, []);
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<VendorFormData>({
     name: "",
-    type: "Software" as Vendor["type"],
+    type: "Software",
     contactPerson: "",
     email: "",
     phone: "",
-    status: "Pending" as Vendor["status"],
+    status: "Pending",
     contractValue: "",
     contractExpiry: "",
     rating: "4.0",
-    // Additional fields
     website: "",
     notes: "",
-    // Vendor Information additions
     legalName: "",
     tradingName: "",
-    gstCertificateFile: null, // Added field for GST certificate file
     registrationNumber: "",
     incorporationDate: "",
     incorporationCountry: "",
@@ -89,21 +128,18 @@ export function AddVendorPage({ onNavigate, onSearch }: AddVendorPageProps) {
     natureOfBusiness: "",
     businessCategory: "",
     serviceCoverageArea: "",
-    contacts: [] as Array<{
-      contactType?: string;
-      name?: string;
-      designation?: string;
-      phone?: string;
-      email?: string;
-      technicalDetails?: string;
-      billingDetails?: string;
-    }>,
+    contacts: [],
+    panTaxId: "",
+    bankName: "",
+    accountNumber: "",
+    ifscSwiftCode: "",
+    paymentTerms: "Net 30",
+    vendorCreditLimit: undefined,
   });
+
   const [pendingProgress, setPendingProgress] = useState<
     Record<string, number>
   >({});
-
-  // Custom field defs for Vendors (from Settings)
   const [fieldDefs, setFieldDefs] = useState<AssetFieldDef[]>([]);
   const [customFieldValues, setCustomFieldValues] = useState<
     Record<string, string>
@@ -111,24 +147,63 @@ export function AddVendorPage({ onNavigate, onSearch }: AddVendorPageProps) {
 
   useEffect(() => {
     try {
-      const s = localStorage.getItem("assetflow:settings");
-      if (s) {
-        const parsed = JSON.parse(s);
-        if (Array.isArray(parsed.vendorFields))
+      const raw = localStorage.getItem("assetflow:settings");
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed.vendorFields)) {
           setFieldDefs(parsed.vendorFields as AssetFieldDef[]);
+        }
       }
-    } catch {}
+    } catch (error) {
+      console.warn(
+        "Failed to load vendor field definitions from localStorage",
+        error
+      );
+    }
   }, []);
 
   const handleInputChange = (field: string, value: string) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
   };
 
+  const addPendingDocs = (
+    type: string,
+    files: File[],
+    allowMultiple: boolean
+  ) => {
+    setFormData((f) => {
+      const existing = Array.isArray(f._pendingDocs) ? [...f._pendingDocs] : [];
+
+      if (allowMultiple) {
+        for (const file of files) existing.push({ type, file });
+      } else if (files[0]) {
+        existing.push({ type, file: files[0] });
+      }
+
+      return { ...f, _pendingDocs: existing };
+    });
+  };
+
+  const removePendingDoc = (type: string, idx: number) => {
+    setFormData((f) => {
+      const pending = Array.isArray(f._pendingDocs) ? [...f._pendingDocs] : [];
+
+      let foundIndex = -1;
+      const next = pending.filter((doc: any) => {
+        if (doc.type !== type) return true;
+        foundIndex += 1;
+        return foundIndex !== idx;
+      });
+
+      if (next.length === pending.length) return f;
+      return { ...f, _pendingDocs: next };
+    });
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSaving(true);
 
-    // Create new vendor
     const newVendor: Vendor = {
       id: `VND-${Date.now()}`,
       name: formData.name,
@@ -142,7 +217,6 @@ export function AddVendorPage({ onNavigate, onSearch }: AddVendorPageProps) {
       rating: Number.parseFloat(formData.rating || "0"),
     };
 
-    // attach extended fields
     (newVendor as any).legalName = formData.legalName || undefined;
     (newVendor as any).tradingName = formData.tradingName || undefined;
     (newVendor as any).registrationNumber =
@@ -161,41 +235,32 @@ export function AddVendorPage({ onNavigate, onSearch }: AddVendorPageProps) {
       formData.businessCategory || undefined;
     (newVendor as any).serviceCoverageArea =
       formData.serviceCoverageArea || undefined;
-    // attach financial fields
-    (newVendor as any).panTaxId = (formData as any).panTaxId || undefined;
-    (newVendor as any).bankName = (formData as any).bankName || undefined;
-    (newVendor as any).accountNumber =
-      (formData as any).accountNumber || undefined;
-    (newVendor as any).ifscSwiftCode =
-      (formData as any).ifscSwiftCode || undefined;
-    (newVendor as any).paymentTerms =
-      (formData as any).paymentTerms || undefined;
+    (newVendor as any).panTaxId = formData.panTaxId || undefined;
+    (newVendor as any).bankName = formData.bankName || undefined;
+    (newVendor as any).accountNumber = formData.accountNumber || undefined;
+    (newVendor as any).ifscSwiftCode = formData.ifscSwiftCode || undefined;
+    (newVendor as any).paymentTerms = formData.paymentTerms || undefined;
     (newVendor as any).preferredCurrency = "INR";
-    if (
-      (formData as any).vendorCreditLimit !== undefined &&
-      (formData as any).vendorCreditLimit !== ""
-    ) {
-      const v = Number((formData as any).vendorCreditLimit);
-      (newVendor as any).vendorCreditLimit = Number.isFinite(v) ? v : undefined;
-    }
-    // attach contacts (up to 5)
-    if (
-      (formData as any).contacts &&
-      Array.isArray((formData as any).contacts)
-    ) {
-      (newVendor as any).contacts = (formData as any).contacts
-        .slice(0, 5)
-        .map((c: any) => ({ ...c }));
+
+    if (formData.vendorCreditLimit !== undefined) {
+      const value = Number(formData.vendorCreditLimit);
+      (newVendor as any).vendorCreditLimit = Number.isFinite(value)
+        ? value
+        : undefined;
     }
 
-    // Attach custom fields (from Settings)
+    if (formData.contacts && Array.isArray(formData.contacts)) {
+      (newVendor as any).contacts = formData.contacts
+        .slice(0, 5)
+        .map((contact) => ({ ...contact }));
+    }
+
     if (fieldDefs.length > 0) {
       (newVendor as any).customFields = Object.fromEntries(
         fieldDefs.map((def) => [def.key, customFieldValues[def.key] ?? ""])
       );
     }
 
-    // Log event
     logVendorCreated(newVendor.id, newVendor.name, "admin@company.com", {
       type: newVendor.type,
       contractValue: newVendor.contractValue,
@@ -203,49 +268,39 @@ export function AddVendorPage({ onNavigate, onSearch }: AddVendorPageProps) {
 
     try {
       await createVendor(newVendor);
-      // If GST certificate file provided, upload it to the vendor blob endpoint
-      const file: any = (formData as any).gstCertificateFile;
-      if (file && file instanceof File) {
-        try {
-          const keyFor = (f: File) => `${f.name}-${f.size}-${f.lastModified}`;
-          const key = keyFor(file);
-          const { promise } = uploadWithProgress(
-            `/api/vendors/${encodeURIComponent(newVendor.id)}/gst-certificate`,
-            file,
-            {},
-            (pct) => {
-              setPendingProgress((cur) => ({ ...cur, [key]: pct }));
-            }
-          );
-          await promise;
-        } catch (e) {
-          console.warn("Failed to upload GST certificate:", e);
-        }
-      }
-      // Upload any pending compliance documents collected during Add
+
       try {
-        const pending = (formData as any)._pendingDocs || [];
-        // helper to compute key matching FileDropzone
-        const keyFor = (f: File) => `${f.name}-${f.size}-${f.lastModified}`;
-        for (const p of pending) {
+        const pending = formData._pendingDocs || [];
+        const keyFor = (file: File) =>
+          `${file.name}-${file.size}-${file.lastModified}`;
+
+        for (const pendingDoc of pending) {
           try {
-            const key = keyFor(p.file);
+            const key = keyFor(pendingDoc.file);
             const { promise } = uploadWithProgress(
               `/api/vendors/${encodeURIComponent(newVendor.id)}/documents`,
-              p.file,
-              { type: p.type },
+              pendingDoc.file,
+              { type: pendingDoc.type },
               (pct) => {
-                setPendingProgress((cur) => ({ ...cur, [key]: pct }));
+                setPendingProgress((current) => ({ ...current, [key]: pct }));
               }
             );
             await promise;
-          } catch (e) {
-            console.warn("Failed to upload pending document", p.type, e);
+          } catch (uploadError) {
+            console.warn(
+              "Failed to upload pending document",
+              pendingDoc.type,
+              uploadError
+            );
           }
         }
-      } catch (e) {
-        /* ignore */
+      } catch (uploadBlockError) {
+        console.error(
+          "Failed to upload pending compliance documents",
+          uploadBlockError
+        );
       }
+
       onNavigate?.("vendors");
     } catch (err) {
       console.error("Failed to create vendor", err);
@@ -267,91 +322,24 @@ export function AddVendorPage({ onNavigate, onSearch }: AddVendorPageProps) {
       currentPage="vendors"
       onSearch={onSearch}
     >
-      {/* Header */}
-      <div className="flex items-center justify-between mb-8">
-        <div className="flex items-center gap-4">
-          <Button
-            variant="outline"
-            onClick={() => onNavigate?.("vendors")}
-            className="p-2 rounded-lg hover:bg-white border border-transparent hover:border-[rgba(0,0,0,0.1)] transition-all duration-200"
-          >
-            <ArrowLeft className="h-5 w-5 text-[#64748b]" />
-          </Button>
-          <div>
-            <h1 className="text-3xl font-bold text-[#1a1d2e] mb-2">
-              Add New Vendor
-            </h1>
-            <p className="text-[#64748b]">Register a new vendor or partner</p>
-          </div>
-        </div>
-        <div className="flex items-center gap-3">
-          <Button
-            type="submit"
-            disabled={saving}
-            className={`flex items-center justify-center gap-2 px-4 py-2 rounded-lg font-semibold transition-all duration-200 ${
-              saving
-                ? "bg-gradient-to-r from-[#6366f1] to-[#8b5cf6] opacity-70 cursor-not-allowed"
-                : "bg-gradient-to-r from-[#6366f1] to-[#8b5cf6] text-white hover:shadow-lg hover:shadow-[#6366f1]/30"
-            }`}
-          >
-            <Save className="h-4 w-4" />
-            {saving ? "Saving…" : "Save"}
-          </Button>
-          <Button
-            type="button"
-            onClick={() => onNavigate?.("vendors")}
-            className="flex items-center justify-center gap-2 px-4 py-2 rounded-lg bg-white/10 text-[#111827] border border-[rgba(0,0,0,0.06)] font-semibold hover:bg-white/20 transition-all duration-200"
-          >
-            <X className="h-4 w-4" />
-            Cancel
-          </Button>
-        </div>
-      </div>
+      <VendorHeader
+        vendorName="Register a new vendor or partner"
+        onNavigate={onNavigate}
+        saving={saving}
+        isEdit={false}
+      />
 
       <form onSubmit={handleSubmit}>
-        {/* Tabs */}
         <div className="mb-4">
-          <nav
-            role="tablist"
-            aria-label="Add vendor tabs"
-            className="flex w-full flex-wrap gap-2 rounded-xl border border-[rgba(0,0,0,0.08)] bg-[#f8f9ff] p-2"
-            onKeyDown={(e) => {
-              const idx = tabs.findIndex((t) => t.id === activeTab);
-              if (e.key === "ArrowRight") {
-                const next = tabs[(idx + 1) % tabs.length];
-                setActiveTab(next.id);
-              } else if (e.key === "ArrowLeft") {
-                const prev = tabs[(idx - 1 + tabs.length) % tabs.length];
-                setActiveTab(prev.id);
-              }
-            }}
-          >
-            {tabs.map((t) => (
-              <Button
-                key={t.id}
-                id={`tab-${t.id}`}
-                role="tab"
-                type="button"
-                aria-selected={activeTab === t.id}
-                aria-controls={`panel-${t.id}`}
-                tabIndex={activeTab === t.id ? 0 : -1}
-                onClick={() => setActiveTab(t.id)}
-                className={`flex-1 text-center ${
-                  activeTab !== t.id
-                    ? "bg-white border border-[rgba(0,0,0,0.12)] shadow-md text-[#1a1d2e] font-semibold"
-                    : ""
-                } flex items-center justify-center gap-2 px-3 py-2 rounded-xl text-sm`}
-              >
-                {t.label}
-              </Button>
-            ))}
-          </nav>
+          <VendorTabs
+            tabs={tabs}
+            activeTab={activeTab}
+            setActiveTab={setActiveTab}
+          />
         </div>
 
         <div className="grid grid-cols-1 gap-6">
-          {/* Main Form */}
           <div className="space-y-6">
-            {/* Vendor Information */}
             {activeTab === "vendor" && (
               <motion.div
                 id="panel-vendor"
@@ -360,227 +348,16 @@ export function AddVendorPage({ onNavigate, onSearch }: AddVendorPageProps) {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.4 }}
-                className="bg-white rounded-2xl border border-[rgba(0,0,0,0.08)] p-6 shadow-sm"
               >
-                <div className="flex items-center gap-2 mb-4">
-                  <Building2 className="h-5 w-5 text-[#6366f1]" />
-                  <h3 className="text-lg font-semibold text-[#1a1d2e]">
-                    Vendor Information
-                  </h3>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {/* Vendor Name */}
-                  <div className="md:col-span-2">
-                    <label
-                      htmlFor="vendorName"
-                      className="block text-sm font-medium text-[#1a1d2e] mb-2"
-                    >
-                      Vendor Name *
-                    </label>
-                    <input
-                      id="vendorName"
-                      type="text"
-                      required
-                      value={formData.name}
-                      onChange={(e) =>
-                        handleInputChange("name", e.target.value)
-                      }
-                      placeholder="e.g., Microsoft Corporation"
-                      className="w-full px-4 py-2.5 rounded-lg bg-[#f8f9ff] border border-[rgba(0,0,0,0.05)] text-[#1a1d2e] placeholder:text-[#a0a4b8] focus:outline-none focus:ring-2 focus:ring-[#6366f1]/20 focus:border-[#6366f1] transition-all duration-200"
-                    />
-                  </div>
-
-                  {/* Vendor Legal Name */}
-                  <div className="md:col-span-2">
-                    <label
-                      htmlFor="legalName"
-                      className="block text-sm font-medium text-[#1a1d2e] mb-2"
-                    >
-                      Vendor Legal Name
-                    </label>
-                    <input
-                      id="legalName"
-                      type="text"
-                      value={formData.legalName}
-                      onChange={(e) =>
-                        handleInputChange("legalName", e.target.value)
-                      }
-                      placeholder="Legal entity name (if different)"
-                      className="w-full px-4 py-2.5 rounded-lg bg-[#f8f9ff] border border-[rgba(0,0,0,0.05)] text-[#1a1d2e] placeholder:text-[#a0a4b8] focus:outline-none focus:ring-2 focus:ring-[#6366f1]/20 focus:border-[#6366f1] transition-all duration-200"
-                    />
-                  </div>
-
-                  {/* Trading / Brand Name */}
-                  <div className="md:col-span-2">
-                    <label
-                      htmlFor="tradingName"
-                      className="block text-sm font-medium text-[#1a1d2e] mb-2"
-                    >
-                      Trading / Brand Name
-                    </label>
-                    <input
-                      id="tradingName"
-                      type="text"
-                      value={formData.tradingName}
-                      onChange={(e) =>
-                        handleInputChange("tradingName", e.target.value)
-                      }
-                      placeholder="Brand or trading name (if different)"
-                      className="w-full px-4 py-2.5 rounded-lg bg-[#f8f9ff] border border-[rgba(0,0,0,0.05)] text-[#1a1d2e] placeholder:text-[#a0a4b8] focus:outline-none focus:ring-2 focus:ring-[#6366f1]/20 focus:border-[#6366f1] transition-all duration-200"
-                    />
-                  </div>
-
-                  {/* Registration / GSTIN */}
-                  <div>
-                    <label
-                      htmlFor="registrationNumber"
-                      className="block text-sm font-medium text-[#1a1d2e] mb-2"
-                    >
-                      Company Registration Number / GSTIN
-                    </label>
-                    <input
-                      id="registrationNumber"
-                      type="text"
-                      value={formData.registrationNumber}
-                      onChange={(e) =>
-                        handleInputChange("registrationNumber", e.target.value)
-                      }
-                      placeholder="Registration or GSTIN"
-                      className="w-full px-4 py-2.5 rounded-lg bg-[#f8f9ff] border border-[rgba(0,0,0,0.05)] text-[#1a1d2e] placeholder:text-[#a0a4b8] focus:outline-none focus:ring-2 focus:ring-[#6366f1]/20 focus:border-[#6366f1] transition-all duration-200"
-                    />
-                  </div>
-
-                  {/* Website */}
-                  <div>
-                    <label
-                      htmlFor="website"
-                      className="block text-sm font-medium text-[#1a1d2e] mb-2"
-                    >
-                      Website
-                    </label>
-                    <input
-                      id="website"
-                      type="url"
-                      value={formData.website}
-                      onChange={(e) =>
-                        handleInputChange("website", e.target.value)
-                      }
-                      placeholder="https://www.example.com"
-                      className="w-full px-4 py-2.5 rounded-lg bg-[#f8f9ff] border border-[rgba(0,0,0,0.05)] text-[#1a1d2e] placeholder:text-[#a0a4b8] focus:outline-none focus:ring-2 focus:ring-[#6366f1]/20 focus:border-[#6366f1] transition-all duration-200"
-                    />
-                  </div>
-
-                  {/* Registered Office Address */}
-                  <div className="md:col-span-2">
-                    <label
-                      htmlFor="registeredOfficeAddress"
-                      className="block text-sm font-medium text-[#1a1d2e] mb-2"
-                    >
-                      Registered Office Address
-                    </label>
-                    <input
-                      id="registeredOfficeAddress"
-                      type="text"
-                      value={formData.registeredOfficeAddress}
-                      onChange={(e) =>
-                        handleInputChange(
-                          "registeredOfficeAddress",
-                          e.target.value
-                        )
-                      }
-                      placeholder="Registered office address"
-                      className="w-full px-4 py-2.5 rounded-lg bg-[#f8f9ff] border border-[rgba(0,0,0,0.05)] text-[#1a1d2e] placeholder:text-[#a0a4b8] focus:outline-none focus:ring-2 focus:ring-[#6366f1]/20 focus:border-[#6366f1] transition-all duration-200"
-                    />
-                  </div>
-
-                  {/* Corporate Office Address */}
-                  <div className="md:col-span-2">
-                    <label
-                      htmlFor="corporateOfficeAddress"
-                      className="block text-sm font-medium text-[#1a1d2e] mb-2"
-                    >
-                      Corporate Office Address
-                    </label>
-                    <input
-                      id="corporateOfficeAddress"
-                      type="text"
-                      value={formData.corporateOfficeAddress}
-                      onChange={(e) =>
-                        handleInputChange(
-                          "corporateOfficeAddress",
-                          e.target.value
-                        )
-                      }
-                      placeholder="Corporate / head office address"
-                      className="w-full px-4 py-2.5 rounded-lg bg-[#f8f9ff] border border-[rgba(0,0,0,0.05)] text-[#1a1d2e] placeholder:text-[#a0a4b8] focus:outline-none focus:ring-2 focus:ring-[#6366f1]/20 focus:border-[#6366f1] transition-all duration-200"
-                    />
-                  </div>
-
-                  {/* Nature of Business */}
-                  <div>
-                    <label
-                      htmlFor="natureOfBusiness"
-                      className="block text-sm font-medium text-[#1a1d2e] mb-2"
-                    >
-                      Nature of Business
-                    </label>
-                    <input
-                      id="natureOfBusiness"
-                      type="text"
-                      value={formData.natureOfBusiness}
-                      onChange={(e) =>
-                        handleInputChange("natureOfBusiness", e.target.value)
-                      }
-                      placeholder="e.g., IT Services, Hardware Supply"
-                      className="w-full px-4 py-2.5 rounded-lg bg-[#f8f9ff] border border-[rgba(0,0,0,0.05)] text-[#1a1d2e] placeholder:text-[#a0a4b8] focus:outline-none focus:ring-2 focus:ring-[#6366f1]/20 focus:border-[#6366f1] transition-all duration-200"
-                    />
-                  </div>
-
-                  {/* Business Category */}
-                  <div>
-                    <label
-                      htmlFor="businessCategory"
-                      className="block text-sm font-medium text-[#1a1d2e] mb-2"
-                    >
-                      Business Category
-                    </label>
-                    <input
-                      id="businessCategory"
-                      type="text"
-                      value={formData.businessCategory}
-                      onChange={(e) =>
-                        handleInputChange("businessCategory", e.target.value)
-                      }
-                      placeholder="Category or industry sector"
-                      className="w-full px-4 py-2.5 rounded-lg bg-[#f8f9ff] border border-[rgba(0,0,0,0.05)] text-[#1a1d2e] placeholder:text-[#a0a4b8] focus:outline-none focus:ring-2 focus:ring-[#6366f1]/20 focus:border-[#6366f1] transition-all duration-200"
-                    />
-                  </div>
-
-                  {/* Service Coverage Area */}
-                  <div className="md:col-span-2">
-                    <label
-                      htmlFor="serviceCoverageArea"
-                      className="block text-sm font-medium text-[#1a1d2e] mb-2"
-                    >
-                      Service Coverage Area
-                    </label>
-                    <input
-                      id="serviceCoverageArea"
-                      type="text"
-                      value={formData.serviceCoverageArea}
-                      onChange={(e) =>
-                        handleInputChange("serviceCoverageArea", e.target.value)
-                      }
-                      placeholder="e.g., Local, National, Global or specific regions"
-                      className="w-full px-4 py-2.5 rounded-lg bg-[#f8f9ff] border border-[rgba(0,0,0,0.05)] text-[#1a1d2e] placeholder:text-[#a0a4b8] focus:outline-none focus:ring-2 focus:ring-[#6366f1]/20 focus:border-[#6366f1] transition-all duration-200"
-                    />
-                  </div>
-                </div>
+                <VendorInfoAndContacts
+                  formData={formData}
+                  setFormData={setFormData}
+                  handleInputChange={handleInputChange}
+                  normalizePhone={normalizePhone}
+                />
               </motion.div>
             )}
 
-            {/* Procurement */}
             {activeTab === "procurement" && (
               <motion.div
                 id="panel-procurement"
@@ -589,156 +366,11 @@ export function AddVendorPage({ onNavigate, onSearch }: AddVendorPageProps) {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.4, delay: 0.25 }}
-                className="bg-white rounded-2xl border border-[rgba(0,0,0,0.08)] p-6 shadow-sm"
               >
-                <h3 className="text-lg font-semibold text-[#1a1d2e] mb-4">
-                  Internal Procurement
-                </h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label
-                      htmlFor="requestType"
-                      className="block text-sm font-medium text-[#1a1d2e] mb-2"
-                    >
-                      Request Type
-                    </label>
-                    <select
-                      id="requestType"
-                      value={profile.request_type}
-                      onChange={(e) =>
-                        setProfile((p: any) => ({
-                          ...p,
-                          request_type: e.target.value,
-                        }))
-                      }
-                      className="w-full px-3 py-2 rounded-lg bg-[#fbfbff] border"
-                    >
-                      <option>New Vendor</option>
-                      <option>Renewal</option>
-                    </select>
-                  </div>
-
-                  <div className="md:col-span-2">
-                    <label
-                      htmlFor="businessJustification"
-                      className="block text-sm font-medium text-[#1a1d2e] mb-2"
-                    >
-                      Business Justification / Purpose of Onboarding
-                    </label>
-                    <textarea
-                      id="businessJustification"
-                      value={profile.business_justification}
-                      onChange={(e) =>
-                        setProfile((p: any) => ({
-                          ...p,
-                          business_justification: e.target.value,
-                        }))
-                      }
-                      className="w-full px-3 py-2 rounded-lg bg-[#fbfbff] border"
-                      rows={3}
-                    />
-                  </div>
-
-                  <div>
-                    <label
-                      htmlFor="estimatedAnnualSpend"
-                      className="block text-sm font-medium text-[#1a1d2e] mb-2"
-                    >
-                      Estimated Annual Spend
-                    </label>
-                    <input
-                      id="estimatedAnnualSpend"
-                      type="number"
-                      min="0"
-                      step="0.01"
-                      value={profile.estimated_annual_spend}
-                      onChange={(e) =>
-                        setProfile((p: any) => ({
-                          ...p,
-                          estimated_annual_spend: e.target.value,
-                        }))
-                      }
-                      className="w-full px-3 py-2 rounded-lg bg-[#fbfbff] border"
-                    />
-                  </div>
-
-                  <div>
-                    <label
-                      htmlFor="evaluationCommittee"
-                      className="block text-sm font-medium text-[#1a1d2e] mb-2"
-                    >
-                      Evaluation Committee / Approver Name(s)
-                    </label>
-                    <input
-                      id="evaluationCommittee"
-                      type="text"
-                      placeholder="Comma-separated emails or names"
-                      value={(profile.evaluation_committee || []).join(", ")}
-                      onChange={(e) =>
-                        setProfile((p: any) => ({
-                          ...p,
-                          evaluation_committee: e.target.value
-                            .split(",")
-                            .map((s: string) => s.trim())
-                            .filter(Boolean),
-                        }))
-                      }
-                      className="w-full px-3 py-2 rounded-lg bg-[#fbfbff] border"
-                    />
-                  </div>
-
-                  <div>
-                    <label
-                      htmlFor="riskAssessment"
-                      className="block text-sm font-medium text-[#1a1d2e] mb-2"
-                    >
-                      Risk Assessment Notes
-                    </label>
-                    <select
-                      id="riskAssessment"
-                      value={profile.risk_assessment}
-                      onChange={(e) =>
-                        setProfile((p: any) => ({
-                          ...p,
-                          risk_assessment: e.target.value,
-                        }))
-                      }
-                      className="w-full px-3 py-2 rounded-lg bg-[#fbfbff] border"
-                    >
-                      <option>High</option>
-                      <option>Moderate</option>
-                      <option>Low</option>
-                    </select>
-                  </div>
-
-                  <div>
-                    <label
-                      htmlFor="legalInfosecReviewStatus"
-                      className="block text-sm font-medium text-[#1a1d2e] mb-2"
-                    >
-                      Legal & InfoSec Review Status
-                    </label>
-                    <select
-                      id="legalInfosecReviewStatus"
-                      value={profile.legal_infosec_review_status}
-                      onChange={(e) =>
-                        setProfile((p: any) => ({
-                          ...p,
-                          legal_infosec_review_status: e.target.value,
-                        }))
-                      }
-                      className="w-full px-3 py-2 rounded-lg bg-[#fbfbff] border"
-                    >
-                      <option>Pending</option>
-                      <option>Approved</option>
-                      <option>Rejected</option>
-                    </select>
-                  </div>
-                </div>
+                <ProcurementSection profile={profile} setProfile={setProfile} />
               </motion.div>
             )}
 
-            {/* Compliance & Documentation */}
             {activeTab === "compliance" && (
               <motion.div
                 id="panel-compliance"
@@ -756,6 +388,7 @@ export function AddVendorPage({ onNavigate, onSearch }: AddVendorPageProps) {
                   Upload required compliance documents. ISO / Quality
                   Certifications may include multiple files.
                 </p>
+
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {[
                     {
@@ -795,381 +428,26 @@ export function AddVendorPage({ onNavigate, onSearch }: AddVendorPageProps) {
                         </div>
                       </div>
 
-                      {/* Themed FileDropzone component */}
-                      <div>
-                        {/* import the component locally to avoid top-level changes */}
-                        {/* Files for this doc type */}
-                        <FileDropzone
-                          id={`dropzone-${docDef.key}`}
-                          accept="application/pdf,image/*"
-                          multiple={!!docDef.multiple}
-                          compact={true}
-                          files={(
-                            ((formData as any)._pendingDocs || []) as any[]
-                          )
-                            .filter((d: any) => d.type === docDef.key)
-                            .map((d: any) => d.file)}
-                          externalProgress={pendingProgress}
-                          onFilesAdded={(arr) => {
-                            setFormData((f: any) => {
-                              const existing = Array.isArray(f._pendingDocs)
-                                ? [...f._pendingDocs]
-                                : [];
-                              if (docDef.multiple) {
-                                for (const file of arr)
-                                  existing.push({ type: docDef.key, file });
-                              } else {
-                                existing.push({
-                                  type: docDef.key,
-                                  file: arr[0],
-                                });
-                              }
-                              return { ...f, _pendingDocs: existing };
-                            });
-                          }}
-                          onRemove={(idx) => {
-                            setFormData((f: any) => {
-                              const pending = Array.isArray(f._pendingDocs)
-                                ? [...f._pendingDocs]
-                                : [];
-                              // find indices for this type
-                              const indices = pending
-                                .map((p: any, i: number) => ({ i, t: p.type }))
-                                .filter((x: any) => x.t === docDef.key)
-                                .map((x: any) => x.i);
-                              const removeAt = indices[idx];
-                              if (removeAt === undefined) return f;
-                              pending.splice(removeAt, 1);
-                              return { ...f, _pendingDocs: pending };
-                            });
-                          }}
-                        />
-                      </div>
+                      <FileDropzone
+                        id={`dropzone-${docDef.key}`}
+                        accept="application/pdf,image/*"
+                        multiple={!!docDef.multiple}
+                        compact
+                        files={(formData._pendingDocs || [])
+                          .filter((doc) => doc.type === docDef.key)
+                          .map((doc) => doc.file)}
+                        externalProgress={pendingProgress}
+                        onFilesAdded={(files) =>
+                          addPendingDocs(docDef.key, files, !!docDef.multiple)
+                        }
+                        onRemove={(idx) => removePendingDoc(docDef.key, idx)}
+                      />
                     </div>
                   ))}
                 </div>
               </motion.div>
             )}
 
-            {/* Contact Information */}
-            {activeTab === "contact" && (
-              <motion.div
-                id="panel-contact"
-                role="tabpanel"
-                aria-labelledby="tab-contact"
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.4, delay: 0.1 }}
-                className="bg-white rounded-2xl border border-[rgba(0,0,0,0.08)] p-6 shadow-sm"
-              >
-                <h3 className="text-lg font-semibold text-[#1a1d2e] mb-4">
-                  Contact Information
-                </h3>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {/* Contact Person */}
-                  <div className="md:col-span-2">
-                    <label
-                      htmlFor="vendor-contactPerson"
-                      className="block text-sm font-medium text-[#1a1d2e] mb-2"
-                    >
-                      Contact Person *
-                    </label>
-                    <input
-                      id="vendor-contactPerson"
-                      type="text"
-                      required
-                      value={formData.contactPerson}
-                      onChange={(e) =>
-                        handleInputChange("contactPerson", e.target.value)
-                      }
-                      placeholder="e.g., John Smith"
-                      className="w-full px-4 py-2.5 rounded-lg bg-[#f8f9ff] border border-[rgba(0,0,0,0.05)] text-[#1a1d2e] placeholder:text-[#a0a4b8] focus:outline-none focus:ring-2 focus:ring-[#6366f1]/20 focus:border-[#6366f1] transition-all duration-200"
-                    />
-                  </div>
-
-                  {/* Email */}
-                  <div>
-                    <label
-                      htmlFor="vendor-email"
-                      className="block text-sm font-medium text-[#1a1d2e] mb-2"
-                    >
-                      Email *
-                    </label>
-                    <input
-                      id="vendor-email"
-                      type="email"
-                      required
-                      value={formData.email}
-                      onChange={(e) =>
-                        handleInputChange("email", e.target.value)
-                      }
-                      placeholder="contact@vendor.com"
-                      className="w-full px-4 py-2.5 rounded-lg bg-[#f8f9ff] border border-[rgba(0,0,0,0.05)] text-[#1a1d2e] placeholder:text-[#a0a4b8] focus:outline-none focus:ring-2 focus:ring-[#6366f1]/20 focus:border-[#6366f1] transition-all duration-200"
-                    />
-                  </div>
-
-                  {/* Phone */}
-                  <div>
-                    <label
-                      htmlFor="vendor-phone"
-                      className="block text-sm font-medium text-[#1a1d2e] mb-2"
-                    >
-                      Phone *
-                    </label>
-                    <input
-                      id="vendor-phone"
-                      type="tel"
-                      inputMode="tel"
-                      pattern="^\+?\d{7,20}$"
-                      title="Enter digits only, optionally starting with + (7–20 digits)"
-                      required
-                      value={formData.phone}
-                      onChange={(e) =>
-                        handleInputChange(
-                          "phone",
-                          normalizePhone(e.target.value)
-                        )
-                      }
-                      placeholder="+15551234567"
-                      className="w-full px-4 py-2.5 rounded-lg bg-[#f8f9ff] border border-[rgba(0,0,0,0.05)] text-[#1a1d2e] placeholder:text-[#a0a4b8] focus:outline-none focus:ring-2 focus:ring-[#6366f1]/20 focus:border-[#6366f1] transition-all duration-200"
-                    />
-                  </div>
-                </div>
-
-                {/* Multiple Contacts */}
-                <div className="mt-4">
-                  <div className="flex items-center justify-between mb-2">
-                    <h4 className="text-sm font-semibold text-[#1a1d2e]">
-                      Additional Contacts
-                    </h4>
-                    <Button
-                      type="button"
-                      onClick={() => {
-                        setFormData((f: any) => {
-                          const contacts = Array.isArray(f.contacts)
-                            ? [...f.contacts]
-                            : [];
-                          if (contacts.length >= 5) return f;
-                          contacts.push({});
-                          return { ...f, contacts };
-                        });
-                      }}
-                      className="text-sm text-[#6366f1] hover:underline"
-                    >
-                      Add Contact
-                    </Button>
-                  </div>
-                  <div className="space-y-4">
-                    {((formData as any).contacts || []).map(
-                      (c: any, idx: number) => (
-                        <div
-                          key={idx}
-                          className="p-4 border rounded-lg bg-[#fbfbff]"
-                        >
-                          <div className="flex justify-between items-center mb-2">
-                            <div className="text-sm font-medium">
-                              Contact #{idx + 1}
-                            </div>
-                            <div className="flex items-center gap-2">
-                              <Button
-                                type="button"
-                                onClick={() =>
-                                  setFormData((f: any) => ({
-                                    ...f,
-                                    contacts: f.contacts.filter(
-                                      (_: any, i: number) => i !== idx
-                                    ),
-                                  }))
-                                }
-                                className="text-xs text-red-600"
-                              >
-                                Remove
-                              </Button>
-                            </div>
-                          </div>
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                            <div>
-                              <label
-                                htmlFor={`additional-${idx}-type`}
-                                className="block text-xs text-[#1a1d2e] mb-1"
-                              >
-                                Contact Type
-                              </label>
-                              <input
-                                id={`additional-${idx}-type`}
-                                type="text"
-                                value={c.contactType || ""}
-                                onChange={(e) =>
-                                  setFormData((f: any) => {
-                                    const contacts = [...f.contacts];
-                                    contacts[idx] = {
-                                      ...contacts[idx],
-                                      contactType: e.target.value,
-                                    };
-                                    return { ...f, contacts };
-                                  })
-                                }
-                                className="w-full px-3 py-2 rounded-lg bg-white border"
-                              />
-                            </div>
-                            <div>
-                              <label
-                                htmlFor={`additional-${idx}-name`}
-                                className="block text-xs text-[#1a1d2e] mb-1"
-                              >
-                                Name
-                              </label>
-                              <input
-                                id={`additional-${idx}-name`}
-                                type="text"
-                                value={c.name || ""}
-                                onChange={(e) =>
-                                  setFormData((f: any) => {
-                                    const contacts = [...f.contacts];
-                                    contacts[idx] = {
-                                      ...contacts[idx],
-                                      name: e.target.value,
-                                    };
-                                    return { ...f, contacts };
-                                  })
-                                }
-                                className="w-full px-3 py-2 rounded-lg bg-white border"
-                              />
-                            </div>
-                            <div>
-                              <label
-                                htmlFor={`additional-${idx}-designation`}
-                                className="block text-xs text-[#1a1d2e] mb-1"
-                              >
-                                Designation
-                              </label>
-                              <input
-                                id={`additional-${idx}-designation`}
-                                type="text"
-                                value={c.designation || ""}
-                                onChange={(e) =>
-                                  setFormData((f: any) => {
-                                    const contacts = [...f.contacts];
-                                    contacts[idx] = {
-                                      ...contacts[idx],
-                                      designation: e.target.value,
-                                    };
-                                    return { ...f, contacts };
-                                  })
-                                }
-                                className="w-full px-3 py-2 rounded-lg bg-white border"
-                              />
-                            </div>
-                            <div>
-                              <label
-                                htmlFor={`additional-${idx}-phone`}
-                                className="block text-xs text-[#1a1d2e] mb-1"
-                              >
-                                Phone
-                              </label>
-                              <input
-                                id={`additional-${idx}-phone`}
-                                type="tel"
-                                inputMode="tel"
-                                pattern="^\+?\d{7,20}$"
-                                title="Enter digits only, optionally starting with + (7–20 digits)"
-                                value={c.phone || ""}
-                                onChange={(e) =>
-                                  setFormData((f: any) => {
-                                    const contacts = [...f.contacts];
-                                    contacts[idx] = {
-                                      ...contacts[idx],
-                                      phone: normalizePhone(e.target.value),
-                                    };
-                                    return { ...f, contacts };
-                                  })
-                                }
-                                className="w-full px-3 py-2 rounded-lg bg-white border"
-                              />
-                            </div>
-                            <div>
-                              <label
-                                htmlFor={`additional-${idx}-email`}
-                                className="block text-xs text-[#1a1d2e] mb-1"
-                              >
-                                Email
-                              </label>
-                              <input
-                                id={`additional-${idx}-email`}
-                                type="email"
-                                value={c.email || ""}
-                                onChange={(e) =>
-                                  setFormData((f: any) => {
-                                    const contacts = [...f.contacts];
-                                    contacts[idx] = {
-                                      ...contacts[idx],
-                                      email: e.target.value,
-                                    };
-                                    return { ...f, contacts };
-                                  })
-                                }
-                                className="w-full px-3 py-2 rounded-lg bg-white border"
-                              />
-                            </div>
-                            <div className="md:col-span-2">
-                              <label
-                                htmlFor={`additional-${idx}-technical`}
-                                className="block text-xs text-[#1a1d2e] mb-1"
-                              >
-                                Technical Support Contact Details (optional)
-                              </label>
-                              <input
-                                id={`additional-${idx}-technical`}
-                                type="text"
-                                value={c.technicalDetails || ""}
-                                onChange={(e) =>
-                                  setFormData((f: any) => {
-                                    const contacts = [...f.contacts];
-                                    contacts[idx] = {
-                                      ...contacts[idx],
-                                      technicalDetails: e.target.value,
-                                    };
-                                    return { ...f, contacts };
-                                  })
-                                }
-                                className="w-full px-3 py-2 rounded-lg bg-white border"
-                              />
-                            </div>
-                            <div className="md:col-span-2">
-                              <label
-                                htmlFor={`additional-${idx}-billing`}
-                                className="block text-xs text-[#1a1d2e] mb-1"
-                              >
-                                Billing / Finance Contact Details (optional)
-                              </label>
-                              <input
-                                id={`additional-${idx}-billing`}
-                                type="text"
-                                value={c.billingDetails || ""}
-                                onChange={(e) =>
-                                  setFormData((f: any) => {
-                                    const contacts = [...f.contacts];
-                                    contacts[idx] = {
-                                      ...contacts[idx],
-                                      billingDetails: e.target.value,
-                                    };
-                                    return { ...f, contacts };
-                                  })
-                                }
-                                className="w-full px-3 py-2 rounded-lg bg-white border"
-                              />
-                            </div>
-                          </div>
-                        </div>
-                      )
-                    )}
-                  </div>
-                </div>
-              </motion.div>
-            )}
-
-            {/* IT & Security */}
             {activeTab === "it" && (
               <motion.div
                 id="panel-it"
@@ -1183,6 +461,7 @@ export function AddVendorPage({ onNavigate, onSearch }: AddVendorPageProps) {
                 <h3 className="text-lg font-semibold text-[#1a1d2e] mb-4">
                   IT & Security Assessment
                 </h3>
+
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                   <div className="md:col-span-2 flex items-center gap-3">
                     <input
@@ -1212,40 +491,21 @@ export function AddVendorPage({ onNavigate, onSearch }: AddVendorPageProps) {
                       id="dropzone-information_security_policy"
                       accept="application/pdf,image/*"
                       multiple={false}
-                      files={(((formData as any)._pendingDocs || []) as any[])
+                      files={(formData._pendingDocs || [])
                         .filter(
-                          (d: any) => d.type === "information_security_policy"
+                          (doc) => doc.type === "information_security_policy"
                         )
-                        .map((d: any) => d.file)}
-                      onFilesAdded={(arr) => {
-                        setFormData((f: any) => ({
-                          ...f,
-                          _pendingDocs: [
-                            ...(f._pendingDocs || []),
-                            {
-                              type: "information_security_policy",
-                              file: arr[0],
-                            },
-                          ],
-                        }));
-                      }}
-                      onRemove={(idx) => {
-                        setFormData((f: any) => {
-                          const pending = Array.isArray(f._pendingDocs)
-                            ? [...f._pendingDocs]
-                            : [];
-                          const indices = pending
-                            .map((p: any, i: number) => ({ i, t: p.type }))
-                            .filter(
-                              (x: any) => x.t === "information_security_policy"
-                            )
-                            .map((x: any) => x.i);
-                          const removeAt = indices[idx];
-                          if (removeAt === undefined) return f;
-                          pending.splice(removeAt, 1);
-                          return { ...f, _pendingDocs: pending };
-                        });
-                      }}
+                        .map((doc) => doc.file)}
+                      onFilesAdded={(files) =>
+                        addPendingDocs(
+                          "information_security_policy",
+                          files,
+                          false
+                        )
+                      }
+                      onRemove={(idx) =>
+                        removePendingDoc("information_security_policy", idx)
+                      }
                     />
                   </div>
 
@@ -1269,70 +529,10 @@ export function AddVendorPage({ onNavigate, onSearch }: AddVendorPageProps) {
                       rows={4}
                     />
                   </div>
-
-                  <div>
-                    <label
-                      htmlFor="authorized-hardware"
-                      className="block text-sm font-medium text-[#1a1d2e] mb-2"
-                    >
-                      Authorized Hardware Brands / Product Lines
-                    </label>
-                    <select
-                      id="authorized-hardware"
-                      multiple
-                      value={profile.authorized_hardware}
-                      onChange={(e) =>
-                        setProfile((p: any) => ({
-                          ...p,
-                          authorized_hardware: Array.from(
-                            e.target.selectedOptions
-                          ).map((o) => o.value),
-                        }))
-                      }
-                      className="w-full px-3 py-2 rounded-lg bg-[#fbfbff] border"
-                    >
-                      {[
-                        "Dell",
-                        "HP",
-                        "Lenovo",
-                        "Apple",
-                        "Cisco",
-                        "Aruba",
-                        "Juniper",
-                        "Microsoft",
-                      ].map((b) => (
-                        <option key={b} value={b}>
-                          {b}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-
-                  <div>
-                    <label
-                      htmlFor="support-warranty"
-                      className="block text-sm font-medium text-[#1a1d2e] mb-2"
-                    >
-                      Support and Warranty Policy Details
-                    </label>
-                    <textarea
-                      id="support-warranty"
-                      value={profile.support_warranty}
-                      onChange={(e) =>
-                        setProfile((p: any) => ({
-                          ...p,
-                          support_warranty: e.target.value,
-                        }))
-                      }
-                      className="w-full px-3 py-2 rounded-lg bg-[#fbfbff] border"
-                      rows={3}
-                    />
-                  </div>
                 </div>
               </motion.div>
             )}
 
-            {/* Contract */}
             {activeTab === "contract" && (
               <motion.div
                 id="panel-contract"
@@ -1346,6 +546,7 @@ export function AddVendorPage({ onNavigate, onSearch }: AddVendorPageProps) {
                 <h3 className="text-lg font-semibold text-[#1a1d2e] mb-4">
                   Contract
                 </h3>
+
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <label
@@ -1396,7 +597,6 @@ export function AddVendorPage({ onNavigate, onSearch }: AddVendorPageProps) {
               </motion.div>
             )}
 
-            {/* Performance */}
             {activeTab === "performance" && (
               <motion.div
                 id="panel-performance"
@@ -1410,6 +610,7 @@ export function AddVendorPage({ onNavigate, onSearch }: AddVendorPageProps) {
                 <h3 className="text-lg font-semibold text-[#1a1d2e] mb-4">
                   Performance & Notes
                 </h3>
+
                 <div className="space-y-4">
                   <label
                     htmlFor="performanceRating"
@@ -1434,6 +635,7 @@ export function AddVendorPage({ onNavigate, onSearch }: AddVendorPageProps) {
                       }%, #e5e7eb ${(ratingValue / 5) * 100}%, #e5e7eb 100%)`,
                     }}
                   />
+
                   <div className="flex items-center justify-between">
                     <div className="flex gap-1">
                       {[1, 2, 3, 4, 5].map((star) => (
@@ -1473,7 +675,7 @@ export function AddVendorPage({ onNavigate, onSearch }: AddVendorPageProps) {
                 </div>
               </motion.div>
             )}
-            {/* Financial & Banking Information */}
+
             {activeTab === "financial" && (
               <motion.div
                 id="panel-financial"
@@ -1489,6 +691,7 @@ export function AddVendorPage({ onNavigate, onSearch }: AddVendorPageProps) {
                     Financial & Banking Information
                   </h3>
                 </div>
+
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <label
@@ -1500,16 +703,14 @@ export function AddVendorPage({ onNavigate, onSearch }: AddVendorPageProps) {
                     <input
                       id="panTaxId"
                       type="text"
-                      value={(formData as any).panTaxId || ""}
+                      value={formData.panTaxId}
                       onChange={(e) =>
-                        setFormData((f: any) => ({
-                          ...f,
-                          panTaxId: e.target.value,
-                        }))
+                        setFormData((f) => ({ ...f, panTaxId: e.target.value }))
                       }
                       className="w-full px-4 py-2.5 rounded-lg bg-[#f8f9ff] border"
                     />
                   </div>
+
                   <div>
                     <label
                       htmlFor="bankName"
@@ -1520,16 +721,14 @@ export function AddVendorPage({ onNavigate, onSearch }: AddVendorPageProps) {
                     <input
                       id="bankName"
                       type="text"
-                      value={(formData as any).bankName || ""}
+                      value={formData.bankName}
                       onChange={(e) =>
-                        setFormData((f: any) => ({
-                          ...f,
-                          bankName: e.target.value,
-                        }))
+                        setFormData((f) => ({ ...f, bankName: e.target.value }))
                       }
                       className="w-full px-4 py-2.5 rounded-lg bg-[#f8f9ff] border"
                     />
                   </div>
+
                   <div>
                     <label
                       htmlFor="accountNumber"
@@ -1540,9 +739,9 @@ export function AddVendorPage({ onNavigate, onSearch }: AddVendorPageProps) {
                     <input
                       id="accountNumber"
                       type="text"
-                      value={(formData as any).accountNumber || ""}
+                      value={formData.accountNumber}
                       onChange={(e) =>
-                        setFormData((f: any) => ({
+                        setFormData((f) => ({
                           ...f,
                           accountNumber: e.target.value,
                         }))
@@ -1550,6 +749,7 @@ export function AddVendorPage({ onNavigate, onSearch }: AddVendorPageProps) {
                       className="w-full px-4 py-2.5 rounded-lg bg-[#f8f9ff] border"
                     />
                   </div>
+
                   <div>
                     <label
                       htmlFor="ifscSwiftCode"
@@ -1560,9 +760,9 @@ export function AddVendorPage({ onNavigate, onSearch }: AddVendorPageProps) {
                     <input
                       id="ifscSwiftCode"
                       type="text"
-                      value={(formData as any).ifscSwiftCode || ""}
+                      value={formData.ifscSwiftCode}
                       onChange={(e) =>
-                        setFormData((f: any) => ({
+                        setFormData((f) => ({
                           ...f,
                           ifscSwiftCode: e.target.value,
                         }))
@@ -1570,6 +770,7 @@ export function AddVendorPage({ onNavigate, onSearch }: AddVendorPageProps) {
                       className="w-full px-4 py-2.5 rounded-lg bg-[#f8f9ff] border"
                     />
                   </div>
+
                   <div>
                     <label
                       htmlFor="paymentTerms"
@@ -1579,9 +780,9 @@ export function AddVendorPage({ onNavigate, onSearch }: AddVendorPageProps) {
                     </label>
                     <select
                       id="paymentTerms"
-                      value={(formData as any).paymentTerms || "Net 30"}
+                      value={formData.paymentTerms}
                       onChange={(e) =>
-                        setFormData((f: any) => ({
+                        setFormData((f) => ({
                           ...f,
                           paymentTerms: e.target.value,
                         }))
@@ -1593,6 +794,7 @@ export function AddVendorPage({ onNavigate, onSearch }: AddVendorPageProps) {
                       <option>Net 60</option>
                     </select>
                   </div>
+
                   <div>
                     <label
                       htmlFor="vendorCreditLimit"
@@ -1609,11 +811,9 @@ export function AddVendorPage({ onNavigate, onSearch }: AddVendorPageProps) {
                         type="number"
                         min="0"
                         step="0.01"
-                        value={
-                          ((formData as any).vendorCreditLimit ?? "") as any
-                        }
+                        value={formData.vendorCreditLimit ?? ""}
                         onChange={(e) =>
-                          setFormData((f: any) => ({
+                          setFormData((f) => ({
                             ...f,
                             vendorCreditLimit: e.target.value
                               ? Number(e.target.value)
@@ -1624,36 +824,10 @@ export function AddVendorPage({ onNavigate, onSearch }: AddVendorPageProps) {
                       />
                     </div>
                   </div>
-                  <div className="md:col-span-2">
-                    <label
-                      htmlFor="dropzone-gst-add"
-                      className="block text-sm font-medium text-[#1a1d2e] mb-2"
-                    >
-                      GST Certificate / Tax Registration Certificate
-                    </label>
-                    <FileDropzone
-                      id="dropzone-gst-add"
-                      accept=".pdf,.png,.jpg,.jpeg"
-                      multiple={false}
-                      onFilesAdded={(arr) => {
-                        const f = arr?.[0];
-                        if (!f) return;
-                        setFormData((p: any) => ({
-                          ...p,
-                          gstCertificateFile: f,
-                        }));
-                      }}
-                      externalProgress={pendingProgress}
-                      files={(((formData as any)._pendingDocs || []) as any[])
-                        .filter((d: any) => d.type === "gst_certificate")
-                        .map((d: any) => d.file)}
-                    />
-                  </div>
                 </div>
               </motion.div>
             )}
 
-            {/* Custom Fields (from Settings) */}
             {activeTab === "custom" && (
               <motion.div
                 id="panel-custom"
@@ -1661,61 +835,41 @@ export function AddVendorPage({ onNavigate, onSearch }: AddVendorPageProps) {
                 aria-labelledby="tab-custom"
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.4, delay: 0.25 }}
+                transition={{ duration: 0.4, delay: 0.2 }}
                 className="bg-white rounded-2xl border border-[rgba(0,0,0,0.08)] p-6 shadow-sm"
               >
-                <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-lg font-semibold text-[#1a1d2e]">
-                    Custom Fields
-                  </h3>
-                </div>
-                <p className="text-sm text-[#64748b] mb-3">
-                  These fields are defined globally in Settings.
-                </p>
+                <h3 className="text-lg font-semibold text-[#1a1d2e] mb-4">
+                  Custom Fields
+                </h3>
+
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {fieldDefs.length === 0 && (
-                    <p className="text-sm text-[#94a3b8] md:col-span-2">
-                      No custom fields configured. Add them in Settings → Custom
-                      Fields.
+                  {fieldDefs.length === 0 ? (
+                    <p className="text-sm text-[#64748b]">
+                      No custom fields configured in Settings.
                     </p>
+                  ) : (
+                    fieldDefs.map((def) => {
+                      const value = customFieldValues[def.key] ?? "";
+                      return (
+                        <div key={def.key} className="space-y-2">
+                          <FieldRenderer
+                            def={def}
+                            value={value}
+                            onChange={(v: string) =>
+                              setCustomFieldValues((prev) => ({
+                                ...prev,
+                                [def.key]: v,
+                              }))
+                            }
+                          />
+                        </div>
+                      );
+                    })
                   )}
-                  {fieldDefs.map((def) => {
-                    const val = customFieldValues[def.key] ?? "";
-                    const onChange = (newVal: string) =>
-                      setCustomFieldValues((v) => ({
-                        ...v,
-                        [def.key]: newVal,
-                      }));
-                    return (
-                      <div key={def.key}>
-                        <label
-                          htmlFor={`v-cf-${def.key}`}
-                          className="block text-sm font-medium text-[#1a1d2e] mb-2"
-                        >
-                          {def.label}
-                          {def.required ? " *" : ""}
-                        </label>
-                        <FieldRenderer
-                          def={def}
-                          value={val}
-                          onChange={onChange}
-                          id={`v-cf-${def.key}`}
-                        />
-                        <input
-                          id={`v-cf-${def.key}`}
-                          type="hidden"
-                          value={val}
-                          readOnly
-                        />
-                      </div>
-                    );
-                  })}
                 </div>
               </motion.div>
             )}
           </div>
-
-          {/* Sidebar removed — form now full-width */}
         </div>
       </form>
     </AssetFlowLayout>

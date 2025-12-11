@@ -4,7 +4,7 @@ import useFetchOnMount from "../hooks/useFetchOnMount";
 import FullPageLoader from "@/components/ui/FullPageLoader";
 import { Button } from "@/components/ui/button";
 import { AssetFlowLayout } from "../layout/AssetFlowLayout";
-import { fetchAudits, createAudit, Audit, AuditDiff } from "../../../lib/audit";
+import { fetchAudits, createAudit, Audit } from "../../../lib/audit";
 import { useRouter } from "next/navigation";
 import { GitCompare, ArrowRight } from "lucide-react";
 
@@ -89,7 +89,7 @@ export function AuditsPage({
       if (!grouped.has(loc)) {
         grouped.set(loc, []);
       }
-      grouped.get(loc)!.push(audit);
+      grouped.get(loc).push(audit);
     }
     // Sort each location's audits by timestamp descending
     for (const [, auditList] of grouped) {
@@ -212,7 +212,7 @@ export function AuditsPage({
                       {locationName}
                       <span className="ml-2 text-xs font-normal text-[#64748b]">
                         ({locationAudits.length} audit
-                        {locationAudits.length !== 1 ? "s" : ""})
+                        {locationAudits.length === 1 ? "" : "s"})
                       </span>
                     </h3>
                   </div>

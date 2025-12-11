@@ -3,16 +3,16 @@
 import React from "react";
 
 type Props = {
-  showSpecifications: boolean;
-  formData: Record<string, string>;
-  handleInputChange: (field: string, value: string) => void;
+  readonly showSpecifications: boolean;
+  readonly formData: Readonly<Record<string, string>>;
+  readonly handleInputChange: (field: string, value: string) => void;
 };
 
 export default function TechnicalSpecifications({
   showSpecifications,
   formData,
   handleInputChange,
-}: Props) {
+}: Readonly<Props>) {
   if (!showSpecifications) return null;
   return (
     <div className="rounded-2xl border bg-card p-6">

@@ -113,7 +113,7 @@ function readPrefsFromStorage(): Prefs {
       ? provided.density
       : DEFAULT_PREFS.density;
     return { language, currency, density };
-  } catch (e) {
+  } catch {
     // If anything goes wrong parsing, fall back to defaults
     return DEFAULT_PREFS;
   }
@@ -226,17 +226,14 @@ export function PrefsProvider({
 
     const t = (key: string) =>
       translations[prefs.language]?.[key] ?? translations.en[key] ?? key;
-    const formatCurrency = (
-      amount: number,
-      opts?: Intl.NumberFormatOptions
-    ) => {
+    function formatCurrency(amount: number, opts?: Intl.NumberFormatOptions) {
       const formatted = new Intl.NumberFormat(locale, {
         minimumFractionDigits: opts?.minimumFractionDigits ?? 2,
         maximumFractionDigits: opts?.maximumFractionDigits ?? 2,
         ...opts,
       }).format(amount);
       return `₹${formatted}`;
-    };
+    }
 
     return {
       language: prefs.language,
@@ -260,7 +257,7 @@ export function usePrefs() {
 
   // Fallback: derive prefs from storage or defaults, so callers outside provider still work.
   const raw =
-    typeof window === "undefined" ? DEFAULT_PREFS : readPrefsFromStorage();
+    globalThis.window === undefined ? DEFAULT_PREFS : readPrefsFromStorage();
   const language = ALLOWED_LANGUAGES.has(raw.language)
     ? raw.language
     : DEFAULT_PREFS.language;
@@ -272,13 +269,25 @@ export function usePrefs() {
   const currencySymbol = "₹";
   const t = (key: string) =>
     translations[language]?.[key] ?? translations.en[key] ?? key;
-  const formatCurrency = (amount: number, opts?: Intl.NumberFormatOptions) => {
-    const formatted = new Intl.NumberFormat(locale, {
-      minimumFractionDigits: opts?.minimumFractionDigits ?? 2,
-      maximumFractionDigits: opts?.maximumFractionDigits ?? 2,
-      ...opts,
-    }).format(amount);
-    return `₹${formatted}`;
+  function formatCurrency(amount: number, opts?: Intl.NumberFormatOptions) {
+    try {
+      // Prefer proper currency formatting so symbol placement and spacing match the locale
+      return new Intl.NumberFormat(locale, {
+        style: "currency",
+        currency,
+        minimumFractionDigits: opts?.minimumFractionDigits ?? 2,
+        maximumFractionDigits: opts?.maximumFractionDigits ?? 2,
+        ...opts,
+      }).format(amount);
+    } catch {
+      // Fallback: format number and prepend symbol
+      const formatted = new Intl.NumberFormat(locale, {
+        minimumFractionDigits: opts?.minimumFractionDigits ?? 2,
+        maximumFractionDigits: opts?.maximumFractionDigits ?? 2,
+        ...opts,
+      }).format(amount);
+      return `${currencySymbol}${formatted}`;
+    }
   };
 
   return { language, currency, density, t, formatCurrency, currencySymbol };
