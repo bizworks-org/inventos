@@ -1,5 +1,6 @@
 import fs from "node:fs";
 import path from "node:path";
+import util from "node:util";
 
 type Meta = Record<string, any> | string | undefined;
 
@@ -18,7 +19,6 @@ ensureLogDir();
 const infoStream = fs.createWriteStream(INFO_LOG, { flags: "a" });
 const errorStream = fs.createWriteStream(ERROR_LOG, { flags: "a" });
 const authStream = fs.createWriteStream(AUTH_LOG, { flags: "a" });
-
 function safeStringify(obj: Meta) {
   if (obj === undefined) return "";
   if (typeof obj === "string") return obj;
@@ -26,7 +26,9 @@ function safeStringify(obj: Meta) {
     return JSON.stringify(obj);
   } catch {
     try {
-      return String(obj);
+      // Use util.inspect to produce a readable representation for objects
+      // instead of Object's default "[object Object]" string.
+      return util.inspect(obj, { depth: null, compact: false });
     } catch {
       return "";
     }

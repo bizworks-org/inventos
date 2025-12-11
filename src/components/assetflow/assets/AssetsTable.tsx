@@ -11,6 +11,10 @@ interface AssetsTableProps {
   onNavigate?: (page: string, assetId?: string) => void;
   onDelete?: (id: string, name: string) => void;
   canWrite?: boolean;
+  columns?: Array<{ key: string; label: string; visible: boolean }>;
+  onColumnsChange?: (
+    columns: Array<{ key: string; label: string; visible: boolean }>
+  ) => void;
 }
 
 function useCurrencyFormatter() {
@@ -27,10 +31,26 @@ export function AssetsTable({
   onNavigate,
   onDelete,
   canWrite = true,
+  columns: propsColumns,
+  onColumnsChange,
 }: Readonly<AssetsTableProps>) {
   const [hoveredRow, setHoveredRow] = useState<string | null>(null);
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [consentRequired, setConsentRequired] = useState<boolean>(true);
+  
+  // Initialize columns state
+  const [internalColumns, setInternalColumns] = useState(() => [
+    { key: "asset", label: "Asset", visible: true },
+    { key: "serialNumber", label: "Serial Number", visible: true },
+    { key: "assignedTo", label: "Assigned To", visible: true },
+    { key: "department", label: "Department", visible: true },
+    { key: "status", label: "Status", visible: true },
+    { key: "endOfSupport", label: "End of Support", visible: true },
+    { key: "endOfLife", label: "End of Life", visible: true },
+    { key: "cost", label: "Cost", visible: true },
+    { key: "actions", label: "Actions", visible: true },
+  ]);
+  
   const formatCurrency = useCurrencyFormatter();
   const { density } = usePrefs();
 
@@ -199,6 +219,29 @@ export function AssetsTable({
     }
   };
 
+  // Add consent column if needed
+  useEffect(() => {
+    if (consentRequired && !internalColumns.some((c) => c.key === "consent")) {
+      setInternalColumns((prev) => [
+        ...prev.slice(0, 4),
+        { key: "consent", label: "Consent", visible: true },
+        ...prev.slice(4),
+      ]);
+    } else if (!consentRequired && internalColumns.some((c) => c.key === "consent")) {
+      setInternalColumns((prev) => prev.filter((c) => c.key !== "consent"));
+    }
+  }, [consentRequired, internalColumns]);
+
+  // Use parent columns if provided, otherwise use internal state
+  const columnsForRow = propsColumns || internalColumns;
+
+  // Sync columns to parent when they change
+  useEffect(() => {
+    if (onColumnsChange && !propsColumns) {
+      onColumnsChange(internalColumns);
+    }
+  }, [internalColumns, onColumnsChange, propsColumns]);
+
   if (assets.length === 0) {
     return (
       <motion.div
@@ -282,6 +325,7 @@ export function AssetsTable({
                 toggleView={toggleView}
                 handleEdit={handleEdit}
                 handleDelete={handleDelete}
+                columns={columnsForRow}
               />
             ))}
           </tbody>

@@ -1,19 +1,199 @@
 "use client";
+import { useEffect } from "react";
 import { motion } from "motion/react";
 import { Mail, Phone } from "lucide-react";
-import { Button } from "@/components/ui/button";
+
+const generateId = () =>
+  typeof crypto !== "undefined" && "randomUUID" in crypto
+    ? (crypto as any).randomUUID()
+    : `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
+
+const ensureContactsHaveIds = (
+  contacts: any[],
+  setFormData: (updater: any) => void
+) => {
+  if (!Array.isArray(contacts)) return;
+  const needsId = contacts.some((c: any) => !c?.id);
+  if (needsId) {
+    setFormData((f: any) => ({
+      ...f,
+      contacts: f.contacts.map((c: any) =>
+        c.id ? c : { ...c, id: generateId() }
+      ),
+    }));
+  }
+};
+
+const handleAddContact = (
+  formData: any,
+  setFormData: (updater: any) => void
+) => {
+  setFormData((f: any) => {
+    const contacts = Array.isArray(f.contacts) ? [...f.contacts] : [];
+    if (contacts.length >= 5) return f;
+    contacts.push({ id: generateId() });
+    return { ...f, contacts };
+  });
+};
+
+const handleRemoveContact = (
+  contactId: string,
+  setFormData: (updater: any) => void
+) => {
+  setFormData((f: any) => ({
+    ...f,
+    contacts: f.contacts.filter((ct: any) => ct.id !== contactId),
+  }));
+};
+
+const handleContactFieldChange = (
+  contactId: string,
+  field: string,
+  value: any,
+  formData: any,
+  setFormData: (updater: any) => void
+) => {
+  setFormData((f: any) => ({
+    ...f,
+    contacts: f.contacts.map((ct: any) =>
+      ct.id === contactId ? { ...ct, [field]: value } : ct
+    ),
+  }));
+};
+
+interface ContactInputProps {
+  id: string;
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
+  type?: string;
+  placeholder?: string;
+  className?: string;
+}
+
+const ContactInput = ({
+  id,
+  label,
+  value,
+  onChange,
+  type = "text",
+  placeholder = "",
+  className = "",
+}: ContactInputProps) => (
+  <div>
+    <label htmlFor={id} className="block text-xs text-[#1a1d2e] mb-1">
+      {label}
+    </label>
+    <input
+      id={id}
+      type={type}
+      value={value}
+      onChange={(e) => onChange(e.target.value)}
+      placeholder={placeholder}
+      className={`w-full px-3 py-2 rounded-lg bg-white border ${className}`}
+    />
+  </div>
+);
+
+const ContactItem = ({
+  contact,
+  index,
+  formData,
+  setFormData,
+  normalizePhone,
+}: {
+  contact: any;
+  index: number;
+  formData: any;
+  setFormData: (updater: any) => void;
+  normalizePhone: (raw: string) => string;
+}) => {
+  const updateField = (field: string, value: any) =>
+    handleContactFieldChange(contact.id, field, value, formData, setFormData);
+
+  return (
+    <div className="p-4 border rounded-lg bg-[#fbfbff]">
+      <div className="flex justify-between items-center mb-2">
+        <div className="text-sm font-medium">Contact #{index + 1}</div>
+        <button
+          type="button"
+          onClick={() => handleRemoveContact(contact.id, setFormData)}
+          className="text-xs text-red-600"
+        >
+          Remove
+        </button>
+      </div>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+        <ContactInput
+          id={`contact-${contact.id}-type`}
+          label="Contact Type"
+          value={contact.contactType || ""}
+          onChange={(v) => updateField("contactType", v)}
+        />
+        <ContactInput
+          id={`contact-${contact.id}-name`}
+          label="Name"
+          value={contact.name || ""}
+          onChange={(v) => updateField("name", v)}
+        />
+        <ContactInput
+          id={`contact-${contact.id}-designation`}
+          label="Designation"
+          value={contact.designation || ""}
+          onChange={(v) => updateField("designation", v)}
+        />
+        <ContactInput
+          id={`contact-${contact.id}-phone`}
+          label="Phone"
+          type="tel"
+          value={contact.phone || ""}
+          onChange={(v) => updateField("phone", normalizePhone(v))}
+        />
+        <ContactInput
+          id={`contact-${contact.id}-email`}
+          label="Email"
+          type="email"
+          value={contact.email || ""}
+          onChange={(v) => updateField("email", v)}
+        />
+        <div className="md:col-span-2">
+          <ContactInput
+            id={`contact-${contact.id}-technical`}
+            label="Technical Support Contact Details (optional)"
+            value={contact.technicalDetails || ""}
+            onChange={(v) => updateField("technicalDetails", v)}
+          />
+        </div>
+        <div className="md:col-span-2">
+          <ContactInput
+            id={`contact-${contact.id}-billing`}
+            label="Billing / Finance Contact Details (optional)"
+            value={contact.billingDetails || ""}
+            onChange={(v) => updateField("billingDetails", v)}
+          />
+        </div>
+      </div>
+    </div>
+  );
+};
 
 export default function VendorContactPanel({
   formData,
   handleInputChange,
   setFormData,
   normalizePhone,
-}: {
+}: Readonly<{
   formData: any;
   handleInputChange: (field: string, value: string) => void;
   setFormData: (updater: any) => void;
   normalizePhone: (raw: string) => string;
-}) {
+}>) {
+  // ensure existing contacts have ids (so we can use stable keys)
+  useEffect(() => {
+    ensureContactsHaveIds(formData?.contacts, setFormData);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [formData?.contacts]);
+
   return (
     <motion.div
       id="panel-contact"
@@ -95,217 +275,25 @@ export default function VendorContactPanel({
             <h4 className="text-sm font-semibold text-[#1a1d2e]">
               Additional Contacts
             </h4>
-            <Button
+            <button
               type="button"
-              onClick={() =>
-                setFormData((f: any) => {
-                  const contacts = Array.isArray(f.contacts)
-                    ? [...f.contacts]
-                    : [];
-                  if (contacts.length >= 5) return f;
-                  contacts.push({});
-                  return { ...f, contacts };
-                })
-              }
-              className="text-sm text-[#6366f1] hover:underline"
+              onClick={() => handleAddContact(formData, setFormData)}
+              className="text-sm text-white hover:underline"
             >
               Add Contact
-            </Button>
+            </button>
           </div>
 
           <div className="space-y-4">
-            {((formData as any).contacts || []).map((c: any, idx: number) => (
-              <div key={idx} className="p-4 border rounded-lg bg-[#fbfbff]">
-                <div className="flex justify-between items-center mb-2">
-                  <div className="text-sm font-medium">Contact #{idx + 1}</div>
-                  <div className="flex items-center gap-2">
-                    <Button
-                      type="button"
-                      onClick={() =>
-                        setFormData((f: any) => ({
-                          ...f,
-                          contacts: f.contacts.filter(
-                            (_: any, i: number) => i !== idx
-                          ),
-                        }))
-                      }
-                      className="text-xs text-red-600"
-                    >
-                      Remove
-                    </Button>
-                  </div>
-                </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                  <div>
-                    <label
-                      htmlFor={`contact-${idx}-type`}
-                      className="block text-xs text-[#1a1d2e] mb-1"
-                    >
-                      Contact Type
-                    </label>
-                    <input
-                      id={`contact-${idx}-type`}
-                      type="text"
-                      value={c.contactType || ""}
-                      onChange={(e) =>
-                        setFormData((f: any) => {
-                          const contacts = [...f.contacts];
-                          contacts[idx] = {
-                            ...contacts[idx],
-                            contactType: e.target.value,
-                          };
-                          return { ...f, contacts };
-                        })
-                      }
-                      className="w-full px-3 py-2 rounded-lg bg-white border"
-                    />
-                  </div>
-                  <div>
-                    <label
-                      htmlFor={`contact-${idx}-name`}
-                      className="block text-xs text-[#1a1d2e] mb-1"
-                    >
-                      Name
-                    </label>
-                    <input
-                      id={`contact-${idx}-name`}
-                      type="text"
-                      value={c.name || ""}
-                      onChange={(e) =>
-                        setFormData((f: any) => {
-                          const contacts = [...f.contacts];
-                          contacts[idx] = {
-                            ...contacts[idx],
-                            name: e.target.value,
-                          };
-                          return { ...f, contacts };
-                        })
-                      }
-                      className="w-full px-3 py-2 rounded-lg bg-white border"
-                    />
-                  </div>
-                  <div>
-                    <label
-                      htmlFor={`contact-${idx}-designation`}
-                      className="block text-xs text-[#1a1d2e] mb-1"
-                    >
-                      Designation
-                    </label>
-                    <input
-                      id={`contact-${idx}-designation`}
-                      type="text"
-                      value={c.designation || ""}
-                      onChange={(e) =>
-                        setFormData((f: any) => {
-                          const contacts = [...f.contacts];
-                          contacts[idx] = {
-                            ...contacts[idx],
-                            designation: e.target.value,
-                          };
-                          return { ...f, contacts };
-                        })
-                      }
-                      className="w-full px-3 py-2 rounded-lg bg-white border"
-                    />
-                  </div>
-                  <div>
-                    <label
-                      htmlFor={`contact-${idx}-phone`}
-                      className="block text-xs text-[#1a1d2e] mb-1"
-                    >
-                      Phone
-                    </label>
-                    <input
-                      id={`contact-${idx}-phone`}
-                      type="tel"
-                      value={c.phone || ""}
-                      onChange={(e) =>
-                        setFormData((f: any) => {
-                          const contacts = [...f.contacts];
-                          contacts[idx] = {
-                            ...contacts[idx],
-                            phone: normalizePhone(e.target.value),
-                          };
-                          return { ...f, contacts };
-                        })
-                      }
-                      className="w-full px-3 py-2 rounded-lg bg-white border"
-                    />
-                  </div>
-                  <div>
-                    <label
-                      htmlFor={`contact-${idx}-email`}
-                      className="block text-xs text-[#1a1d2e] mb-1"
-                    >
-                      Email
-                    </label>
-                    <input
-                      id={`contact-${idx}-email`}
-                      type="email"
-                      value={c.email || ""}
-                      onChange={(e) =>
-                        setFormData((f: any) => {
-                          const contacts = [...f.contacts];
-                          contacts[idx] = {
-                            ...contacts[idx],
-                            email: e.target.value,
-                          };
-                          return { ...f, contacts };
-                        })
-                      }
-                      className="w-full px-3 py-2 rounded-lg bg-white border"
-                    />
-                  </div>
-                  <div className="md:col-span-2">
-                    <label
-                      htmlFor={`contact-${idx}-technical`}
-                      className="block text-xs text-[#1a1d2e] mb-1"
-                    >
-                      Technical Support Contact Details (optional)
-                    </label>
-                    <input
-                      id={`contact-${idx}-technical`}
-                      type="text"
-                      value={c.technicalDetails || ""}
-                      onChange={(e) =>
-                        setFormData((f: any) => {
-                          const contacts = [...f.contacts];
-                          contacts[idx] = {
-                            ...contacts[idx],
-                            technicalDetails: e.target.value,
-                          };
-                          return { ...f, contacts };
-                        })
-                      }
-                      className="w-full px-3 py-2 rounded-lg bg-white border"
-                    />
-                  </div>
-                  <div className="md:col-span-2">
-                    <label
-                      htmlFor={`contact-${idx}-billing`}
-                      className="block text-xs text-[#1a1d2e] mb-1"
-                    >
-                      Billing / Finance Contact Details (optional)
-                    </label>
-                    <input
-                      id={`contact-${idx}-billing`}
-                      type="text"
-                      value={c.billingDetails || ""}
-                      onChange={(e) =>
-                        setFormData((f: any) => {
-                          const contacts = [...f.contacts];
-                          contacts[idx] = {
-                            ...contacts[idx],
-                            billingDetails: e.target.value,
-                          };
-                          return { ...f, contacts };
-                        })
-                      }
-                      className="w-full px-3 py-2 rounded-lg bg-white border"
-                    />
-                  </div>
-                </div>
-              </div>
+            {(formData.contacts || []).map((contact: any, index: number) => (
+              <ContactItem
+                key={contact.id}
+                contact={contact}
+                index={index}
+                formData={formData}
+                setFormData={setFormData}
+                normalizePhone={normalizePhone}
+              />
             ))}
           </div>
         </div>

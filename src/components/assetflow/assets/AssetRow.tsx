@@ -93,6 +93,7 @@ interface AssetRowProps {
   toggleView: (assetId: string) => void;
   handleEdit: (assetId: string) => void;
   handleDelete: (assetId: string, assetName: string) => void;
+  columns: Array<{ key: string; label?: string; visible: boolean }>;
 }
 
 function IconBox({
@@ -137,12 +138,14 @@ function AssetDetails({
   consentRequired,
   formatCurrency,
   resolveTypeName,
+  columns,
 }: Readonly<{
   asset: Asset;
   density: string;
   consentRequired: boolean;
   formatCurrency: (amount: number) => string;
   resolveTypeName: (asset: Asset) => any;
+  columns: Array<{ key: string; label?: string; visible: boolean }>;
 }>) {
   const v = (val: any) =>
     val === null || val === undefined || val === "" ? "—" : String(val);
@@ -297,7 +300,7 @@ function AssetDetails({
       transition={{ duration: 0.15 }}
     >
       <td
-        colSpan={consentRequired ? 10 : 9}
+        colSpan={Math.max(1, (columns || []).filter((c) => c.visible).length)}
         className={`${tdPadding} border-t border-gray-100 dark:border-gray-800 text-sm text-gray-700 dark:text-gray-300 bg-gradient-to-r from-gray-50 via-gray-50 to-white dark:from-gray-900 dark:via-gray-900 dark:to-gray-800 rounded-b-2xl shadow-sm`}
       >
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -451,6 +454,7 @@ export default function AssetRow(props: Readonly<AssetRowProps>) {
     toggleView,
     handleEdit,
     handleDelete,
+    columns,
   } = props;
 
   return (
@@ -471,131 +475,179 @@ export default function AssetRow(props: Readonly<AssetRowProps>) {
             : ""
         }`}
       >
-        <td className={`${cellPad}`}>
-          <div className="flex items-center gap-3">
-            <IconBox
-              asset={asset}
-              iconBox={iconBox}
-              categoryOfAsset={categoryOfAsset}
-            />
-            <div>
-              <p
-                className={`font-semibold text-gray-900 dark:text-gray-100 ${nameText}`}
-              >
-                {asset.name}
-              </p>
-              <p className={`${subText} text-gray-500 dark:text-gray-400`}>
-                {resolveTypeName(asset)}
-              </p>
-            </div>
-          </div>
-        </td>
+        {(() => {
+          // small renderer helpers
+          const renderNameCell = (key: string, raw: any) => (
+            <td key={key} className={`${cellPad}`}>
+              <div className="flex items-center gap-3">
+                <IconBox
+                  asset={asset}
+                  iconBox={iconBox}
+                  categoryOfAsset={categoryOfAsset}
+                />
+                <div>
+                  <p
+                    className={`font-semibold text-gray-900 dark:text-gray-100 ${nameText}`}
+                  >
+                    {asset.name ?? String(raw ?? "—")}
+                  </p>
+                  <p className={`${subText} text-gray-500 dark:text-gray-400`}>
+                    {resolveTypeName(asset)}
+                  </p>
+                </div>
+              </div>
+            </td>
+          );
 
-        <td className={`${cellPad}`}>
-          <p
-            className={`text-sm text-gray-600 dark:text-gray-400 font-mono ${
-              density === "ultra-compact" ? "text-[12px]" : ""
-            }`}
-          >
-            {asset.serialNumber}
-          </p>
-        </td>
+          const renderDateCell = (key: string, raw: any) => (
+            <td key={key} className={`${cellPad}`}>
+              <div>
+                <p
+                  className={`text-sm font-medium ${
+                    isDateExpiring(String(raw || ""))
+                      ? "text-[#f59e0b]"
+                      : "text-gray-600 dark:text-gray-400"
+                  } ${density === "ultra-compact" ? "text-[12px]" : ""}`}
+                >
+                  {raw ? formatDate(String(raw)) : "—"}
+                </p>
+                {isDateExpiring(String(raw || "")) && (
+                  <p className={`${subText} text-[#f59e0b]`}>Expiring soon</p>
+                )}
+              </div>
+            </td>
+          );
 
-        <td className={`${cellPad}`}>
-          <p
-            className={`text-sm text-gray-900 dark:text-gray-100 font-medium ${
-              density === "ultra-compact" ? "text-[12px]" : ""
-            }`}
-          >
-            {asset.assignedTo}
-          </p>
-        </td>
-
-        <td className={`${cellPad}`}>
-          <p
-            className={`text-sm text-gray-600 dark:text-gray-400 ${
-              density === "ultra-compact" ? "text-[12px]" : ""
-            }`}
-          >
-            {asset.department}
-          </p>
-        </td>
-
-        {consentRequired && (
-          <td className={`${cellPad}`}>
-            <div className="flex items-center gap-2">
-              {consentBadge(asset)}
-              {asset.assignedEmail && (
-                <span
-                  className={`text-xs text-[#6b7280] ${
-                    density === "ultra-compact" ? "hidden" : ""
+          const renderCostCell = (key: string, raw: any) => {
+            const num = Number(raw ?? (asset as any).cost ?? 0);
+            return (
+              <td key={key} className={`${cellPad}`}>
+                <p
+                  className={`text-sm font-semibold text-gray-900 dark:text-gray-100 ${
+                    density === "ultra-compact" ? "text-[12px]" : ""
                   }`}
                 >
-                  {asset.assignedEmail}
-                </span>
-              )}
-            </div>
-          </td>
-        )}
+                  {formatCurrency(num)}
+                </p>
+              </td>
+            );
+          };
 
-        <td className={`${cellPad}`}>
-          <span
-            className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold border ${getStatusColor(
-              asset.status
-            )}`}
-          >
-            {asset.status}
-          </span>
-        </td>
+          const renderStatusCell = (key: string) => (
+            <td key={key} className={`${cellPad}`}>
+              <span
+                className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold border ${getStatusColor(
+                  (asset as any).status
+                )}`}
+              >
+                {String((asset as any)[key] ?? (asset as any).status ?? "—")}
+              </span>
+            </td>
+          );
 
-        <td className={`${cellPad}`}>
-          <div>
-            <p
-              className={`text-sm font-medium ${
-                isDateExpiring((asset as any).eosDate || "")
-                  ? "text-[#f59e0b]"
-                  : "text-gray-600 dark:text-gray-400"
-              } ${density === "ultra-compact" ? "text-[12px]" : ""}`}
-            >
-              {(asset as any).eosDate
-                ? formatDate((asset as any).eosDate)
-                : "—"}
-            </p>
-            {isDateExpiring((asset as any).eosDate || "") && (
-              <p className={`${subText} text-[#f59e0b]`}>Expiring soon</p>
-            )}
-          </div>
-        </td>
+          const renderConsentCell = (key: string) => (
+            <td key={key} className={`${cellPad}`}>
+              <div className="flex items-center gap-2">
+                {consentBadge(asset)}
+                {asset.assignedEmail && (
+                  <span
+                    className={`text-xs text-[#6b7280] ${
+                      density === "ultra-compact" ? "hidden" : ""
+                    }`}
+                  >
+                    {asset.assignedEmail}
+                  </span>
+                )}
+              </div>
+            </td>
+          );
 
-        <td className={`${cellPad}`}>
-          <div>
-            <p
-              className={`text-sm font-medium ${
-                isDateExpiring((asset as any).eolDate || "")
-                  ? "text-[#f59e0b]"
-                  : "text-gray-600 dark:text-gray-400"
-              } ${density === "ultra-compact" ? "text-[12px]" : ""}`}
-            >
-              {(asset as any).eolDate
-                ? formatDate((asset as any).eolDate)
-                : "—"}
-            </p>
-            {isDateExpiring((asset as any).eolDate || "") && (
-              <p className={`${subText} text-[#f59e0b]`}>Expiring soon</p>
-            )}
-          </div>
-        </td>
+          const renderSerialCell = (key: string, raw: any) => (
+            <td key={key} className={`${cellPad}`}>
+              <p
+                className={`text-sm text-gray-600 dark:text-gray-400 font-mono ${
+                  density === "ultra-compact" ? "text-[12px]" : ""
+                }`}
+              >
+                {String(raw ?? "—")}
+              </p>
+            </td>
+          );
 
-        <td className={`${cellPad}`}>
-          <p
-            className={`text-sm font-semibold text-gray-900 dark:text-gray-100 ${
-              density === "ultra-compact" ? "text-[12px]" : ""
-            }`}
-          >
-            {formatCurrency(asset.cost)}
-          </p>
-        </td>
+          const renderAssigneeCell = (key: string, raw: any) => (
+            <td key={key} className={`${cellPad}`}>
+              <p
+                className={`text-sm text-gray-900 dark:text-gray-100 font-medium ${
+                  density === "ultra-compact" ? "text-[12px]" : ""
+                }`}
+              >
+                {String(raw ?? "—")}
+              </p>
+            </td>
+          );
 
+          const renderDefaultCell = (key: string, raw: any) => (
+            <td key={key} className={`${cellPad}`}>
+              <p className="text-sm text-gray-700 dark:text-gray-300">
+                {raw === null || raw === undefined || raw === "" ? "—" : String(raw)}
+              </p>
+            </td>
+          );
+
+          // handler list reduces branching inside the map callback
+          const handlers: Array<{
+            test: (kLower: string, raw: any) => boolean;
+            render: (key: string, raw: any) => React.ReactNode;
+          }> = [
+            {
+              test: (kLower) =>
+                kLower === "name" || kLower === "asset" || kLower.includes("name"),
+              render: renderNameCell,
+            },
+            {
+              test: (kLower, raw) =>
+                kLower.includes("date") ||
+                kLower.includes("eos") ||
+                kLower.includes("eol") ||
+                /\d{4}-\d{2}-\d{2}/.test(String(raw || "")),
+              render: renderDateCell,
+            },
+            {
+              test: (kLower) =>
+                kLower.includes("cost") || kLower.includes("price") || kLower.includes("amount"),
+              render: renderCostCell,
+            },
+            {
+              test: (kLower) => kLower.includes("status"),
+              render: (_, __) => renderStatusCell(_ as string),
+            },
+            {
+              test: (kLower) => kLower.includes("consent"),
+              render: renderConsentCell,
+            },
+            {
+              test: (kLower) => kLower.includes("serial") || kLower.includes("sn"),
+              render: renderSerialCell,
+            },
+            {
+              test: (kLower) =>
+                kLower.includes("assign") || kLower.includes("owner") || kLower.includes("user"),
+              render: renderAssigneeCell,
+            },
+          ];
+
+          return columns
+            .filter((c) => c.visible && c.key !== "actions")
+            .map((col) => {
+              const key = col.key;
+              const raw = (asset as any)[key];
+              const kLower = key.toLowerCase();
+
+              const handler = handlers.find((h) => h.test(kLower, raw));
+              return handler ? handler.render(key, raw) : renderDefaultCell(key, raw);
+            });
+        })()}
+        {/* Actions cell always rendered last to align with header */}
         <td className={`${cellPad}`}>
           <AssetActions
             asset={asset}
@@ -617,6 +669,7 @@ export default function AssetRow(props: Readonly<AssetRowProps>) {
           consentRequired={consentRequired}
           formatCurrency={formatCurrency}
           resolveTypeName={resolveTypeName}
+          columns={columns}
         />
       )}
     </>

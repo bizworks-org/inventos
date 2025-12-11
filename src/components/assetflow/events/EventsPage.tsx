@@ -167,7 +167,7 @@ export function EventsPage({
       const sanitizeFileName = (v?: string | number | null, max = 120) => {
         if (v === undefined || v === null) return "-";
         const s = String(v);
-        // Remove control characters, newlines and tabs
+        // Remove control characters, newlines and tabs (use hex escapes to avoid embedding any literal control chars)
         const noControl = s.replace(/[\x00-\x1F\x7F]+/g, "-");
         // Replace anything that's not alphanumeric, dot, underscore or dash with a hyphen
 

@@ -30,7 +30,7 @@ function sanitizeImageUrl(u?: string | null): string | null {
     // Allow only a restricted set of raster image data URLs (explicitly disallow SVG and other text-based images).
     // We require base64 data for these types to avoid tricky encodings.
     const allowedDataImageRE =
-      /^data:image\/(png|jpeg|jpg|webp|gif|avif);base64,[A-Za-z0-9+/=]+$/i;
+      /^data:image\/(png|jpeg|jpg|webp|gif|avif);base64,[A-Z0-9+/]+={0,2}$/i;
     if (s.startsWith("data:image/")) {
       // Normalize by removing whitespace then validate structure and mime type
       const normalized = s.replace(/\s+/g, "");

@@ -75,7 +75,7 @@ function isExpired(dateString: string): boolean {
   return days < 0;
 }
 
-function StarRating({ rating }: { rating: number }) {
+function StarRating({ rating }: Readonly<{ rating: number }>) {
   return (
     <div className="flex items-center gap-1">
       {[1, 2, 3, 4, 5].map((star) => (
@@ -100,23 +100,23 @@ export function VendorsTable({
   onNavigate,
   onDelete,
   canWrite = true,
-}: VendorsTableProps) {
+}: Readonly<VendorsTableProps>) {
   const [hoveredRow, setHoveredRow] = useState<string | null>(null);
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const formatCurrency = useCurrencyFormatter();
   const { density } = usePrefs();
-  const cellPad =
-    density === "ultra-compact"
-      ? "px-3 py-1.5"
-      : density === "compact"
-      ? "px-4 py-2"
-      : "px-6 py-4";
-  const headPad =
-    density === "ultra-compact"
-      ? "px-3 py-2"
-      : density === "compact"
-      ? "px-4 py-2.5"
-      : "px-6 py-4";
+  let cellPad = "px-6 py-4";
+  if (density === "ultra-compact") {
+    cellPad = "px-3 py-1.5";
+  } else if (density === "compact") {
+    cellPad = "px-4 py-2";
+  }
+  let headPad = "px-6 py-4";
+  if (density === "ultra-compact") {
+    headPad = "px-3 py-2";
+  } else if (density === "compact") {
+    headPad = "px-4 py-2.5";
+  }
   const subText = density === "ultra-compact" ? "text-[11px]" : "text-xs";
 
   const handleEdit = (vendorId: string) => {
@@ -216,6 +216,13 @@ export function VendorsTable({
               const daysUntilExpiry = getDaysUntilExpiry(vendor.contractExpiry);
               const expired = isExpired(vendor.contractExpiry);
               const expiringSoon = isExpiringSoon(vendor.contractExpiry);
+
+              let expiryTextColorClass = "text-gray-600 dark:text-gray-400";
+              if (expired) {
+                expiryTextColorClass = "text-[#ef4444]";
+              } else if (expiringSoon) {
+                expiryTextColorClass = "text-[#f59e0b]";
+              }
 
               return (
                 <Fragment key={vendor.id}>
@@ -328,13 +335,7 @@ export function VendorsTable({
                     <td className={`${cellPad}`}>
                       <div>
                         <p
-                          className={`text-sm font-medium ${
-                            expired
-                              ? "text-[#ef4444]"
-                              : expiringSoon
-                              ? "text-[#f59e0b]"
-                              : "text-gray-600 dark:text-gray-400"
-                          } ${
+                          className={`text-sm font-medium ${expiryTextColorClass} ${
                             density === "ultra-compact" ? "text-[12px]" : ""
                           }`}
                         >

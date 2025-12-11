@@ -25,6 +25,33 @@ export default function VendorInfoAndContacts({
   handleInputChange,
   normalizePhone,
 }: Readonly<Props>) {
+  // helper to add a contact
+  const addContact = () => {
+    setFormData((f: any) => {
+      const contacts: Contact[] = Array.isArray(f.contacts) ? [...f.contacts] : [];
+      if (contacts.length >= 5) return f;
+      contacts.push({});
+      return { ...f, contacts };
+    });
+  };
+
+  // helper to remove a contact by index
+  const removeContact = (idx: number) => {
+    setFormData((f: any) => {
+      const contacts: Contact[] = Array.isArray(f.contacts) ? f.contacts.filter((_: Contact, i: number) => i !== idx) : [];
+      return { ...f, contacts };
+    });
+  };
+
+  // helper to update a contact at index with a partial patch
+  const updateContactAt = (idx: number, patch: Partial<Contact>) => {
+    setFormData((f: any) => {
+      const contacts: Contact[] = Array.isArray(f.contacts) ? [...f.contacts] : [];
+      contacts[idx] = { ...(contacts[idx] || {}), ...patch };
+      return { ...f, contacts };
+    });
+  };
+
   return (
     <div className="bg-white rounded-2xl border border-[rgba(0,0,0,0.08)] p-6 shadow-sm">
       <div className="flex items-center gap-2 mb-4">
@@ -284,17 +311,8 @@ export default function VendorInfoAndContacts({
             </h4>
             <Button
               type="button"
-              onClick={() => {
-                setFormData((f: any) => {
-                  const contacts: Contact[] = Array.isArray(f.contacts)
-                    ? [...f.contacts]
-                    : [];
-                  if (contacts.length >= 5) return f;
-                  contacts.push({});
-                  return { ...f, contacts };
-                });
-              }}
-              className="text-sm text-[#6366f1] hover:underline"
+              onClick={addContact}
+              className="text-sm text-white hover:underline"
             >
               Add Contact
             </Button>
@@ -310,14 +328,7 @@ export default function VendorInfoAndContacts({
                   <div className="flex items-center gap-2">
                     <Button
                       type="button"
-                      onClick={() =>
-                        setFormData((f: any) => ({
-                          ...f,
-                          contacts: f.contacts.filter(
-                            (_: Contact, i: number) => i !== idx
-                          ),
-                        }))
-                      }
+                      onClick={() => removeContact(idx)}
                       className="text-xs text-red-600"
                     >
                       Remove
@@ -337,14 +348,7 @@ export default function VendorInfoAndContacts({
                       type="text"
                       value={c.contactType || ""}
                       onChange={(e) =>
-                        setFormData((f: any) => {
-                          const contacts: Contact[] = [...f.contacts];
-                          contacts[idx] = {
-                            ...contacts[idx],
-                            contactType: e.target.value,
-                          };
-                          return { ...f, contacts };
-                        })
+                        updateContactAt(idx, { contactType: e.target.value })
                       }
                       className="w-full px-3 py-2 rounded-lg bg-white border"
                     />
@@ -361,14 +365,7 @@ export default function VendorInfoAndContacts({
                       type="text"
                       value={c.name || ""}
                       onChange={(e) =>
-                        setFormData((f: any) => {
-                          const contacts: Contact[] = [...f.contacts];
-                          contacts[idx] = {
-                            ...contacts[idx],
-                            name: e.target.value,
-                          };
-                          return { ...f, contacts };
-                        })
+                        updateContactAt(idx, { name: e.target.value })
                       }
                       className="w-full px-3 py-2 rounded-lg bg-white border"
                     />
@@ -385,14 +382,7 @@ export default function VendorInfoAndContacts({
                       type="text"
                       value={c.designation || ""}
                       onChange={(e) =>
-                        setFormData((f: any) => {
-                          const contacts: Contact[] = [...f.contacts];
-                          contacts[idx] = {
-                            ...contacts[idx],
-                            designation: e.target.value,
-                          };
-                          return { ...f, contacts };
-                        })
+                        updateContactAt(idx, { designation: e.target.value })
                       }
                       className="w-full px-3 py-2 rounded-lg bg-white border"
                     />
@@ -412,14 +402,7 @@ export default function VendorInfoAndContacts({
                       title="Enter digits only, optionally starting with + (7–20 digits)"
                       value={c.phone || ""}
                       onChange={(e) =>
-                        setFormData((f: any) => {
-                          const contacts: Contact[] = [...f.contacts];
-                          contacts[idx] = {
-                            ...contacts[idx],
-                            phone: normalizePhone(e.target.value),
-                          };
-                          return { ...f, contacts };
-                        })
+                        updateContactAt(idx, { phone: normalizePhone(e.target.value) })
                       }
                       className="w-full px-3 py-2 rounded-lg bg-white border"
                     />
@@ -436,14 +419,7 @@ export default function VendorInfoAndContacts({
                       type="email"
                       value={c.email || ""}
                       onChange={(e) =>
-                        setFormData((f: any) => {
-                          const contacts: Contact[] = [...f.contacts];
-                          contacts[idx] = {
-                            ...contacts[idx],
-                            email: e.target.value,
-                          };
-                          return { ...f, contacts };
-                        })
+                        updateContactAt(idx, { email: e.target.value })
                       }
                       className="w-full px-3 py-2 rounded-lg bg-white border"
                     />
@@ -460,14 +436,7 @@ export default function VendorInfoAndContacts({
                       type="text"
                       value={c.technicalDetails || ""}
                       onChange={(e) =>
-                        setFormData((f: any) => {
-                          const contacts: Contact[] = [...f.contacts];
-                          contacts[idx] = {
-                            ...contacts[idx],
-                            technicalDetails: e.target.value,
-                          };
-                          return { ...f, contacts };
-                        })
+                        updateContactAt(idx, { technicalDetails: e.target.value })
                       }
                       className="w-full px-3 py-2 rounded-lg bg-white border"
                     />
@@ -484,14 +453,7 @@ export default function VendorInfoAndContacts({
                       type="text"
                       value={c.billingDetails || ""}
                       onChange={(e) =>
-                        setFormData((f: any) => {
-                          const contacts: Contact[] = [...f.contacts];
-                          contacts[idx] = {
-                            ...contacts[idx],
-                            billingDetails: e.target.value,
-                          };
-                          return { ...f, contacts };
-                        })
+                        updateContactAt(idx, { billingDetails: e.target.value })
                       }
                       className="w-full px-3 py-2 rounded-lg bg-white border"
                     />

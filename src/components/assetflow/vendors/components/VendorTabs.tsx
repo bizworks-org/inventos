@@ -11,10 +11,12 @@ export default function VendorTabs({
   tabs,
   activeTab,
   setActiveTab,
-}: VendorTabsProps) {
+}: Readonly<VendorTabsProps>) {
   return (
-    <nav
+    <div
       aria-label="Vendor tabs"
+      role="tablist"
+      tabIndex={0}
       className="flex w-full flex-wrap gap-2 rounded-xl border border-[rgba(0,0,0,0.08)] bg-[#f8f9ff] p-2"
       onKeyDown={(e) => {
         const idx = tabs.findIndex((t) => t.id === activeTab);
@@ -46,6 +48,6 @@ export default function VendorTabs({
           {t.label}
         </Button>
       ))}
-    </nav>
+    </div>
   );
 }

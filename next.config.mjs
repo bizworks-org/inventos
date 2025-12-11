@@ -4,7 +4,7 @@ import path from 'node:path';
 const nextConfig = {
   reactStrictMode: true,
   images: {
-    unoptimized: true,
+    unoptimized: false,
   },
   webpack: (config) => {
     config.resolve.alias = {
