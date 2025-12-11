@@ -23,10 +23,7 @@ export const ViewingTypeItem = ({
 }: ViewingTypeItemProps) => {
   const Icon = iconForType(t.name);
   return (
-    <div
-      role="group"
-      tabIndex={0}
-      aria-label={`Type ${t.name}`}
+    <fieldset
       className="group w-full flex items-center justify-between px-4 py-2 rounded-lg border text-white shadow-sm"
       style={{ backgroundImage: gradientForType(t.name) }}
       onMouseEnter={() => onHover(t.id)}
@@ -36,6 +33,7 @@ export const ViewingTypeItem = ({
       onFocus={() => onHover(t.id)}
       onBlur={() => onHover(hoveredTypeId === t.id ? null : hoveredTypeId)}
     >
+      <legend className="sr-only">{`Type ${t.name}`}</legend>
       <span className="flex items-center gap-2">
         <Icon className="h-4 w-4 opacity-90" />
         <span className="font-medium">{t.name}</span>
@@ -94,7 +92,7 @@ export const ViewingTypeItem = ({
           #{t.id}
         </span>
       </span>
-    </div>
+    </fieldset>
   );
 };
 
@@ -177,26 +175,27 @@ interface TypesColumnProps {
   addType: () => Promise<void>;
 }
 
-export function TypesColumn({
-  selected,
-  categories,
-  renamingTypeId,
-  renamingTypeName,
-  renamingTypeCategoryId,
-  hoveredTypeId,
-  newType,
-  setHoveredTypeId,
-  startRenameType,
-  setConfirmPayload,
-  setConfirmOpen,
-  sortType,
-  submitRenameType,
-  cancelRenameType,
-  setRenamingTypeName,
-  setRenamingTypeCategoryId,
-  setNewType,
-  addType,
-}: TypesColumnProps) {
+export function TypesColumn(props: Readonly<TypesColumnProps>) {
+  const {
+    selected,
+    categories,
+    renamingTypeId,
+    renamingTypeName,
+    renamingTypeCategoryId,
+    hoveredTypeId,
+    newType,
+    setHoveredTypeId,
+    startRenameType,
+    setConfirmPayload,
+    setConfirmOpen,
+    sortType,
+    submitRenameType,
+    cancelRenameType,
+    setRenamingTypeName,
+    setRenamingTypeCategoryId,
+    setNewType,
+    addType,
+  } = props;
   return (
     <div className="lg:col-span-2">
       <div className="bg-white border border-[#e2e8f0] rounded-xl p-6">
@@ -265,11 +264,15 @@ export function TypesColumn({
             </div>
 
             <div className="pt-4 border-t border-[#e2e8f0]">
-              <label className="block text-sm text-[#64748b] mb-1">
+              <label
+                htmlFor="add-type-input"
+                className="block text-sm text-[#64748b] mb-1"
+              >
                 Add Type
               </label>
               <div className="flex gap-2 max-w-xl">
                 <input
+                  id="add-type-input"
                   value={newType}
                   onChange={(e) => setNewType(e.target.value)}
                   placeholder="e.g., Smartphone"

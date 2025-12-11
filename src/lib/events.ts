@@ -14,6 +14,8 @@ export interface SystemEvent {
   user: string;
   details: string;
   metadata: Record<string, any>;
+  previousValue?: string | number | boolean | null;
+  changedValue?: string | number | boolean | null;
 }
 
 class EventBus {

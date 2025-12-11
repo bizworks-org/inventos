@@ -9,7 +9,6 @@ import {
   FileText,
   Building2,
   User,
-  Clock,
   ChevronDown,
 } from "lucide-react";
 import { SystemEvent } from "../../../lib/events";
@@ -69,38 +68,6 @@ function formatFullTimestamp(timestamp: string): string {
   });
 }
 
-function groupEventsByDate(events: SystemEvent[]): Map<string, SystemEvent[]> {
-  const grouped = new Map<string, SystemEvent[]>();
-
-  for (const event of events) {
-    const date = new Date(event.timestamp);
-    const today = new Date();
-    const yesterday = new Date(today);
-    yesterday.setDate(yesterday.getDate() - 1);
-
-    let dateKey: string;
-    if (date.toDateString() === today.toDateString()) {
-      dateKey = "Today";
-    } else if (date.toDateString() === yesterday.toDateString()) {
-      dateKey = "Yesterday";
-    } else {
-      dateKey = date.toLocaleDateString("en-US", {
-        weekday: "long",
-        month: "short",
-        day: "numeric",
-        year:
-          date.getFullYear() === today.getFullYear() ? undefined : "numeric",
-      });
-    }
-    if (!grouped.has(dateKey)) {
-      grouped.set(dateKey, []);
-    }
-    grouped.get(dateKey).push(event);
-  }
-
-  return grouped;
-}
-
 export function EventsTimeline(props: Readonly<EventsTimelineProps>) {
   const { events } = props;
   const [expandedEventId, setExpandedEventId] = useState<string | null>(null);
@@ -129,189 +96,157 @@ export function EventsTimeline(props: Readonly<EventsTimelineProps>) {
     );
   }
 
-  const groupedEvents = groupEventsByDate(events);
-
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.4, delay: 0.4 }}
-      className="space-y-6"
+      className="bg-white rounded-2xl border border-[rgba(0,0,0,0.08)] shadow-sm overflow-hidden"
     >
-      {Array.from(groupedEvents.entries()).map(
-        ([dateKey, dateEvents], groupIndex) => (
-          <div key={dateKey} className="space-y-4">
-            {/* Date Header */}
-            <div className="flex items-center gap-3">
-              <div className="h-px bg-[rgba(0,0,0,0.08)] flex-1" />
-              <div className="flex items-center gap-2 px-3 py-1 bg-[#f8f9ff] rounded-full">
-                <Clock className="h-3.5 w-3.5 text-[#64748b]" />
-                <span className="text-sm font-semibold text-[#64748b]">
-                  {dateKey}
-                </span>
-              </div>
-              <div className="h-px bg-[rgba(0,0,0,0.08)] flex-1" />
-            </div>
+      <div className="overflow-x-auto">
+        <table className="w-full">
+          <thead>
+            <tr className="bg-gradient-to-r from-[#f8f9ff] to-[#f5f7ff] border-b border-[rgba(0,0,0,0.08)]">
+              <th className="px-4 py-3 text-left text-xs font-semibold text-[#64748b] uppercase tracking-wider">
+                Severity
+              </th>
+              <th className="px-4 py-3 text-left text-xs font-semibold text-[#64748b] uppercase tracking-wider">
+                Type
+              </th>
+              <th className="px-4 py-3 text-left text-xs font-semibold text-[#64748b] uppercase tracking-wider">
+                Action
+              </th>
+              <th className="px-4 py-3 text-left text-xs font-semibold text-[#64748b] uppercase tracking-wider">
+                Details
+              </th>
+              <th className="px-4 py-3 text-left text-xs font-semibold text-[#64748b] uppercase tracking-wider">
+                User
+              </th>
+              <th className="px-4 py-3 text-left text-xs font-semibold text-[#64748b] uppercase tracking-wider">
+                Timestamp
+              </th>
+              <th className="px-4 py-3 text-left text-xs font-semibold text-[#64748b] uppercase tracking-wider">
+                IP
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            {events.map((event, index) => {
+              const isExpanded = expandedEventId === event.id;
+              return (
+                <motion.tr
+                  key={`${event.id}-row`}
+                  initial={{ opacity: 0, y: -10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.2, delay: index * 0.02 }}
+                  className={`border-b border-[rgba(0,0,0,0.04)] hover:bg-[rgba(248,249,255,0.5)] transition-colors duration-150 ${
+                    isExpanded ? "bg-[rgba(248,249,255,0.3)]" : ""
+                  }`}
+                >
+                  {/* Severity */}
+                  <td className="px-4 py-3">
+                    <span
+                      className={`inline-flex items-center gap-1.5 px-2 py-1 rounded text-xs font-medium border ${getSeverityColor(
+                        event.severity
+                      )}`}
+                    >
+                      {getSeverityIcon(event.severity)}
+                      {event.severity.charAt(0).toUpperCase() +
+                        event.severity.slice(1)}
+                    </span>
+                  </td>
 
-            {/* Events for this date */}
-            <div className="bg-white rounded-2xl border border-[rgba(0,0,0,0.08)] overflow-hidden shadow-sm">
-              {dateEvents.map((event, index) => {
-                const isExpanded = expandedEventId === event.id;
-                return (
-                  <motion.div
-                    key={event.id}
-                    initial={{ opacity: 0, x: -12 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{
-                      duration: 0.22,
-                      delay: 0.25 + groupIndex * 0.06 + index * 0.02,
-                    }}
-                    className="overflow-hidden"
-                  >
-                    {/* Minimal Row View */}
+                  {/* Entity Type */}
+                  <td className="px-4 py-3">
+                    <div
+                      className={`inline-flex items-center gap-1.5 h-6 w-6 rounded ${getEntityColor(
+                        event.entityType
+                      )}`}
+                      title={event.entityType}
+                    >
+                      {getEntityIcon(event.entityType)}
+                    </div>
+                  </td>
+
+                  {/* Action */}
+                  <td className="px-4 py-3 text-sm text-[#0f1724] font-mono">
+                    <code className="text-xs">{event.action}</code>
+                  </td>
+
+                  {/* Details */}
+                  <td className="px-4 py-3 text-sm text-[#0f1724] max-w-xs">
                     <button
                       onClick={() =>
                         setExpandedEventId(isExpanded ? null : event.id)
                       }
-                      title={formatFullTimestamp(event.timestamp)}
-                      className={`
-                        w-full px-4 py-2.5 flex items-center gap-3 text-sm transition-colors duration-150
-                        ${
-                          index === dateEvents.length - 1
-                            ? ""
-                            : "border-b border-[rgba(0,0,0,0.04)]"
-                        }
-                        hover:bg-[rgba(248,249,255,0.8)] focus:outline-none focus:bg-[rgba(248,249,255,1)]
-                      `}
+                      className="text-left hover:text-[#6366f1] transition-colors truncate flex items-center gap-2 w-full"
                     >
-                      {/* Entity Icon */}
-                      <div className="flex-shrink-0">
-                        <div
-                          className={`h-5 w-5 rounded flex items-center justify-center text-xs ${getEntityColor(
-                            event.entityType
-                          )}`}
-                        >
-                          {getEntityIcon(event.entityType)}
-                        </div>
-                      </div>
-
-                      {/* Minimal Content: severity badge + action + user */}
-                      <div className="flex min-w-0 items-center gap-2 ">
-                        <span
-                          className={`inline-flex items-center gap-2 justify-center px-1.5 py-0.5 rounded text-xs font-medium border ${getSeverityColor(
-                            event.severity
-                          )}`}
-                        >
-                          {getSeverityIcon(event.severity)}
-                          <span className="ml-4 mr-2">
-                            {event.severity.toUpperCase()}
-                          </span>
-                        </span>
-                      </div>
-
-                      {/* Details */}
-                      <div className="flex min-w-0 text-left">
-                        <div className="truncate font-medium text-[#0f1724]">
-                          {event.details}
-                        </div>
-                      </div>
-
-                      {/* User (compact) */}
-                      <div className="flex-1 items-center text-left gap-2 text-sm text-[#64748b] flex-shrink-0">
-                        <span>{event.user}</span>
-                      </div>
-
-                      {/* Timestamp */}
-                      <div className="flex text-xs text-[#64748b]">
-                        {formatFullTimestamp(event.timestamp)}
-                      </div>
-                      <div className="flex-shrink-0 text-sm ml-4 text-[#64748b]">
-                        <span>
-                          <strong>{event.metadata.ip ? "IP: " : ""}</strong>
-                          {event.metadata.ip}
-                        </span>
-                      </div>
-                      {/* Expand Indicator */}
-                      <div className="flex-shrink-0 ml-1">
-                        <ChevronDown
-                          className={`h-4 w-4 text-[#94a3b8] transition-transform ${
-                            isExpanded ? "rotate-180" : ""
-                          }`}
-                        />
-                      </div>
+                      <span className="truncate">{event.details}</span>
+                      <ChevronDown
+                        className={`h-4 w-4 text-[#94a3b8] flex-shrink-0 transition-transform ${
+                          isExpanded ? "rotate-180" : ""
+                        }`}
+                      />
                     </button>
+                  </td>
 
-                    {/* Expanded Details View */}
-                    <motion.div
-                      initial={false}
-                      animate={{
-                        height: isExpanded ? "auto" : 0,
-                        opacity: isExpanded ? 1 : 0,
-                      }}
-                      transition={{ duration: 0.2 }}
-                      className="overflow-hidden"
-                    >
-                      <div className="px-4 py-3 bg-[rgba(248,249,255,0.4)] border-t border-[rgba(0,0,0,0.04)] space-y-2 text-sm">
-                        {/* Action */}
-                        <div className="flex gap-3">
-                          <span className="text-[#64748b] font-medium min-w-16">
-                            Action:
-                          </span>
-                          <code className="text-[#0f1724] bg-white px-2 py-1 rounded text-xs border border-[rgba(0,0,0,0.08)]">
-                            {event.action}
-                          </code>
-                        </div>
+                  {/* User */}
+                  <td className="px-4 py-3 text-sm text-[#64748b]">
+                    {event.user}
+                  </td>
 
-                        {/* Entity ID */}
-                        <div className="flex gap-3">
-                          <span className="text-[#64748b] font-medium min-w-16">
-                            Entity ID:
-                          </span>
-                          <code className="text-[#0f1724] bg-white px-2 py-1 rounded text-xs border border-[rgba(0,0,0,0.08)] truncate">
-                            {event.entityId}
-                          </code>
-                        </div>
+                  {/* Timestamp */}
+                  <td className="px-4 py-3 text-xs text-[#64748b] font-mono">
+                    {formatFullTimestamp(event.timestamp)}
+                  </td>
 
-                        {/* User */}
-                        <div className="flex gap-3">
-                          <span className="text-[#64748b] font-medium min-w-16">
-                            User:
-                          </span>
-                          <span className="text-[#0f1724]">{event.user}</span>
-                        </div>
+                  {/* IP */}
+                  <td className="px-4 py-3 text-sm text-[#64748b]">
+                    {event.metadata.ip || "—"}
+                  </td>
+                </motion.tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
 
-                        {/* Full Timestamp */}
-                        <div className="flex gap-3">
-                          <span className="text-[#64748b] font-medium min-w-16">
-                            Time:
-                          </span>
-                          <span className="text-[#0f1724] text-xs font-mono">
-                            {formatFullTimestamp(event.timestamp)}
-                          </span>
-                        </div>
-
-                        {/* Metadata */}
-                        {Object.keys(event.metadata).length > 0 && (
-                          <div className="flex gap-3 pt-2">
-                            <span className="text-[#64748b] font-medium min-w-16">
-                              Metadata:
-                            </span>
-                            <div className="text-[#0f1724] bg-white px-2 py-1 rounded text-xs border border-[rgba(0,0,0,0.08)] flex-1 max-h-24 overflow-auto">
-                              <pre className="whitespace-pre-wrap break-words text-xs">
-                                {JSON.stringify(event.metadata, null, 2)}
-                              </pre>
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                    </motion.div>
-                  </motion.div>
-                );
-              })}
-            </div>
-          </div>
-        )
-      )}
+      {/* Expanded Details Panel for selected event */}
+      {expandedEventId &&
+        (() => {
+          const event = events.find((e) => e.id === expandedEventId);
+          if (!event) return null;
+          return (
+            <motion.div
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: "auto" }}
+              exit={{ opacity: 0, height: 0 }}
+              transition={{ duration: 0.2 }}
+              className="border-t border-[rgba(0,0,0,0.08)] bg-[rgba(248,249,255,0.4)]"
+            >
+              <div className="px-4 py-4 space-y-3 text-sm">
+                <div>
+                  <span className="text-[#64748b] font-medium">Entity ID:</span>
+                  <code className="ml-2 text-[#0f1724] bg-white px-2 py-1 rounded text-xs border border-[rgba(0,0,0,0.08)] font-mono">
+                    {event.entityId}
+                  </code>
+                </div>
+                {Object.keys(event.metadata).length > 0 && (
+                  <div>
+                    <span className="text-[#64748b] font-medium">
+                      Metadata:
+                    </span>
+                    <div className="mt-1 text-[#0f1724] bg-white px-3 py-2 rounded text-xs border border-[rgba(0,0,0,0.08)] max-h-32 overflow-auto">
+                      <pre className="whitespace-pre-wrap break-words font-mono text-[11px]">
+                        {JSON.stringify(event.metadata, null, 2)}
+                      </pre>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </motion.div>
+          );
+        })()}
     </motion.div>
   );
 }
