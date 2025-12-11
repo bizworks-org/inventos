@@ -1,5 +1,6 @@
 "use client";
-import FileDropzone from "../../../ui/FileDropzone";
+
+import FileDropzone from "../../../../ui/FileDropzone";
 
 type Props = {
   formData: any;
@@ -30,6 +31,43 @@ export default function ComplianceDocs({
   setFormData,
   pendingProgress,
 }: Readonly<Props>) {
+  // helper to get files for a given doc type
+  const filesFor = (type: string) =>
+    ((formData._pendingDocs || []) as any[])
+      .filter((d: any) => d.type === type)
+      .map((d: any) => d.file);
+
+  // returns a handler that adds files for the provided doc key
+  const handleFilesAddedFor =
+    (docKey: string, multiple?: boolean) => (arr: any[]) => {
+      setFormData((f: any) => {
+        const existing = Array.isArray(f._pendingDocs)
+          ? [...f._pendingDocs]
+          : [];
+        if (multiple) {
+          for (const file of arr) existing.push({ type: docKey, file });
+        } else if (arr[0]) {
+          existing.push({ type: docKey, file: arr[0] });
+        }
+        return { ...f, _pendingDocs: existing };
+      });
+    };
+
+  // returns a handler that removes the nth file for the provided doc key
+  const handleRemoveFor = (docKey: string) => (idx: number) => {
+    setFormData((f: any) => {
+      const pending = Array.isArray(f._pendingDocs) ? [...f._pendingDocs] : [];
+      const indices: number[] = [];
+      for (let i = 0; i < pending.length; i++) {
+        if (pending[i].type === docKey) indices.push(i);
+      }
+      const removeAt = indices[idx];
+      if (removeAt === undefined) return f;
+      pending.splice(removeAt, 1);
+      return { ...f, _pendingDocs: pending };
+    });
+  };
+
   return (
     <div className="bg-white rounded-2xl border border-[rgba(0,0,0,0.08)] p-6 shadow-sm">
       <h3 className="text-lg font-semibold text-[#1a1d2e] mb-4">
@@ -50,39 +88,10 @@ export default function ComplianceDocs({
               accept="application/pdf,image/*"
               multiple={!!docDef.multiple}
               compact={true}
-              files={(((formData as any)._pendingDocs || []) as any[])
-                .filter((d: any) => d.type === docDef.key)
-                .map((d: any) => d.file)}
+              files={filesFor(docDef.key)}
               externalProgress={pendingProgress}
-              onFilesAdded={(arr) => {
-                setFormData((f: any) => {
-                  const existing = Array.isArray(f._pendingDocs)
-                    ? [...f._pendingDocs]
-                    : [];
-                  if (docDef.multiple) {
-                    for (const file of arr)
-                      existing.push({ type: docDef.key, file });
-                  } else if (arr[0]) {
-                    existing.push({ type: docDef.key, file: arr[0] });
-                  }
-                  return { ...f, _pendingDocs: existing };
-                });
-              }}
-              onRemove={(idx) => {
-                setFormData((f: any) => {
-                  const pending = Array.isArray(f._pendingDocs)
-                    ? [...f._pendingDocs]
-                    : [];
-                  const indices = pending
-                    .map((p: any, i: number) => ({ i, t: p.type }))
-                    .filter((x: any) => x.t === docDef.key)
-                    .map((x: any) => x.i);
-                  const removeAt = indices[idx];
-                  if (removeAt === undefined) return f;
-                  pending.splice(removeAt, 1);
-                  return { ...f, _pendingDocs: pending };
-                });
-              }}
+              onFilesAdded={handleFilesAddedFor(docDef.key, !!docDef.multiple)}
+              onRemove={handleRemoveFor(docDef.key)}
             />
           </div>
         ))}
