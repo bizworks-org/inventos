@@ -2,14 +2,9 @@
 
 import { useState, useEffect } from "react";
 import { motion } from "motion/react";
-import {
-  Download,
-  RefreshCw,
-  Activity,
-  LogIn,
-  XCircle
-} from "lucide-react";
+import { Download, RefreshCw, Activity, LogIn, XCircle } from "lucide-react";
 import { AssetFlowLayout } from "../layout/AssetFlowLayout";
+import FullPageLoader from "@/components/ui/FullPageLoader";
 import { SystemEvent, EventSeverity, EntityType } from "../../../lib/events";
 import { fetchEvents } from "../../../lib/api";
 import { EventsTimeline } from "./EventsTimeline";
@@ -42,6 +37,7 @@ export function EventsPage({
     useState<TimeFilter>("all");
   const [searchQuery, setSearchQuery] = useState("");
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [initialLoading, setInitialLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   // Load events from backend
@@ -56,6 +52,8 @@ export function EventsPage({
       setError(null);
     } catch (e: any) {
       setError(e?.message || "Failed to load events");
+    } finally {
+      setInitialLoading(false);
     }
   };
 
@@ -241,6 +239,7 @@ export function EventsPage({
       currentPage="events"
       onSearch={onSearch}
     >
+      {initialLoading && <FullPageLoader message="Loading events..." />}
       {/* Header */}
       <div className="flex items-center justify-between mb-8">
         <div>

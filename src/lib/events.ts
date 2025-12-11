@@ -1,8 +1,9 @@
 // Simple in-memory event bus for logging system activities
-import { secureId } from './secure';
+import { secureId } from "./secure";
 
-export type EventSeverity = 'info' | 'warning' | 'error' | 'critical';
-export type EntityType = 'asset' | 'license' | 'vendor' | 'user';
+export type EventSeverity = "info" | "warning" | "error" | "critical";
+export type EntityType = "asset" | "license" | "vendor" | "user";
+export type EventValue = string | number | boolean | null | undefined;
 
 export interface SystemEvent {
   id: string;
@@ -14,8 +15,8 @@ export interface SystemEvent {
   user: string;
   details: string;
   metadata: Record<string, any>;
-  previousValue?: string | number | boolean | null;
-  changedValue?: string | number | boolean | null;
+  previousValue?: EventValue;
+  changedValue?: EventValue;
 }
 
 class EventBus {
@@ -29,10 +30,14 @@ class EventBus {
     action: string,
     user: string,
     details: string,
-    metadata: Record<string, any> = {}
+    options: {
+      metadata?: Record<string, any>;
+      previousValue?: EventValue;
+      changedValue?: EventValue;
+    } = {}
   ): SystemEvent {
     const event: SystemEvent = {
-      id: `EVT-${Date.now()}-${secureId('', 16)}`,
+      id: `EVT-${Date.now()}-${secureId("", 16)}`,
       timestamp: new Date().toISOString(),
       severity,
       entityType,
@@ -40,14 +45,16 @@ class EventBus {
       action,
       user,
       details,
-      metadata
+      metadata: options.metadata || {},
+      previousValue: options.previousValue,
+      changedValue: options.changedValue,
     };
 
     this.events.unshift(event); // Add to beginning for chronological order
     this.notifyListeners(event);
-    
+
     console.log(`[EventBus] ${severity.toUpperCase()}: ${details}`, metadata);
-    
+
     return event;
   }
 
@@ -56,22 +63,22 @@ class EventBus {
   }
 
   getEventsByEntityType(entityType: EntityType): SystemEvent[] {
-    return this.events.filter(event => event.entityType === entityType);
+    return this.events.filter((event) => event.entityType === entityType);
   }
 
   getEventsBySeverity(severity: EventSeverity): SystemEvent[] {
-    return this.events.filter(event => event.severity === severity);
+    return this.events.filter((event) => event.severity === severity);
   }
 
   subscribe(listener: (event: SystemEvent) => void): () => void {
     this.listeners.push(listener);
     return () => {
-      this.listeners = this.listeners.filter(l => l !== listener);
+      this.listeners = this.listeners.filter((l) => l !== listener);
     };
   }
 
   private notifyListeners(event: SystemEvent): void {
-    this.listeners.forEach(listener => listener(event));
+    this.listeners.forEach((listener) => listener(event));
   }
 
   clearEvents(): void {
@@ -83,86 +90,123 @@ class EventBus {
 export const eventBus = new EventBus();
 
 // Helper functions for common event types
-export function logAssetCreated(assetId: string, assetName: string, user: string, metadata: Record<string, any> = {}) {
+export function logAssetCreated(
+  assetId: string,
+  assetName: string,
+  user: string,
+  metadata: Record<string, any> = {}
+) {
   return eventBus.logEvent(
-    'info',
-    'asset',
+    "info",
+    "asset",
     assetId,
-    'asset.created',
+    "asset.created",
     user,
     `New asset created: ${assetName}`,
-    metadata
+    { metadata }
   );
 }
 
-export function logAssetUpdated(assetId: string, assetName: string, user: string, changes: Record<string, any> = {}) {
+export function logAssetUpdated(
+  assetId: string,
+  assetName: string,
+  user: string,
+  changes: Record<string, any> = {},
+  previousValue?: EventValue,
+  changedValue?: EventValue
+) {
   return eventBus.logEvent(
-    'info',
-    'asset',
+    "info",
+    "asset",
     assetId,
-    'asset.updated',
+    "asset.updated",
     user,
     `Asset updated: ${assetName}`,
-    { changes }
+    { metadata: { changes }, previousValue, changedValue }
   );
 }
 
-export function logAssetDeleted(assetId: string, assetName: string, user: string) {
+export function logAssetDeleted(
+  assetId: string,
+  assetName: string,
+  user: string
+) {
   return eventBus.logEvent(
-    'warning',
-    'asset',
+    "warning",
+    "asset",
     assetId,
-    'asset.deleted',
+    "asset.deleted",
     user,
     `Asset deleted: ${assetName}`,
-    {}
+    { metadata: {} }
   );
 }
 
-export function logLicenseCreated(licenseId: string, licenseName: string, user: string, metadata: Record<string, any> = {}) {
+export function logLicenseCreated(
+  licenseId: string,
+  licenseName: string,
+  user: string,
+  metadata: Record<string, any> = {}
+) {
   return eventBus.logEvent(
-    'info',
-    'license',
+    "info",
+    "license",
     licenseId,
-    'license.created',
+    "license.created",
     user,
     `New license added: ${licenseName}`,
-    metadata
+    { metadata }
   );
 }
 
-export function logLicenseExpiring(licenseId: string, licenseName: string, daysUntilExpiry: number) {
+export function logLicenseExpiring(
+  licenseId: string,
+  licenseName: string,
+  daysUntilExpiry: number
+) {
   return eventBus.logEvent(
-    'warning',
-    'license',
+    "warning",
+    "license",
     licenseId,
-    'license.expiring_soon',
-    'system',
+    "license.expiring_soon",
+    "system",
     `License expiring in ${daysUntilExpiry} days: ${licenseName}`,
-    { daysUntilExpiry }
+    { metadata: { daysUntilExpiry } }
   );
 }
 
-export function logVendorCreated(vendorId: string, vendorName: string, user: string, metadata: Record<string, any> = {}) {
+export function logVendorCreated(
+  vendorId: string,
+  vendorName: string,
+  user: string,
+  metadata: Record<string, any> = {}
+) {
   return eventBus.logEvent(
-    'info',
-    'vendor',
+    "info",
+    "vendor",
     vendorId,
-    'vendor.created',
+    "vendor.created",
     user,
     `New vendor added: ${vendorName}`,
-    metadata
+    { metadata }
   );
 }
 
-export function logVendorUpdated(vendorId: string, vendorName: string, user: string, changes: Record<string, any> = {}) {
+export function logVendorUpdated(
+  vendorId: string,
+  vendorName: string,
+  user: string,
+  changes: Record<string, any> = {},
+  previousValue?: EventValue,
+  changedValue?: EventValue
+) {
   return eventBus.logEvent(
-    'info',
-    'vendor',
+    "info",
+    "vendor",
     vendorId,
-    'vendor.updated',
+    "vendor.updated",
     user,
     `Vendor updated: ${vendorName}`,
-    { changes }
+    { metadata: { changes }, previousValue, changedValue }
   );
 }

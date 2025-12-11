@@ -1,5 +1,5 @@
+import React, { useState } from "react";
 import { motion } from "motion/react";
-import { useState } from "react";
 import {
   AlertCircle,
   AlertTriangle,
@@ -101,7 +101,7 @@ export function EventsTimeline(props: Readonly<EventsTimelineProps>) {
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.4, delay: 0.4 }}
-      className="bg-white rounded-2xl border border-[rgba(0,0,0,0.08)] shadow-sm overflow-hidden"
+      className="bg-white rounded-2xl border border-[rgba(0,0,0,0.08)] shadow-sm"
     >
       <div className="overflow-x-auto">
         <table className="w-full">
@@ -134,119 +134,146 @@ export function EventsTimeline(props: Readonly<EventsTimelineProps>) {
             {events.map((event, index) => {
               const isExpanded = expandedEventId === event.id;
               return (
-                <motion.tr
-                  key={`${event.id}-row`}
-                  initial={{ opacity: 0, y: -10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.2, delay: index * 0.02 }}
-                  className={`border-b border-[rgba(0,0,0,0.04)] hover:bg-[rgba(248,249,255,0.5)] transition-colors duration-150 ${
-                    isExpanded ? "bg-[rgba(248,249,255,0.3)]" : ""
-                  }`}
-                >
-                  {/* Severity */}
-                  <td className="px-4 py-3">
-                    <span
-                      className={`inline-flex items-center gap-1.5 px-2 py-1 rounded text-xs font-medium border ${getSeverityColor(
-                        event.severity
-                      )}`}
-                    >
-                      {getSeverityIcon(event.severity)}
-                      {event.severity.charAt(0).toUpperCase() +
-                        event.severity.slice(1)}
-                    </span>
-                  </td>
+                <React.Fragment key={event.id}>
+                  <motion.tr
+                    initial={{ opacity: 0, y: -10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.2, delay: index * 0.02 }}
+                    className={`border-b border-[rgba(0,0,0,0.04)] hover:bg-[rgba(248,249,255,0.5)] transition-colors duration-150 ${
+                      isExpanded ? "bg-[rgba(248,249,255,0.3)]" : ""
+                    }`}
+                  >
+                    {/* Severity */}
+                    <td className="px-4 py-3">
+                      <span
+                        className={`inline-flex items-center gap-1.5 px-2 py-1 rounded text-xs font-medium border ${getSeverityColor(
+                          event.severity
+                        )}`}
+                      >
+                        {getSeverityIcon(event.severity)}
+                        {event.severity.charAt(0).toUpperCase() +
+                          event.severity.slice(1)}
+                      </span>
+                    </td>
 
-                  {/* Entity Type */}
-                  <td className="px-4 py-3">
-                    <div
-                      className={`inline-flex items-center gap-1.5 h-6 w-6 rounded ${getEntityColor(
-                        event.entityType
-                      )}`}
-                      title={event.entityType}
-                    >
-                      {getEntityIcon(event.entityType)}
-                    </div>
-                  </td>
+                    {/* Entity Type */}
+                    <td className="px-4 py-3">
+                      <div
+                        className={`inline-flex items-center gap-1.5 h-6 w-6 rounded ${getEntityColor(
+                          event.entityType
+                        )}`}
+                        title={event.entityType}
+                      >
+                        {getEntityIcon(event.entityType)}
+                      </div>
+                    </td>
 
-                  {/* Action */}
-                  <td className="px-4 py-3 text-sm text-[#0f1724] font-mono">
-                    <code className="text-xs">{event.action}</code>
-                  </td>
+                    {/* Action */}
+                    <td className="px-4 py-3 text-sm text-[#0f1724] font-mono">
+                      <code className="text-xs">{event.action}</code>
+                    </td>
 
-                  {/* Details */}
-                  <td className="px-4 py-3 text-sm text-[#0f1724] max-w-xs">
-                    <button
-                      onClick={() =>
-                        setExpandedEventId(isExpanded ? null : event.id)
-                      }
-                      className="text-left hover:text-[#6366f1] transition-colors truncate flex items-center gap-2 w-full"
-                    >
-                      <span className="truncate">{event.details}</span>
-                      <ChevronDown
-                        className={`h-4 w-4 text-[#94a3b8] flex-shrink-0 transition-transform ${
-                          isExpanded ? "rotate-180" : ""
-                        }`}
-                      />
-                    </button>
-                  </td>
+                    {/* Details */}
+                    <td className="px-4 py-3 text-sm text-[#0f1724] max-w-xs">
+                      <button
+                        onClick={() =>
+                          setExpandedEventId(isExpanded ? null : event.id)
+                        }
+                        className="text-left hover:text-[#6366f1] transition-colors truncate flex items-center gap-2 w-full"
+                      >
+                        <span className="truncate">{event.details}</span>
+                        <ChevronDown
+                          className={`h-4 w-4 text-[#94a3b8] flex-shrink-0 transition-transform ${
+                            isExpanded ? "rotate-180" : ""
+                          }`}
+                        />
+                      </button>
+                    </td>
 
-                  {/* User */}
-                  <td className="px-4 py-3 text-sm text-[#64748b]">
-                    {event.user}
-                  </td>
+                    {/* User */}
+                    <td className="px-4 py-3 text-sm text-[#64748b]">
+                      {event.user}
+                    </td>
 
-                  {/* Timestamp */}
-                  <td className="px-4 py-3 text-xs text-[#64748b] font-mono">
-                    {formatFullTimestamp(event.timestamp)}
-                  </td>
+                    {/* Timestamp */}
+                    <td className="px-4 py-3 text-xs text-[#64748b] font-mono">
+                      {formatFullTimestamp(event.timestamp)}
+                    </td>
 
-                  {/* IP */}
-                  <td className="px-4 py-3 text-sm text-[#64748b]">
-                    {event.metadata.ip || "—"}
-                  </td>
-                </motion.tr>
+                    {/* IP */}
+                    <td className="px-4 py-3 text-sm text-[#64748b]">
+                      {event.metadata.ip || "—"}
+                    </td>
+                  </motion.tr>
+
+                  {/* Expanded Details Row */}
+                  {isExpanded && (
+                    <tr className="bg-[rgba(248,249,255,0.4)] border-b border-[rgba(0,0,0,0.08)]">
+                      <td colSpan={7} className="px-4 py-4">
+                        <motion.div
+                          initial={{ opacity: 0, height: 0 }}
+                          animate={{ opacity: 1, height: "auto" }}
+                          exit={{ opacity: 0, height: 0 }}
+                          transition={{ duration: 0.2 }}
+                          className="space-y-3 text-sm"
+                        >
+                          <div>
+                            <span className="text-[#64748b] font-medium">
+                              Entity ID:
+                            </span>
+                            <code className="ml-2 text-[#0f1724] bg-white px-2 py-1 rounded text-xs border border-[rgba(0,0,0,0.08)] font-mono">
+                              {event.entityId}
+                            </code>
+                          </div>
+
+                          {/* Previous Value */}
+                          {event.previousValue !== undefined &&
+                            event.previousValue !== null && (
+                              <div>
+                                <span className="text-[#64748b] font-medium">
+                                  Previous Value:
+                                </span>
+                                <code className="ml-2 text-[#0f1724] bg-white px-2 py-1 rounded text-xs border border-[rgba(0,0,0,0.08)] font-mono">
+                                  {String(event.previousValue)}
+                                </code>
+                              </div>
+                            )}
+
+                          {/* Changed Value */}
+                          {event.changedValue !== undefined &&
+                            event.changedValue !== null && (
+                              <div>
+                                <span className="text-[#64748b] font-medium">
+                                  Changed Value:
+                                </span>
+                                <code className="ml-2 text-[#0f1724] bg-white px-2 py-1 rounded text-xs border border-[rgba(0,0,0,0.08)] font-mono bg-[#f0fdf4]">
+                                  {String(event.changedValue)}
+                                </code>
+                              </div>
+                            )}
+
+                          {Object.keys(event.metadata).length > 0 && (
+                            <div>
+                              <span className="text-[#64748b] font-medium">
+                                Metadata:
+                              </span>
+                              <div className="mt-1 text-[#0f1724] bg-white px-3 py-2 rounded text-xs border border-[rgba(0,0,0,0.08)] max-h-32 overflow-auto">
+                                <pre className="whitespace-pre-wrap break-words font-mono text-[11px]">
+                                  {JSON.stringify(event.metadata, null, 2)}
+                                </pre>
+                              </div>
+                            </div>
+                          )}
+                        </motion.div>
+                      </td>
+                    </tr>
+                  )}
+                </React.Fragment>
               );
             })}
           </tbody>
         </table>
       </div>
-
-      {/* Expanded Details Panel for selected event */}
-      {expandedEventId &&
-        (() => {
-          const event = events.find((e) => e.id === expandedEventId);
-          if (!event) return null;
-          return (
-            <motion.div
-              initial={{ opacity: 0, height: 0 }}
-              animate={{ opacity: 1, height: "auto" }}
-              exit={{ opacity: 0, height: 0 }}
-              transition={{ duration: 0.2 }}
-              className="border-t border-[rgba(0,0,0,0.08)] bg-[rgba(248,249,255,0.4)]"
-            >
-              <div className="px-4 py-4 space-y-3 text-sm">
-                <div>
-                  <span className="text-[#64748b] font-medium">Entity ID:</span>
-                  <code className="ml-2 text-[#0f1724] bg-white px-2 py-1 rounded text-xs border border-[rgba(0,0,0,0.08)] font-mono">
-                    {event.entityId}
-                  </code>
-                </div>
-                {Object.keys(event.metadata).length > 0 && (
-                  <div>
-                    <span className="text-[#64748b] font-medium">
-                      Metadata:
-                    </span>
-                    <div className="mt-1 text-[#0f1724] bg-white px-3 py-2 rounded text-xs border border-[rgba(0,0,0,0.08)] max-h-32 overflow-auto">
-                      <pre className="whitespace-pre-wrap break-words font-mono text-[11px]">
-                        {JSON.stringify(event.metadata, null, 2)}
-                      </pre>
-                    </div>
-                  </div>
-                )}
-              </div>
-            </motion.div>
-          );
-        })()}
     </motion.div>
   );
 }
