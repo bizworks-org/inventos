@@ -295,71 +295,74 @@ function parseJson(val: any): Record<string, any> {
   return val && typeof val === "object" ? val : {};
 }
 
+// Shared constants to reduce per-call construction and branching inside getChangedFields
+const FIELDS_TO_TRACK: string[] = [
+  "name",
+  "type_id",
+  "serial_number",
+  "assigned_to",
+  "assigned_email",
+  "department",
+  "status",
+  "purchase_date",
+  "end_of_support_date",
+  "end_of_life_date",
+  "cost",
+  "location",
+  "cia_confidentiality",
+  "cia_integrity",
+  "cia_availability",
+];
+
+const DATE_FIELDS = new Set<string>([
+  "purchase_date",
+  "end_of_support_date",
+  "end_of_life_date",
+  "warranty_expiry",
+]);
+
+const NUMERIC_FIELDS = new Set<string>([
+  "cia_confidentiality",
+  "cia_integrity",
+  "cia_availability",
+]);
+
+function normalizeFieldValue(field: string, value: any): any {
+  if (value === undefined) return undefined;
+  if (value === null) return null;
+
+  if (DATE_FIELDS.has(field)) {
+    try {
+      return new Date(value).toISOString().split("T")[0];
+    } catch {
+      return null;
+    }
+  }
+
+  if (NUMERIC_FIELDS.has(field)) {
+    const n = Number(value);
+    return Number.isFinite(n) ? n : null;
+  }
+
+  return value;
+}
+
+function hasMeaningfulChange(prev: any, next: any): boolean {
+  if (next === undefined || next === null) return false;
+  return prev !== next;
+}
+
 function getChangedFields(
   previous: Record<string, any>,
   updates: Record<string, any>
 ): ChangedField[] {
   const changed: ChangedField[] = [];
 
-  // List of fields to track
-  const fieldsToTrack = [
-    "name",
-    "type_id",
-    "serial_number",
-    "assigned_to",
-    "assigned_email",
-    "department",
-    "status",
-    "purchase_date",
-    "end_of_support_date",
-    "end_of_life_date",
-    "cost",
-    "location",
-    "cia_confidentiality",
-    "cia_integrity",
-    "cia_availability",
-  ];
+  for (const field of FIELDS_TO_TRACK) {
+    const prevVal = normalizeFieldValue(field, previous[field]);
+    const newVal = normalizeFieldValue(field, updates[field]);
 
-  // Fields that are dates (compare without time component)
-  const dateFields = new Set([
-    "purchase_date",
-    "end_of_support_date",
-    "end_of_life_date",
-    "warranty_expiry",
-  ]);
-
-  // Fields that should be stored/compared as numbers
-  const numericFields = new Set([
-    "cia_confidentiality",
-    "cia_integrity",
-    "cia_availability",
-  ]);
-
-  for (const field of fieldsToTrack) {
-    let prevVal = previous[field];
-    let newVal = updates[field];
-
-    // Normalize date fields - compare only the date part, not time
-    if (dateFields.has(field)) {
-      const prevDate = prevVal
-        ? new Date(prevVal).toISOString().split("T")[0]
-        : null;
-      const newDate = newVal
-        ? new Date(newVal).toISOString().split("T")[0]
-        : null;
-      prevVal = prevDate;
-      newVal = newDate;
-    }
-
-    // Normalize numeric fields
-    if (numericFields.has(field)) {
-      prevVal =
-        prevVal !== null && prevVal !== undefined ? Number(prevVal) : null;
-      newVal = newVal !== null && newVal !== undefined ? Number(newVal) : null;
-    }
-
-    // Only track if the value actually changed
-    if (prevVal !== newVal && newVal !== undefined && newVal !== null) {
+    if (hasMeaningfulChange(prevVal, newVal)) {
       changed.push({
         fieldName: field,
         previousValue: String(prevVal ?? ""),
@@ -368,7 +371,6 @@ function getChangedFields(
     }
   }
 
-  // Track custom fields changes
   trackCustomFieldChanges("specifications", previous, updates, changed);
 
   return changed;

@@ -138,9 +138,20 @@ export async function PUT(req: NextRequest, ctx: any) {
           severity: "info",
           entity_type: "vendor",
           entity_id: id,
-            action: "Vendor Updated",
-            user: me?.email || "system",
-            details: name,
+          action: "Vendor Updated",
+          user: me?.email || "system",
+          details: name,
+          metadata: JSON.stringify({ id, field: field.fieldName }),
+          previous_value: field.previousValue,
+          changed_value: field.changedValue,
+        }
+      );
+    }
+
+    // Also log a summary event if any changes were made
+    if (changedFields.length > 0) {
+      await query(
+        `INSERT INTO events (id, ts, severity, entity_type, entity_id, action, user, details, metadata)
          VALUES (:id, NOW(), :severity, :entity_type, :entity_id, :action, :user, :details, :metadata)`,
         {
           id: `EVT-${Date.now()}-${Math.random()

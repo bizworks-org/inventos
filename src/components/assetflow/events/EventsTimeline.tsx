@@ -80,21 +80,36 @@ function safeString(v: any): string {
   return String(v);
 }
 
-function formatValue(v: any): string {
+function formatValue(v: any, fieldName?: string): string {
   if (v === undefined || v === null) return "—";
+
+  // Handle CIA fields - map numbers to labels
+  if (
+    fieldName &&
+    ["cia_confidentiality", "cia_integrity", "cia_availability"].includes(
+      fieldName
+    )
+  ) {
+    const ciaMap: Record<string | number, string> = {
+      1: "1 - Low",
+      2: "2 - Medium",
+      3: "3 - High",
+      4: "4 - Critical",
+      5: "5 - Maximum",
+    };
+    const numVal = String(v).trim();
+    return ciaMap[numVal] || String(v);
+  }
 
   // Check if it's a date string (ISO format or timestamp)
   if (typeof v === "string" && (v.includes("T") || /^\d{10,13}$/.test(v))) {
     try {
       const date = new Date(v);
-      if (!isNaN(date.getTime())) {
+      if (!Number.isNaN(date.getTime())) {
         return date.toLocaleString("en-US", {
           year: "numeric",
           month: "short",
           day: "numeric",
-          hour: "2-digit",
-          minute: "2-digit",
-          second: "2-digit",
         });
       }
     } catch {
@@ -224,7 +239,10 @@ export function EventsTimeline(props: Readonly<EventsTimelineProps>) {
                         <code className="text-xs">{event.action}</code>
                         {event.metadata?.field && (
                           <code className="text-xs text-[#6366f1] font-semibold">
-                            {event.metadata.field}
+                            {event.metadata.field
+                              .replace("custom_field_", "")
+                              .replaceAll("_", " ")
+                              .toUpperCase()}
                           </code>
                         )}
                       </div>
@@ -252,7 +270,10 @@ export function EventsTimeline(props: Readonly<EventsTimelineProps>) {
                       {event.previousValue !== undefined &&
                       event.previousValue !== null ? (
                         <span className="text-[#991b1b] line-through">
-                          {formatValue(event.previousValue)}
+                          {formatValue(
+                            event.previousValue,
+                            event.metadata?.field
+                          )}
                         </span>
                       ) : (
                         <span className="text-[#94a3b8]">—</span>
@@ -264,7 +285,10 @@ export function EventsTimeline(props: Readonly<EventsTimelineProps>) {
                       {event.changedValue !== undefined &&
                       event.changedValue !== null ? (
                         <span className="text-[#064e3b] font-mono">
-                          {formatValue(event.changedValue)}
+                          {formatValue(
+                            event.changedValue,
+                            event.metadata?.field
+                          )}
                         </span>
                       ) : (
                         <span className="text-[#94a3b8]">—</span>
@@ -320,7 +344,10 @@ export function EventsTimeline(props: Readonly<EventsTimelineProps>) {
                                       Previous:
                                     </span>
                                     <span className="text-[#991b1b] line-through">
-                                      {formatValue(event.previousValue)}
+                                      {formatValue(
+                                        event.previousValue,
+                                        event.metadata?.field
+                                      )}
                                     </span>
                                   </div>
                                 )}
@@ -332,7 +359,10 @@ export function EventsTimeline(props: Readonly<EventsTimelineProps>) {
                                       Current:
                                     </span>
                                     <span className="text-[#064e3b]">
-                                      {formatValue(event.changedValue)}
+                                      {formatValue(
+                                        event.changedValue,
+                                        event.metadata?.field
+                                      )}
                                     </span>
                                   </div>
                                 )}
