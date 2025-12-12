@@ -68,6 +68,9 @@ Thumbs.db
 # Next.js image cache
 public/static/
 
+# Local uploads (logos, etc.)
+public/uploads/
+
 # Lockfiles (optional; comment out if you commit them)
 # package-lock.json
 # yarn.lock

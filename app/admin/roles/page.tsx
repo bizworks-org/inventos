@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
 import { Shield, Package, FileText, Building2, Activity } from "lucide-react";
+import FullPageLoader from "@/components/ui/FullPageLoader";
 
 type Role = "admin" | "user";
 
@@ -126,10 +127,12 @@ export default function RolesPermissionsPage() {
   };
 
   // Extract nested ternary into independent statement
-  let content: React.ReactNode;
   if (loading) {
-    content = <p>Loading…</p>;
-  } else if (error) {
+    return <FullPageLoader message="Loading roles and permissions..." />;
+  }
+
+  let content: React.ReactNode;
+  if (error) {
     content = <p className="text-[#ef4444]">{error}</p>;
   } else {
     content = (

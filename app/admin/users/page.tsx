@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "@/components/ui/sonner";
 import { useRouter } from "next/navigation";
+import FullPageLoader from "@/components/ui/FullPageLoader";
 import { RoleChips } from "./components/RoleChips";
 import { UserActions } from "./components/UserActions";
 import {
@@ -596,6 +597,7 @@ export default function ManageUsersPage() {
 
   return (
     <>
+      {(loading || meLoading) && <FullPageLoader message="Loading users..." />}
       <div className="bg-white border border-[#e2e8f0] rounded-xl p-6 mb-6 max-w-3xl">
         <h2 className="text-lg font-semibold mb-3">
           {editing ? `Edit User: ${editing.name}` : "Add User"}
