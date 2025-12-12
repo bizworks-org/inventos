@@ -333,8 +333,8 @@ export function EditVendorPage({
       // Validate and sanitize remote data
       const b64 = typeof json.data === "string" ? json.data : "";
       const rawName = typeof json.name === "string" ? json.name : "document";
-      const safeName =
-        rawName.replaceAll(/[^\w.\- ]/g, "_").slice(0, 255) || "document";
+      const sanitized = rawName.split(/[^\w.\- ]/).join("_");
+      const safeName = sanitized.slice(0, 255) || "document";
 
       if (!b64) throw new Error("Invalid document data");
 

@@ -60,7 +60,10 @@ export async function GET(req: NextRequest) {
 
     const filename = `inventos-backup-${new Date()
       .toISOString()
-      .replace(/[:.]/g, "-")}.bin`;
+      .split(":")
+      .join("-")
+      .split(".")
+      .join("-")}.bin`;
 
     return new NextResponse(out, {
       status: 200,

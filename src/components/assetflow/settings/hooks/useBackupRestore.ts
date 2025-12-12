@@ -27,7 +27,10 @@ export function useBackupRestore() {
       a.href = url;
       a.download = `inventos-backup-${new Date()
         .toISOString()
-        .replace(/[:.]/g, "-")}.bin`;
+        .split(":")
+        .join("-")
+        .split(".")
+        .join("-")}.bin`;
       a.rel = "noopener noreferrer";
       // Do not append the element to the DOM to avoid potential DOM XSS vectors.
       a.click();

@@ -33,7 +33,7 @@ function sanitizeImageUrl(u?: string | null): string | null {
       /^data:image\/(png|jpeg|jpg|webp|gif|avif);base64,[A-Z0-9+/]+={0,2}$/i;
     if (s.startsWith("data:image/")) {
       // Normalize by removing whitespace then validate structure and mime type
-      const normalized = s.replace(/\s+/g, "");
+      const normalized = s.split(/\s+/).join("");
       if (allowedDataImageRE.test(normalized)) return normalized;
       return null;
     }

@@ -47,6 +47,33 @@ export function AssetsPage({
   const [columns, setColumns] = useState<ColumnDef[]>([]);
   const [showColumnsMenu, setShowColumnsMenu] = useState(false);
   const colsMenuRef = useRef<HTMLDivElement | null>(null);
+
+  // Load columns from localStorage on mount
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem("assetflow:columns");
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          setColumns(parsed as ColumnDef[]);
+        }
+      }
+    } catch (error) {
+      console.error("Failed to load saved columns:", error);
+    }
+  }, []);
+
+  // Save columns to localStorage when they change
+  useEffect(() => {
+    if (columns.length > 0) {
+      try {
+        localStorage.setItem("assetflow:columns", JSON.stringify(columns));
+      } catch (error) {
+        console.error("Failed to save columns:", error);
+      }
+    }
+  }, [columns]);
+
   const { loading: initialLoading } = useFetchOnMount(async () => {
     const meRes = await getMe().catch(() => null);
     setMe(meRes);
@@ -579,16 +606,19 @@ export function AssetsPage({
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, y: 8 }}
                     transition={{ duration: 0.15 }}
-                    className="absolute bottom-full right-0 mb-2 w-72 z-50 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl shadow-2xl shadow-blue-500/10 dark:shadow-black/40 p-4 backdrop-blur-sm"
+                    style={{ width: "18rem", height: "20rem" }}
+                    className="absolute bottom-full right-0 mb-2 z-50 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl shadow-2xl shadow-blue-500/10 dark:shadow-black/40 backdrop-blur-sm flex flex-col"
                   >
-                    <div className="text-sm font-semibold text-gray-900 dark:text-white mb-3 flex items-center justify-between">
-                      <span>Available Columns</span>
-                      <span className="text-xs bg-indigo-100 dark:bg-indigo-900 text-indigo-700 dark:text-indigo-200 px-2 py-1 rounded-full">
-                        {columns.filter((c) => c.visible).length}/
-                        {columns.length}
-                      </span>
+                    <div className="px-4 pt-4 pb-3 flex-shrink-0">
+                      <div className="text-sm font-semibold text-gray-900 dark:text-white flex items-center justify-between">
+                        <span>Available Columns</span>
+                        <span className="text-xs bg-indigo-100 dark:bg-indigo-900 text-indigo-700 dark:text-indigo-200 px-2 py-1 rounded-full">
+                          {columns.filter((c) => c.visible).length}/
+                          {columns.length}
+                        </span>
+                      </div>
                     </div>
-                    <div className="max-h-56 overflow-y-auto mb-3 space-y-2">
+                    <div className="flex-1 overflow-y-auto px-4 space-y-2">
                       {columns.length > 0 ? (
                         columns.map(renderColumnItem)
                       ) : (
@@ -597,9 +627,17 @@ export function AssetsPage({
                         </p>
                       )}
                     </div>
-                    <div className="border-t border-gray-200 dark:border-gray-700 pt-3 flex gap-2">
+                    <div className="border-t border-gray-200 dark:border-gray-700 px-4 py-3 flex-shrink-0 flex gap-2">
                       <button
-                        onClick={() => setShowColumnsMenu(false)}
+                        onClick={() => {
+                          // Reset to default column visibility (first 9 visible, rest hidden)
+                          setColumns((prev) =>
+                            prev.map((col, idx) => ({
+                              ...col,
+                              visible: idx < 9 || col.key === "actions",
+                            }))
+                          );
+                        }}
                         className="flex-1 px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-lg transition-colors"
                       >
                         Reset

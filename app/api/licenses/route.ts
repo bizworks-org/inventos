@@ -6,9 +6,32 @@ import { notify } from "@/lib/notifications";
 async function allocateIdIfNeeded(target: any) {
   const idVal = typeof target?.id === "string" ? target.id.trim() : "";
   const prefix = "LIC";
-  const re = new RegExp(
-    `^${prefix.replace(/[-/\\^$*+?.()|[\]{}]/g, "\\$&")}-\\d+$`
-  );
+  const escapeChars = (str: string) => {
+    const specialChars = [
+      "\\",
+      "^",
+      "$",
+      "*",
+      "+",
+      "?",
+      ".",
+      "(",
+      ")",
+      "|",
+      "[",
+      "]",
+      "{",
+      "}",
+      "-",
+      "/",
+    ];
+    let result = str;
+    for (const char of specialChars) {
+      result = result.split(char).join("\\" + char);
+    }
+    return result;
+  };
+  const re = new RegExp(String.raw`^${escapeChars(prefix)}-\d+$`);
   if (re.test(idVal)) return;
 
   try {

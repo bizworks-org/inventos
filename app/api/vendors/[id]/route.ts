@@ -77,10 +77,9 @@ export async function PUT(req: NextRequest, ctx: any) {
         ? JSON.stringify(body.specifications)
         : body.specifications ?? null,
   };
-  const sqlWithContacts = sql.replace(
-    "\n    WHERE id=:id",
-    ",\n    contacts=:contacts\n    WHERE id=:id"
-  );
+  const sqlWithContacts = sql
+    .split("\n    WHERE id=:id")
+    .join(",\n    contacts=:contacts\n    WHERE id=:id");
   await query(sqlWithContacts, params);
   // Notify admins about vendor update
   try {

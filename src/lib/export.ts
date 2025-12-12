@@ -4,7 +4,42 @@ import { Asset, License, Vendor } from "./data";
 // Sanitizes a filename to prevent XSS attacks
 function sanitizeFilename(filename: string): string {
   // Remove any potentially dangerous characters and limit to safe alphanumeric, dash, underscore, and dot
-  return filename.replace(/[^a-zA-Z0-9._-]/g, "_").slice(0, 255);
+  let result = filename;
+  const charMap: [string, string][] = [
+    ["!", "_"],
+    ["@", "_"],
+    ["#", "_"],
+    ["$", "_"],
+    ["%", "_"],
+    ["^", "_"],
+    ["&", "_"],
+    ["*", "_"],
+    ["(", "_"],
+    [")", "_"],
+    ["+", "_"],
+    ["=", "_"],
+    ["[", "_"],
+    ["]", "_"],
+    ["{", "_"],
+    ["}", "_"],
+    ["|", "_"],
+    ["\\", "_"],
+    ["/", "_"],
+    [":", "_"],
+    [";", "_"],
+    ["'", "_"],
+    ['"', "_"],
+    ["<", "_"],
+    [">", "_"],
+    ["?", "_"],
+    [",", "_"],
+    [" ", "_"],
+  ];
+
+  for (const [char, replacement] of charMap) {
+    result = result.split(char).join(replacement);
+  }
+  return result.slice(0, 255);
 }
 
 // Escapes a value for safe inclusion in CSV
@@ -12,11 +47,12 @@ function csvEscape(value: null): string {
   if (value === null || value === undefined) return "";
   let str = String(value);
   // Normalize newlines
-  str = str.replace(/\r\n|\r|\n/g, "\n");
+  str = str.split("\r\n").join("\n");
+  str = str.split("\r").join("\n");
 
   // Escape double quotes by doubling them per CSV standard
   if (/[",\n]/.test(str)) {
-    str = '"' + str.replace(/"/g, '""') + '"';
+    str = '"' + str.split('"').join('""') + '"';
   }
   return str;
 }

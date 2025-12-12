@@ -457,6 +457,19 @@ export default function AssetRow(props: Readonly<AssetRowProps>) {
     columns,
   } = props;
 
+  // Calculate CIA values for use in table cells
+  const cia_c = Number(
+    (asset as any).ciaConfidentiality ?? (asset as any).cia_confidentiality ?? 0
+  );
+  const cia_i = Number(
+    (asset as any).ciaIntegrity ?? (asset as any).cia_integrity ?? 0
+  );
+  const cia_a = Number(
+    (asset as any).ciaAvailability ?? (asset as any).cia_availability ?? 0
+  );
+  const ciaTotal = cia_c + cia_i + cia_a;
+  const ciaScore = ciaTotal ? ciaTotal / 3 : 0;
+
   return (
     <>
       <motion.tr
@@ -589,10 +602,28 @@ export default function AssetRow(props: Readonly<AssetRowProps>) {
           const renderDefaultCell = (key: string, raw: any) => (
             <td key={key} className={`${cellPad}`}>
               <p className="text-sm text-gray-700 dark:text-gray-300">
-                {raw === null || raw === undefined || raw === "" ? "—" : String(raw)}
+                {raw === null || raw === undefined || raw === ""
+                  ? "—"
+                  : String(raw)}
               </p>
             </td>
           );
+
+          const renderCiaCell = (key: string) => {
+            let displayValue = "—";
+            if (key === "ciaTotal") {
+              displayValue = String(ciaTotal);
+            } else if (key === "ciaAverage") {
+              displayValue = ciaScore ? ciaScore.toFixed(2) : "—";
+            }
+            return (
+              <td key={key} className={`${cellPad}`}>
+                <p className="text-sm text-gray-700 dark:text-gray-300 font-medium">
+                  {displayValue}
+                </p>
+              </td>
+            );
+          };
 
           // handler list reduces branching inside the map callback
           const handlers: Array<{
@@ -601,7 +632,9 @@ export default function AssetRow(props: Readonly<AssetRowProps>) {
           }> = [
             {
               test: (kLower) =>
-                kLower === "name" || kLower === "asset" || kLower.includes("name"),
+                kLower === "name" ||
+                kLower === "asset" ||
+                kLower.includes("name"),
               render: renderNameCell,
             },
             {
@@ -614,25 +647,34 @@ export default function AssetRow(props: Readonly<AssetRowProps>) {
             },
             {
               test: (kLower) =>
-                kLower.includes("cost") || kLower.includes("price") || kLower.includes("amount"),
+                kLower.includes("cost") ||
+                kLower.includes("price") ||
+                kLower.includes("amount"),
               render: renderCostCell,
             },
             {
               test: (kLower) => kLower.includes("status"),
-              render: (_, __) => renderStatusCell(_ as string),
+              render: renderStatusCell,
             },
             {
               test: (kLower) => kLower.includes("consent"),
               render: renderConsentCell,
             },
             {
-              test: (kLower) => kLower.includes("serial") || kLower.includes("sn"),
+              test: (kLower) =>
+                kLower.includes("serial") || kLower.includes("sn"),
               render: renderSerialCell,
             },
             {
               test: (kLower) =>
-                kLower.includes("assign") || kLower.includes("owner") || kLower.includes("user"),
+                kLower.includes("assign") ||
+                kLower.includes("owner") ||
+                kLower.includes("user"),
               render: renderAssigneeCell,
+            },
+            {
+              test: (kLower) => kLower.includes("cia"),
+              render: renderCiaCell,
             },
           ];
 
@@ -644,7 +686,9 @@ export default function AssetRow(props: Readonly<AssetRowProps>) {
               const kLower = key.toLowerCase();
 
               const handler = handlers.find((h) => h.test(kLower, raw));
-              return handler ? handler.render(key, raw) : renderDefaultCell(key, raw);
+              return handler
+                ? handler.render(key, raw)
+                : renderDefaultCell(key, raw);
             });
         })()}
         {/* Actions cell always rendered last to align with header */}

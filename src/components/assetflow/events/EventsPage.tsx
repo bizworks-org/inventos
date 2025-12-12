@@ -144,9 +144,11 @@ export function EventsPage({
       };
 
       const escapeCSV = (s: string) => {
-        const clean = s.replace(/\r?\n/g, " ").replace(/\t/g, " ");
+        let clean = s.split("\r\n").join(" ");
+        clean = clean.split("\n").join(" ");
+        clean = clean.split("\t").join(" ");
         if (/[",\n\r]/.test(clean))
-          return '"' + clean.replace(/"/g, '""') + '"';
+          return '"' + clean.split('"').join('""') + '"';
         return clean;
       };
 
@@ -158,7 +160,13 @@ export function EventsPage({
       );
       const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
       const url = URL.createObjectURL(blob);
-      const when = new Date().toISOString().slice(0, 19).replace(/[:T]/g, "-");
+      const when = new Date()
+        .toISOString()
+        .slice(0, 19)
+        .split(":")
+        .join("-")
+        .split("T")
+        .join("-");
       const a = document.createElement("a");
       a.href = url;
       // Sanitize pieces used in the filename to avoid injecting unsafe characters
@@ -166,12 +174,29 @@ export function EventsPage({
         if (v === undefined || v === null) return "-";
         const s = String(v);
         // Remove control characters, newlines and tabs (use hex escapes to avoid embedding any literal control chars)
-        const noControl = s.replace(/[\x00-\x1F\x7F]+/g, "-");
-        // Replace anything that's not alphanumeric, dot, underscore or dash with a hyphen
+        let noControl = s;
+        // Remove all control characters (\x00-\x1F and \x7F)
+        const chars = noControl.split("");
+        noControl = chars
+          .filter((c) => {
+            const code = c.codePointAt(0);
+            return (
+              code !== undefined &&
+              !(code >= 0x00 && code <= 0x1f) &&
+              code !== 0x7f
+            );
+          })
+          .join("");
+        if (!noControl) noControl = "-";
 
+        // Replace anything that's not alphanumeric, dot, underscore or dash with a hyphen
         const cleaned = noControl
-          .replace(/[^A-Za-z0-9._-]+/g, "-")
-          .replace(/(^-+|-+$)/g, "");
+          .split(/[^A-Za-z0-9._-]/)
+          .join("-")
+          .split(/^-+/)
+          .join("") // remove leading hyphens
+          .split(/-+$/)
+          .join(""); // remove trailing hyphens
         return cleaned.slice(0, max) || "-";
       };
 

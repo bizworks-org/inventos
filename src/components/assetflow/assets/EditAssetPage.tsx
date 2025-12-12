@@ -506,7 +506,10 @@ export default function EditAssetPage({
         <Button
           variant="ghost"
           size="sm"
-          onClick={() => onNavigate?.("assets")}
+          onClick={() => {
+            setSaveSuccess(false);
+            onNavigate?.("assets");
+          }}
         >
           <ArrowLeft className="h-5 w-5 text-muted" />
         </Button>
@@ -635,7 +638,10 @@ export default function EditAssetPage({
               </Button>
               <Button
                 className="gap-2 w-full px-8 py-3 mt-4 bg-white/10 text-white rounded-lg font-semibold hover:bg-white/20 transition-all duration-200"
-                onClick={() => onNavigate?.("assets")}
+                onClick={() => {
+                  setSaveSuccess(false);
+                  onNavigate?.("assets");
+                }}
               >
                 <X className="h-4 w-4" />
                 Cancel

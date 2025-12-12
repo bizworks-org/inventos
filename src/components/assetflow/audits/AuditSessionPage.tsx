@@ -97,7 +97,7 @@ export function AuditSessionPage({
         if (existingRes.ok) {
           const existing = await existingRes.json();
           if (Array.isArray(existing) && existing.length > 0) {
-            const ok = window.confirm(
+            const ok = globalThis.confirm(
               "This import will replace the existing items for this audit. Do you want to continue?"
             );
             if (!ok) return;
@@ -168,7 +168,7 @@ export function AuditSessionPage({
   const escapeCSV = (val: string) => {
     if (val == null) return "";
     const needsQuotes = /[",\n]/.test(val);
-    let out = val.replace(/"/g, '""');
+    let out = val.split('"').join('""');
     return needsQuotes ? `"${out}"` : out;
   };
 
