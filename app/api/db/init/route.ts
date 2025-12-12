@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
 import mysql from 'mysql2/promise';
-import { getPool } from '@/lib/db';
 import { saveDbConfig } from '@/lib/configStore';
 
 type DbPayload = {
@@ -250,10 +249,16 @@ export async function POST(req: NextRequest) {
         await saveDbConfig(cfg);
       }
       // @ts-ignore
-      const mod = await import('@/lib/db');
-      if (mod && mod.__resetPool) {
-        mod.__resetPool();
-      }
+      // const mod = await import('@/lib/db');
+      // if (mod && mod.__resetPool) {
+      //   mod.__resetPool();
+      // }
+      const mod = await import('@/lib/db') as {
+        __resetPool?: () => void;
+      };
+      mod.__resetPool?.();
+
+      
     } catch {}
 
     return NextResponse.json({ ok: true, persisted: Boolean(process.env.APP_CONFIG_SECRET) });

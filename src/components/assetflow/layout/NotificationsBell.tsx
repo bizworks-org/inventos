@@ -117,7 +117,8 @@ export function NotificationsBell() {
       aria-label="Notifications">
         <Bell className="h-5 w-5 text-[#1a1d2e]" />
         {mounted && unreadCount > 0 && ( // render badge only after mount to avoid SSR diff
-          <span className="absolute top-4 right-4 min-w-4 h-4 px-1 text-[2px] leading-4  bg-[#ef4444] bg-whi_te rounded-full border-1 border-white flex items-center justify-center" suppressHydrationWarning>
+          // <span className="absolute top-4 right-4 min-w-4 h-4 px-1 text-[2px] leading-4  bg-[#ef4444] bg-whi_te rounded-full border-1 border-white flex items-center justify-center" suppressHydrationWarning>
+           <span className="absolute top-2 right-4 w-7 h-8 px-2 text-s leading-4 bg-[#ef4444] rounded-full flex items-center justify-center" suppressHydrationWarning>
             {unreadCount > 9 ? "9+" : unreadCount}
           </span>
         )}
