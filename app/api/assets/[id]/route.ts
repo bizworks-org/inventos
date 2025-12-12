@@ -108,8 +108,9 @@ export async function PUT(req: NextRequest, ctx: any) {
       body.type_id = typeId;
     }
 
-    // Fetch previous status (best-effort)
+    // Fetch previous status and all current values
     const prevStatus = await fetchPrevStatus(id);
+    const previousValues = await fetchPreviousValues(id);
 
     // Perform UPDATE
     await updateAsset(id, body, {
@@ -121,25 +122,52 @@ export async function PUT(req: NextRequest, ctx: any) {
     // Record status change and add activity/notification as needed
     await recordStatusAndNotify(id, prevStatus, body);
 
-    // Log event to events table
+    // Log events for each changed field
     try {
       const me = await readMeFromCookie();
-      await query(
-        `INSERT INTO events (id, ts, severity, entity_type, entity_id, action, user, details, metadata)
-         VALUES (:id, NOW(), :severity, :entity_type, :entity_id, :action, :user, :details, :metadata)`,
-        {
-          id: `EVT-${Date.now()}-${secureId("", 16)}`,
-          severity: "info",
-          entity_type: "asset",
-          entity_id: id,
-          action: "asset.updated",
-          user: me?.email || "system",
-          details: `Asset updated: ${body.name || id}`,
-          metadata: JSON.stringify({ id, changes: body }),
-        }
-      );
+      const changedFields = getChangedFields(previousValues, body);
+
+      for (const field of changedFields) {
+        await query(
+          `INSERT INTO events (id, ts, severity, entity_type, entity_id, action, user, details, metadata, previous_value, changed_value)
+           VALUES (:id, NOW(), :severity, :entity_type, :entity_id, :action, :user, :details, :metadata, :previous_value, :changed_value)`,
+          {
+            id: `EVT-${Date.now()}-${secureId("", 16)}`,
+            severity: "info",
+            entity_type: "asset",
+            entity_id: id,
+            action: "Asset Updated",
+            user: me?.email || "system",
+            details: body.name || id,
+            metadata: JSON.stringify({ id, field: field.fieldName }),
+            previous_value: field.previousValue,
+            changed_value: field.changedValue,
+          }
+        );
+      }
+
+      // Also log a summary event if any changes were made
+      if (changedFields.length > 0) {
+        await query(
+          `INSERT INTO events (id, ts, severity, entity_type, entity_id, action, user, details, metadata)
+           VALUES (:id, NOW(), :severity, :entity_type, :entity_id, :action, :user, :details, :metadata)`,
+          {
+            id: `EVT-${Date.now()}-${secureId("", 16)}`,
+            severity: "info",
+            entity_type: "asset",
+            entity_id: id,
+            action: "Asset Updated",
+            user: me?.email || "system",
+            details: body.name || id,
+            metadata: JSON.stringify({
+              id,
+              changedFields: changedFields.map((f) => f.fieldName),
+            }),
+          }
+        );
+      }
     } catch (e) {
-      console.warn("Failed to log asset update event", e);
+      console.warn("Failed to log asset update events", e);
     }
 
     return NextResponse.json({ ok: true });
@@ -235,6 +263,163 @@ async function fetchPrevStatus(id: string): Promise<string | null> {
     return cur?.[0]?.status ?? null;
   } catch {
     return null;
+  }
+}
+
+async function fetchPreviousValues(id: string): Promise<Record<string, any>> {
+  try {
+    const cur = await query<any>(
+      "SELECT * FROM assets WHERE id = :id LIMIT 1",
+      { id }
+    );
+    return cur?.[0] ?? {};
+  } catch {
+    return {};
+  }
+}
+
+interface ChangedField {
+  fieldName: string;
+  previousValue: string;
+  changedValue: string;
+}
+
+function parseJson(val: any): Record<string, any> {
+  if (typeof val === "string") {
+    try {
+      return JSON.parse(val);
+    } catch {
+      return {};
+    }
+  }
+  return val && typeof val === "object" ? val : {};
+}
+
+function getChangedFields(
+  previous: Record<string, any>,
+  updates: Record<string, any>
+): ChangedField[] {
+  const changed: ChangedField[] = [];
+
+  // List of fields to track
+  const fieldsToTrack = [
+    "name",
+    "type_id",
+    "serial_number",
+    "assigned_to",
+    "assigned_email",
+    "department",
+    "status",
+    "purchase_date",
+    "end_of_support_date",
+    "end_of_life_date",
+    "cost",
+    "location",
+    "cia_confidentiality",
+    "cia_integrity",
+    "cia_availability",
+  ];
+
+  // Fields that are dates (compare without time component)
+  const dateFields = new Set([
+    "purchase_date",
+    "end_of_support_date",
+    "end_of_life_date",
+    "warranty_expiry",
+  ]);
+
+  // Fields that should be stored/compared as numbers
+  const numericFields = new Set([
+    "cia_confidentiality",
+    "cia_integrity",
+    "cia_availability",
+  ]);
+
+  for (const field of fieldsToTrack) {
+    let prevVal = previous[field];
+    let newVal = updates[field];
+
+    // Normalize date fields - compare only the date part, not time
+    if (dateFields.has(field)) {
+      const prevDate = prevVal
+        ? new Date(prevVal).toISOString().split("T")[0]
+        : null;
+      const newDate = newVal
+        ? new Date(newVal).toISOString().split("T")[0]
+        : null;
+      prevVal = prevDate;
+      newVal = newDate;
+    }
+
+    // Normalize numeric fields
+    if (numericFields.has(field)) {
+      prevVal =
+        prevVal !== null && prevVal !== undefined ? Number(prevVal) : null;
+      newVal = newVal !== null && newVal !== undefined ? Number(newVal) : null;
+    }
+
+    // Only track if the value actually changed
+    if (prevVal !== newVal && newVal !== undefined && newVal !== null) {
+      changed.push({
+        fieldName: field,
+        previousValue: String(prevVal ?? ""),
+        changedValue: String(newVal),
+      });
+    }
+  }
+
+  // Track custom fields changes
+  trackCustomFieldChanges("specifications", previous, updates, changed);
+
+  return changed;
+}
+
+function trackCustomFieldChanges(
+  specField: string,
+  previous: Record<string, any>,
+  updates: Record<string, any>,
+  changed: ChangedField[]
+): void {
+  if (!updates[specField]) return;
+
+  try {
+    const newSpecs = parseJson(updates[specField]);
+    const prevSpecs = parseJson(previous[specField]);
+
+    const newCustom = newSpecs?.customFields ?? {};
+    const prevCustom = prevSpecs?.customFields ?? {};
+
+    // Check for added/changed custom fields
+    for (const [key, val] of Object.entries(newCustom)) {
+      if (prevCustom[key] !== val) {
+        let stringVal: string;
+        if (typeof val === "object" && val !== null) {
+          stringVal = JSON.stringify(val as any);
+        } else {
+          stringVal = String(
+            val as string | number | boolean | null | undefined
+          );
+        }
+        changed.push({
+          fieldName: `custom_field_${key}`,
+          previousValue: String(prevCustom[key] ?? ""),
+          changedValue: stringVal,
+        });
+      }
+    }
+
+    // Check for removed custom fields
+    for (const key of Object.keys(prevCustom)) {
+      if (!(key in newCustom)) {
+        changed.push({
+          fieldName: `custom_field_${key}`,
+          previousValue: String(prevCustom[key]),
+          changedValue: "",
+        });
+      }
+    }
+  } catch (e) {
+    console.warn("Failed to parse specifications for change tracking", e);
   }
 }
 

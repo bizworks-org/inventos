@@ -2,6 +2,18 @@
 
 import React from "react";
 import { Button } from "../../../ui/button";
+import { Asset } from "../../../../lib/data";
+
+const assetStatuses: Asset["status"][] = [
+  "In Store (New)",
+  "In Store (Used)",
+  "Allocated",
+  "In Repair (In Store)",
+  "In Repair (Allocated)",
+  "Faulty – To Be Scrapped",
+  "Scrapped / Disposed",
+  "Lost / Missing",
+];
 
 type Props = {
   categoryOptions: string[];
@@ -25,7 +37,7 @@ export default function BasicInformation({
   formData,
   handleInputChange,
   locationsList,
-}: Props) {
+}: Readonly<Props>) {
   return (
     <div className="rounded-2xl border bg-white p-6 shadow-sm">
       <h3 className="mb-4 text-lg font-semibold">Basic Information</h3>
@@ -139,7 +151,12 @@ export default function BasicInformation({
             }
             className="w-full rounded-lg border bg-card px-4 py-2.5"
           >
-            <option value={formData.status}>{formData.status}</option>
+            <option value="">Select status</option>
+            {assetStatuses.map((status) => (
+              <option key={status} value={status}>
+                {status}
+              </option>
+            ))}
           </select>
         </div>
 

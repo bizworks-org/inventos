@@ -274,7 +274,6 @@ export function AssetsPage({
     "department",
     "status",
     "purchase date",
-    "warranty expiry",
     "location",
   ];
 

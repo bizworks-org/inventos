@@ -233,12 +233,6 @@ function AssetDetails({
       ),
     },
     {
-      label: "Warranty Expiry",
-      content: tryDate(
-        (asset as any).warrantyExpiry || (asset as any).warranty_expiry
-      ),
-    },
-    {
       label: "Cost",
       content: v(
         formatCurrency(Number((asset as any).cost ?? (asset as any).price ?? 0))

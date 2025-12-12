@@ -318,7 +318,7 @@ export default function EditAssetPage({
       serialNumber: asset.serialNumber,
       assignedTo: asset.assignedTo,
       department: asset.department,
-      status: asset.status,
+      status: asset.status || "In Store (New)",
       purchaseDate: asset.purchaseDate,
       eosDate: (asset as any).eosDate || "",
       eolDate: (asset as any).eolDate || "",

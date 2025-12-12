@@ -174,7 +174,6 @@ export default function AssetImportModal({
                   <th className="px-3 py-2">Department</th>
                   <th className="px-3 py-2">Status</th>
                   <th className="px-3 py-2">Purchase Date</th>
-                  <th className="px-3 py-2">Warranty Expiry</th>
                   <th className="px-3 py-2">Location</th>
                 </tr>
               </thead>
@@ -246,16 +245,6 @@ export default function AssetImportModal({
                         value={a.purchaseDate ?? ""}
                         onChange={(e) =>
                           updateCell(idx, "purchaseDate", e.target.value)
-                        }
-                      />
-                    </td>
-                    <td className="px-3 py-2">
-                      <input
-                        className="w-full"
-                        type="date"
-                        value={a.eosDate ?? (a as any).warrantyExpiry ?? ""}
-                        onChange={(e) =>
-                          updateCell(idx, "eosDate", e.target.value)
                         }
                       />
                     </td>

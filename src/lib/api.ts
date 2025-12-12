@@ -498,25 +498,28 @@ type DbEvent = {
   user: string;
   details: string;
   metadata: any;
+  previous_value?: string | null;
+  changed_value?: string | null;
 };
 
-function mapDbEvent(e: DbEvent): SystemEvent {
-  // Normalize metadata: DB may store JSON as LONGTEXT string
-  let metadata: Record<string, any> = {};
-  if (e.metadata !== null && e.metadata !== undefined) {
-    if (typeof e.metadata === "string") {
-      try {
-        const parsed = JSON.parse(e.metadata);
-        metadata =
-          parsed && typeof parsed === "object" ? parsed : { raw: e.metadata };
-      } catch {
-        metadata = { raw: e.metadata };
-      }
-    } else {
-      metadata = e.metadata as Record<string, any>;
+// Normalize metadata: DB may store JSON as LONGTEXT string
+function normalizeMetadata(input: unknown): Record<string, any> {
+  if (input == null) return {};
+  if (typeof input === "string") {
+    try {
+      const parsed = JSON.parse(input);
+      return parsed && typeof parsed === "object" ? parsed : { raw: input };
+    } catch {
+      return { raw: input };
     }
   }
-  return {
+  return input as Record<string, any>;
+}
+
+function mapDbEvent(e: DbEvent): SystemEvent {
+  const metadata = normalizeMetadata(e.metadata);
+
+  const event: SystemEvent = {
     id: e.id,
     timestamp: e.ts,
     severity: e.severity,
@@ -526,7 +529,11 @@ function mapDbEvent(e: DbEvent): SystemEvent {
     user: e.user,
     details: e.details,
     metadata,
+    ...(e.previous_value == null ? {} : { previousValue: e.previous_value }),
+    ...(e.changed_value == null ? {} : { changedValue: e.changed_value }),
   };
+
+  return event;
 }
 
 export async function fetchEvents(limit = 1000): Promise<SystemEvent[]> {

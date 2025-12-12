@@ -68,6 +68,50 @@ function formatFullTimestamp(timestamp: string): string {
   });
 }
 
+function safeString(v: any): string {
+  if (v === undefined || v === null) return "—";
+  if (typeof v === "object") {
+    try {
+      return JSON.stringify(v);
+    } catch {
+      return String(v);
+    }
+  }
+  return String(v);
+}
+
+function formatValue(v: any): string {
+  if (v === undefined || v === null) return "—";
+
+  // Check if it's a date string (ISO format or timestamp)
+  if (typeof v === "string" && (v.includes("T") || /^\d{10,13}$/.test(v))) {
+    try {
+      const date = new Date(v);
+      if (!isNaN(date.getTime())) {
+        return date.toLocaleString("en-US", {
+          year: "numeric",
+          month: "short",
+          day: "numeric",
+          hour: "2-digit",
+          minute: "2-digit",
+          second: "2-digit",
+        });
+      }
+    } catch {
+      // Fall through to default
+    }
+  }
+
+  if (typeof v === "object") {
+    try {
+      return JSON.stringify(v);
+    } catch {
+      return String(v);
+    }
+  }
+  return String(v);
+}
+
 export function EventsTimeline(props: Readonly<EventsTimelineProps>) {
   const { events } = props;
   const [expandedEventId, setExpandedEventId] = useState<string | null>(null);
@@ -120,6 +164,12 @@ export function EventsTimeline(props: Readonly<EventsTimelineProps>) {
                 Details
               </th>
               <th className="px-4 py-3 text-left text-xs font-semibold text-[#64748b] uppercase tracking-wider">
+                Previous Value
+              </th>
+              <th className="px-4 py-3 text-left text-xs font-semibold text-[#64748b] uppercase tracking-wider">
+                New Value
+              </th>
+              <th className="px-4 py-3 text-left text-xs font-semibold text-[#64748b] uppercase tracking-wider">
                 User
               </th>
               <th className="px-4 py-3 text-left text-xs font-semibold text-[#64748b] uppercase tracking-wider">
@@ -170,7 +220,14 @@ export function EventsTimeline(props: Readonly<EventsTimelineProps>) {
 
                     {/* Action */}
                     <td className="px-4 py-3 text-sm text-[#0f1724] font-mono">
-                      <code className="text-xs">{event.action}</code>
+                      <div className="flex flex-col gap-1">
+                        <code className="text-xs">{event.action}</code>
+                        {event.metadata?.field && (
+                          <code className="text-xs text-[#6366f1] font-semibold">
+                            {event.metadata.field}
+                          </code>
+                        )}
+                      </div>
                     </td>
 
                     {/* Details */}
@@ -188,6 +245,30 @@ export function EventsTimeline(props: Readonly<EventsTimelineProps>) {
                           }`}
                         />
                       </button>
+                    </td>
+
+                    {/* Previous Value */}
+                    <td className="px-4 py-3 text-xs">
+                      {event.previousValue !== undefined &&
+                      event.previousValue !== null ? (
+                        <span className="text-[#991b1b] line-through">
+                          {formatValue(event.previousValue)}
+                        </span>
+                      ) : (
+                        <span className="text-[#94a3b8]">—</span>
+                      )}
+                    </td>
+
+                    {/* New Value */}
+                    <td className="px-4 py-3 text-xs">
+                      {event.changedValue !== undefined &&
+                      event.changedValue !== null ? (
+                        <span className="text-[#064e3b] font-mono">
+                          {formatValue(event.changedValue)}
+                        </span>
+                      ) : (
+                        <span className="text-[#94a3b8]">—</span>
+                      )}
                     </td>
 
                     {/* User */}
@@ -209,7 +290,7 @@ export function EventsTimeline(props: Readonly<EventsTimelineProps>) {
                   {/* Expanded Details Row */}
                   {isExpanded && (
                     <tr className="bg-[rgba(248,249,255,0.4)] border-b border-[rgba(0,0,0,0.08)]">
-                      <td colSpan={7} className="px-4 py-4">
+                      <td colSpan={9} className="px-4 py-4">
                         <motion.div
                           initial={{ opacity: 0, height: 0 }}
                           animate={{ opacity: 1, height: "auto" }}
@@ -226,31 +307,37 @@ export function EventsTimeline(props: Readonly<EventsTimelineProps>) {
                             </code>
                           </div>
 
-                          {/* Previous Value */}
-                          {event.previousValue !== undefined &&
-                            event.previousValue !== null && (
-                              <div>
-                                <span className="text-[#64748b] font-medium">
-                                  Previous Value:
-                                </span>
-                                <code className="ml-2 text-[#0f1724] bg-white px-2 py-1 rounded text-xs border border-[rgba(0,0,0,0.08)] font-mono">
-                                  {String(event.previousValue)}
-                                </code>
-                              </div>
-                            )}
+                          {/* Previous and Changed Values (highlighted) */}
+                          {(event.previousValue !== undefined &&
+                            event.previousValue !== null) ||
+                          (event.changedValue !== undefined &&
+                            event.changedValue !== null) ? (
+                            <div className="flex flex-col gap-2">
+                              {event.previousValue !== undefined &&
+                                event.previousValue !== null && (
+                                  <div className="flex items-center gap-2">
+                                    <span className="text-[#64748b] font-medium">
+                                      Previous:
+                                    </span>
+                                    <span className="text-[#991b1b] line-through">
+                                      {formatValue(event.previousValue)}
+                                    </span>
+                                  </div>
+                                )}
 
-                          {/* Changed Value */}
-                          {event.changedValue !== undefined &&
-                            event.changedValue !== null && (
-                              <div>
-                                <span className="text-[#64748b] font-medium">
-                                  Changed Value:
-                                </span>
-                                <code className="ml-2 text-[#0f1724] bg-white px-2 py-1 rounded text-xs border border-[rgba(0,0,0,0.08)] font-mono bg-[#f0fdf4]">
-                                  {String(event.changedValue)}
-                                </code>
-                              </div>
-                            )}
+                              {event.changedValue !== undefined &&
+                                event.changedValue !== null && (
+                                  <div className="flex items-center gap-2">
+                                    <span className="text-[#64748b] font-medium">
+                                      Current:
+                                    </span>
+                                    <span className="text-[#064e3b]">
+                                      {formatValue(event.changedValue)}
+                                    </span>
+                                  </div>
+                                )}
+                            </div>
+                          ) : null}
 
                           {Object.keys(event.metadata).length > 0 && (
                             <div>
