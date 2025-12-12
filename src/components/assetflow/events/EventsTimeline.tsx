@@ -179,7 +179,7 @@ export function EventsTimeline(props: Readonly<EventsTimelineProps>) {
                 Details
               </th>
               <th className="px-4 py-3 text-left text-xs font-semibold text-[#64748b] uppercase tracking-wider">
-                Previous Value
+                Old Value
               </th>
               <th className="px-4 py-3 text-left text-xs font-semibold text-[#64748b] uppercase tracking-wider">
                 New Value
