@@ -6,7 +6,7 @@ import {
   timingSafeEqual,
 } from "@/lib/node-crypto.server";
 
-export type Role = "admin" | "user" | "superadmin";
+export type Role = "admin" | "user" | "superadmin" | "auditor";
 export type User = {
   id: string;
   name: string;

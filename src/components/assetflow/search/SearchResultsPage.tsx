@@ -7,6 +7,7 @@ import { AssetFlowLayout } from "../layout/AssetFlowLayout";
 import { motion } from "motion/react";
 import { Search, Edit2, Eye } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { getMe, type ClientMe } from "@/lib/auth/client";
 
 interface SearchResultsPageProps {
   readonly query: string;
@@ -25,6 +26,7 @@ export default function SearchResultsPage({
   const [assetsTotal, setAssetsTotal] = useState<number>(0);
   const [vendorsTotal, setVendorsTotal] = useState<number>(0);
   const [licensesTotal, setLicensesTotal] = useState<number>(0);
+  const [me, setMe] = useState<ClientMe>(null);
 
   const [page, setPage] = useState<number>(1);
   const [perPage] = useState<number>(10);
@@ -39,6 +41,17 @@ export default function SearchResultsPage({
     // reset page when query changes
     setPage(1);
   }, [query]);
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const m = await getMe().catch(() => null);
+        setMe(m);
+      } catch {
+        setMe(null);
+      }
+    })();
+  }, []);
 
   const { loading } = useFetchOnMount(async () => {
     if (!q) {
@@ -133,15 +146,17 @@ export default function SearchResultsPage({
                           <Eye className="h-4 w-4 text-[#6366f1] group-hover:scale-110 transition-transform" />
                         </Button>
 
-                        <Button
-                          onClick={() => onNavigate?.("assets-edit", a.id)}
-                          variant="outline"
-                          size="sm"
-                          className="transition-all duration-200 group rounded-lg hover:bg-[#6366f1]/10 text-[#6366f1] p-2"
-                          title="Edit asset"
-                        >
-                          <Edit2 className="h-4 w-4 text-[#6366f1] group-hover:scale-110 transition-transform" />
-                        </Button>
+                        {(me?.role === "admin" || me?.role === "superadmin") && (
+                          <Button
+                            onClick={() => onNavigate?.("assets-edit", a.id)}
+                            variant="outline"
+                            size="sm"
+                            className="transition-all duration-200 group rounded-lg hover:bg-[#6366f1]/10 text-[#6366f1] p-2"
+                            title="Edit asset"
+                          >
+                            <Edit2 className="h-4 w-4 text-[#6366f1] group-hover:scale-110 transition-transform" />
+                          </Button>
+                        )}
                       </div>
                     </div>
                     {expandedAssetId === a.id && (
@@ -266,15 +281,17 @@ export default function SearchResultsPage({
                           <Eye className="h-4 w-4 text-[#6366f1] group-hover:scale-110 transition-transform" />
                         </Button>
 
-                        <Button
-                          onClick={() => onNavigate?.("vendors-edit", v.id)}
-                          variant="outline"
-                          size="sm"
-                          className="transition-all duration-200 group rounded-lg hover:bg-[#6366f1]/10 text-[#6366f1] p-2"
-                          title="Edit vendor"
-                        >
-                          <Edit2 className="h-4 w-4 text-[#6366f1] group-hover:scale-110 transition-transform" />
-                        </Button>
+                        {(me?.role === "admin" || me?.role === "superadmin") && (
+                          <Button
+                            onClick={() => onNavigate?.("vendors-edit", v.id)}
+                            variant="outline"
+                            size="sm"
+                            className="transition-all duration-200 group rounded-lg hover:bg-[#6366f1]/10 text-[#6366f1] p-2"
+                            title="Edit vendor"
+                          >
+                            <Edit2 className="h-4 w-4 text-[#6366f1] group-hover:scale-110 transition-transform" />
+                          </Button>
+                        )}
                       </div>
                     </div>
                     {expandedVendorId === v.id && (
@@ -376,15 +393,17 @@ export default function SearchResultsPage({
                           <Eye className="h-4 w-4 text-[#6366f1] group-hover:scale-110 transition-transform" />
                         </Button>
 
-                        <Button
-                          onClick={() => onNavigate?.("licenses-edit", l.id)}
-                          variant="outline"
-                          size="sm"
-                          className="transition-all duration-200 group rounded-lg hover:bg-[#6366f1]/10 text-[#6366f1] p-2"
-                          title="Edit license"
-                        >
-                          <Edit2 className="h-4 w-4 text-[#6366f1] group-hover:scale-110 transition-transform" />
-                        </Button>
+                        {(me?.role === "admin" || me?.role === "superadmin") && (
+                          <Button
+                            onClick={() => onNavigate?.("licenses-edit", l.id)}
+                            variant="outline"
+                            size="sm"
+                            className="transition-all duration-200 group rounded-lg hover:bg-[#6366f1]/10 text-[#6366f1] p-2"
+                            title="Edit license"
+                          >
+                            <Edit2 className="h-4 w-4 text-[#6366f1] group-hover:scale-110 transition-transform" />
+                          </Button>
+                        )}
                       </div>
                     </div>
                     {expandedLicenseId === l.id && (

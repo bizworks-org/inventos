@@ -151,7 +151,7 @@ export default function ManageUsersPage() {
   const allowedRolesForTarget = (target?: User | null) => {
     const base = allRoles?.length
       ? [...allRoles]
-      : ["user", "admin", "superadmin"]; // Default roles
+      : ["user", "admin", "superadmin", "auditor"]; // Default roles include auditor
     let list = base.slice();
     if (me?.role !== "superadmin")
       list = list.filter((r) => r !== "superadmin");
@@ -172,7 +172,15 @@ export default function ManageUsersPage() {
       if (!targetHasSuper) list = list.filter((r) => r !== "superadmin"); // Filter superadmin role
     }
 
-    return list as Role[]; // Ensure return type is Role[]
+    // Auditor role may only be assigned by Superadmin from the UI
+    if (me?.role !== "superadmin") {
+      list = list.filter((r) => r !== "auditor");
+    }
+
+    // Deduplicate any accidental duplicates from the server
+    list = Array.from(new Set(list));
+
+    return list as Role[];
   };
 
   const makePassword = () => {
@@ -516,7 +524,15 @@ export default function ManageUsersPage() {
   const roleDisplay = (roles: Role[] = []) => {
     if (roles.includes("superadmin")) return "Superadmin";
     if (roles.includes("admin")) return "Admin";
+    if (roles.includes("auditor")) return "Auditor";
     return "User";
+  };
+
+  const ROLE_LABELS: Record<string, string> = {
+    superadmin: "Superadmin",
+    admin: "Admin",
+    auditor: "Auditor",
+    user: "User",
   };
 
   const renderUserRow = (u: User) => {
@@ -625,21 +641,13 @@ export default function ManageUsersPage() {
                 : !canEditRoleForTarget(null)
             }
           >
-            {(editing
-              ? allowedRolesForTarget(editing)
-              : allowedRolesForTarget(null)
-            ).map((r) => {
-              const getLabel = () => {
-                if (r === "superadmin") return "Superadmin";
-                if (r === "admin") return "Admin";
-                return "User";
-              };
-              return (
+            {(editing ? allowedRolesForTarget(editing) : allowedRolesForTarget(null)).map(
+              (r) => (
                 <option key={r} value={r}>
-                  {getLabel()}
+                  {ROLE_LABELS[r] ?? String(r)}
                 </option>
-              );
-            })}
+              )
+            )}
           </select>
         </div>
         <div className="mt-4 flex items-center gap-3">

@@ -75,6 +75,24 @@ export async function requirePermission(
     return { ok: true, me: { ...me, role } };
   }
 
+  // Auditor: limited read-only access to specific resources
+  const auditorAllowedRead = new Set([
+    "assets_read",
+    "vendors_read",
+    "licenses_read",
+    // keep option for search endpoints that check these permissions
+    "read_assets",
+    "read_vendors",
+    "read_licenses",
+  ]);
+
+  if (role === "auditor") {
+    if (auditorAllowedRead.has(permission)) {
+      return { ok: true, me: { ...me, role } };
+    }
+    return { ok: false, status: 403 };
+  }
+
   if (role === "user" && permission.endsWith("_read")) {
     return { ok: true, me: { ...me, role } };
   }

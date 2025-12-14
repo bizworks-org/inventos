@@ -8,7 +8,7 @@ import { toast } from "@/components/ui/sonner";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("admin@inventos.io");
-  const [password, setPassword] = useState("xbI80gepkxn9");
+  const [password, setPassword] = useState("u5zu3Yql5Tob");
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const router = useRouter();

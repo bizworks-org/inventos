@@ -3,7 +3,7 @@ import { useEffect, useRef, useState } from "react";
 import { Shield, Package, FileText, Building2, Activity } from "lucide-react";
 import FullPageLoader from "@/components/ui/FullPageLoader";
 
-type Role = "admin" | "user";
+type Role = "admin" | "user" | "auditor";
 
 export default function RolesPermissionsPage() {
   const [allRoles, setAllRoles] = useState<Role[]>([]);

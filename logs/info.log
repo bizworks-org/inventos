@@ -46,3 +46,472 @@
 2025-12-10T20:07:29.521Z [INFO]  [32m[1m✓[22m[39m Compiled /dashboard in 13.7s (2727 modules)
 2025-12-10T20:07:31.735Z [INFO]  [37m[1m○[22m[39m Compiling /api/dashboard/summary ...
 2025-12-10T20:07:35.510Z [INFO]  [32m[1m✓[22m[39m Compiled /api/dashboard/summary in 4.3s (2735 modules)
+2025-12-14T19:18:58.549Z [INFO]  [32m[1m✓[22m[39m Compiled in 163ms (730 modules)
+2025-12-14T19:18:58.610Z [WARN]  [33m[1m⚠[22m[39m Fast Refresh had to perform a full reload. Read more: https://nextjs.org/docs/messages/fast-refresh-reload
+2025-12-14T19:19:00.884Z [INFO]  [32m[1m✓[22m[39m Compiled /api/auth/me in 268ms (500 modules)
+2025-12-14T19:24:12.665Z [INFO]  [37m[1m○[22m[39m Compiling / ...
+2025-12-14T19:24:12.665Z [INFO]  [37m[1m○[22m[39m Compiling / ...
+2025-12-14T19:24:12.764Z [INFO]  [32m[1m✓[22m[39m Compiled / in 601ms (740 modules)
+2025-12-14T19:24:12.764Z [INFO]  [32m[1m✓[22m[39m Compiled / in 601ms (740 modules)
+2025-12-14T19:24:14.487Z [INFO]  [32m[1m✓[22m[39m Compiled /api/auth/me in 199ms (510 modules)
+2025-12-14T19:24:14.487Z [INFO]  [32m[1m✓[22m[39m Compiled /api/auth/me in 199ms (510 modules)
+2025-12-14T19:25:55.607Z [INFO]  [37m[1m [22m[39m Reload env: .env
+2025-12-14T19:25:55.826Z [INFO]  [32m[1m✓[22m[39m Compiled in 216ms (730 modules)
+2025-12-14T19:56:39.607Z [INFO]  [32m[1m✓[22m[39m Compiled /api/auth/me in 214ms (500 modules)
+2025-12-14T19:56:39.608Z [INFO]  [32m[1m✓[22m[39m Compiled /api/auth/me in 214ms (500 modules)
+2025-12-14T19:56:48.344Z [INFO]  [32m[1m✓[22m[39m Compiled / in 499ms (743 modules)
+2025-12-14T19:56:48.344Z [INFO]  [32m[1m✓[22m[39m Compiled / in 499ms (743 modules)
+2025-12-14T19:56:48.344Z [INFO]  [32m[1m✓[22m[39m Compiled / in 499ms (743 modules)
+2025-12-14T19:56:49.464Z [INFO]  [32m[1m✓[22m[39m Compiled /middleware in 162ms (114 modules)
+2025-12-14T19:56:49.464Z [INFO]  [32m[1m✓[22m[39m Compiled /middleware in 162ms (114 modules)
+2025-12-14T19:56:49.464Z [INFO]  [32m[1m✓[22m[39m Compiled /middleware in 162ms (114 modules)
+2025-12-14T20:19:11.048Z [INFO]  [32m[1m✓[22m[39m Compiled /api/auth/me in 122ms (500 modules)
+2025-12-14T20:19:11.979Z [INFO]  [37m[1m○[22m[39m Compiling /dashboard ...
+2025-12-14T20:19:16.432Z [INFO]  [32m[1m✓[22m[39m Compiled /dashboard in 5s (2718 modules)
+2025-12-14T20:19:18.744Z [INFO]  [37m[1m○[22m[39m Compiling /api/dashboard/summary ...
+2025-12-14T20:19:19.897Z [INFO]  [32m[1m✓[22m[39m Compiled /api/dashboard/summary in 1659ms (2726 modules)
+2025-12-14T20:19:37.467Z [INFO]  [37m[1m○[22m[39m Compiling /vendors ...
+2025-12-14T20:19:42.290Z [INFO]  [32m[1m✓[22m[39m Compiled /vendors in 5.3s (5951 modules)
+2025-12-14T20:19:46.141Z [INFO]  [37m[1m○[22m[39m Compiling /api/vendors ...
+2025-12-14T20:19:48.663Z [INFO]  [32m[1m✓[22m[39m Compiled /api/vendors in 3s (5995 modules)
+2025-12-14T20:19:58.849Z [INFO]  [37m[1m○[22m[39m Compiling /admin ...
+2025-12-14T20:19:59.486Z [INFO]  [32m[1m✓[22m[39m Compiled /admin in 1427ms (6009 modules)
+2025-12-14T20:35:52.918Z [INFO]  [32m[1m✓[22m[39m Compiled in 699ms (3113 modules)
+2025-12-14T20:35:57.016Z [INFO]  [32m[1m✓[22m[39m Compiled in 1249ms (5931 modules)
+2025-12-14T20:35:57.050Z [WARN]  [33m[1m⚠[22m[39m Fast Refresh had to perform a full reload. Read more: https://nextjs.org/docs/messages/fast-refresh-reload
+2025-12-14T20:36:10.291Z [INFO]  [32m[1m✓[22m[39m Compiled in 829ms (5931 modules)
+2025-12-14T20:38:01.514Z [INFO]  [37m[1m○[22m[39m Compiling /api/notifications ...
+2025-12-14T20:38:02.224Z [INFO]  [32m[1m✓[22m[39m Compiled /api/notifications in 1226ms (3133 modules)
+2025-12-14T20:38:03.885Z [INFO]  [37m[1m○[22m[39m Compiling /admin/users ...
+2025-12-14T20:38:05.471Z [INFO]  [32m[1m✓[22m[39m Compiled /admin/users in 2.1s (5992 modules)
+2025-12-14T20:38:06.406Z [INFO]  [37m[1m○[22m[39m Compiling /api/auth/me ...
+2025-12-14T20:38:06.473Z [INFO]  [32m[1m✓[22m[39m Compiled /api/auth/me in 604ms (3157 modules)
+2025-12-14T20:38:07.626Z [INFO]  [37m[1m○[22m[39m Compiling /api/admin/users ...
+2025-12-14T20:38:08.120Z [INFO]  [32m[1m✓[22m[39m Compiled /api/admin/users in 1088ms (5996 modules)
+2025-12-14T20:38:09.182Z [INFO]  [37m[1m○[22m[39m Compiling /api/admin/rbac/roles ...
+2025-12-14T20:38:09.200Z [INFO]  [32m[1m✓[22m[39m Compiled /api/admin/rbac/roles in 621ms (5998 modules)
+2025-12-14T20:39:00.964Z [INFO]  [32m[1m✓[22m[39m Compiled in 1432ms (5998 modules)
+2025-12-14T21:29:31.029Z [INFO]  [37m[1m○[22m[39m Compiling /login ...
+2025-12-14T21:29:31.332Z [INFO]  [32m[1m✓[22m[39m Compiled /login in 803ms (1016 modules)
+2025-12-14T21:29:36.648Z [INFO]  [32m[1m✓[22m[39m Compiled /api/auth/signin in 296ms (1018 modules)
+2025-12-14T21:29:37.992Z [INFO]  [37m[1m○[22m[39m Compiling /dashboard ...
+2025-12-14T21:29:37.992Z [INFO]  [37m[1m○[22m[39m Compiling /dashboard ...
+2025-12-14T21:29:39.478Z [INFO]  [32m[1m✓[22m[39m Compiled /dashboard in 1992ms (2882 modules)
+2025-12-14T21:29:39.479Z [INFO]  [32m[1m✓[22m[39m Compiled /dashboard in 1992ms (2882 modules)
+2025-12-14T21:29:40.870Z [INFO]  [37m[1m○[22m[39m Compiling /api/dashboard/summary ...
+2025-12-14T21:29:40.871Z [INFO]  [37m[1m○[22m[39m Compiling /api/dashboard/summary ...
+2025-12-14T21:29:41.263Z [INFO]  [32m[1m✓[22m[39m Compiled /api/dashboard/summary in 894ms (2888 modules)
+2025-12-14T21:29:41.263Z [INFO]  [32m[1m✓[22m[39m Compiled /api/dashboard/summary in 894ms (2888 modules)
+2025-12-14T21:33:46.648Z [INFO]  [32m[1m✓[22m[39m Compiled in 918ms (2848 modules)
+2025-12-14T21:33:46.648Z [INFO]  [32m[1m✓[22m[39m Compiled in 918ms (2848 modules)
+2025-12-14T21:34:19.078Z [INFO]  [32m[1m✓[22m[39m Compiled in 396ms (2848 modules)
+2025-12-14T21:34:19.078Z [INFO]  [32m[1m✓[22m[39m Compiled in 396ms (2848 modules)
+2025-12-14T21:38:54.702Z [INFO]  [37m[1m○[22m[39m Compiling /api/auth/me ...
+2025-12-14T21:38:54.702Z [INFO]  [37m[1m○[22m[39m Compiling /api/auth/me ...
+2025-12-14T21:38:54.766Z [INFO]  [32m[1m✓[22m[39m Compiled /api/auth/me in 687ms (1590 modules)
+2025-12-14T21:38:54.766Z [INFO]  [32m[1m✓[22m[39m Compiled /api/auth/me in 687ms (1590 modules)
+2025-12-14T21:38:55.157Z [INFO]  [32m[1m✓[22m[39m Compiled (1592 modules)
+2025-12-14T21:38:55.158Z [INFO]  [32m[1m✓[22m[39m Compiled (1592 modules)
+2025-12-14T21:38:56.369Z [INFO]  [37m[1m○[22m[39m Compiling /api/admin/users ...
+2025-12-14T21:38:56.369Z [INFO]  [37m[1m○[22m[39m Compiling /api/admin/users ...
+2025-12-14T21:38:56.429Z [INFO]  [32m[1m✓[22m[39m Compiled /api/admin/users in 653ms (1594 modules)
+2025-12-14T21:38:56.430Z [INFO]  [32m[1m✓[22m[39m Compiled /api/admin/users in 653ms (1594 modules)
+2025-12-14T21:38:57.140Z [INFO]  [32m[1m✓[22m[39m Compiled /api/admin/rbac/roles in 257ms (1596 modules)
+2025-12-14T21:38:57.140Z [INFO]  [32m[1m✓[22m[39m Compiled /api/admin/rbac/roles in 257ms (1596 modules)
+2025-12-14T21:47:56.313Z [INFO]  [32m[1m✓[22m[39m Compiled in 1032ms (2848 modules)
+2025-12-14T21:47:56.313Z [INFO]  [32m[1m✓[22m[39m Compiled in 1032ms (2848 modules)
+2025-12-14T21:51:33.197Z [INFO]  [32m[1m✓[22m[39m Compiled in 1107ms (2848 modules)
+2025-12-14T21:51:33.198Z [INFO]  [32m[1m✓[22m[39m Compiled in 1107ms (2848 modules)
+2025-12-14T21:52:54.460Z [INFO]  [37m[1m○[22m[39m Compiling /api/auth/me ...
+2025-12-14T21:52:54.460Z [INFO]  [37m[1m○[22m[39m Compiling /api/auth/me ...
+2025-12-14T21:52:54.525Z [INFO]  [32m[1m✓[22m[39m Compiled /api/auth/me in 684ms (1590 modules)
+2025-12-14T21:52:54.526Z [INFO]  [32m[1m✓[22m[39m Compiled /api/auth/me in 684ms (1590 modules)
+2025-12-14T21:52:54.897Z [INFO]  [32m[1m✓[22m[39m Compiled (1592 modules)
+2025-12-14T21:52:54.898Z [INFO]  [32m[1m✓[22m[39m Compiled (1592 modules)
+2025-12-14T21:52:55.965Z [INFO]  [37m[1m○[22m[39m Compiling /api/admin/users ...
+2025-12-14T21:52:55.965Z [INFO]  [37m[1m○[22m[39m Compiling /api/admin/users ...
+2025-12-14T21:52:56.027Z [INFO]  [32m[1m✓[22m[39m Compiled /api/admin/users in 565ms (1594 modules)
+2025-12-14T21:52:56.027Z [INFO]  [32m[1m✓[22m[39m Compiled /api/admin/users in 565ms (1594 modules)
+2025-12-14T21:52:56.699Z [INFO]  [32m[1m✓[22m[39m Compiled /api/admin/rbac/roles in 264ms (1596 modules)
+2025-12-14T21:52:56.699Z [INFO]  [32m[1m✓[22m[39m Compiled /api/admin/rbac/roles in 264ms (1596 modules)
+2025-12-14T21:53:03.771Z [INFO]  [32m[1m✓[22m[39m Compiled in 741ms (2874 modules)
+2025-12-14T21:53:03.771Z [INFO]  [32m[1m✓[22m[39m Compiled in 741ms (2874 modules)
+2025-12-14T22:35:22.266Z [INFO]  [32m[1m✓[22m[39m Compiled in 788ms (2848 modules)
+2025-12-14T22:35:22.266Z [INFO]  [32m[1m✓[22m[39m Compiled in 788ms (2848 modules)
+2025-12-14T22:35:25.060Z [INFO]  [32m[1m✓[22m[39m Compiled in 369ms (2848 modules)
+2025-12-14T22:35:25.060Z [INFO]  [32m[1m✓[22m[39m Compiled in 369ms (2848 modules)
+2025-12-14T22:35:27.324Z [INFO]  [32m[1m✓[22m[39m Compiled in 318ms (2848 modules)
+2025-12-14T22:35:27.324Z [INFO]  [32m[1m✓[22m[39m Compiled in 318ms (2848 modules)
+2025-12-14T22:35:30.121Z [INFO]  [32m[1m✓[22m[39m Compiled in 344ms (2848 modules)
+2025-12-14T22:35:30.121Z [INFO]  [32m[1m✓[22m[39m Compiled in 344ms (2848 modules)
+2025-12-14T22:36:10.433Z [INFO]  [32m[1m✓[22m[39m Compiled in 353ms (2848 modules)
+2025-12-14T22:36:10.433Z [INFO]  [32m[1m✓[22m[39m Compiled in 353ms (2848 modules)
+2025-12-14T22:37:38.643Z [INFO]  [32m[1m✓[22m[39m Compiled in 894ms (2962 modules)
+2025-12-14T22:37:38.643Z [INFO]  [32m[1m✓[22m[39m Compiled in 894ms (2962 modules)
+2025-12-14T22:39:40.150Z [INFO]  [37m[1m○[22m[39m Compiling /_error ...
+2025-12-14T22:39:40.150Z [INFO]  [37m[1m○[22m[39m Compiling /_error ...
+2025-12-14T22:39:46.012Z [WARN]  [33m[1m⚠[22m[39m Fast Refresh had to perform a full reload. Read more: https://nextjs.org/docs/messages/fast-refresh-reload
+2025-12-14T22:39:46.012Z [WARN]  [33m[1m⚠[22m[39m Fast Refresh had to perform a full reload. Read more: https://nextjs.org/docs/messages/fast-refresh-reload
+2025-12-14T22:39:46.410Z [WARN]  [33m[1m⚠[22m[39m Fast Refresh had to perform a full reload. Read more: https://nextjs.org/docs/messages/fast-refresh-reload
+2025-12-14T22:39:46.410Z [WARN]  [33m[1m⚠[22m[39m Fast Refresh had to perform a full reload. Read more: https://nextjs.org/docs/messages/fast-refresh-reload
+2025-12-14T22:39:46.849Z [WARN]  [33m[1m⚠[22m[39m Fast Refresh had to perform a full reload. Read more: https://nextjs.org/docs/messages/fast-refresh-reload
+2025-12-14T22:39:46.849Z [WARN]  [33m[1m⚠[22m[39m Fast Refresh had to perform a full reload. Read more: https://nextjs.org/docs/messages/fast-refresh-reload
+2025-12-14T22:40:00.473Z [WARN]  [33m[1m⚠[22m[39m Fast Refresh had to perform a full reload due to a runtime error.
+2025-12-14T22:40:00.473Z [WARN]  [33m[1m⚠[22m[39m Fast Refresh had to perform a full reload due to a runtime error.
+2025-12-14T22:40:00.711Z [WARN]  [33m[1m⚠[22m[39m Fast Refresh had to perform a full reload due to a runtime error.
+2025-12-14T22:40:00.711Z [WARN]  [33m[1m⚠[22m[39m Fast Refresh had to perform a full reload due to a runtime error.
+2025-12-14T22:40:00.953Z [WARN]  [33m[1m⚠[22m[39m Fast Refresh had to perform a full reload due to a runtime error.
+2025-12-14T22:40:00.953Z [WARN]  [33m[1m⚠[22m[39m Fast Refresh had to perform a full reload due to a runtime error.
+2025-12-14T22:40:01.059Z [WARN]  [33m[1m⚠[22m[39m Fast Refresh had to perform a full reload due to a runtime error.
+2025-12-14T22:40:01.059Z [WARN]  [33m[1m⚠[22m[39m Fast Refresh had to perform a full reload due to a runtime error.
+2025-12-14T22:41:03.523Z [WARN]  [33m[1m⚠[22m[39m Fast Refresh had to perform a full reload due to a runtime error.
+2025-12-14T22:41:03.523Z [WARN]  [33m[1m⚠[22m[39m Fast Refresh had to perform a full reload due to a runtime error.
+2025-12-14T22:41:04.108Z [WARN]  [33m[1m⚠[22m[39m Fast Refresh had to perform a full reload due to a runtime error.
+2025-12-14T22:41:04.108Z [WARN]  [33m[1m⚠[22m[39m Fast Refresh had to perform a full reload due to a runtime error.
+2025-12-14T22:41:04.498Z [WARN]  [33m[1m⚠[22m[39m Fast Refresh had to perform a full reload due to a runtime error.
+2025-12-14T22:41:04.498Z [WARN]  [33m[1m⚠[22m[39m Fast Refresh had to perform a full reload due to a runtime error.
+2025-12-14T22:41:16.763Z [WARN]  [33m[1m⚠[22m[39m Fast Refresh had to perform a full reload due to a runtime error.
+2025-12-14T22:41:16.763Z [WARN]  [33m[1m⚠[22m[39m Fast Refresh had to perform a full reload due to a runtime error.
+2025-12-14T22:41:16.997Z [WARN]  [33m[1m⚠[22m[39m Fast Refresh had to perform a full reload due to a runtime error.
+2025-12-14T22:41:16.997Z [WARN]  [33m[1m⚠[22m[39m Fast Refresh had to perform a full reload due to a runtime error.
+2025-12-14T22:41:17.120Z [WARN]  [33m[1m⚠[22m[39m Fast Refresh had to perform a full reload due to a runtime error.
+2025-12-14T22:41:17.120Z [WARN]  [33m[1m⚠[22m[39m Fast Refresh had to perform a full reload due to a runtime error.
+2025-12-14T22:42:00.680Z [WARN]  [33m[1m⚠[22m[39m Fast Refresh had to perform a full reload due to a runtime error.
+2025-12-14T22:42:00.680Z [WARN]  [33m[1m⚠[22m[39m Fast Refresh had to perform a full reload due to a runtime error.
+2025-12-14T22:42:04.460Z [WARN]  [33m[1m⚠[22m[39m Fast Refresh had to perform a full reload. Read more: https://nextjs.org/docs/messages/fast-refresh-reload
+2025-12-14T22:42:04.460Z [WARN]  [33m[1m⚠[22m[39m Fast Refresh had to perform a full reload. Read more: https://nextjs.org/docs/messages/fast-refresh-reload
+2025-12-14T22:42:31.211Z [WARN]  [33m[1m⚠[22m[39m Fast Refresh had to perform a full reload due to a runtime error.
+2025-12-14T22:42:31.211Z [WARN]  [33m[1m⚠[22m[39m Fast Refresh had to perform a full reload due to a runtime error.
+2025-12-14T22:43:13.803Z [WARN]  [33m[1m⚠[22m[39m Fast Refresh had to perform a full reload. Read more: https://nextjs.org/docs/messages/fast-refresh-reload
+2025-12-14T22:43:13.803Z [WARN]  [33m[1m⚠[22m[39m Fast Refresh had to perform a full reload. Read more: https://nextjs.org/docs/messages/fast-refresh-reload
+2025-12-14T22:43:27.856Z [WARN]  [33m[1m⚠[22m[39m Fast Refresh had to perform a full reload. Read more: https://nextjs.org/docs/messages/fast-refresh-reload
+2025-12-14T22:43:27.856Z [WARN]  [33m[1m⚠[22m[39m Fast Refresh had to perform a full reload. Read more: https://nextjs.org/docs/messages/fast-refresh-reload
+2025-12-14T22:43:28.049Z [WARN]  [33m[1m⚠[22m[39m ./src/lib/db.ts
+Attempted import error: 'logger' is not exported from './logger' (imported as 'logger').
+
+Import trace for requested module:
+./src/lib/db.ts
+./app/layout.tsx
+2025-12-14T22:43:28.049Z [WARN]  [33m[1m⚠[22m[39m ./src/lib/db.ts
+Attempted import error: 'logger' is not exported from './logger' (imported as 'logger').
+
+Import trace for requested module:
+./src/lib/db.ts
+./app/layout.tsx
+2025-12-14T22:43:28.213Z [WARN]  [33m[1m⚠[22m[39m ./src/lib/db.ts
+Attempted import error: 'logger' is not exported from './logger' (imported as 'logger').
+
+Import trace for requested module:
+./src/lib/db.ts
+./app/layout.tsx
+2025-12-14T22:43:28.213Z [WARN]  [33m[1m⚠[22m[39m ./src/lib/db.ts
+Attempted import error: 'logger' is not exported from './logger' (imported as 'logger').
+
+Import trace for requested module:
+./src/lib/db.ts
+./app/layout.tsx
+2025-12-14T22:43:28.214Z [WARN]  [33m[1m⚠[22m[39m ./src/lib/db.ts
+Attempted import error: 'logger' is not exported from './logger' (imported as 'logger').
+
+Import trace for requested module:
+./src/lib/db.ts
+./app/layout.tsx
+2025-12-14T22:43:28.214Z [WARN]  [33m[1m⚠[22m[39m ./src/lib/db.ts
+Attempted import error: 'logger' is not exported from './logger' (imported as 'logger').
+
+Import trace for requested module:
+./src/lib/db.ts
+./app/layout.tsx
+2025-12-14T22:43:30.918Z [WARN]  [33m[1m⚠[22m[39m ./src/lib/db.ts
+Attempted import error: 'logger' is not exported from './logger' (imported as 'logger').
+
+Import trace for requested module:
+./src/lib/db.ts
+./app/layout.tsx
+2025-12-14T22:43:30.918Z [WARN]  [33m[1m⚠[22m[39m ./src/lib/db.ts
+Attempted import error: 'logger' is not exported from './logger' (imported as 'logger').
+
+Import trace for requested module:
+./src/lib/db.ts
+./app/layout.tsx
+2025-12-14T22:43:30.919Z [WARN]  [33m[1m⚠[22m[39m ./src/lib/db.ts
+Attempted import error: 'logger' is not exported from './logger' (imported as 'logger').
+
+Import trace for requested module:
+./src/lib/db.ts
+./app/layout.tsx
+2025-12-14T22:43:32.333Z [WARN]  [33m[1m⚠[22m[39m ./src/lib/db.ts
+Attempted import error: 'logger' is not exported from './logger' (imported as 'logger').
+
+Import trace for requested module:
+./src/lib/db.ts
+./app/layout.tsx
+2025-12-14T22:43:32.333Z [WARN]  [33m[1m⚠[22m[39m ./src/lib/db.ts
+Attempted import error: 'logger' is not exported from './logger' (imported as 'logger').
+
+Import trace for requested module:
+./src/lib/db.ts
+./app/layout.tsx
+2025-12-14T22:43:32.334Z [WARN]  [33m[1m⚠[22m[39m ./src/lib/db.ts
+Attempted import error: 'logger' is not exported from './logger' (imported as 'logger').
+
+Import trace for requested module:
+./src/lib/db.ts
+./app/layout.tsx
+2025-12-14T22:43:32.727Z [WARN]  [33m[1m⚠[22m[39m ./src/lib/db.ts
+Attempted import error: 'logger' is not exported from './logger' (imported as 'logger').
+
+Import trace for requested module:
+./src/lib/db.ts
+./app/layout.tsx
+2025-12-14T22:43:32.727Z [WARN]  [33m[1m⚠[22m[39m ./src/lib/db.ts
+Attempted import error: 'logger' is not exported from './logger' (imported as 'logger').
+
+Import trace for requested module:
+./src/lib/db.ts
+./app/layout.tsx
+2025-12-14T22:43:32.728Z [WARN]  [33m[1m⚠[22m[39m ./src/lib/db.ts
+Attempted import error: 'logger' is not exported from './logger' (imported as 'logger').
+
+Import trace for requested module:
+./src/lib/db.ts
+./app/layout.tsx
+2025-12-14T22:43:33.088Z [WARN]  [33m[1m⚠[22m[39m ./src/lib/db.ts
+Attempted import error: 'logger' is not exported from './logger' (imported as 'logger').
+
+Import trace for requested module:
+./src/lib/db.ts
+./app/api/notifications/route.ts
+2025-12-14T22:43:33.088Z [WARN]  [33m[1m⚠[22m[39m ./src/lib/db.ts
+Attempted import error: 'logger' is not exported from './logger' (imported as 'logger').
+
+Import trace for requested module:
+./src/lib/db.ts
+./app/api/notifications/route.ts
+2025-12-14T22:43:33.088Z [WARN]  [33m[1m⚠[22m[39m ./src/lib/db.ts
+Attempted import error: 'logger' is not exported from './logger' (imported as 'logger').
+
+Import trace for requested module:
+./src/lib/db.ts
+./app/api/notifications/route.ts
+2025-12-14T22:43:33.424Z [WARN]  [33m[1m⚠[22m[39m ./src/lib/db.ts
+Attempted import error: 'logger' is not exported from './logger' (imported as 'logger').
+
+Import trace for requested module:
+./src/lib/db.ts
+./app/api/notifications/route.ts
+2025-12-14T22:43:33.424Z [WARN]  [33m[1m⚠[22m[39m ./src/lib/db.ts
+Attempted import error: 'logger' is not exported from './logger' (imported as 'logger').
+
+Import trace for requested module:
+./src/lib/db.ts
+./app/api/notifications/route.ts
+2025-12-14T22:43:33.424Z [WARN]  [33m[1m⚠[22m[39m ./src/lib/db.ts
+Attempted import error: 'logger' is not exported from './logger' (imported as 'logger').
+
+Import trace for requested module:
+./src/lib/db.ts
+./app/api/notifications/route.ts
+2025-12-14T22:43:33.991Z [WARN]  [33m[1m⚠[22m[39m ./src/lib/db.ts
+Attempted import error: 'logger' is not exported from './logger' (imported as 'logger').
+
+Import trace for requested module:
+./src/lib/db.ts
+./app/api/notifications/route.ts
+2025-12-14T22:43:33.991Z [WARN]  [33m[1m⚠[22m[39m ./src/lib/db.ts
+Attempted import error: 'logger' is not exported from './logger' (imported as 'logger').
+
+Import trace for requested module:
+./src/lib/db.ts
+./app/api/notifications/route.ts
+2025-12-14T22:43:33.991Z [WARN]  [33m[1m⚠[22m[39m ./src/lib/db.ts
+Attempted import error: 'logger' is not exported from './logger' (imported as 'logger').
+
+Import trace for requested module:
+./src/lib/db.ts
+./app/api/notifications/route.ts
+2025-12-14T22:43:33.991Z [WARN]  [33m[1m⚠[22m[39m ./src/lib/db.ts
+Attempted import error: 'logger' is not exported from './logger' (imported as 'logger').
+
+Import trace for requested module:
+./src/lib/db.ts
+./app/api/notifications/route.ts
+2025-12-14T22:43:33.993Z [WARN]  [33m[1m⚠[22m[39m ./src/lib/db.ts
+Attempted import error: 'logger' is not exported from './logger' (imported as 'logger').
+
+Import trace for requested module:
+./src/lib/db.ts
+./app/api/notifications/route.ts
+2025-12-14T22:43:33.993Z [WARN]  [33m[1m⚠[22m[39m ./src/lib/db.ts
+Attempted import error: 'logger' is not exported from './logger' (imported as 'logger').
+
+Import trace for requested module:
+./src/lib/db.ts
+./app/api/notifications/route.ts
+2025-12-14T22:43:33.993Z [WARN]  [33m[1m⚠[22m[39m ./src/lib/db.ts
+Attempted import error: 'logger' is not exported from './logger' (imported as 'logger').
+
+Import trace for requested module:
+./src/lib/db.ts
+./app/api/notifications/route.ts
+2025-12-14T22:43:33.993Z [WARN]  [33m[1m⚠[22m[39m ./src/lib/db.ts
+Attempted import error: 'logger' is not exported from './logger' (imported as 'logger').
+
+Import trace for requested module:
+./src/lib/db.ts
+./app/api/notifications/route.ts
+2025-12-14T22:43:34.572Z [WARN]  [33m[1m⚠[22m[39m ./src/lib/db.ts
+Attempted import error: 'logger' is not exported from './logger' (imported as 'logger').
+
+Import trace for requested module:
+./src/lib/db.ts
+./app/api/notifications/route.ts
+2025-12-14T22:43:34.573Z [WARN]  [33m[1m⚠[22m[39m ./src/lib/db.ts
+Attempted import error: 'logger' is not exported from './logger' (imported as 'logger').
+
+Import trace for requested module:
+./src/lib/db.ts
+./app/api/notifications/route.ts
+2025-12-14T22:43:34.573Z [WARN]  [33m[1m⚠[22m[39m ./src/lib/db.ts
+Attempted import error: 'logger' is not exported from './logger' (imported as 'logger').
+
+Import trace for requested module:
+./src/lib/db.ts
+./app/api/notifications/route.ts
+2025-12-14T22:43:34.573Z [WARN]  [33m[1m⚠[22m[39m ./src/lib/db.ts
+Attempted import error: 'logger' is not exported from './logger' (imported as 'logger').
+
+Import trace for requested module:
+./src/lib/db.ts
+./app/api/notifications/route.ts
+2025-12-14T22:43:34.573Z [WARN]  [33m[1m⚠[22m[39m ./src/lib/db.ts
+Attempted import error: 'logger' is not exported from './logger' (imported as 'logger').
+
+Import trace for requested module:
+./src/lib/db.ts
+./app/api/notifications/route.ts
+2025-12-14T22:43:34.911Z [WARN]  [33m[1m⚠[22m[39m ./src/lib/db.ts
+Attempted import error: 'logger' is not exported from './logger' (imported as 'logger').
+
+Import trace for requested module:
+./src/lib/db.ts
+./app/api/notifications/route.ts
+2025-12-14T22:43:34.911Z [WARN]  [33m[1m⚠[22m[39m ./src/lib/db.ts
+Attempted import error: 'logger' is not exported from './logger' (imported as 'logger').
+
+Import trace for requested module:
+./src/lib/db.ts
+./app/api/notifications/route.ts
+2025-12-14T22:43:34.911Z [WARN]  [33m[1m⚠[22m[39m ./src/lib/db.ts
+Attempted import error: 'logger' is not exported from './logger' (imported as 'logger').
+
+Import trace for requested module:
+./src/lib/db.ts
+./app/api/notifications/route.ts
+2025-12-14T22:43:34.912Z [WARN]  [33m[1m⚠[22m[39m ./src/lib/db.ts
+Attempted import error: 'logger' is not exported from './logger' (imported as 'logger').
+
+Import trace for requested module:
+./src/lib/db.ts
+./app/api/notifications/route.ts
+2025-12-14T22:43:34.912Z [WARN]  [33m[1m⚠[22m[39m ./src/lib/db.ts
+Attempted import error: 'logger' is not exported from './logger' (imported as 'logger').
+
+Import trace for requested module:
+./src/lib/db.ts
+./app/api/notifications/route.ts
+2025-12-14T22:43:35.326Z [WARN]  [33m[1m⚠[22m[39m ./src/lib/db.ts
+Attempted import error: 'logger' is not exported from './logger' (imported as 'logger').
+
+Import trace for requested module:
+./src/lib/db.ts
+./app/api/notifications/route.ts
+2025-12-14T22:43:35.326Z [WARN]  [33m[1m⚠[22m[39m ./src/lib/db.ts
+Attempted import error: 'logger' is not exported from './logger' (imported as 'logger').
+
+Import trace for requested module:
+./src/lib/db.ts
+./app/api/notifications/route.ts
+2025-12-14T22:43:35.326Z [WARN]  [33m[1m⚠[22m[39m ./src/lib/db.ts
+Attempted import error: 'logger' is not exported from './logger' (imported as 'logger').
+
+Import trace for requested module:
+./src/lib/db.ts
+./app/api/notifications/route.ts
+2025-12-14T22:43:35.326Z [WARN]  [33m[1m⚠[22m[39m ./src/lib/db.ts
+Attempted import error: 'logger' is not exported from './logger' (imported as 'logger').
+
+Import trace for requested module:
+./src/lib/db.ts
+./app/api/notifications/route.ts
+2025-12-14T22:43:35.326Z [WARN]  [33m[1m⚠[22m[39m ./src/lib/db.ts
+Attempted import error: 'logger' is not exported from './logger' (imported as 'logger').
+
+Import trace for requested module:
+./src/lib/db.ts
+./app/api/notifications/route.ts
+2025-12-14T22:43:35.327Z [WARN]  [33m[1m⚠[22m[39m ./src/lib/db.ts
+Attempted import error: 'logger' is not exported from './logger' (imported as 'logger').
+
+Import trace for requested module:
+./src/lib/db.ts
+./app/api/notifications/route.ts
+2025-12-14T22:43:35.625Z [WARN]  [33m[1m⚠[22m[39m ./src/lib/db.ts
+Attempted import error: 'logger' is not exported from './logger' (imported as 'logger').
+
+Import trace for requested module:
+./src/lib/db.ts
+./app/api/notifications/route.ts
+2025-12-14T22:43:35.625Z [WARN]  [33m[1m⚠[22m[39m ./src/lib/db.ts
+Attempted import error: 'logger' is not exported from './logger' (imported as 'logger').
+
+Import trace for requested module:
+./src/lib/db.ts
+./app/api/notifications/route.ts
+2025-12-14T22:43:35.626Z [WARN]  [33m[1m⚠[22m[39m ./src/lib/db.ts
+Attempted import error: 'logger' is not exported from './logger' (imported as 'logger').
+
+Import trace for requested module:
+./src/lib/db.ts
+./app/api/notifications/route.ts
+2025-12-14T22:43:35.626Z [WARN]  [33m[1m⚠[22m[39m ./src/lib/db.ts
+Attempted import error: 'logger' is not exported from './logger' (imported as 'logger').
+
+Import trace for requested module:
+./src/lib/db.ts
+./app/api/notifications/route.ts
+2025-12-14T22:43:35.626Z [WARN]  [33m[1m⚠[22m[39m ./src/lib/db.ts
+Attempted import error: 'logger' is not exported from './logger' (imported as 'logger').
+
+Import trace for requested module:
+./src/lib/db.ts
+./app/api/notifications/route.ts
+2025-12-14T22:43:35.626Z [WARN]  [33m[1m⚠[22m[39m ./src/lib/db.ts
+Attempted import error: 'logger' is not exported from './logger' (imported as 'logger').
+
+Import trace for requested module:
+./src/lib/db.ts
+./app/api/notifications/route.ts
+2025-12-14T22:44:24.556Z [INFO]  [32m[1m✓[22m[39m Compiled /api/admin/rbac/roles in 280ms (1788 modules)
+2025-12-14T22:44:24.556Z [INFO]  [32m[1m✓[22m[39m Compiled /api/admin/rbac/roles in 280ms (1788 modules)
+2025-12-14T22:44:24.556Z [INFO]  [32m[1m✓[22m[39m Compiled /api/admin/rbac/roles in 280ms (1788 modules)
+2025-12-14T22:44:24.557Z [INFO]  [32m[1m✓[22m[39m Compiled /api/admin/rbac/roles in 280ms (1788 modules)
+2025-12-14T22:44:24.557Z [INFO]  [32m[1m✓[22m[39m Compiled /api/admin/rbac/roles in 280ms (1788 modules)
+2025-12-14T22:44:24.557Z [INFO]  [32m[1m✓[22m[39m Compiled /api/admin/rbac/roles in 280ms (1788 modules)
+2025-12-14T22:44:24.557Z [INFO]  [32m[1m✓[22m[39m Compiled /api/admin/rbac/roles in 280ms (1788 modules)
+2025-12-14T22:44:26.606Z [INFO]  [32m[1m✓[22m[39m Compiled in 746ms (3217 modules)
+2025-12-14T22:44:26.606Z [INFO]  [32m[1m✓[22m[39m Compiled in 746ms (3217 modules)
+2025-12-14T22:44:26.606Z [INFO]  [32m[1m✓[22m[39m Compiled in 746ms (3217 modules)
+2025-12-14T22:44:26.606Z [INFO]  [32m[1m✓[22m[39m Compiled in 746ms (3217 modules)
+2025-12-14T22:44:26.606Z [INFO]  [32m[1m✓[22m[39m Compiled in 746ms (3217 modules)
+2025-12-14T22:44:26.606Z [INFO]  [32m[1m✓[22m[39m Compiled in 746ms (3217 modules)
+2025-12-14T22:44:26.606Z [INFO]  [32m[1m✓[22m[39m Compiled in 746ms (3217 modules)
+2025-12-14T22:44:26.606Z [INFO]  [32m[1m✓[22m[39m Compiled in 746ms (3217 modules)
+2025-12-14T22:44:39.698Z [INFO]  [32m[1m✓[22m[39m Compiled in 329ms (3212 modules)
+2025-12-14T22:44:39.698Z [INFO]  [32m[1m✓[22m[39m Compiled in 329ms (3212 modules)
+2025-12-14T22:44:39.698Z [INFO]  [32m[1m✓[22m[39m Compiled in 329ms (3212 modules)
+2025-12-14T22:44:39.698Z [INFO]  [32m[1m✓[22m[39m Compiled in 329ms (3212 modules)
+2025-12-14T22:44:39.698Z [INFO]  [32m[1m✓[22m[39m Compiled in 329ms (3212 modules)
+2025-12-14T22:44:39.698Z [INFO]  [32m[1m✓[22m[39m Compiled in 329ms (3212 modules)
+2025-12-14T22:44:39.698Z [INFO]  [32m[1m✓[22m[39m Compiled in 329ms (3212 modules)
+2025-12-14T22:44:39.698Z [INFO]  [32m[1m✓[22m[39m Compiled in 329ms (3212 modules)

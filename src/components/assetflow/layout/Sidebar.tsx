@@ -58,7 +58,7 @@ function sanitizeImageUrl(u?: string | null): string | null {
   }
 }
 
-type Role = "admin" | "user" | "superadmin";
+type Role = "admin" | "user" | "superadmin" | "auditor";
 
 interface NavItem {
   name: string;
