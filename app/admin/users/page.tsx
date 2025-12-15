@@ -172,8 +172,9 @@ export default function ManageUsersPage() {
       if (!targetHasSuper) list = list.filter((r) => r !== "superadmin"); // Filter superadmin role
     }
 
-    // Auditor role may only be assigned by Superadmin from the UI
-    if (me?.role !== "superadmin") {
+    // Auditor role may be assigned by Admin and Superadmin from the UI.
+    // Only regular users (non-admins) should not see the auditor option.
+    if (!(me?.role === "admin" || me?.role === "superadmin")) {
       list = list.filter((r) => r !== "auditor");
     }
 
@@ -528,7 +529,7 @@ export default function ManageUsersPage() {
     return "User";
   };
 
-  const ROLE_LABELS: Record<string, string> = {
+  const ROLE_LABELS: Record<Role, string> = {
     superadmin: "Superadmin",
     admin: "Admin",
     auditor: "Auditor",
@@ -760,7 +761,10 @@ export default function ManageUsersPage() {
     </>
   );
 }
-function renderUserTable(users: User[], renderUserRow) {
+function renderUserTable(
+  users: User[],
+  renderUserRow: (u: User) => JSX.Element
+): JSX.Element {
   return (
     <div className="overflow-x-auto">
       <table className="min-w-full text-left">

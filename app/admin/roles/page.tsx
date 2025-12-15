@@ -11,6 +11,7 @@ export default function RolesPermissionsPage() {
   const [rolePerms, setRolePerms] = useState<Record<Role, Set<string>>>({
     admin: new Set(),
     user: new Set(),
+    auditor: new Set(),
   });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -52,6 +53,7 @@ export default function RolesPermissionsPage() {
         setRolePerms({
           admin: new Set(),
           user: new Set(rpU.permissions || []),
+          auditor: new Set(),
         });
         setLoading(false);
       })
@@ -65,10 +67,12 @@ export default function RolesPermissionsPage() {
   const rolePermUpdateTimers = useRef<Record<Role, any>>({
     admin: null,
     user: null,
+    auditor: null,
   });
   const pendingRolePerms = useRef<Record<Role, Set<string>>>({
     admin: new Set(),
     user: new Set(),
+    auditor: new Set(),
   });
   const queueRolePermsUpdate = (role: Role, nextSet: Set<string>) => {
     pendingRolePerms.current[role] = new Set(nextSet);
