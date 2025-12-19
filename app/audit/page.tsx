@@ -1,8 +1,9 @@
 "use client";
-import { AuditsPage } from "../../src/components/assetflow/audits/AuditsPage";
+
+import { AuditPage } from "../../src/components/assetflow/audit/AuditPage";
 import useAssetflowNavigate from "../../src/components/assetflow/layout/useAssetflowNavigate";
 
 export default function Page() {
   const { onNavigate, onSearch } = useAssetflowNavigate();
-  return <AuditsPage onNavigate={onNavigate} onSearch={onSearch} />;
+  return <AuditPage onNavigate={onNavigate} onSearch={onSearch} />;
 }

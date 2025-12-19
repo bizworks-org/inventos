@@ -5,6 +5,7 @@ import {
   FileText,
   Users,
   Activity,
+  ClipboardCheck,
   Settings,
   Shield,
 } from "lucide-react";
@@ -19,20 +20,14 @@ function sanitizeImageUrl(u?: string | null): string | null {
   if (!u) return null;
   try {
     const s = u.trim();
-
-    // Disallow empty after trim
     if (!s) return null;
 
-    // If running in a non-browser environment, only allow safe data: URLs (no http fetch on server)
     const runningInBrowser =
-      typeof globalThis !== "undefined" && globalThis.window !== undefined;
+      typeof globalThis !== "undefined" && (globalThis as any).window !== undefined;
 
-    // Allow only a restricted set of raster image data URLs (explicitly disallow SVG and other text-based images).
-    // We require base64 data for these types to avoid tricky encodings.
     const allowedDataImageRE =
-      /^data:image\/(png|jpeg|jpg|webp|gif|avif);base64,[A-Z0-9+/]+={0,2}$/i;
+      /^data:image\/(png|jpeg|jpg|webp|gif|avif);base64,[A-Za-z0-9+/]+={0,2}$/i;
     if (s.startsWith("data:image/")) {
-      // Normalize by removing whitespace then validate structure and mime type
       const normalized = s.split(/\s+/).join("");
       if (allowedDataImageRE.test(normalized)) return normalized;
       return null;
@@ -40,18 +35,13 @@ function sanitizeImageUrl(u?: string | null): string | null {
 
     if (!runningInBrowser) return null;
 
-    // Use the URL constructor to resolve relative URLs against the current origin.
-    const parsed = new URL(s, globalThis.window.location.origin);
-
-    // Only allow http(s) protocols; also reject overly long URLs to reduce abuse surface.
+    const parsed = new URL(s, (globalThis as any).window.location.origin);
     if (
       (parsed.protocol === "http:" || parsed.protocol === "https:") &&
       parsed.href.length < 2000
     ) {
-      // Normalize and return the absolute href
       return parsed.href;
     }
-
     return null;
   } catch {
     return null;
@@ -80,7 +70,6 @@ const navItems: NavItem[] = [
     icon: Package,
     colorClass: "text-emerald-400",
   },
-
   {
     name: "Licenses",
     id: "licenses",
@@ -89,16 +78,16 @@ const navItems: NavItem[] = [
   },
   { name: "Vendors", id: "vendors", icon: Users, colorClass: "text-amber-400" },
   {
-    name: "Audits",
-    id: "audits",
-    icon: Activity,
-    colorClass: "text-cyan-400",
-  },
-  {
     name: "Events",
     id: "events",
     icon: Activity,
     colorClass: "text-sky-300",
+  },
+  {
+    name: "Audit",
+    id: "audit",
+    icon: ClipboardCheck,
+    colorClass: "text-teal-300",
   },
   {
     name: "Settings",
@@ -145,8 +134,8 @@ export function Sidebar({
   });
   const pathById: Record<string, string> = {
     dashboard: "/dashboard",
+    audit: "/audit",
     assets: "/assets",
-    audits: "/audits",
     licenses: "/licenses",
     vendors: "/vendors",
     events: "/events",
@@ -229,7 +218,11 @@ export function Sidebar({
       me?.role === "superadmin";
 
     // Start with base items
-    const base: NavItem[] = [...navItems];
+    // Audit is restricted to superadmin
+    const base: NavItem[] = navItems.filter((i) => {
+      if (i.id === "audit") return me?.role === "superadmin";
+      return true;
+    });
     const idx = base.findIndex((i) => i.id === "settings");
     if (idx !== -1) {
       const children: NavItem[] = [

@@ -9,16 +9,30 @@ const INFO_LOG = path.join(LOG_DIR, "info.log");
 const ERROR_LOG = path.join(LOG_DIR, "error.log");
 const AUTH_LOG = path.join(LOG_DIR, "auth.log");
 
+let useVercelBlob = false;
+
 function ensureLogDir() {
-  // Create the log directory; let errors surface so unexpected failures are not silently ignored.
-  fs.mkdirSync(LOG_DIR, { recursive: true });
+  try {
+    fs.mkdirSync(LOG_DIR, { recursive: true });
+    useVercelBlob = false;
+  } catch (err) {
+    // If we can't create the logs directory (e.g., on Vercel), fall back to Vercel Blob
+    console.warn("Could not create logs directory, will use Vercel Blob", err);
+    useVercelBlob = true;
+  }
 }
 
 ensureLogDir();
 
-const infoStream = fs.createWriteStream(INFO_LOG, { flags: "a" });
-const errorStream = fs.createWriteStream(ERROR_LOG, { flags: "a" });
-const authStream = fs.createWriteStream(AUTH_LOG, { flags: "a" });
+let infoStream: fs.WriteStream | null = null;
+let errorStream: fs.WriteStream | null = null;
+let authStream: fs.WriteStream | null = null;
+
+if (!useVercelBlob) {
+  infoStream = fs.createWriteStream(INFO_LOG, { flags: "a" });
+  errorStream = fs.createWriteStream(ERROR_LOG, { flags: "a" });
+  authStream = fs.createWriteStream(AUTH_LOG, { flags: "a" });
+}
 function safeStringify(obj: Meta) {
   if (obj === undefined) return "";
   if (typeof obj === "string") return obj;
@@ -42,28 +56,80 @@ function formatLine(level: string, msg: unknown, meta?: Meta) {
   return `${ts} [${level}] ${message}${m}\n`;
 }
 
+async function writeToVercelBlob(logType: string, line: string) {
+  try {
+    const { put } = await import("@vercel/blob");
+    const key = `logs/${logType}.log`;
+    // Read existing content, append new line
+    try {
+      const response = await fetch(
+        `${process.env.BLOB_READ_WRITE_TOKEN ? "https://blob.vercel-storage.com" : ""}/logs/${logType}.log`,
+        {
+          headers: {
+            authorization: `Bearer ${process.env.BLOB_READ_WRITE_TOKEN}`,
+          },
+        }
+      );
+      if (response.ok) {
+        const existing = await response.text();
+        await put(key, existing + line, {
+          access: "public",
+          addRandomSuffix: false,
+        });
+      } else {
+        await put(key, line, { access: "public", addRandomSuffix: false });
+      }
+    } catch {
+      // If read fails, just write the new line
+      await put(key, line, { access: "public", addRandomSuffix: false });
+    }
+  } catch (err) {
+    // Silently fail if Vercel Blob is not available
+  }
+}
+
 const logger = {
   info(msg: unknown, meta?: Meta) {
+    const line = formatLine("INFO", msg, meta);
     try {
-      infoStream.write(formatLine("INFO", msg, meta));
+      if (useVercelBlob) {
+        writeToVercelBlob("info", line).catch(() => {});
+      } else if (infoStream) {
+        infoStream.write(line);
+      }
     } catch {}
     return true;
   },
   warn(msg: unknown, meta?: Meta) {
+    const line = formatLine("WARN", msg, meta);
     try {
-      infoStream.write(formatLine("WARN", msg, meta));
+      if (useVercelBlob) {
+        writeToVercelBlob("info", line).catch(() => {});
+      } else if (infoStream) {
+        infoStream.write(line);
+      }
     } catch {}
     return true;
   },
   error(msg: unknown, meta?: Meta) {
+    const line = formatLine("ERROR", msg, meta);
     try {
-      errorStream.write(formatLine("ERROR", msg, meta));
+      if (useVercelBlob) {
+        writeToVercelBlob("error", line).catch(() => {});
+      } else if (errorStream) {
+        errorStream.write(line);
+      }
     } catch {}
     return true;
   },
   auth(msg: unknown, meta?: Meta) {
+    const line = formatLine("AUTH", msg, meta);
     try {
-      authStream.write(formatLine("AUTH", msg, meta));
+      if (useVercelBlob) {
+        writeToVercelBlob("auth", line).catch(() => {});
+      } else if (authStream) {
+        authStream.write(line);
+      }
     } catch {}
     return true;
   },
