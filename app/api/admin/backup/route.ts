@@ -7,6 +7,8 @@ import {
   createDecipheriv,
   createHash,
 } from "@/lib/node-crypto.server";
+import fs from "fs/promises";
+import path from "path";
 
 // AES-256-GCM encryption helpers
 function getKey(): Buffer {
@@ -61,6 +63,26 @@ export async function GET(req: NextRequest) {
     const filename = `inventos-backup-${new Date()
       .toISOString()
       .replace(/[:.]/g, "-")}.bin`;
+
+    // Save local copy BEFORE sending response - raw byte-for-byte copy
+    try {
+      const localDir = process.env.BACKUP_LOCAL_PATH ||
+        "C:\\Users\\Harshada Vikhe\\Downloads\\BizWorks\\inventos\\Data";
+      await fs.mkdir(localDir, { recursive: true });
+      const target = path.join(localDir, filename);
+      // Write the exact same encrypted buffer to local storage
+      await fs.writeFile(target, out);
+      console.log(`Backup saved locally to: ${target}`);
+      
+      // Verify the file was written correctly
+      const stats = await fs.stat(target);
+      if (stats.size !== out.length) {
+        console.warn(`Backup file size mismatch: expected ${out.length}, got ${stats.size}`);
+      }
+    } catch (e) {
+      console.warn("Unable to persist local backup copy:", e?.message || e);
+      // Don't fail the backup if local storage fails
+    }
 
     return new NextResponse(out, {
       status: 200,
@@ -180,21 +202,47 @@ export async function POST(req: NextRequest) {
     );
 
   try {
-    const buf = Buffer.from(await req.arrayBuffer());
-    const dump = await decryptBackup(buf);
-
     const url = new URL(req.url);
     const isPreview =
       url.searchParams.get("preview") === "1" ||
       url.searchParams.get("preview") === "true";
+    const isSelective =
+      url.searchParams.get("selective") === "1" ||
+      url.searchParams.get("selective") === "true";
 
-    if (isPreview) {
-      const tables = await generatePreview(dump);
-      return NextResponse.json({ ok: true, tables });
+    let dump: Record<string, any>;
+
+    if (isSelective) {
+      // For selective restore, backup data is sent in header as base64
+      const backupDataB64 = req.headers.get("X-Backup-Data");
+      if (!backupDataB64) {
+        return NextResponse.json({ error: "Missing backup data" }, { status: 400 });
+      }
+      const buf = Buffer.from(backupDataB64, 'base64');
+      dump = await decryptBackup(buf);
+
+      // Get selected tables from body
+      const body = await req.json().catch(() => ({}));
+      const selectedTables = body.tables;
+      if (!Array.isArray(selectedTables)) {
+        return NextResponse.json({ error: "Invalid tables selection" }, { status: 400 });
+      }
+
+      await restoreSelectedTables(dump, selectedTables);
+      return NextResponse.json({ ok: true });
+    } else {
+      // Original logic for full restore and preview
+      const buf = Buffer.from(await req.arrayBuffer());
+      dump = await decryptBackup(buf);
+
+      if (isPreview) {
+        const tables = await generatePreview(dump);
+        return NextResponse.json({ ok: true, tables });
+      }
+
+      await restoreAllTables(dump);
+      return NextResponse.json({ ok: true });
     }
-
-    await restoreAllTables(dump);
-    return NextResponse.json({ ok: true });
   } catch (e: any) {
     return NextResponse.json(
       { error: e?.message || "failed" },

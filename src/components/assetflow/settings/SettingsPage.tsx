@@ -30,6 +30,8 @@ import { useMailManagement } from "./hooks/useMailManagement";
 import { SettingsHeader } from "./components/SettingsHeader";
 import { SettingsTabsList } from "./components/SettingsTabsList";
 import { RestorePreviewDialog } from "./components/RestorePreviewDialog";
+import { BackupHistoryTable } from "./components/BackupHistoryTable";
+import { BackupCaptcha } from "./components/BackupCaptcha";
 import { MailConfigForm } from "./components/MailConfigForm";
 import { AppearanceTab } from "./components/AppearanceTab";
 
@@ -521,10 +523,32 @@ function SettingsPageImpl({
     handleBackup,
     handlePreview,
     handleRestoreConfirmed,
+    handleSelectiveRestore,
+    handleSelectiveRestoreConfirmed,
+    selectiveRestoreOpen,
+    setSelectiveRestoreOpen,
+    selectiveRestoreBackup,
+    selectiveRestoreStats,
+    selectedTables,
+    setSelectedTables,
+    backupHistory,
+    loadBackupHistory,
+    selectedBackupId,
+    setSelectedBackupId,
+    deleteBackupFromHistory,
+    captchaVerified,
+    setCaptchaVerified,
   } = backupRestore;
 
   const [lastBackupDate, setLastBackupDate] = useState<Date | null>(null);
   const [lastRestoreDate, setLastRestoreDate] = useState<Date | null>(null);
+  const [showCaptcha, setShowCaptcha] = useState(false);
+  const [selectedBackupFile, setSelectedBackupFile] = useState<File | null>(null);
+
+  // Load backup history on mount
+  useEffect(() => {
+    loadBackupHistory();
+  }, [loadBackupHistory]);
 
   // load backup metadata from localStorage
   useEffect(() => {
@@ -557,19 +581,84 @@ function SettingsPageImpl({
       const now = new Date();
       setLastBackupDate(now);
       persistBackupMeta({ lastBackup: now.toISOString() });
+      await loadBackupHistory();
     }
   };
 
   const onPreviewFile = async (file: File | null) => {
+    if (file) {
+      setSelectedBackupFile(file);
+    }
     await handlePreview(file);
   };
 
+  // Attempt to fetch selected backup file from server and preview it
+  const onRestoreClick = async (backup?: any) => {
+    if (backup && backup.filePath) {
+      setSelectedBackupId(backup.filePath);
+    }
+
+    if (!selectedBackupId && !backup) {
+      // Show validation message if no backup is selected
+      toast.error("Please select a backup from the history table to restore");
+      return;
+    }
+    const idToUse = backup?.filePath || selectedBackupId;
+    const entry = backupHistory.find((b) => b.filePath === idToUse);
+    if (!entry) {
+      toast.error("Selected backup not found");
+      return;
+    }
+
+    try {
+      const filename = encodeURIComponent(entry.filePath || `${entry.backupName}.bin`);
+      const res = await fetch(`/api/admin/backup-file?name=${filename}`);
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data?.error || "Failed to fetch backup file");
+      }
+      const buf = await res.arrayBuffer();
+      const file = new File([buf], `${entry.backupName}.bin`, {
+        type: "application/octet-stream",
+      });
+      setSelectedBackupFile(file);
+      await handlePreview(file);
+      // preview will open; actual restore will require CAPTCHA (handled below)
+    } catch (e: any) {
+      toast.error(e?.message || "Failed to load backup file");
+    }
+  };
+
   const onConfirmRestore = async () => {
-    const ok = await handleRestoreConfirmed();
-    if (ok) {
-      const now = new Date();
-      setLastRestoreDate(now);
-      persistBackupMeta({ lastRestore: now.toISOString() });
+    // Show CAPTCHA before performing restore; actual restore runs after CAPTCHA verification
+    setShowCaptcha(true);
+  };
+
+  const onDownloadBackup = async (backup: any) => {
+    // For local backups, would download from the Data folder
+    // This is a placeholder for the feature
+    toast.info("Download started for " + backup.backupName);
+  };
+
+  const handleCaptchaVerified = async (verified: boolean) => {
+    setShowCaptcha(false);
+    if (!verified) {
+      setCaptchaVerified(false);
+      return;
+    }
+    setCaptchaVerified(true);
+    try {
+      const ok = await handleRestoreConfirmed();
+      if (ok) {
+        const now = new Date();
+        setLastRestoreDate(now);
+        persistBackupMeta({ lastRestore: now.toISOString() });
+        await loadBackupHistory();
+      }
+    } catch (e: any) {
+      // handleRestoreConfirmed already shows toast
+    } finally {
+      setCaptchaVerified(false);
     }
   };
 
@@ -920,16 +1009,13 @@ function SettingsPageImpl({
                       >
                         {backupInProgress ? "Backing up…" : "Backup"}
                       </Button>
-                      <label htmlFor="system-restore-file">
-                        <Button
-                          type="button"
-                          className="px-3 py-2 rounded-lg border text-white dark:text-gray-200"
-                        >
-                          {previewing || restoreInProgress
-                            ? "Processing…"
-                            : "Restore"}
-                        </Button>
-                      </label>
+                      <Button
+                        type="button"
+                        onClick={onRestoreClick}
+                        className="px-3 py-2 rounded-lg border text-white dark:text-gray-200"
+                      >
+                        {previewing || restoreInProgress ? "Processing…" : "Restore"}
+                      </Button>
                     </div>
 
                     <div className="text-sm text-gray-700 dark:text-gray-300">
@@ -944,6 +1030,19 @@ function SettingsPageImpl({
                         </div>
                       ) : null}
                     </div>
+
+                    {/* Backup History Table */}
+                    <BackupHistoryTable
+                      backups={backupHistory}
+                      selectedBackupId={selectedBackupId}
+                      onSelectBackup={setSelectedBackupId}
+                      onRestore={onRestoreClick}
+                      onSelectiveRestore={handleSelectiveRestore}
+                      onDelete={deleteBackupFromHistory}
+                      onDownload={onDownloadBackup}
+                      loading={backupInProgress || restoreInProgress}
+                      userRole={ctxMe?.role}
+                    />
                   </div>
                 ) : (
                   <div className="text-sm text-gray-600 dark:text-gray-400">
@@ -1073,6 +1172,17 @@ function SettingsPageImpl({
           setPreviewStats([]);
         }}
         onConfirm={onConfirmRestore}
+      />
+
+      {/* Backup CAPTCHA Verification */}
+      <BackupCaptcha
+        open={showCaptcha}
+        onVerified={handleCaptchaVerified}
+        onClose={() => setShowCaptcha(false)}
+        backupName={
+          backupHistory.find((b) => b.id === selectedBackupId)?.backupName ||
+          "backup"
+        }
       />
     </AssetFlowLayout>
   );
