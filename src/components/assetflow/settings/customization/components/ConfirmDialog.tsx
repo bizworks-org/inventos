@@ -1,6 +1,93 @@
-import { useRef } from "react";
 import Portal from "@/components/ui/Portal";
-import type { UiCategory } from "../catalogHelpers";
+
+// Helper component for warning section
+const WarningSection = ({
+  payload,
+  pendingTypes,
+}: {
+  payload: {
+    entity: "category" | "type";
+    id: number;
+    name: string;
+    count?: number;
+    types?: string[];
+  } | null;
+  pendingTypes: Array<{ id: number; name: string; sort: number }>;
+}) => {
+  const hasWarning =
+    payload && typeof payload.count === "number" && payload.count > 0;
+
+  if (!hasWarning) {
+    return (
+      <p className="text-sm text-[#64748b]">
+        This action cannot be undone. Proceed?
+      </p>
+    );
+  }
+
+  return (
+    <div className="p-4 bg-[#fff7ed] rounded-md border border-[#ffedd5] mb-2">
+      <p className="text-sm text-[#92400e]">
+        There are <span className="font-semibold">{payload.count}</span>{" "}
+        asset(s) that reference{" "}
+        {payload.entity === "category" ? "types in this category" : "this type"}
+        .
+      </p>
+      {payload.types && payload.types.length > 0 && (
+        <p className="text-xs text-[#92400e] mt-2">
+          Affected types: {payload.types.join(", ")}
+        </p>
+      )}
+      <p className="text-xs text-[#92400e] mt-2">
+        Deleting will remove the{" "}
+        {payload.entity === "category" ? "category and its types" : "type"} from
+        the catalog. Assets themselves will not be removed.
+      </p>
+    </div>
+  );
+};
+
+// Helper component for confirm button section
+const ConfirmSection = ({
+  payload,
+  isBusy,
+  confirmBtnRef,
+  onConfirm,
+}: {
+  payload: {
+    entity: "category" | "type";
+    id: number;
+    name: string;
+    count?: number;
+    types?: string[];
+  } | null;
+  isBusy: boolean;
+  confirmBtnRef: React.RefObject<HTMLButtonElement>;
+  onConfirm: () => void;
+}) => {
+  const hasBlockingAssets =
+    payload && typeof payload.count === "number" && payload.count > 0;
+
+  if (hasBlockingAssets) {
+    return (
+      <div className="text-sm text-[#92400e]">
+        This item cannot be deleted because there are assets assigned. Reassign
+        or remove assets first.
+      </div>
+    );
+  }
+
+  return (
+    <button
+      onClick={onConfirm}
+      ref={confirmBtnRef}
+      disabled={isBusy}
+      className="px-4 py-2 rounded-lg border bg-[#ef4444] text-white"
+    >
+      {isBusy ? "Working…" : "Delete"}
+    </button>
+  );
+};
 
 interface ConfirmDialogProps {
   isOpen: boolean;
@@ -65,50 +152,18 @@ export const ConfirmDialog = ({
               )}
             </div>
 
-            {payload &&
-              payload.entity === "category" &&
-              pendingTypes.length > 0 && (
-                <div className="mb-3">
-                  <p className="text-sm text-[#64748b]">
-                    This category contains{" "}
-                    <span className="font-semibold">{pendingTypes.length}</span>{" "}
-                    type(s). These types will be deleted along with the category
-                    if no assets reference them.
-                  </p>
-                </div>
-              )}
-
-            {payload &&
-            typeof payload.count === "number" &&
-            payload.count > 0 ? (
-              <div className="p-4 bg-[#fff7ed] rounded-md border border-[#ffedd5] mb-2">
-                <p className="text-sm text-[#92400e]">
-                  There are{" "}
-                  <span className="font-semibold">{payload.count}</span>{" "}
-                  asset(s) that reference{" "}
-                  {payload.entity === "category"
-                    ? "types in this category"
-                    : "this type"}
-                  .
-                </p>
-                {payload.types && payload.types.length > 0 && (
-                  <p className="text-xs text-[#92400e] mt-2">
-                    Affected types: {payload.types.join(", ")}
-                  </p>
-                )}
-                <p className="text-xs text-[#92400e] mt-2">
-                  Deleting will remove the{" "}
-                  {payload.entity === "category"
-                    ? "category and its types"
-                    : "type"}{" "}
-                  from the catalog. Assets themselves will not be removed.
+            {payload?.entity === "category" && pendingTypes.length > 0 && (
+              <div className="mb-3">
+                <p className="text-sm text-[#64748b]">
+                  This category contains{" "}
+                  <span className="font-semibold">{pendingTypes.length}</span>{" "}
+                  type(s). These types will be deleted along with the category
+                  if no assets reference them.
                 </p>
               </div>
-            ) : (
-              <p className="text-sm text-[#64748b]">
-                This action cannot be undone. Proceed?
-              </p>
             )}
+
+            <WarningSection payload={payload} pendingTypes={pendingTypes} />
 
             <div className="mt-6 flex items-center justify-end gap-3">
               <button
@@ -118,23 +173,12 @@ export const ConfirmDialog = ({
                 Cancel
               </button>
 
-              {payload &&
-              typeof payload.count === "number" &&
-              payload.count > 0 ? (
-                <div className="text-sm text-[#92400e]">
-                  This item cannot be deleted because there are assets assigned.
-                  Reassign or remove assets first.
-                </div>
-              ) : (
-                <button
-                  onClick={onConfirm}
-                  ref={confirmBtnRef}
-                  disabled={isBusy}
-                  className="px-4 py-2 rounded-lg border bg-[#ef4444] text-white"
-                >
-                  {isBusy ? "Working…" : "Delete"}
-                </button>
-              )}
+              <ConfirmSection
+                payload={payload}
+                isBusy={isBusy}
+                confirmBtnRef={confirmBtnRef}
+                onConfirm={onConfirm}
+              />
             </div>
           </dialog>
         </div>

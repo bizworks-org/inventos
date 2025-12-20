@@ -62,7 +62,10 @@ export async function GET(req: NextRequest) {
 
     const filename = `inventos-backup-${new Date()
       .toISOString()
-      .replace(/[:.]/g, "-")}.bin`;
+      .split(":")
+      .join("-")
+      .split(".")
+      .join("-")}.bin`;
 
     // Save local copy BEFORE sending response - raw byte-for-byte copy
     try {

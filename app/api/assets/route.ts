@@ -183,7 +183,7 @@ export async function POST(req: NextRequest) {
             .trim()
             .toUpperCase();
           if (candidate) {
-            const sane = candidate.replace(/[^A-Z0-9-]/g, "");
+            const sane = candidate.split(/[^A-Z0-9-]/).join("");
             if (sane) prefix = sane;
           }
         }
@@ -198,11 +198,33 @@ export async function POST(req: NextRequest) {
     };
 
     const isCanonicalId = (prefix: string, idVal: string) => {
-      const escapedPrefix = prefix.replace(
-        /[-/\\^$*+?.()|[\]{}]/g,
-        String.raw`\$&`
-      );
-      const re = new RegExp(`^${escapedPrefix}-\\d+$`);
+      const escapeChars = (str: string) => {
+        const specialChars = [
+          "\\",
+          "^",
+          "$",
+          "*",
+          "+",
+          "?",
+          ".",
+          "(",
+          ")",
+          "|",
+          "[",
+          "]",
+          "{",
+          "}",
+          "-",
+          "/",
+        ];
+        let result = str;
+        for (const char of specialChars) {
+          result = result.split(char).join("\\" + char);
+        }
+        return result;
+      };
+      const escapedPrefix = escapeChars(prefix);
+      const re = new RegExp(String.raw`^${escapedPrefix}-\d+$`);
       return re.test(idVal);
     };
 
@@ -335,7 +357,7 @@ async function getAssetIdPrefixFromSettings(prefix: string) {
           .trim()
           .toUpperCase();
         if (candidate) {
-          const sane = candidate.replace(/[^A-Z0-9-]/g, "");
+          const sane = candidate.split(/[^A-Z0-9-]/).join("");
           if (sane) prefix = sane;
         }
       } catch (err) {

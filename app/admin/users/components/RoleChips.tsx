@@ -113,11 +113,11 @@ export function RoleChips({
   if (meRole !== "superadmin") visibleSet.delete("superadmin");
   visibleSet.add(currentRole);
   // Keep a stable ordering: user, admin, superadmin (if present)
-  const roleOrder: Role[] = ["user", "admin", "superadmin"];
+  const roleOrder: Role[] = ["user", "admin", "auditor", "superadmin"];
   const visibleRoles = roleOrder.filter((r) => visibleSet.has(r));
 
   return (
-    <div className="flex gap-3 flex-wrap py-0.5">
+    <div className="flex gap-2 flex-wrap py-0.5">
       {visibleRoles.map((r) => {
         const currentRole = getCurrentRole(user);
         const selected = currentRole === r;
@@ -148,7 +148,7 @@ export function RoleChips({
             type="button"
             onClick={handleClick}
             disabled={disableInteraction}
-            className={`relative group px-3 py-2 rounded-lg border transition-colors ${
+            className={`relative group px-2 py-1 rounded-md border transition-colors ${
               selected
                 ? "text-white border-transparent"
                 : "bg-white text-[#1a1d2e] border-[#e2e8f0] hover:border-[#cbd5e1]"
@@ -159,11 +159,11 @@ export function RoleChips({
           >
             <div className="flex items-center gap-2">
               <Icon
-                className={`h-4 w-4 ${
+                className={`h-3.5 w-3.5 ${
                   selected ? "text-white" : "text-[#64748b]"
                 }`}
               />
-              <span className="text-sm font-medium capitalize">{r}</span>
+              <span className="text-xs font-medium capitalize">{r}</span>
             </div>
           </button>
         );

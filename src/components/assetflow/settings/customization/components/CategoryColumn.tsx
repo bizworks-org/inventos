@@ -342,11 +342,15 @@ export function CategoryColumn(
         </p>
         {loadingOrErrorContent || listContent}
         <div className="mt-4 pt-4 border-t border-[#e2e8f0]">
-          <label className="block text-sm text-[#64748b] mb-1">
+          <label
+            htmlFor="newCategoryInput"
+            className="block text-sm text-[#64748b] mb-1"
+          >
             Add Category
           </label>
           <div className="flex gap-2">
             <input
+              id="newCategoryInput"
               value={newCategory}
               onChange={(e) => setNewCategory(e.target.value)}
               placeholder="e.g., Electronic Devices"

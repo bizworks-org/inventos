@@ -5,8 +5,9 @@ import useFetchOnMount from "../hooks/useFetchOnMount";
 import FullPageLoader from "@/components/ui/FullPageLoader";
 import { AssetFlowLayout } from "../layout/AssetFlowLayout";
 import { motion } from "motion/react";
-import { Search, Edit2 } from "lucide-react";
+import { Search, Edit2, Eye } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { getMe, type ClientMe } from "@/lib/auth/client";
 
 interface SearchResultsPageProps {
   readonly query: string;
@@ -25,15 +26,32 @@ export default function SearchResultsPage({
   const [assetsTotal, setAssetsTotal] = useState<number>(0);
   const [vendorsTotal, setVendorsTotal] = useState<number>(0);
   const [licensesTotal, setLicensesTotal] = useState<number>(0);
+  const [me, setMe] = useState<ClientMe>(null);
 
   const [page, setPage] = useState<number>(1);
   const [perPage] = useState<number>(10);
   const q = (query || "").trim();
+  const [expandedAssetId, setExpandedAssetId] = useState<string | null>(null);
+  const [expandedVendorId, setExpandedVendorId] = useState<string | null>(null);
+  const [expandedLicenseId, setExpandedLicenseId] = useState<string | null>(
+    null
+  );
 
   useEffect(() => {
     // reset page when query changes
     setPage(1);
   }, [query]);
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const m = await getMe().catch(() => null);
+        setMe(m);
+      } catch {
+        setMe(null);
+      }
+    })();
+  }, []);
 
   const { loading } = useFetchOnMount(async () => {
     if (!q) {
@@ -101,28 +119,100 @@ export default function SearchResultsPage({
                     key={a.id}
                     initial={{ opacity: 0, y: 6 }}
                     animate={{ opacity: 1, y: 0 }}
-                    className="p-4 bg-white rounded-lg border border-[rgba(0,0,0,0.06)] flex items-center justify-between"
+                    className="bg-white rounded-lg border border-[rgba(0,0,0,0.06)] overflow-hidden"
                   >
-                    <div>
-                      <div className="font-semibold text-[#1a1d2e]">
-                        {a.name}
+                    <div className="p-4 flex items-center justify-between">
+                      <div>
+                        <div className="font-semibold text-[#1a1d2e]">
+                          {a.name}
+                        </div>
+                        <div className="text-sm text-[#64748b]">
+                          {a.type} • {a.serial_number ?? a.serialNumber} •{" "}
+                          {a.location}
+                        </div>
                       </div>
-                      <div className="text-sm text-[#64748b]">
-                        {a.type} • {a.serial_number ?? a.serialNumber} •{" "}
-                        {a.location}
+                      <div className="flex items-center gap-2">
+                        <Button
+                          onClick={() =>
+                            setExpandedAssetId((prev) =>
+                              prev === a.id ? null : a.id
+                            )
+                          }
+                          variant="outline"
+                          size="sm"
+                          className="transition-all duration-200 group rounded-lg hover:bg-[#f3f4f6] text-[#6366f1] p-2"
+                          title={expandedAssetId === a.id ? "Hide" : "View"}
+                        >
+                          <Eye className="h-4 w-4 text-[#6366f1] group-hover:scale-110 transition-transform" />
+                        </Button>
+
+                        {(me?.role === "admin" || me?.role === "superadmin") && (
+                          <Button
+                            onClick={() => onNavigate?.("assets-edit", a.id)}
+                            variant="outline"
+                            size="sm"
+                            className="transition-all duration-200 group rounded-lg hover:bg-[#6366f1]/10 text-[#6366f1] p-2"
+                            title="Edit asset"
+                          >
+                            <Edit2 className="h-4 w-4 text-[#6366f1] group-hover:scale-110 transition-transform" />
+                          </Button>
+                        )}
                       </div>
                     </div>
-                    <div className="flex items-center gap-2">
-                      <Button
-                        onClick={() => onNavigate?.("assets-edit", a.id)}
-                        variant="outline"
-                        size="sm"
-                        className="transition-all duration-200 group rounded-lg hover:bg-[#6366f1]/10 text-[#6366f1] p-2"
-                        title="Edit asset"
+                    {expandedAssetId === a.id && (
+                      <motion.div
+                        initial={{ opacity: 0, height: 0 }}
+                        animate={{ opacity: 1, height: "auto" }}
+                        exit={{ opacity: 0, height: 0 }}
+                        transition={{ duration: 0.2 }}
+                        className="border-t border-[rgba(0,0,0,0.06)] bg-[rgba(99,102,241,0.02)] p-4"
                       >
-                        <Edit2 className="h-4 w-4 text-[#6366f1] group-hover:scale-110 transition-transform" />
-                      </Button>
-                    </div>
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm text-[#0f1724]">
+                          <div>
+                            <div className="text-xs text-[#64748b] font-medium">
+                              ID
+                            </div>
+                            <div className="font-medium">{a.id}</div>
+                          </div>
+                          <div>
+                            <div className="text-xs text-[#64748b] font-medium">
+                              Type
+                            </div>
+                            <div className="font-medium">{a.type}</div>
+                          </div>
+                          <div>
+                            <div className="text-xs text-[#64748b] font-medium">
+                              Serial
+                            </div>
+                            <div className="font-medium">
+                              {a.serial_number ?? a.serialNumber ?? "—"}
+                            </div>
+                          </div>
+                          <div>
+                            <div className="text-xs text-[#64748b] font-medium">
+                              Assigned To
+                            </div>
+                            <div className="font-medium">
+                              {a.assigned_to ?? a.assignedTo ?? "—"}
+                            </div>
+                          </div>
+                          <div>
+                            <div className="text-xs text-[#64748b] font-medium">
+                              Location
+                            </div>
+                            <div className="font-medium">
+                              {a.location ?? "—"}
+                            </div>
+                          </div>
+                          <div>
+                            <div className="text-xs text-[#64748b] font-medium">
+                              Status
+                            </div>
+                            <div className="font-medium">{a.status ?? "—"}</div>
+                          </div>
+                        </div>
+                      </motion.div>
+                    )}
                   </motion.div>
                 ))}
               </div>
@@ -165,27 +255,77 @@ export default function SearchResultsPage({
                     key={v.id}
                     initial={{ opacity: 0, y: 6 }}
                     animate={{ opacity: 1, y: 0 }}
-                    className="p-4 bg-white rounded-lg border border-[rgba(0,0,0,0.06)] flex items-center justify-between"
+                    className="bg-white rounded-lg border border-[rgba(0,0,0,0.06)] overflow-hidden"
                   >
-                    <div>
-                      <div className="font-semibold text-[#1a1d2e]">
-                        {v.name}
+                    <div className="p-4 flex items-center justify-between">
+                      <div>
+                        <div className="font-semibold text-[#1a1d2e]">
+                          {v.name}
+                        </div>
+                        <div className="text-sm text-[#64748b]">
+                          {v.contact_person ?? v.contactPerson} • {v.email}
+                        </div>
                       </div>
-                      <div className="text-sm text-[#64748b]">
-                        {v.contact_person ?? v.contactPerson} • {v.email}
+                      <div className="flex items-center gap-2">
+                        <Button
+                          onClick={() =>
+                            setExpandedVendorId((prev) =>
+                              prev === v.id ? null : v.id
+                            )
+                          }
+                          variant="outline"
+                          size="sm"
+                          className="transition-all duration-200 group rounded-lg hover:bg-[#f3f4f6] text-[#6366f1] p-2"
+                          title={expandedVendorId === v.id ? "Hide" : "View"}
+                        >
+                          <Eye className="h-4 w-4 text-[#6366f1] group-hover:scale-110 transition-transform" />
+                        </Button>
+
+                        {(me?.role === "admin" || me?.role === "superadmin") && (
+                          <Button
+                            onClick={() => onNavigate?.("vendors-edit", v.id)}
+                            variant="outline"
+                            size="sm"
+                            className="transition-all duration-200 group rounded-lg hover:bg-[#6366f1]/10 text-[#6366f1] p-2"
+                            title="Edit vendor"
+                          >
+                            <Edit2 className="h-4 w-4 text-[#6366f1] group-hover:scale-110 transition-transform" />
+                          </Button>
+                        )}
                       </div>
                     </div>
-                    <div className="flex items-center gap-2">
-                      <Button
-                        onClick={() => onNavigate?.("vendors-edit", v.id)}
-                        variant="outline"
-                        size="sm"
-                        className="transition-all duration-200 group rounded-lg hover:bg-[#6366f1]/10 text-[#6366f1] p-2"
-                        title="Edit vendor"
+                    {expandedVendorId === v.id && (
+                      <motion.div
+                        initial={{ opacity: 0, height: 0 }}
+                        animate={{ opacity: 1, height: "auto" }}
+                        exit={{ opacity: 0, height: 0 }}
+                        transition={{ duration: 0.2 }}
+                        className="border-t border-[rgba(0,0,0,0.06)] bg-[rgba(99,102,241,0.02)] p-4"
                       >
-                        <Edit2 className="h-4 w-4 text-[#6366f1] group-hover:scale-110 transition-transform" />
-                      </Button>
-                    </div>
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm text-[#0f1724]">
+                          <div>
+                            <div className="text-xs text-[#64748b] font-medium">
+                              Name
+                            </div>
+                            <div className="font-medium">{v.name}</div>
+                          </div>
+                          <div>
+                            <div className="text-xs text-[#64748b] font-medium">
+                              Contact
+                            </div>
+                            <div className="font-medium">
+                              {v.contact_person ?? v.contactPerson ?? "—"}
+                            </div>
+                          </div>
+                          <div>
+                            <div className="text-xs text-[#64748b] font-medium">
+                              Email
+                            </div>
+                            <div className="font-medium">{v.email ?? "—"}</div>
+                          </div>
+                        </div>
+                      </motion.div>
+                    )}
                   </motion.div>
                 ))}
               </div>
@@ -227,27 +367,75 @@ export default function SearchResultsPage({
                     key={l.id}
                     initial={{ opacity: 0, y: 6 }}
                     animate={{ opacity: 1, y: 0 }}
-                    className="p-4 bg-white rounded-lg border border-[rgba(0,0,0,0.06)] flex items-center justify-between"
+                    className="bg-white rounded-lg border border-[rgba(0,0,0,0.06)] overflow-hidden"
                   >
-                    <div>
-                      <div className="font-semibold text-[#1a1d2e]">
-                        {l.name}
+                    <div className="p-4 flex items-center justify-between">
+                      <div>
+                        <div className="font-semibold text-[#1a1d2e]">
+                          {l.name}
+                        </div>
+                        <div className="text-sm text-[#64748b]">
+                          {l.vendor} • Owner: {l.owner}
+                        </div>
                       </div>
-                      <div className="text-sm text-[#64748b]">
-                        {l.vendor} • Owner: {l.owner}
+                      <div className="flex items-center gap-2">
+                        <Button
+                          onClick={() =>
+                            setExpandedLicenseId((prev) =>
+                              prev === l.id ? null : l.id
+                            )
+                          }
+                          variant="outline"
+                          size="sm"
+                          className="transition-all duration-200 group rounded-lg hover:bg-[#f3f4f6] text-[#6366f1] p-2"
+                          title={expandedLicenseId === l.id ? "Hide" : "View"}
+                        >
+                          <Eye className="h-4 w-4 text-[#6366f1] group-hover:scale-110 transition-transform" />
+                        </Button>
+
+                        {(me?.role === "admin" || me?.role === "superadmin") && (
+                          <Button
+                            onClick={() => onNavigate?.("licenses-edit", l.id)}
+                            variant="outline"
+                            size="sm"
+                            className="transition-all duration-200 group rounded-lg hover:bg-[#6366f1]/10 text-[#6366f1] p-2"
+                            title="Edit license"
+                          >
+                            <Edit2 className="h-4 w-4 text-[#6366f1] group-hover:scale-110 transition-transform" />
+                          </Button>
+                        )}
                       </div>
                     </div>
-                    <div className="flex items-center gap-2">
-                      <Button
-                        onClick={() => onNavigate?.("licenses-edit", l.id)}
-                        variant="outline"
-                        size="sm"
-                        className="transition-all duration-200 group rounded-lg hover:bg-[#6366f1]/10 text-[#6366f1] p-2"
-                        title="Edit license"
+                    {expandedLicenseId === l.id && (
+                      <motion.div
+                        initial={{ opacity: 0, height: 0 }}
+                        animate={{ opacity: 1, height: "auto" }}
+                        exit={{ opacity: 0, height: 0 }}
+                        transition={{ duration: 0.2 }}
+                        className="border-t border-[rgba(0,0,0,0.06)] bg-[rgba(99,102,241,0.02)] p-4"
                       >
-                        <Edit2 className="h-4 w-4 text-[#6366f1] group-hover:scale-110 transition-transform" />
-                      </Button>
-                    </div>
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm text-[#0f1724]">
+                          <div>
+                            <div className="text-xs text-[#64748b] font-medium">
+                              Name
+                            </div>
+                            <div className="font-medium">{l.name}</div>
+                          </div>
+                          <div>
+                            <div className="text-xs text-[#64748b] font-medium">
+                              Vendor
+                            </div>
+                            <div className="font-medium">{l.vendor ?? "—"}</div>
+                          </div>
+                          <div>
+                            <div className="text-xs text-[#64748b] font-medium">
+                              Owner
+                            </div>
+                            <div className="font-medium">{l.owner ?? "—"}</div>
+                          </div>
+                        </div>
+                      </motion.div>
+                    )}
                   </motion.div>
                 ))}
               </div>

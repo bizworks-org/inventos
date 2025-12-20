@@ -1,7 +1,7 @@
 export type ClientMe = {
   id: string;
   email: string;
-  role: "admin" | "user" | "superadmin";
+  role: "admin" | "user" | "superadmin" | "auditor";
   roles?: string[];
   permissions?: string[];
   name?: string;

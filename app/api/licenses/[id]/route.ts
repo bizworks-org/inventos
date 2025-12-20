@@ -45,6 +45,14 @@ export async function PUT(req: NextRequest, ctx: any) {
     } catch {}
   }
 
+  // Fetch previous values for change tracking
+  const previousValues = await query<any>(
+    "SELECT * FROM licenses WHERE id = :id LIMIT 1",
+    { id }
+  )
+    .catch(() => [])
+    .then((rows) => rows?.[0] ?? {});
+
   const sql = `UPDATE licenses SET name=:name, vendor=:vendor, type=:type, seats=:seats, seats_used=:seats_used,
     expiration_date=:expiration_date, cost=:cost, owner=:owner, compliance=:compliance, renewal_date=:renewal_date, specifications=:specifications WHERE id=:id`;
   await query(sql, { ...body, id });
@@ -75,7 +83,7 @@ export async function PUT(req: NextRequest, ctx: any) {
     }
   } catch {}
 
-  // Log event to events table
+  // Log events for each changed field
   try {
     const me = await readMeFromCookie();
     const rows = await query<any>(
@@ -83,22 +91,54 @@ export async function PUT(req: NextRequest, ctx: any) {
       { id }
     );
     const name = rows?.[0]?.name || String(id);
-    await query(
-      `INSERT INTO events (id, ts, severity, entity_type, entity_id, action, user, details, metadata)
-       VALUES (:id, NOW(), :severity, :entity_type, :entity_id, :action, :user, :details, :metadata)`,
-      {
-        id: `EVT-${Date.now()}-${Math.random().toString(36).substring(2, 18)}`,
-        severity: "info",
-        entity_type: "license",
-        entity_id: id,
-        action: "license.updated",
-        user: me?.email || "system",
-        details: `License updated: ${name}`,
-        metadata: JSON.stringify({ id, changes: body }),
-      }
-    );
+
+    const changedFields = getChangedLicenseFields(previousValues, body);
+
+    for (const field of changedFields) {
+      await query(
+        `INSERT INTO events (id, ts, severity, entity_type, entity_id, action, user, details, metadata, previous_value, changed_value)
+         VALUES (:id, NOW(), :severity, :entity_type, :entity_id, :action, :user, :details, :metadata, :previous_value, :changed_value)`,
+        {
+          id: `EVT-${Date.now()}-${Math.random()
+            .toString(36)
+            .substring(2, 18)}`,
+          severity: "info",
+          entity_type: "license",
+          entity_id: id,
+          action: "License Updated",
+          user: me?.email || "system",
+          details: name,
+          metadata: JSON.stringify({ id, field: field.fieldName }),
+          previous_value: field.previousValue,
+          changed_value: field.changedValue,
+        }
+      );
+    }
+
+    // Also log a summary event if any changes were made
+    if (changedFields.length > 0) {
+      await query(
+        `INSERT INTO events (id, ts, severity, entity_type, entity_id, action, user, details, metadata)
+         VALUES (:id, NOW(), :severity, :entity_type, :entity_id, :action, :user, :details, :metadata)`,
+        {
+          id: `EVT-${Date.now()}-${Math.random()
+            .toString(36)
+            .substring(2, 18)}`,
+          severity: "info",
+          entity_type: "license",
+          entity_id: id,
+          action: "License Updated",
+          user: me?.email || "system",
+          details: name,
+          metadata: JSON.stringify({
+            id,
+            changedFields: changedFields.map((f) => f.fieldName),
+          }),
+        }
+      );
+    }
   } catch (e) {
-    console.warn("Failed to log license update event", e);
+    console.warn("Failed to log license update events", e);
   }
 
   return NextResponse.json({ ok: true });
@@ -146,4 +186,128 @@ export async function DELETE(_req: NextRequest, ctx: any) {
   }
 
   return NextResponse.json({ ok: true });
+}
+
+interface ChangedField {
+  fieldName: string;
+  previousValue: string;
+  changedValue: string;
+}
+
+function parseJson(val: any): Record<string, any> {
+  if (typeof val === "string") {
+    try {
+      return JSON.parse(val);
+    } catch {
+      return {};
+    }
+  }
+  return val && typeof val === "object" ? val : {};
+}
+
+function getChangedLicenseFields(
+  previous: Record<string, any>,
+  updates: Record<string, any>
+): ChangedField[] {
+  const changed: ChangedField[] = [];
+
+  // List of license fields to track
+  const fieldsToTrack = [
+    "name",
+    "vendor",
+    "type",
+    "seats",
+    "seats_used",
+    "expiration_date",
+    "cost",
+    "owner",
+    "compliance",
+    "renewal_date",
+  ];
+
+  // Fields that are dates (compare without time component)
+  const dateFields = new Set(["expiration_date", "renewal_date"]);
+
+  for (const field of fieldsToTrack) {
+    let prevVal = previous[field];
+    let newVal = updates[field];
+
+    // Normalize date fields - compare only the date part, not time
+    if (dateFields.has(field)) {
+      const prevDate = prevVal
+        ? new Date(prevVal).toISOString().split("T")[0]
+        : null;
+      const newDate = newVal
+        ? new Date(newVal).toISOString().split("T")[0]
+        : null;
+      prevVal = prevDate;
+      newVal = newDate;
+    }
+
+    // Only track if the value actually changed
+    if (prevVal !== newVal && newVal !== undefined && newVal !== null) {
+      changed.push({
+        fieldName: field,
+        previousValue: String(prevVal ?? ""),
+        changedValue: String(newVal),
+      });
+    }
+  }
+
+  // Track custom fields changes
+  trackCustomFieldChanges("specifications", previous, updates, changed);
+
+  return changed;
+}
+
+function trackCustomFieldChanges(
+  specField: string,
+  previous: Record<string, any>,
+  updates: Record<string, any>,
+  changed: ChangedField[]
+): void {
+  if (!updates[specField]) return;
+
+  try {
+    const newSpecs = parseJson(updates[specField]);
+    const prevSpecs = parseJson(previous[specField]);
+
+    const newCustom = newSpecs?.customFields ?? {};
+    const prevCustom = prevSpecs?.customFields ?? {};
+
+    // Check for added/changed custom fields
+    for (const [key, val] of Object.entries(newCustom)) {
+      if (prevCustom[key] !== val) {
+        let stringVal: string;
+        if (typeof val === "object" && val !== null) {
+          stringVal = JSON.stringify(val as any);
+        } else {
+          stringVal = String(
+            val as string | number | boolean | null | undefined
+          );
+        }
+        changed.push({
+          fieldName: `custom_field_${key}`,
+          previousValue: String(prevCustom[key] ?? ""),
+          changedValue: stringVal,
+        });
+      }
+    }
+
+    // Check for removed custom fields
+    for (const key of Object.keys(prevCustom)) {
+      if (!(key in newCustom)) {
+        changed.push({
+          fieldName: `custom_field_${key}`,
+          previousValue: String(prevCustom[key]),
+          changedValue: "",
+        });
+      }
+    }
+  } catch (e) {
+    console.warn(
+      "Failed to parse specifications for license change tracking",
+      e
+    );
+  }
 }

@@ -1,8 +1,9 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
 import { Shield, Package, FileText, Building2, Activity } from "lucide-react";
+import FullPageLoader from "@/components/ui/FullPageLoader";
 
-type Role = "admin" | "user";
+type Role = "admin" | "user" | "auditor";
 
 export default function RolesPermissionsPage() {
   const [allRoles, setAllRoles] = useState<Role[]>([]);
@@ -10,6 +11,7 @@ export default function RolesPermissionsPage() {
   const [rolePerms, setRolePerms] = useState<Record<Role, Set<string>>>({
     admin: new Set(),
     user: new Set(),
+    auditor: new Set(),
   });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -51,6 +53,7 @@ export default function RolesPermissionsPage() {
         setRolePerms({
           admin: new Set(),
           user: new Set(rpU.permissions || []),
+          auditor: new Set(),
         });
         setLoading(false);
       })
@@ -64,10 +67,12 @@ export default function RolesPermissionsPage() {
   const rolePermUpdateTimers = useRef<Record<Role, any>>({
     admin: null,
     user: null,
+    auditor: null,
   });
   const pendingRolePerms = useRef<Record<Role, Set<string>>>({
     admin: new Set(),
     user: new Set(),
+    auditor: new Set(),
   });
   const queueRolePermsUpdate = (role: Role, nextSet: Set<string>) => {
     pendingRolePerms.current[role] = new Set(nextSet);
@@ -99,8 +104,13 @@ export default function RolesPermissionsPage() {
   };
 
   // Hide specific permissions from the Roles page UI
-  const formatLabel = (s: string) =>
-    s.replace(/_/g, " ").replace(/\b\w/g, (m) => m.toUpperCase());
+  const formatLabel = (s: string) => {
+    let result = s.split("_").join(" ");
+    return result
+      .split(/(\b\w)/)
+      .map((part, i) => (i % 2 === 1 ? part.toUpperCase() : part))
+      .join("");
+  };
 
   const hiddenPermissionLabels = new Set<string>([
     "Manage User",
@@ -121,10 +131,12 @@ export default function RolesPermissionsPage() {
   };
 
   // Extract nested ternary into independent statement
-  let content: React.ReactNode;
   if (loading) {
-    content = <p>Loading…</p>;
-  } else if (error) {
+    return <FullPageLoader message="Loading roles and permissions..." />;
+  }
+
+  let content: React.ReactNode;
+  if (error) {
     content = <p className="text-[#ef4444]">{error}</p>;
   } else {
     content = (
@@ -137,10 +149,14 @@ export default function RolesPermissionsPage() {
           {/* Only render Users block; Admin is omitted intentionally */}
           {allRoles.map((role) => (
             <div key={role} className="border border-[#e2e8f0] rounded-lg p-4">
-              <h3 className="text-base font-semibold mb-2 capitalize">{role}</h3>
+              <h3 className="text-base font-semibold mb-2 capitalize">
+                {role}
+              </h3>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 {allPermissions
-                  .filter((perm) => !hiddenPermissionLabels.has(formatLabel(perm)))
+                  .filter(
+                    (perm) => !hiddenPermissionLabels.has(formatLabel(perm))
+                  )
                   .map((p) => {
                     const selected = rolePerms[role]?.has(p);
                     const Icon = iconFor(p);
@@ -157,12 +173,20 @@ export default function RolesPermissionsPage() {
                               : "bg-white text-[#1a1d2e] border-[#e2e8f0] hover:border-[#cbd5e1]"
                           }
                         `}
-                        style={selected ? { backgroundImage: permissionGradient(p) } : undefined}
+                        style={
+                          selected
+                            ? { backgroundImage: permissionGradient(p) }
+                            : undefined
+                        }
                         aria-pressed={selected}
                         aria-label={`Toggle ${label} permission for ${role}`}
                       >
                         <div className="flex items-center gap-2">
-                          <Icon className={`h-4 w-4 ${selected ? "text-white" : "text-[#64748b]"}`} />
+                          <Icon
+                            className={`h-4 w-4 ${
+                              selected ? "text-white" : "text-[#64748b]"
+                            }`}
+                          />
                           <span className="text-sm font-medium">{label}</span>
                         </div>
                       </button>
@@ -179,11 +203,17 @@ export default function RolesPermissionsPage() {
   return (
     <>
       <div className="mb-6">
-        <h1 className="text-3xl font-bold text-[#1a1d2e]">Roles & Permissions</h1>
-        <p className="text-[#64748b]">Configure what each role is allowed to do.</p>
+        <h1 className="text-3xl font-bold text-[#1a1d2e]">
+          Roles & Permissions
+        </h1>
+        <p className="text-[#64748b]">
+          Configure what each role is allowed to do.
+        </p>
       </div>
 
-      <div className="bg-white border border-[#e2e8f0] rounded-xl p-6">{content}</div>
+      <div className="bg-white border border-[#e2e8f0] rounded-xl p-6">
+        {content}
+      </div>
     </>
   );
 }

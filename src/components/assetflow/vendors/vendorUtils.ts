@@ -2,7 +2,7 @@ import { Vendor } from "../../../lib/data";
 
 export function normalizePhone(raw: string) {
   const hasLeadingPlus = raw.trim().startsWith("+");
-  const digits = raw.replace(/\D/g, "");
+  const digits = (raw.match(/\d/g) || []).join("");
   const normalized = (hasLeadingPlus ? "+" : "") + digits;
   return normalized.slice(0, 21);
 }

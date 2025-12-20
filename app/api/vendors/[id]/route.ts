@@ -77,10 +77,17 @@ export async function PUT(req: NextRequest, ctx: any) {
         ? JSON.stringify(body.specifications)
         : body.specifications ?? null,
   };
-  const sqlWithContacts = sql.replace(
-    "\n    WHERE id=:id",
-    ",\n    contacts=:contacts\n    WHERE id=:id"
-  );
+  // Fetch previous values for change tracking
+  const previousValues = await query<any>(
+    "SELECT * FROM vendors WHERE id = :id LIMIT 1",
+    { id }
+  )
+    .catch(() => [])
+    .then((rows) => rows?.[0] ?? {});
+
+  const sqlWithContacts = sql
+    .split("\n    WHERE id=:id")
+    .join(",\n    contacts=:contacts\n    WHERE id=:id");
   await query(sqlWithContacts, params);
   // Notify admins about vendor update
   try {
@@ -109,7 +116,7 @@ export async function PUT(req: NextRequest, ctx: any) {
     }
   } catch {}
 
-  // Log event to events table
+  // Log events for each changed field
   try {
     const me = await readMeFromCookie();
     const rows = await query<any>(
@@ -117,22 +124,54 @@ export async function PUT(req: NextRequest, ctx: any) {
       { id }
     );
     const name = rows?.[0]?.name || String(id);
-    await query(
-      `INSERT INTO events (id, ts, severity, entity_type, entity_id, action, user, details, metadata)
-       VALUES (:id, NOW(), :severity, :entity_type, :entity_id, :action, :user, :details, :metadata)`,
-      {
-        id: `EVT-${Date.now()}-${Math.random().toString(36).substring(2, 18)}`,
-        severity: "info",
-        entity_type: "vendor",
-        entity_id: id,
-        action: "vendor.updated",
-        user: me?.email || "system",
-        details: `Vendor updated: ${name}`,
-        metadata: JSON.stringify({ id, changes: body }),
-      }
-    );
+
+    const changedFields = getChangedVendorFields(previousValues, body);
+
+    for (const field of changedFields) {
+      await query(
+        `INSERT INTO events (id, ts, severity, entity_type, entity_id, action, user, details, metadata, previous_value, changed_value)
+         VALUES (:id, NOW(), :severity, :entity_type, :entity_id, :action, :user, :details, :metadata, :previous_value, :changed_value)`,
+        {
+          id: `EVT-${Date.now()}-${Math.random()
+            .toString(36)
+            .substring(2, 18)}`,
+          severity: "info",
+          entity_type: "vendor",
+          entity_id: id,
+          action: "Vendor Updated",
+          user: me?.email || "system",
+          details: name,
+          metadata: JSON.stringify({ id, field: field.fieldName }),
+          previous_value: field.previousValue,
+          changed_value: field.changedValue,
+        }
+      );
+    }
+
+    // Also log a summary event if any changes were made
+    if (changedFields.length > 0) {
+      await query(
+        `INSERT INTO events (id, ts, severity, entity_type, entity_id, action, user, details, metadata)
+         VALUES (:id, NOW(), :severity, :entity_type, :entity_id, :action, :user, :details, :metadata)`,
+        {
+          id: `EVT-${Date.now()}-${Math.random()
+            .toString(36)
+            .substring(2, 18)}`,
+          severity: "info",
+          entity_type: "vendor",
+          entity_id: id,
+          action: "Vendor Updated",
+          user: me?.email || "system",
+          details: name,
+          metadata: JSON.stringify({
+            id,
+            changedFields: changedFields.map((f) => f.fieldName),
+          }),
+        }
+      );
+    }
   } catch (e) {
-    console.warn("Failed to log vendor update event", e);
+    console.warn("Failed to log vendor update events", e);
   }
 
   return NextResponse.json({ ok: true });
@@ -180,4 +219,168 @@ export async function DELETE(_req: NextRequest, ctx: any) {
   }
 
   return NextResponse.json({ ok: true });
+}
+
+interface ChangedField {
+  fieldName: string;
+  previousValue: string;
+  changedValue: string;
+}
+
+function parseJson(val: any): Record<string, any> {
+  if (typeof val === "string") {
+    try {
+      return JSON.parse(val);
+    } catch {
+      return {};
+    }
+  }
+  return val && typeof val === "object" ? val : {};
+}
+
+function getChangedVendorFields(
+  previous: Record<string, any>,
+  updates: Record<string, any>
+): ChangedField[] {
+  const changed: ChangedField[] = [];
+
+  // List of vendor fields to track
+  const fieldsToTrack = [
+    "name",
+    "type",
+    "contact_person",
+    "email",
+    "phone",
+    "status",
+    "contract_value",
+    "contract_expiry",
+    "rating",
+    "legal_name",
+    "trading_name",
+    "registration_number",
+    "incorporation_date",
+    "incorporation_country",
+    "registered_office_address",
+    "corporate_office_address",
+    "nature_of_business",
+    "business_category",
+    "service_coverage_area",
+    "pan_tax_id",
+    "bank_name",
+    "account_number",
+    "ifsc_swift_code",
+    "payment_terms",
+    "preferred_currency",
+    "vendor_credit_limit",
+  ];
+
+  // Fields that are dates (compare without time component)
+  const dateFields = new Set(["contract_expiry", "incorporation_date"]);
+
+  for (const field of fieldsToTrack) {
+    let prevVal = previous[field];
+    let newVal = updates[field];
+
+    // Normalize date fields - compare only the date part, not time
+    if (dateFields.has(field)) {
+      const prevDate = prevVal
+        ? new Date(prevVal).toISOString().split("T")[0]
+        : null;
+      const newDate = newVal
+        ? new Date(newVal).toISOString().split("T")[0]
+        : null;
+      prevVal = prevDate;
+      newVal = newDate;
+    }
+
+    // Only track if the value actually changed
+    if (prevVal !== newVal && newVal !== undefined && newVal !== null) {
+      changed.push({
+        fieldName: field,
+        previousValue: String(prevVal ?? ""),
+        changedValue: String(newVal),
+      });
+    }
+  }
+
+  // Track custom fields and contacts changes
+  trackCustomFieldChanges("specifications", previous, updates, changed);
+  trackContactsChanges(previous, updates, changed);
+
+  return changed;
+}
+
+function trackCustomFieldChanges(
+  specField: string,
+  previous: Record<string, any>,
+  updates: Record<string, any>,
+  changed: ChangedField[]
+): void {
+  if (!updates[specField]) return;
+
+  try {
+    const newSpecs = parseJson(updates[specField]);
+    const prevSpecs = parseJson(previous[specField]);
+
+    const newCustom = newSpecs?.customFields ?? {};
+    const prevCustom = prevSpecs?.customFields ?? {};
+
+    // Check for added/changed custom fields
+    for (const [key, val] of Object.entries(newCustom)) {
+      if (prevCustom[key] !== val) {
+        let stringVal: string;
+        if (typeof val === "object" && val !== null) {
+          stringVal = JSON.stringify(val as any);
+        } else {
+          stringVal = String(
+            val as string | number | boolean | null | undefined
+          );
+        }
+        changed.push({
+          fieldName: `custom_field_${key}`,
+          previousValue: String(prevCustom[key] ?? ""),
+          changedValue: stringVal,
+        });
+      }
+    }
+
+    // Check for removed custom fields
+    for (const key of Object.keys(prevCustom)) {
+      if (!(key in newCustom)) {
+        changed.push({
+          fieldName: `custom_field_${key}`,
+          previousValue: String(prevCustom[key]),
+          changedValue: "",
+        });
+      }
+    }
+  } catch (e) {
+    console.warn(
+      "Failed to parse specifications for vendor change tracking",
+      e
+    );
+  }
+}
+
+function trackContactsChanges(
+  previous: Record<string, any>,
+  updates: Record<string, any>,
+  changed: ChangedField[]
+): void {
+  if (!updates.contacts) return;
+
+  try {
+    const newContacts = parseJson(updates.contacts);
+    const prevContacts = parseJson(previous.contacts);
+
+    if (JSON.stringify(prevContacts) !== JSON.stringify(newContacts)) {
+      changed.push({
+        fieldName: "contacts",
+        previousValue: JSON.stringify(prevContacts),
+        changedValue: JSON.stringify(newContacts),
+      });
+    }
+  } catch (e) {
+    console.warn("Failed to parse contacts for vendor change tracking", e);
+  }
 }

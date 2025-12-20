@@ -37,20 +37,33 @@ export function AssetsTable({
   const [hoveredRow, setHoveredRow] = useState<string | null>(null);
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [consentRequired, setConsentRequired] = useState<boolean>(true);
-  
-  // Initialize columns state
+
+  // Initialize columns state with ALL available columns
   const [internalColumns, setInternalColumns] = useState(() => [
-    { key: "asset", label: "Asset", visible: true },
+    { key: "name", label: "Asset", visible: true },
     { key: "serialNumber", label: "Serial Number", visible: true },
+    { key: "typeId", label: "Type", visible: false },
     { key: "assignedTo", label: "Assigned To", visible: true },
+    { key: "assignedEmail", label: "Assigned Email", visible: false },
     { key: "department", label: "Department", visible: true },
     { key: "status", label: "Status", visible: true },
-    { key: "endOfSupport", label: "End of Support", visible: true },
-    { key: "endOfLife", label: "End of Life", visible: true },
+    { key: "purchaseDate", label: "Purchase Date", visible: false },
+    { key: "eosDate", label: "End of Support", visible: true },
+    { key: "eolDate", label: "End of Life", visible: true },
     { key: "cost", label: "Cost", visible: true },
+    { key: "location", label: "Location", visible: false },
+    {
+      key: "ciaConfidentiality",
+      label: "CIA - Confidentiality",
+      visible: false,
+    },
+    { key: "ciaIntegrity", label: "CIA - Integrity", visible: false },
+    { key: "ciaAvailability", label: "CIA - Availability", visible: false },
+    { key: "ciaTotal", label: "CIA - Total", visible: false },
+    { key: "ciaAverage", label: "CIA - Score", visible: false },
     { key: "actions", label: "Actions", visible: true },
   ]);
-  
+
   const formatCurrency = useCurrencyFormatter();
   const { density } = usePrefs();
 
@@ -227,20 +240,24 @@ export function AssetsTable({
         { key: "consent", label: "Consent", visible: true },
         ...prev.slice(4),
       ]);
-    } else if (!consentRequired && internalColumns.some((c) => c.key === "consent")) {
+    } else if (
+      !consentRequired &&
+      internalColumns.some((c) => c.key === "consent")
+    ) {
       setInternalColumns((prev) => prev.filter((c) => c.key !== "consent"));
     }
   }, [consentRequired, internalColumns]);
 
-  // Use parent columns if provided, otherwise use internal state
-  const columnsForRow = propsColumns || internalColumns;
+  // Use parent columns if provided and populated, otherwise use internal state
+  const columnsForRow =
+    propsColumns && propsColumns.length > 0 ? propsColumns : internalColumns;
 
-  // Sync columns to parent when they change
+  // Sync columns to parent when they change (always, so parent is source of truth)
   useEffect(() => {
-    if (onColumnsChange && !propsColumns) {
+    if (onColumnsChange) {
       onColumnsChange(internalColumns);
     }
-  }, [internalColumns, onColumnsChange, propsColumns]);
+  }, [internalColumns, onColumnsChange]);
 
   if (assets.length === 0) {
     return (
@@ -285,22 +302,13 @@ export function AssetsTable({
         <table className="w-full">
           <thead>
             <tr className="bg-gradient-to-r from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800 border-b border-gray-100 dark:border-gray-800">
-              {[
-                "Asset",
-                "Serial Number",
-                "Assigned To",
-                "Department",
-                ...(consentRequired ? ["Consent"] : []),
-                "Status",
-                "End of Support",
-                "End of Life",
-                "Cost",
-                "Actions",
-              ].map((label) => (
-                <th key={label} className={thClassName}>
-                  {label}
-                </th>
-              ))}
+              {columnsForRow
+                .filter((col) => col.visible)
+                .map((col) => (
+                  <th key={col.key} className={thClassName}>
+                    {col.label}
+                  </th>
+                ))}
             </tr>
           </thead>
           <tbody>

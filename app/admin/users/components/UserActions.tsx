@@ -61,7 +61,7 @@ export function UserActions({
         <button
           onClick={() => onActivate(user.id)}
           disabled={!!rowDisabled}
-          className="px-3 py-2 rounded-lg text-sm font-medium text-white shadow-sm hover:shadow-md focus:outline-none focus:ring-2 focus:ring-emerald-500/40 transition-all"
+          className="px-2 py-1 rounded-md text-xs font-medium text-white shadow-sm hover:shadow-md focus:outline-none focus:ring-2 focus:ring-emerald-500/40 transition-all"
           style={
             rowDisabled
               ? undefined
@@ -74,8 +74,8 @@ export function UserActions({
           Activate
         </button>
         {visiblePassword && (
-          <div className="ml-3 flex items-center gap-2">
-            <span className="px-3 py-2 rounded-lg bg-[#f8fafc] border border-[#e2e8f0] text-sm font-medium font-mono">
+          <div className="ml-2 flex items-center gap-2">
+            <span className="px-2 py-1 rounded-md bg-[#f8fafc] border border-[#e2e8f0] text-xs font-medium font-mono">
               {visiblePassword}
             </span>
           </div>
@@ -91,7 +91,7 @@ export function UserActions({
         type="button"
         onClick={() => onEdit(user)}
         disabled={!!rowDisabled}
-        className={`px-3 py-2 rounded-lg text-sm font-medium shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/40 transition-all ${
+        className={`px-2 py-1 rounded-md text-xs font-medium shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/40 transition-all ${
           rowDisabled
             ? "bg-[#f3f4f6] text-[#9ca3af] cursor-not-allowed"
             : "text-white hover:shadow-md"
@@ -103,7 +103,7 @@ export function UserActions({
         }
       >
         <span className="inline-flex items-center gap-1">
-          <Pencil className="h-4 w-4" /> Edit
+          <Pencil className="h-3.5 w-3.5" /> Edit
         </span>
       </button>
       {/* Activate */}
@@ -131,25 +131,25 @@ export function UserActions({
         if (!shouldShow) return null;
 
         return (
-          <button
-            onClick={() => onDeactivate(user.id)}
-            disabled={shouldDisableDeactivate || !!rowDisabled}
-            className={`px-3 py-2 rounded-lg transition-all text-sm font-medium ${
-              shouldDisableDeactivate || rowDisabled
-                ? "bg-[#f3f4f6] text-[#9ca3af] cursor-not-allowed"
-                : "text-white shadow-sm hover:shadow-md focus:outline-none focus:ring-2 focus:ring-[#f59e0b]/40"
-            }`}
-            style={
-              shouldDisableDeactivate || rowDisabled
-                ? undefined
-                : {
-                    backgroundImage:
-                      "linear-gradient(to right, #f59e0b, #d97706)",
-                  }
-            }
-          >
-            Deactivate
-          </button>
+            <button
+              onClick={() => onDeactivate(user.id)}
+              disabled={shouldDisableDeactivate || !!rowDisabled}
+              className={`px-2 py-1 rounded-md transition-all text-xs font-medium ${
+                shouldDisableDeactivate || rowDisabled
+                  ? "bg-[#f3f4f6] text-[#9ca3af] cursor-not-allowed"
+                  : "text-white shadow-sm hover:shadow-md focus:outline-none focus:ring-2 focus:ring-[#f59e0b]/40"
+              }`}
+              style={
+                shouldDisableDeactivate || rowDisabled
+                  ? undefined
+                  : {
+                      backgroundImage:
+                        "linear-gradient(to right, #f59e0b, #d97706)",
+                    }
+              }
+            >
+              Deactivate
+            </button>
         );
       })()}
       {/* Reset Password & Delete */}
@@ -170,7 +170,7 @@ export function UserActions({
             <button
               onClick={() => onResetPassword(user.id)}
               disabled={!!rowDisabled}
-              className={`px-3 py-2 rounded-lg text-sm font-medium shadow-sm focus:outline-none focus:ring-2 focus:ring-sky-500/40 transition-all ${
+              className={`px-2 py-1 rounded-md text-xs font-medium shadow-sm focus:outline-none focus:ring-2 focus:ring-sky-500/40 transition-all ${
                 rowDisabled
                   ? "bg-[#f3f4f6] text-[#9ca3af] cursor-not-allowed"
                   : "text-white hover:shadow-md"
@@ -184,12 +184,12 @@ export function UserActions({
                     }
               }
             >
-              Reset Password
+              Reset
             </button>
             <button
               onClick={() => onRemove(user.id)}
               disabled={!!rowDisabled}
-              className={`px-3 py-2 rounded-lg text-sm font-medium shadow-sm focus:outline-none focus:ring-2 focus:ring-[#ef4444]/40 transition-all ${
+              className={`px-2 py-1 rounded-md text-xs font-medium shadow-sm focus:outline-none focus:ring-2 focus:ring-[#ef4444]/40 transition-all ${
                 rowDisabled
                   ? "bg-[#f3f4f6] text-[#9ca3af] cursor-not-allowed"
                   : "text-white hover:shadow-md"

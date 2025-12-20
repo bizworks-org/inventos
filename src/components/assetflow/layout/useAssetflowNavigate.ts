@@ -11,8 +11,9 @@ export function useAssetflowNavigate() {
       switch (page) {
         case "dashboard":
           return "/dashboard";
-        case "audits":
-          return "/audits";
+        // audits navigation removed
+        case "audit":
+          return "/audit";
         case "assets":
           return "/assets";
         case "assets-add":

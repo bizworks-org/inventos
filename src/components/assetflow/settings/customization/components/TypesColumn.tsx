@@ -2,6 +2,28 @@ import { Plus, Pencil, X, Check, Package } from "lucide-react";
 import type { UiCategory } from "../catalogHelpers";
 import { gradientForType, iconForType } from "../catalogHelpers";
 
+// Helper component to display category name in header
+const CategoryHeader = ({ selected }: { selected: UiCategory | null }) => {
+  if (!selected) return null;
+  return <span className="text-[#64748b] font-normal">in {selected.name}</span>;
+};
+
+// Helper component for empty state
+const EmptyState = () => (
+  <div className="p-12 text-center text-[#64748b]">
+    <div className="h-12 w-12 rounded-full bg-[#f8f9ff] flex items-center justify-center mx-auto mb-3">
+      <Package className="h-6 w-6 text-[#6366f1]" />
+    </div>
+    <p>Select a category to view and add types.</p>
+  </div>
+);
+
+// Helper component to check if type is empty
+const EmptyTypesMessage = ({ selected }: { selected: UiCategory | null }) => {
+  if (!selected || selected.types.length > 0) return null;
+  return <p className="text-[#64748b]">No types in this category yet.</p>;
+};
+
 interface ViewingTypeItemProps {
   type: { id: number; name: string; sort: number };
   hoveredTypeId: number | null;
@@ -201,27 +223,13 @@ export function TypesColumn(props: Readonly<TypesColumnProps>) {
       <div className="bg-white border border-[#e2e8f0] rounded-xl p-6">
         <div className="flex items-center justify-between mb-3">
           <h2 className="text-lg font-semibold">
-            Types{" "}
-            {selected ? (
-              <span className="text-[#64748b] font-normal">
-                in {selected.name}
-              </span>
-            ) : null}
+            Types <CategoryHeader selected={selected} />
           </h2>
         </div>
-        {!selected ? (
-          <div className="p-12 text-center text-[#64748b]">
-            <div className="h-12 w-12 rounded-full bg-[#f8f9ff] flex items-center justify-center mx-auto mb-3">
-              <Package className="h-6 w-6 text-[#6366f1]" />
-            </div>
-            <p>Select a category to view and add types.</p>
-          </div>
-        ) : (
+        {selected ? (
           <>
             <div className="space-y-2 mb-4">
-              {selected.types.length === 0 && (
-                <p className="text-[#64748b]">No types in this category yet.</p>
-              )}
+              <EmptyTypesMessage selected={selected} />
               {selected.types.map((t) => {
                 const isEditing = renamingTypeId === t.id;
                 if (isEditing) {
@@ -293,6 +301,8 @@ export function TypesColumn(props: Readonly<TypesColumnProps>) {
               </div>
             </div>
           </>
+        ) : (
+          <EmptyState />
         )}
       </div>
     </div>

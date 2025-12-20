@@ -145,6 +145,16 @@ export async function POST(req: NextRequest) {
     if (res) return res;
   }
 
+  // Disallow assigning the 'auditor' role unless requester is Superadmin
+  try {
+    if (roles.includes("auditor") && !requesterIsSuper) {
+      return NextResponse.json(
+        { error: "Only a Superadmin may assign the Auditor role." },
+        { status: 403 }
+      );
+    }
+  } catch {}
+
   await dbSetUserRoles(userId, roles);
   return NextResponse.json({ ok: true });
 }

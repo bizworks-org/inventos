@@ -46,6 +46,15 @@ export async function POST(req: NextRequest) {
   const { name, email, role, password } = body || {};
   if (!name || !email || !role || !password)
     return NextResponse.json({ error: "Missing fields" }, { status: 400 });
+  // Only Superadmin may create users with the 'auditor' role
+  try {
+    if (String(role) === "auditor" && me.role !== "superadmin") {
+      return NextResponse.json(
+        { error: "Only a Superadmin may create an Auditor user." },
+        { status: 403 }
+      );
+    }
+  } catch {}
   // Hash on server using same format as server.ts
   const { hashPassword } = await import("@/lib/auth/server");
   const user = await dbCreateUser({

@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "@/components/ui/sonner";
 import { useRouter } from "next/navigation";
+import FullPageLoader from "@/components/ui/FullPageLoader";
 import { RoleChips } from "./components/RoleChips";
 import { UserActions } from "./components/UserActions";
 import {
@@ -150,7 +151,7 @@ export default function ManageUsersPage() {
   const allowedRolesForTarget = (target?: User | null) => {
     const base = allRoles?.length
       ? [...allRoles]
-      : ["user", "admin", "superadmin"]; // Default roles
+      : ["user", "admin", "superadmin", "auditor"]; // Default roles include auditor
     let list = base.slice();
     if (me?.role !== "superadmin")
       list = list.filter((r) => r !== "superadmin");
@@ -171,7 +172,16 @@ export default function ManageUsersPage() {
       if (!targetHasSuper) list = list.filter((r) => r !== "superadmin"); // Filter superadmin role
     }
 
-    return list as Role[]; // Ensure return type is Role[]
+    // Auditor role may be assigned by Admin and Superadmin from the UI.
+    // Only regular users (non-admins) should not see the auditor option.
+    if (!(me?.role === "admin" || me?.role === "superadmin")) {
+      list = list.filter((r) => r !== "auditor");
+    }
+
+    // Deduplicate any accidental duplicates from the server
+    list = Array.from(new Set(list));
+
+    return list as Role[];
   };
 
   const makePassword = () => {
@@ -515,7 +525,15 @@ export default function ManageUsersPage() {
   const roleDisplay = (roles: Role[] = []) => {
     if (roles.includes("superadmin")) return "Superadmin";
     if (roles.includes("admin")) return "Admin";
+    if (roles.includes("auditor")) return "Auditor";
     return "User";
+  };
+
+  const ROLE_LABELS: Record<Role, string> = {
+    superadmin: "Superadmin",
+    admin: "Admin",
+    auditor: "Auditor",
+    user: "User",
   };
 
   const renderUserRow = (u: User) => {
@@ -596,6 +614,7 @@ export default function ManageUsersPage() {
 
   return (
     <>
+      {(loading || meLoading) && <FullPageLoader message="Loading users..." />}
       <div className="bg-white border border-[#e2e8f0] rounded-xl p-6 mb-6 max-w-3xl">
         <h2 className="text-lg font-semibold mb-3">
           {editing ? `Edit User: ${editing.name}` : "Add User"}
@@ -623,21 +642,13 @@ export default function ManageUsersPage() {
                 : !canEditRoleForTarget(null)
             }
           >
-            {(editing
-              ? allowedRolesForTarget(editing)
-              : allowedRolesForTarget(null)
-            ).map((r) => {
-              const getLabel = () => {
-                if (r === "superadmin") return "Superadmin";
-                if (r === "admin") return "Admin";
-                return "User";
-              };
-              return (
+            {(editing ? allowedRolesForTarget(editing) : allowedRolesForTarget(null)).map(
+              (r) => (
                 <option key={r} value={r}>
-                  {getLabel()}
+                  {ROLE_LABELS[r] ?? String(r)}
                 </option>
-              );
-            })}
+              )
+            )}
           </select>
         </div>
         <div className="mt-4 flex items-center gap-3">
@@ -750,7 +761,10 @@ export default function ManageUsersPage() {
     </>
   );
 }
-function renderUserTable(users: User[], renderUserRow) {
+function renderUserTable(
+  users: User[],
+  renderUserRow: (u: User) => JSX.Element
+): JSX.Element {
   return (
     <div className="overflow-x-auto">
       <table className="min-w-full text-left">

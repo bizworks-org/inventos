@@ -53,7 +53,10 @@ class EventBus {
     this.events.unshift(event); // Add to beginning for chronological order
     this.notifyListeners(event);
 
-    console.log(`[EventBus] ${severity.toUpperCase()}: ${details}`, metadata);
+    console.log(
+      `[EventBus] ${severity.toUpperCase()}: ${details}`,
+      options.metadata
+    );
 
     return event;
   }

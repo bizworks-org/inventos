@@ -1,5 +1,6 @@
 import mysql from "mysql2/promise";
 import { loadDbConfigSync } from "./configStore";
+import logger from "./logger";
 
 let pool: any = null;
 
@@ -50,7 +51,7 @@ export async function query<T = any>(sql: string, params?: any): Promise<T[]> {
     } catch (err: any) {
       const code = err?.code;
       const retryable = err?.fatal || code === "ECONNRESET" || code === "PROTOCOL_CONNECTION_LOST";
-      console.error("DB query error (attempt", attempts, "):", code || err?.message || err);
+      logger.error({ note: "DB query error", attempt: attempts, code: code || err?.message || err });
       if (!retryable || attempts === 2) {
         throw err;
       }
