@@ -1,4 +1,4 @@
-import { Plus, Check, Pencil } from "lucide-react";
+import { Plus, Check, Pencil, RefreshCcw } from "lucide-react";
 import type { UiCategory } from "../catalogHelpers";
 import { gradientForCategory, iconForCategory } from "../catalogHelpers";
 
@@ -262,6 +262,7 @@ interface CategoryColumnProps {
   setConfirmOpen: (v: boolean) => void;
   setNewCategory: (v: string) => void;
   addCategory: () => Promise<void>;
+  refresh: () => Promise<void>;
 }
 
 export function CategoryColumn(
@@ -283,6 +284,7 @@ export function CategoryColumn(
     setConfirmOpen: (v: boolean) => void;
     setNewCategory: (v: string) => void;
     addCategory: () => Promise<void>;
+    refresh: () => Promise<void>;
   }>
 ) {
   const {
@@ -304,6 +306,7 @@ export function CategoryColumn(
     setNewCategory,
     addCategory,
   } = props;
+  const showEmpty = !loading && !error && categories.length === 0;
   const handleDeleteClick = (id: number, name: string) => {
     console.debug("[Catalog] delete category click", { id, name });
     setConfirmPayload({
@@ -314,10 +317,12 @@ export function CategoryColumn(
     setConfirmOpen(true);
   };
 
-  const loadingOrErrorContent = (
+  const showLoadingOrError = loading || !!error;
+  const loadingOrErrorContent = showLoadingOrError ? (
     <CategoryColumnLoadingState loading={loading} error={error} />
-  );
-  const listContent = !loading && !error && (
+  ) : null;
+
+  const listContent = !loading && !error ? (
     <CategoryListContent
       categories={categories}
       selectedId={selectedId}
@@ -331,16 +336,51 @@ export function CategoryColumn(
       onSaveRename={saveRenameCategory}
       onDelete={handleDeleteClick}
     />
-  );
+  ) : null;
 
   return (
     <div className="lg:col-span-1">
       <div className="bg-white border border-[#e2e8f0] rounded-xl p-6">
-        <h2 className="text-lg font-semibold mb-1">Categories</h2>
+        <div className="flex items-center justify-between mb-1">
+          <h2 className="text-lg font-semibold">Categories</h2>
+          <button
+            onClick={async () => {
+              try {
+                await props.refresh();
+              } catch (e) {
+                console.error("[Catalog] refresh failed", e);
+              }
+            }}
+            title="Refresh catalog"
+            className="inline-flex items-center gap-2 text-sm px-3 py-1 rounded-lg bg-white border"
+          >
+            <RefreshCcw className="h-4 w-4" />
+            Refresh
+          </button>
+        </div>
         <p className="text-xs text-[#64748b] mb-3">
           Tip: hover a category to reveal the edit icon.
         </p>
-        {loadingOrErrorContent || listContent}
+        {loadingOrErrorContent ? loadingOrErrorContent : listContent}
+        {showEmpty && (
+          <div className="mt-4 p-4 rounded-lg bg-[#fff8f3] border border-[#fde8d6] text-[#92400e]">
+            <div className="flex items-center justify-between gap-4">
+              <div>No categories found. Try refreshing the catalog.</div>
+              <button
+                onClick={async () => {
+                  try {
+                    await props.refresh();
+                  } catch (e) {
+                    console.error("[Catalog] refresh failed", e);
+                  }
+                }}
+                className="px-3 py-1.5 rounded-lg bg-white border text-sm"
+              >
+                Refresh
+              </button>
+            </div>
+          </div>
+        )}
         <div className="mt-4 pt-4 border-t border-[#e2e8f0]">
           <label
             htmlFor="newCategoryInput"

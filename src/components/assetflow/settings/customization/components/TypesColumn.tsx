@@ -29,6 +29,7 @@ interface ViewingTypeItemProps {
   hoveredTypeId: number | null;
   onHover: (id: number | null) => void;
   onEdit: (id: number, name: string, categoryId: number) => void;
+  categoryId?: number;
   onDelete: (id: number, name: string) => void;
   onSortUp: (id: number) => void;
   onSortDown: (id: number) => void;
@@ -39,30 +40,30 @@ export const ViewingTypeItem = ({
   hoveredTypeId,
   onHover,
   onEdit,
+  categoryId,
   onDelete,
   onSortUp,
   onSortDown,
 }: ViewingTypeItemProps) => {
   const Icon = iconForType(t.name);
   return (
-    <fieldset
+    <div
+      role="group"
+      aria-label={`Type ${t.name}`}
       className="group w-full flex items-center justify-between px-4 py-2 rounded-lg border text-white shadow-sm"
       style={{ backgroundImage: gradientForType(t.name) }}
       onMouseEnter={() => onHover(t.id)}
-      onMouseLeave={() =>
-        onHover(hoveredTypeId === t.id ? null : hoveredTypeId)
-      }
+      onMouseLeave={() => onHover(null)}
       onFocus={() => onHover(t.id)}
-      onBlur={() => onHover(hoveredTypeId === t.id ? null : hoveredTypeId)}
+      onBlur={() => onHover(null)}
     >
-      <legend className="sr-only">{`Type ${t.name}`}</legend>
       <span className="flex items-center gap-2">
         <Icon className="h-4 w-4 opacity-90" />
         <span className="font-medium">{t.name}</span>
       </span>
       <span className="flex items-center gap-2">
         <button
-          onClick={() => onEdit(t.id, t.name, 0)}
+          onClick={() => onEdit(t.id, t.name, (typeof (categoryId) === 'number' ? categoryId : 0))}
           className={`text-xs bg-white/20 hover:bg-white/30 p-1.5 rounded inline-flex items-center transition-opacity ${
             hoveredTypeId === t.id
               ? "opacity-100 visible"
@@ -114,7 +115,7 @@ export const ViewingTypeItem = ({
           #{t.id}
         </span>
       </span>
-    </fieldset>
+    </div>
   );
 };
 
@@ -254,6 +255,7 @@ export function TypesColumn(props: Readonly<TypesColumnProps>) {
                     hoveredTypeId={hoveredTypeId}
                     onHover={setHoveredTypeId}
                     onEdit={startRenameType}
+                    categoryId={selected.id}
                     onDelete={(id, name) => {
                       console.debug("[Catalog] delete type click", {
                         id,

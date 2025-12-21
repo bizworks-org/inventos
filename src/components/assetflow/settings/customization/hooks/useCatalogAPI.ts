@@ -21,7 +21,10 @@ const fetchCatalog = async (
   method: string,
   body?: unknown
 ): Promise<{ ok: boolean; data: any }> => {
-  const res = await fetch("/api/admin/catalog", {
+  // Use public read-only endpoint for GET so the catalog lists even
+  // when admin auth cookie isn't available in client contexts.
+  const url = method === "GET" ? "/api/catalog" : "/api/admin/catalog";
+  const res = await fetch(url, {
     method,
     cache: "no-store",
     ...(body && {
@@ -107,13 +110,46 @@ export const useCatalogAPI = (
   const load = useCallback(async () => {
     try {
       const { ok, data } = await fetchCatalog("GET");
-      if (!ok) throw new Error(data?.error || "Failed to load catalog");
 
-      const cats: UiCategory[] = data.categories || [];
+      let cats: UiCategory[] = [];
+
+      if (ok && data) {
+        cats = data.categories || [];
+        console.debug("[Catalog] fetched from network, count=", (cats || []).length);
+      }
+
+      // If network fetch failed or returned no categories, try localStorage cache
+      if ((!cats || cats.length === 0) && typeof localStorage !== "undefined") {
+        try {
+          const raw = localStorage.getItem("catalog.categories");
+          if (raw) {
+            const parsed = JSON.parse(raw);
+            if (Array.isArray(parsed) && parsed.length) {
+              cats = parsed as UiCategory[];
+              console.debug("[Catalog] loaded categories from localStorage fallback, count=", cats.length);
+            }
+          }
+        } catch (e) {
+          console.debug("[Catalog] failed to parse cached categories", e);
+        }
+      }
+
+      if (!cats) cats = [];
+
+      // If the network explicitly failed and we have no cached categories,
+      // surface an error so callers can show an error state instead of
+      // silently showing an empty list.
+      if (!ok && cats.length === 0) {
+        throw new Error(data?.error || "Failed to load catalog");
+      }
+
+      // Only persist non-empty category lists to avoid clearing a valid cache
+      // when the network returns empty or fails.
       setCategories(cats);
-      persistCategories(cats);
-
-      if (cats.length && !selectedId) setSelectedId(cats[0].id);
+      if (cats.length) {
+        persistCategories(cats);
+        if (!selectedId) setSelectedId(cats[0].id);
+      }
     } catch (e: unknown) {
       console.error("[Catalog] Failed to load catalog:", e);
       throw e;

@@ -8458,3 +8458,1830 @@ https://nextjs.org/docs/messages/module-not-found
  [90m 7 |[39m   location[33m?[39m[33m:[39m string[33m;[39m[0m
 
 https://nextjs.org/docs/messages/module-not-found
+2025-12-21T18:15:19.300Z [ERROR]  [31m[1m⨯[22m[39m ./src/components/assetflow/settings/hooks/useBackupRestore.ts
+Error:   [31m×[0m Merge conflict marker encountered.
+     ╭─[[36;1;4mC:\Users\vasee\Documents\projects\inventos\src\components\assetflow\settings\hooks\useBackupRestore.ts[0m:126:1]
+ [2m123[0m │       const url = URL.createObjectURL(blob);
+ [2m124[0m │       const a = document.createElement("a");
+ [2m125[0m │       a.href = url;
+ [2m126[0m │ <<<<<<< HEAD
+     · [35;1m───────[0m
+ [2m127[0m │       a.download = serverFilename;
+ [2m128[0m │ =======
+ [2m128[0m │       a.download = `inventos-backup-${new Date()
+     ╰────
+  [31m×[0m Merge conflict marker encountered.
+     ╭─[[36;1;4mC:\Users\vasee\Documents\projects\inventos\src\components\assetflow\settings\hooks\useBackupRestore.ts[0m:128:1]
+ [2m125[0m │       a.href = url;
+ [2m126[0m │ <<<<<<< HEAD
+ [2m127[0m │       a.download = serverFilename;
+ [2m128[0m │ =======
+     · [35;1m───────[0m
+ [2m129[0m │       a.download = `inventos-backup-${new Date()
+ [2m130[0m │         .toISOString()
+ [2m130[0m │         .split(":")
+     ╰────
+  [31m×[0m Merge conflict marker encountered.
+     ╭─[[36;1;4mC:\Users\vasee\Documents\projects\inventos\src\components\assetflow\settings\hooks\useBackupRestore.ts[0m:135:1]
+ [2m132[0m │         .join("-")
+ [2m133[0m │         .split(".")
+ [2m134[0m │         .join("-")}.bin`;
+ [2m135[0m │ >>>>>>> f9db60b150a1096c2cd789083e856d98de0fb3a9
+     · [35;1m───────[0m
+ [2m136[0m │       a.rel = "noopener noreferrer";
+ [2m137[0m │       a.click();
+ [2m137[0m │       a.remove();
+     ╰────
+
+Caused by:
+    Syntax Error
+
+Import trace for requested module:
+./src/components/assetflow/settings/hooks/useBackupRestore.ts
+./src/components/assetflow/settings/SettingsPage.tsx
+./app/settings/page.tsx
+2025-12-21T18:15:19.300Z [ERROR]  [31m[1m⨯[22m[39m ./src/components/assetflow/settings/hooks/useBackupRestore.ts
+Error:   [31m×[0m Merge conflict marker encountered.
+     ╭─[[36;1;4mC:\Users\vasee\Documents\projects\inventos\src\components\assetflow\settings\hooks\useBackupRestore.ts[0m:126:1]
+ [2m123[0m │       const url = URL.createObjectURL(blob);
+ [2m124[0m │       const a = document.createElement("a");
+ [2m125[0m │       a.href = url;
+ [2m126[0m │ <<<<<<< HEAD
+     · [35;1m───────[0m
+ [2m127[0m │       a.download = serverFilename;
+ [2m128[0m │ =======
+ [2m128[0m │       a.download = `inventos-backup-${new Date()
+     ╰────
+  [31m×[0m Merge conflict marker encountered.
+     ╭─[[36;1;4mC:\Users\vasee\Documents\projects\inventos\src\components\assetflow\settings\hooks\useBackupRestore.ts[0m:128:1]
+ [2m125[0m │       a.href = url;
+ [2m126[0m │ <<<<<<< HEAD
+ [2m127[0m │       a.download = serverFilename;
+ [2m128[0m │ =======
+     · [35;1m───────[0m
+ [2m129[0m │       a.download = `inventos-backup-${new Date()
+ [2m130[0m │         .toISOString()
+ [2m130[0m │         .split(":")
+     ╰────
+  [31m×[0m Merge conflict marker encountered.
+     ╭─[[36;1;4mC:\Users\vasee\Documents\projects\inventos\src\components\assetflow\settings\hooks\useBackupRestore.ts[0m:135:1]
+ [2m132[0m │         .join("-")
+ [2m133[0m │         .split(".")
+ [2m134[0m │         .join("-")}.bin`;
+ [2m135[0m │ >>>>>>> f9db60b150a1096c2cd789083e856d98de0fb3a9
+     · [35;1m───────[0m
+ [2m136[0m │       a.rel = "noopener noreferrer";
+ [2m137[0m │       a.click();
+ [2m137[0m │       a.remove();
+     ╰────
+
+Caused by:
+    Syntax Error
+
+Import trace for requested module:
+./src/components/assetflow/settings/hooks/useBackupRestore.ts
+./src/components/assetflow/settings/SettingsPage.tsx
+./app/settings/page.tsx
+2025-12-21T18:15:20.296Z [ERROR]  [31m[1m⨯[22m[39m ./src/components/assetflow/settings/hooks/useBackupRestore.ts
+Error:   [31m×[0m Merge conflict marker encountered.
+     ╭─[[36;1;4mC:\Users\vasee\Documents\projects\inventos\src\components\assetflow\settings\hooks\useBackupRestore.ts[0m:126:1]
+ [2m123[0m │       const url = URL.createObjectURL(blob);
+ [2m124[0m │       const a = document.createElement("a");
+ [2m125[0m │       a.href = url;
+ [2m126[0m │ <<<<<<< HEAD
+     · [35;1m───────[0m
+ [2m127[0m │       a.download = serverFilename;
+ [2m128[0m │ =======
+ [2m128[0m │       a.download = `inventos-backup-${new Date()
+     ╰────
+  [31m×[0m Merge conflict marker encountered.
+     ╭─[[36;1;4mC:\Users\vasee\Documents\projects\inventos\src\components\assetflow\settings\hooks\useBackupRestore.ts[0m:128:1]
+ [2m125[0m │       a.href = url;
+ [2m126[0m │ <<<<<<< HEAD
+ [2m127[0m │       a.download = serverFilename;
+ [2m128[0m │ =======
+     · [35;1m───────[0m
+ [2m129[0m │       a.download = `inventos-backup-${new Date()
+ [2m130[0m │         .toISOString()
+ [2m130[0m │         .split(":")
+     ╰────
+  [31m×[0m Merge conflict marker encountered.
+     ╭─[[36;1;4mC:\Users\vasee\Documents\projects\inventos\src\components\assetflow\settings\hooks\useBackupRestore.ts[0m:135:1]
+ [2m132[0m │         .join("-")
+ [2m133[0m │         .split(".")
+ [2m134[0m │         .join("-")}.bin`;
+ [2m135[0m │ >>>>>>> f9db60b150a1096c2cd789083e856d98de0fb3a9
+     · [35;1m───────[0m
+ [2m136[0m │       a.rel = "noopener noreferrer";
+ [2m137[0m │       a.click();
+ [2m137[0m │       a.remove();
+     ╰────
+
+Caused by:
+    Syntax Error
+
+Import trace for requested module:
+./src/components/assetflow/settings/hooks/useBackupRestore.ts
+./src/components/assetflow/settings/SettingsPage.tsx
+./app/settings/page.tsx
+2025-12-21T18:15:20.297Z [ERROR]  [31m[1m⨯[22m[39m ./src/components/assetflow/settings/hooks/useBackupRestore.ts
+Error:   [31m×[0m Merge conflict marker encountered.
+     ╭─[[36;1;4mC:\Users\vasee\Documents\projects\inventos\src\components\assetflow\settings\hooks\useBackupRestore.ts[0m:126:1]
+ [2m123[0m │       const url = URL.createObjectURL(blob);
+ [2m124[0m │       const a = document.createElement("a");
+ [2m125[0m │       a.href = url;
+ [2m126[0m │ <<<<<<< HEAD
+     · [35;1m───────[0m
+ [2m127[0m │       a.download = serverFilename;
+ [2m128[0m │ =======
+ [2m128[0m │       a.download = `inventos-backup-${new Date()
+     ╰────
+  [31m×[0m Merge conflict marker encountered.
+     ╭─[[36;1;4mC:\Users\vasee\Documents\projects\inventos\src\components\assetflow\settings\hooks\useBackupRestore.ts[0m:128:1]
+ [2m125[0m │       a.href = url;
+ [2m126[0m │ <<<<<<< HEAD
+ [2m127[0m │       a.download = serverFilename;
+ [2m128[0m │ =======
+     · [35;1m───────[0m
+ [2m129[0m │       a.download = `inventos-backup-${new Date()
+ [2m130[0m │         .toISOString()
+ [2m130[0m │         .split(":")
+     ╰────
+  [31m×[0m Merge conflict marker encountered.
+     ╭─[[36;1;4mC:\Users\vasee\Documents\projects\inventos\src\components\assetflow\settings\hooks\useBackupRestore.ts[0m:135:1]
+ [2m132[0m │         .join("-")
+ [2m133[0m │         .split(".")
+ [2m134[0m │         .join("-")}.bin`;
+ [2m135[0m │ >>>>>>> f9db60b150a1096c2cd789083e856d98de0fb3a9
+     · [35;1m───────[0m
+ [2m136[0m │       a.rel = "noopener noreferrer";
+ [2m137[0m │       a.click();
+ [2m137[0m │       a.remove();
+     ╰────
+
+Caused by:
+    Syntax Error
+
+Import trace for requested module:
+./src/components/assetflow/settings/hooks/useBackupRestore.ts
+./src/components/assetflow/settings/SettingsPage.tsx
+./app/settings/page.tsx
+2025-12-21T18:15:23.475Z [ERROR]  [31m[1m⨯[22m[39m ./src/components/assetflow/settings/hooks/useBackupRestore.ts
+Error:   [31m×[0m Merge conflict marker encountered.
+     ╭─[[36;1;4mC:\Users\vasee\Documents\projects\inventos\src\components\assetflow\settings\hooks\useBackupRestore.ts[0m:126:1]
+ [2m123[0m │       const url = URL.createObjectURL(blob);
+ [2m124[0m │       const a = document.createElement("a");
+ [2m125[0m │       a.href = url;
+ [2m126[0m │ <<<<<<< HEAD
+     · [35;1m───────[0m
+ [2m127[0m │       a.download = serverFilename;
+ [2m128[0m │ =======
+ [2m128[0m │       a.download = `inventos-backup-${new Date()
+     ╰────
+  [31m×[0m Merge conflict marker encountered.
+     ╭─[[36;1;4mC:\Users\vasee\Documents\projects\inventos\src\components\assetflow\settings\hooks\useBackupRestore.ts[0m:128:1]
+ [2m125[0m │       a.href = url;
+ [2m126[0m │ <<<<<<< HEAD
+ [2m127[0m │       a.download = serverFilename;
+ [2m128[0m │ =======
+     · [35;1m───────[0m
+ [2m129[0m │       a.download = `inventos-backup-${new Date()
+ [2m130[0m │         .toISOString()
+ [2m130[0m │         .split(":")
+     ╰────
+  [31m×[0m Merge conflict marker encountered.
+     ╭─[[36;1;4mC:\Users\vasee\Documents\projects\inventos\src\components\assetflow\settings\hooks\useBackupRestore.ts[0m:135:1]
+ [2m132[0m │         .join("-")
+ [2m133[0m │         .split(".")
+ [2m134[0m │         .join("-")}.bin`;
+ [2m135[0m │ >>>>>>> f9db60b150a1096c2cd789083e856d98de0fb3a9
+     · [35;1m───────[0m
+ [2m136[0m │       a.rel = "noopener noreferrer";
+ [2m137[0m │       a.click();
+ [2m137[0m │       a.remove();
+     ╰────
+
+Caused by:
+    Syntax Error
+
+Import trace for requested module:
+./src/components/assetflow/settings/hooks/useBackupRestore.ts
+./src/components/assetflow/settings/SettingsPage.tsx
+./app/settings/page.tsx
+2025-12-21T18:15:23.475Z [ERROR]  [31m[1m⨯[22m[39m ./src/components/assetflow/settings/hooks/useBackupRestore.ts
+Error:   [31m×[0m Merge conflict marker encountered.
+     ╭─[[36;1;4mC:\Users\vasee\Documents\projects\inventos\src\components\assetflow\settings\hooks\useBackupRestore.ts[0m:126:1]
+ [2m123[0m │       const url = URL.createObjectURL(blob);
+ [2m124[0m │       const a = document.createElement("a");
+ [2m125[0m │       a.href = url;
+ [2m126[0m │ <<<<<<< HEAD
+     · [35;1m───────[0m
+ [2m127[0m │       a.download = serverFilename;
+ [2m128[0m │ =======
+ [2m128[0m │       a.download = `inventos-backup-${new Date()
+     ╰────
+  [31m×[0m Merge conflict marker encountered.
+     ╭─[[36;1;4mC:\Users\vasee\Documents\projects\inventos\src\components\assetflow\settings\hooks\useBackupRestore.ts[0m:128:1]
+ [2m125[0m │       a.href = url;
+ [2m126[0m │ <<<<<<< HEAD
+ [2m127[0m │       a.download = serverFilename;
+ [2m128[0m │ =======
+     · [35;1m───────[0m
+ [2m129[0m │       a.download = `inventos-backup-${new Date()
+ [2m130[0m │         .toISOString()
+ [2m130[0m │         .split(":")
+     ╰────
+  [31m×[0m Merge conflict marker encountered.
+     ╭─[[36;1;4mC:\Users\vasee\Documents\projects\inventos\src\components\assetflow\settings\hooks\useBackupRestore.ts[0m:135:1]
+ [2m132[0m │         .join("-")
+ [2m133[0m │         .split(".")
+ [2m134[0m │         .join("-")}.bin`;
+ [2m135[0m │ >>>>>>> f9db60b150a1096c2cd789083e856d98de0fb3a9
+     · [35;1m───────[0m
+ [2m136[0m │       a.rel = "noopener noreferrer";
+ [2m137[0m │       a.click();
+ [2m137[0m │       a.remove();
+     ╰────
+
+Caused by:
+    Syntax Error
+
+Import trace for requested module:
+./src/components/assetflow/settings/hooks/useBackupRestore.ts
+./src/components/assetflow/settings/SettingsPage.tsx
+./app/settings/page.tsx
+2025-12-21T21:20:37.806Z [ERROR]  [31m[1m⨯[22m[39m ./src/components/assetflow/settings/customization/components/TypesColumn.tsx
+Error:   [31m×[0m Expected corresponding JSX closing tag for <div>
+     ╭─[[36;1;4mC:\Users\vasee\Documents\projects\inventos\src\components\assetflow\settings\customization\components\TypesColumn.tsx[0m:118:1]
+ [2m115[0m │           #{t.id}
+ [2m116[0m │         </span>
+ [2m117[0m │       </span>
+ [2m118[0m │     </fieldset>
+     · [35;1m      ────────[0m
+ [2m119[0m │   );
+ [2m120[0m │ };
+ [2m120[0m │ 
+     ╰────
+
+Caused by:
+    Syntax Error
+
+Import trace for requested module:
+./src/components/assetflow/settings/customization/components/TypesColumn.tsx
+./src/components/assetflow/settings/customization/CatalogAdmin.tsx
+./src/components/assetflow/settings/CustomizationPage.tsx
+./app/settings/customization/page.tsx
+2025-12-21T21:20:37.807Z [ERROR]  [31m[1m⨯[22m[39m ./src/components/assetflow/settings/customization/components/TypesColumn.tsx
+Error:   [31m×[0m Expected corresponding JSX closing tag for <div>
+     ╭─[[36;1;4mC:\Users\vasee\Documents\projects\inventos\src\components\assetflow\settings\customization\components\TypesColumn.tsx[0m:118:1]
+ [2m115[0m │           #{t.id}
+ [2m116[0m │         </span>
+ [2m117[0m │       </span>
+ [2m118[0m │     </fieldset>
+     · [35;1m      ────────[0m
+ [2m119[0m │   );
+ [2m120[0m │ };
+ [2m120[0m │ 
+     ╰────
+
+Caused by:
+    Syntax Error
+
+Import trace for requested module:
+./src/components/assetflow/settings/customization/components/TypesColumn.tsx
+./src/components/assetflow/settings/customization/CatalogAdmin.tsx
+./src/components/assetflow/settings/CustomizationPage.tsx
+./app/settings/customization/page.tsx
+2025-12-21T21:20:37.807Z [ERROR]  [31m[1m⨯[22m[39m ./src/components/assetflow/settings/customization/components/TypesColumn.tsx
+Error:   [31m×[0m Expected corresponding JSX closing tag for <div>
+     ╭─[[36;1;4mC:\Users\vasee\Documents\projects\inventos\src\components\assetflow\settings\customization\components\TypesColumn.tsx[0m:118:1]
+ [2m115[0m │           #{t.id}
+ [2m116[0m │         </span>
+ [2m117[0m │       </span>
+ [2m118[0m │     </fieldset>
+     · [35;1m      ────────[0m
+ [2m119[0m │   );
+ [2m120[0m │ };
+ [2m120[0m │ 
+     ╰────
+
+Caused by:
+    Syntax Error
+
+Import trace for requested module:
+./src/components/assetflow/settings/customization/components/TypesColumn.tsx
+./src/components/assetflow/settings/customization/CatalogAdmin.tsx
+./src/components/assetflow/settings/CustomizationPage.tsx
+./app/settings/customization/page.tsx
+2025-12-21T21:20:37.807Z [ERROR]  [31m[1m⨯[22m[39m ./src/components/assetflow/settings/customization/components/TypesColumn.tsx
+Error:   [31m×[0m Expected corresponding JSX closing tag for <div>
+     ╭─[[36;1;4mC:\Users\vasee\Documents\projects\inventos\src\components\assetflow\settings\customization\components\TypesColumn.tsx[0m:118:1]
+ [2m115[0m │           #{t.id}
+ [2m116[0m │         </span>
+ [2m117[0m │       </span>
+ [2m118[0m │     </fieldset>
+     · [35;1m      ────────[0m
+ [2m119[0m │   );
+ [2m120[0m │ };
+ [2m120[0m │ 
+     ╰────
+
+Caused by:
+    Syntax Error
+
+Import trace for requested module:
+./src/components/assetflow/settings/customization/components/TypesColumn.tsx
+./src/components/assetflow/settings/customization/CatalogAdmin.tsx
+./src/components/assetflow/settings/CustomizationPage.tsx
+./app/settings/customization/page.tsx
+2025-12-21T21:20:37.808Z [ERROR]  [31m[1m⨯[22m[39m ./src/components/assetflow/settings/customization/components/TypesColumn.tsx
+Error:   [31m×[0m Expected corresponding JSX closing tag for <div>
+     ╭─[[36;1;4mC:\Users\vasee\Documents\projects\inventos\src\components\assetflow\settings\customization\components\TypesColumn.tsx[0m:118:1]
+ [2m115[0m │           #{t.id}
+ [2m116[0m │         </span>
+ [2m117[0m │       </span>
+ [2m118[0m │     </fieldset>
+     · [35;1m      ────────[0m
+ [2m119[0m │   );
+ [2m120[0m │ };
+ [2m120[0m │ 
+     ╰────
+
+Caused by:
+    Syntax Error
+
+Import trace for requested module:
+./src/components/assetflow/settings/customization/components/TypesColumn.tsx
+./src/components/assetflow/settings/customization/CatalogAdmin.tsx
+./src/components/assetflow/settings/CustomizationPage.tsx
+./app/settings/customization/page.tsx
+2025-12-21T21:20:37.808Z [ERROR]  [31m[1m⨯[22m[39m ./src/components/assetflow/settings/customization/components/TypesColumn.tsx
+Error:   [31m×[0m Expected corresponding JSX closing tag for <div>
+     ╭─[[36;1;4mC:\Users\vasee\Documents\projects\inventos\src\components\assetflow\settings\customization\components\TypesColumn.tsx[0m:118:1]
+ [2m115[0m │           #{t.id}
+ [2m116[0m │         </span>
+ [2m117[0m │       </span>
+ [2m118[0m │     </fieldset>
+     · [35;1m      ────────[0m
+ [2m119[0m │   );
+ [2m120[0m │ };
+ [2m120[0m │ 
+     ╰────
+
+Caused by:
+    Syntax Error
+
+Import trace for requested module:
+./src/components/assetflow/settings/customization/components/TypesColumn.tsx
+./src/components/assetflow/settings/customization/CatalogAdmin.tsx
+./src/components/assetflow/settings/CustomizationPage.tsx
+./app/settings/customization/page.tsx
+2025-12-21T21:20:37.808Z [ERROR]  [31m[1m⨯[22m[39m ./src/components/assetflow/settings/customization/components/TypesColumn.tsx
+Error:   [31m×[0m Expected corresponding JSX closing tag for <div>
+     ╭─[[36;1;4mC:\Users\vasee\Documents\projects\inventos\src\components\assetflow\settings\customization\components\TypesColumn.tsx[0m:118:1]
+ [2m115[0m │           #{t.id}
+ [2m116[0m │         </span>
+ [2m117[0m │       </span>
+ [2m118[0m │     </fieldset>
+     · [35;1m      ────────[0m
+ [2m119[0m │   );
+ [2m120[0m │ };
+ [2m120[0m │ 
+     ╰────
+
+Caused by:
+    Syntax Error
+
+Import trace for requested module:
+./src/components/assetflow/settings/customization/components/TypesColumn.tsx
+./src/components/assetflow/settings/customization/CatalogAdmin.tsx
+./src/components/assetflow/settings/CustomizationPage.tsx
+./app/settings/customization/page.tsx
+2025-12-21T21:20:37.808Z [ERROR]  [31m[1m⨯[22m[39m ./src/components/assetflow/settings/customization/components/TypesColumn.tsx
+Error:   [31m×[0m Expected corresponding JSX closing tag for <div>
+     ╭─[[36;1;4mC:\Users\vasee\Documents\projects\inventos\src\components\assetflow\settings\customization\components\TypesColumn.tsx[0m:118:1]
+ [2m115[0m │           #{t.id}
+ [2m116[0m │         </span>
+ [2m117[0m │       </span>
+ [2m118[0m │     </fieldset>
+     · [35;1m      ────────[0m
+ [2m119[0m │   );
+ [2m120[0m │ };
+ [2m120[0m │ 
+     ╰────
+
+Caused by:
+    Syntax Error
+
+Import trace for requested module:
+./src/components/assetflow/settings/customization/components/TypesColumn.tsx
+./src/components/assetflow/settings/customization/CatalogAdmin.tsx
+./src/components/assetflow/settings/CustomizationPage.tsx
+./app/settings/customization/page.tsx
+2025-12-21T21:20:37.809Z [ERROR]  [31m[1m⨯[22m[39m ./src/components/assetflow/settings/customization/components/TypesColumn.tsx
+Error:   [31m×[0m Expected corresponding JSX closing tag for <div>
+     ╭─[[36;1;4mC:\Users\vasee\Documents\projects\inventos\src\components\assetflow\settings\customization\components\TypesColumn.tsx[0m:118:1]
+ [2m115[0m │           #{t.id}
+ [2m116[0m │         </span>
+ [2m117[0m │       </span>
+ [2m118[0m │     </fieldset>
+     · [35;1m      ────────[0m
+ [2m119[0m │   );
+ [2m120[0m │ };
+ [2m120[0m │ 
+     ╰────
+
+Caused by:
+    Syntax Error
+
+Import trace for requested module:
+./src/components/assetflow/settings/customization/components/TypesColumn.tsx
+./src/components/assetflow/settings/customization/CatalogAdmin.tsx
+./src/components/assetflow/settings/CustomizationPage.tsx
+./app/settings/customization/page.tsx
+2025-12-21T21:20:37.809Z [ERROR]  [31m[1m⨯[22m[39m ./src/components/assetflow/settings/customization/components/TypesColumn.tsx
+Error:   [31m×[0m Expected corresponding JSX closing tag for <div>
+     ╭─[[36;1;4mC:\Users\vasee\Documents\projects\inventos\src\components\assetflow\settings\customization\components\TypesColumn.tsx[0m:118:1]
+ [2m115[0m │           #{t.id}
+ [2m116[0m │         </span>
+ [2m117[0m │       </span>
+ [2m118[0m │     </fieldset>
+     · [35;1m      ────────[0m
+ [2m119[0m │   );
+ [2m120[0m │ };
+ [2m120[0m │ 
+     ╰────
+
+Caused by:
+    Syntax Error
+
+Import trace for requested module:
+./src/components/assetflow/settings/customization/components/TypesColumn.tsx
+./src/components/assetflow/settings/customization/CatalogAdmin.tsx
+./src/components/assetflow/settings/CustomizationPage.tsx
+./app/settings/customization/page.tsx
+2025-12-21T21:20:37.809Z [ERROR]  [31m[1m⨯[22m[39m ./src/components/assetflow/settings/customization/components/TypesColumn.tsx
+Error:   [31m×[0m Expected corresponding JSX closing tag for <div>
+     ╭─[[36;1;4mC:\Users\vasee\Documents\projects\inventos\src\components\assetflow\settings\customization\components\TypesColumn.tsx[0m:118:1]
+ [2m115[0m │           #{t.id}
+ [2m116[0m │         </span>
+ [2m117[0m │       </span>
+ [2m118[0m │     </fieldset>
+     · [35;1m      ────────[0m
+ [2m119[0m │   );
+ [2m120[0m │ };
+ [2m120[0m │ 
+     ╰────
+
+Caused by:
+    Syntax Error
+
+Import trace for requested module:
+./src/components/assetflow/settings/customization/components/TypesColumn.tsx
+./src/components/assetflow/settings/customization/CatalogAdmin.tsx
+./src/components/assetflow/settings/CustomizationPage.tsx
+./app/settings/customization/page.tsx
+2025-12-21T21:20:37.810Z [ERROR]  [31m[1m⨯[22m[39m ./src/components/assetflow/settings/customization/components/TypesColumn.tsx
+Error:   [31m×[0m Expected corresponding JSX closing tag for <div>
+     ╭─[[36;1;4mC:\Users\vasee\Documents\projects\inventos\src\components\assetflow\settings\customization\components\TypesColumn.tsx[0m:118:1]
+ [2m115[0m │           #{t.id}
+ [2m116[0m │         </span>
+ [2m117[0m │       </span>
+ [2m118[0m │     </fieldset>
+     · [35;1m      ────────[0m
+ [2m119[0m │   );
+ [2m120[0m │ };
+ [2m120[0m │ 
+     ╰────
+
+Caused by:
+    Syntax Error
+
+Import trace for requested module:
+./src/components/assetflow/settings/customization/components/TypesColumn.tsx
+./src/components/assetflow/settings/customization/CatalogAdmin.tsx
+./src/components/assetflow/settings/CustomizationPage.tsx
+./app/settings/customization/page.tsx
+2025-12-21T21:20:37.810Z [ERROR]  [31m[1m⨯[22m[39m ./src/components/assetflow/settings/customization/components/TypesColumn.tsx
+Error:   [31m×[0m Expected corresponding JSX closing tag for <div>
+     ╭─[[36;1;4mC:\Users\vasee\Documents\projects\inventos\src\components\assetflow\settings\customization\components\TypesColumn.tsx[0m:118:1]
+ [2m115[0m │           #{t.id}
+ [2m116[0m │         </span>
+ [2m117[0m │       </span>
+ [2m118[0m │     </fieldset>
+     · [35;1m      ────────[0m
+ [2m119[0m │   );
+ [2m120[0m │ };
+ [2m120[0m │ 
+     ╰────
+
+Caused by:
+    Syntax Error
+
+Import trace for requested module:
+./src/components/assetflow/settings/customization/components/TypesColumn.tsx
+./src/components/assetflow/settings/customization/CatalogAdmin.tsx
+./src/components/assetflow/settings/CustomizationPage.tsx
+./app/settings/customization/page.tsx
+2025-12-21T21:20:37.810Z [ERROR]  [31m[1m⨯[22m[39m ./src/components/assetflow/settings/customization/components/TypesColumn.tsx
+Error:   [31m×[0m Expected corresponding JSX closing tag for <div>
+     ╭─[[36;1;4mC:\Users\vasee\Documents\projects\inventos\src\components\assetflow\settings\customization\components\TypesColumn.tsx[0m:118:1]
+ [2m115[0m │           #{t.id}
+ [2m116[0m │         </span>
+ [2m117[0m │       </span>
+ [2m118[0m │     </fieldset>
+     · [35;1m      ────────[0m
+ [2m119[0m │   );
+ [2m120[0m │ };
+ [2m120[0m │ 
+     ╰────
+
+Caused by:
+    Syntax Error
+
+Import trace for requested module:
+./src/components/assetflow/settings/customization/components/TypesColumn.tsx
+./src/components/assetflow/settings/customization/CatalogAdmin.tsx
+./src/components/assetflow/settings/CustomizationPage.tsx
+./app/settings/customization/page.tsx
+2025-12-21T21:20:37.811Z [ERROR]  [31m[1m⨯[22m[39m ./src/components/assetflow/settings/customization/components/TypesColumn.tsx
+Error:   [31m×[0m Expected corresponding JSX closing tag for <div>
+     ╭─[[36;1;4mC:\Users\vasee\Documents\projects\inventos\src\components\assetflow\settings\customization\components\TypesColumn.tsx[0m:118:1]
+ [2m115[0m │           #{t.id}
+ [2m116[0m │         </span>
+ [2m117[0m │       </span>
+ [2m118[0m │     </fieldset>
+     · [35;1m      ────────[0m
+ [2m119[0m │   );
+ [2m120[0m │ };
+ [2m120[0m │ 
+     ╰────
+
+Caused by:
+    Syntax Error
+
+Import trace for requested module:
+./src/components/assetflow/settings/customization/components/TypesColumn.tsx
+./src/components/assetflow/settings/customization/CatalogAdmin.tsx
+./src/components/assetflow/settings/CustomizationPage.tsx
+./app/settings/customization/page.tsx
+2025-12-21T21:21:12.931Z [ERROR]  [31m[1m⨯[22m[39m ./src/components/assetflow/settings/customization/components/TypesColumn.tsx
+Error:   [31m×[0m Expected corresponding JSX closing tag for <div>
+     ╭─[[36;1;4mC:\Users\vasee\Documents\projects\inventos\src\components\assetflow\settings\customization\components\TypesColumn.tsx[0m:118:1]
+ [2m115[0m │           #{t.id}
+ [2m116[0m │         </span>
+ [2m117[0m │       </span>
+ [2m118[0m │     </fieldset>
+     · [35;1m      ────────[0m
+ [2m119[0m │   );
+ [2m120[0m │ };
+ [2m120[0m │ 
+     ╰────
+
+Caused by:
+    Syntax Error
+
+Import trace for requested module:
+./src/components/assetflow/settings/customization/components/TypesColumn.tsx
+./src/components/assetflow/settings/customization/CatalogAdmin.tsx
+./src/components/assetflow/settings/CustomizationPage.tsx
+./app/settings/customization/page.tsx
+2025-12-21T21:21:12.931Z [ERROR]  [31m[1m⨯[22m[39m ./src/components/assetflow/settings/customization/components/TypesColumn.tsx
+Error:   [31m×[0m Expected corresponding JSX closing tag for <div>
+     ╭─[[36;1;4mC:\Users\vasee\Documents\projects\inventos\src\components\assetflow\settings\customization\components\TypesColumn.tsx[0m:118:1]
+ [2m115[0m │           #{t.id}
+ [2m116[0m │         </span>
+ [2m117[0m │       </span>
+ [2m118[0m │     </fieldset>
+     · [35;1m      ────────[0m
+ [2m119[0m │   );
+ [2m120[0m │ };
+ [2m120[0m │ 
+     ╰────
+
+Caused by:
+    Syntax Error
+
+Import trace for requested module:
+./src/components/assetflow/settings/customization/components/TypesColumn.tsx
+./src/components/assetflow/settings/customization/CatalogAdmin.tsx
+./src/components/assetflow/settings/CustomizationPage.tsx
+./app/settings/customization/page.tsx
+2025-12-21T21:21:12.932Z [ERROR]  [31m[1m⨯[22m[39m ./src/components/assetflow/settings/customization/components/TypesColumn.tsx
+Error:   [31m×[0m Expected corresponding JSX closing tag for <div>
+     ╭─[[36;1;4mC:\Users\vasee\Documents\projects\inventos\src\components\assetflow\settings\customization\components\TypesColumn.tsx[0m:118:1]
+ [2m115[0m │           #{t.id}
+ [2m116[0m │         </span>
+ [2m117[0m │       </span>
+ [2m118[0m │     </fieldset>
+     · [35;1m      ────────[0m
+ [2m119[0m │   );
+ [2m120[0m │ };
+ [2m120[0m │ 
+     ╰────
+
+Caused by:
+    Syntax Error
+
+Import trace for requested module:
+./src/components/assetflow/settings/customization/components/TypesColumn.tsx
+./src/components/assetflow/settings/customization/CatalogAdmin.tsx
+./src/components/assetflow/settings/CustomizationPage.tsx
+./app/settings/customization/page.tsx
+2025-12-21T21:21:12.932Z [ERROR]  [31m[1m⨯[22m[39m ./src/components/assetflow/settings/customization/components/TypesColumn.tsx
+Error:   [31m×[0m Expected corresponding JSX closing tag for <div>
+     ╭─[[36;1;4mC:\Users\vasee\Documents\projects\inventos\src\components\assetflow\settings\customization\components\TypesColumn.tsx[0m:118:1]
+ [2m115[0m │           #{t.id}
+ [2m116[0m │         </span>
+ [2m117[0m │       </span>
+ [2m118[0m │     </fieldset>
+     · [35;1m      ────────[0m
+ [2m119[0m │   );
+ [2m120[0m │ };
+ [2m120[0m │ 
+     ╰────
+
+Caused by:
+    Syntax Error
+
+Import trace for requested module:
+./src/components/assetflow/settings/customization/components/TypesColumn.tsx
+./src/components/assetflow/settings/customization/CatalogAdmin.tsx
+./src/components/assetflow/settings/CustomizationPage.tsx
+./app/settings/customization/page.tsx
+2025-12-21T21:21:12.932Z [ERROR]  [31m[1m⨯[22m[39m ./src/components/assetflow/settings/customization/components/TypesColumn.tsx
+Error:   [31m×[0m Expected corresponding JSX closing tag for <div>
+     ╭─[[36;1;4mC:\Users\vasee\Documents\projects\inventos\src\components\assetflow\settings\customization\components\TypesColumn.tsx[0m:118:1]
+ [2m115[0m │           #{t.id}
+ [2m116[0m │         </span>
+ [2m117[0m │       </span>
+ [2m118[0m │     </fieldset>
+     · [35;1m      ────────[0m
+ [2m119[0m │   );
+ [2m120[0m │ };
+ [2m120[0m │ 
+     ╰────
+
+Caused by:
+    Syntax Error
+
+Import trace for requested module:
+./src/components/assetflow/settings/customization/components/TypesColumn.tsx
+./src/components/assetflow/settings/customization/CatalogAdmin.tsx
+./src/components/assetflow/settings/CustomizationPage.tsx
+./app/settings/customization/page.tsx
+2025-12-21T21:21:12.932Z [ERROR]  [31m[1m⨯[22m[39m ./src/components/assetflow/settings/customization/components/TypesColumn.tsx
+Error:   [31m×[0m Expected corresponding JSX closing tag for <div>
+     ╭─[[36;1;4mC:\Users\vasee\Documents\projects\inventos\src\components\assetflow\settings\customization\components\TypesColumn.tsx[0m:118:1]
+ [2m115[0m │           #{t.id}
+ [2m116[0m │         </span>
+ [2m117[0m │       </span>
+ [2m118[0m │     </fieldset>
+     · [35;1m      ────────[0m
+ [2m119[0m │   );
+ [2m120[0m │ };
+ [2m120[0m │ 
+     ╰────
+
+Caused by:
+    Syntax Error
+
+Import trace for requested module:
+./src/components/assetflow/settings/customization/components/TypesColumn.tsx
+./src/components/assetflow/settings/customization/CatalogAdmin.tsx
+./src/components/assetflow/settings/CustomizationPage.tsx
+./app/settings/customization/page.tsx
+2025-12-21T21:21:12.932Z [ERROR]  [31m[1m⨯[22m[39m ./src/components/assetflow/settings/customization/components/TypesColumn.tsx
+Error:   [31m×[0m Expected corresponding JSX closing tag for <div>
+     ╭─[[36;1;4mC:\Users\vasee\Documents\projects\inventos\src\components\assetflow\settings\customization\components\TypesColumn.tsx[0m:118:1]
+ [2m115[0m │           #{t.id}
+ [2m116[0m │         </span>
+ [2m117[0m │       </span>
+ [2m118[0m │     </fieldset>
+     · [35;1m      ────────[0m
+ [2m119[0m │   );
+ [2m120[0m │ };
+ [2m120[0m │ 
+     ╰────
+
+Caused by:
+    Syntax Error
+
+Import trace for requested module:
+./src/components/assetflow/settings/customization/components/TypesColumn.tsx
+./src/components/assetflow/settings/customization/CatalogAdmin.tsx
+./src/components/assetflow/settings/CustomizationPage.tsx
+./app/settings/customization/page.tsx
+2025-12-21T21:21:12.932Z [ERROR]  [31m[1m⨯[22m[39m ./src/components/assetflow/settings/customization/components/TypesColumn.tsx
+Error:   [31m×[0m Expected corresponding JSX closing tag for <div>
+     ╭─[[36;1;4mC:\Users\vasee\Documents\projects\inventos\src\components\assetflow\settings\customization\components\TypesColumn.tsx[0m:118:1]
+ [2m115[0m │           #{t.id}
+ [2m116[0m │         </span>
+ [2m117[0m │       </span>
+ [2m118[0m │     </fieldset>
+     · [35;1m      ────────[0m
+ [2m119[0m │   );
+ [2m120[0m │ };
+ [2m120[0m │ 
+     ╰────
+
+Caused by:
+    Syntax Error
+
+Import trace for requested module:
+./src/components/assetflow/settings/customization/components/TypesColumn.tsx
+./src/components/assetflow/settings/customization/CatalogAdmin.tsx
+./src/components/assetflow/settings/CustomizationPage.tsx
+./app/settings/customization/page.tsx
+2025-12-21T21:21:12.933Z [ERROR]  [31m[1m⨯[22m[39m ./src/components/assetflow/settings/customization/components/TypesColumn.tsx
+Error:   [31m×[0m Expected corresponding JSX closing tag for <div>
+     ╭─[[36;1;4mC:\Users\vasee\Documents\projects\inventos\src\components\assetflow\settings\customization\components\TypesColumn.tsx[0m:118:1]
+ [2m115[0m │           #{t.id}
+ [2m116[0m │         </span>
+ [2m117[0m │       </span>
+ [2m118[0m │     </fieldset>
+     · [35;1m      ────────[0m
+ [2m119[0m │   );
+ [2m120[0m │ };
+ [2m120[0m │ 
+     ╰────
+
+Caused by:
+    Syntax Error
+
+Import trace for requested module:
+./src/components/assetflow/settings/customization/components/TypesColumn.tsx
+./src/components/assetflow/settings/customization/CatalogAdmin.tsx
+./src/components/assetflow/settings/CustomizationPage.tsx
+./app/settings/customization/page.tsx
+2025-12-21T21:21:12.933Z [ERROR]  [31m[1m⨯[22m[39m ./src/components/assetflow/settings/customization/components/TypesColumn.tsx
+Error:   [31m×[0m Expected corresponding JSX closing tag for <div>
+     ╭─[[36;1;4mC:\Users\vasee\Documents\projects\inventos\src\components\assetflow\settings\customization\components\TypesColumn.tsx[0m:118:1]
+ [2m115[0m │           #{t.id}
+ [2m116[0m │         </span>
+ [2m117[0m │       </span>
+ [2m118[0m │     </fieldset>
+     · [35;1m      ────────[0m
+ [2m119[0m │   );
+ [2m120[0m │ };
+ [2m120[0m │ 
+     ╰────
+
+Caused by:
+    Syntax Error
+
+Import trace for requested module:
+./src/components/assetflow/settings/customization/components/TypesColumn.tsx
+./src/components/assetflow/settings/customization/CatalogAdmin.tsx
+./src/components/assetflow/settings/CustomizationPage.tsx
+./app/settings/customization/page.tsx
+2025-12-21T21:21:12.933Z [ERROR]  [31m[1m⨯[22m[39m ./src/components/assetflow/settings/customization/components/TypesColumn.tsx
+Error:   [31m×[0m Expected corresponding JSX closing tag for <div>
+     ╭─[[36;1;4mC:\Users\vasee\Documents\projects\inventos\src\components\assetflow\settings\customization\components\TypesColumn.tsx[0m:118:1]
+ [2m115[0m │           #{t.id}
+ [2m116[0m │         </span>
+ [2m117[0m │       </span>
+ [2m118[0m │     </fieldset>
+     · [35;1m      ────────[0m
+ [2m119[0m │   );
+ [2m120[0m │ };
+ [2m120[0m │ 
+     ╰────
+
+Caused by:
+    Syntax Error
+
+Import trace for requested module:
+./src/components/assetflow/settings/customization/components/TypesColumn.tsx
+./src/components/assetflow/settings/customization/CatalogAdmin.tsx
+./src/components/assetflow/settings/CustomizationPage.tsx
+./app/settings/customization/page.tsx
+2025-12-21T21:21:12.933Z [ERROR]  [31m[1m⨯[22m[39m ./src/components/assetflow/settings/customization/components/TypesColumn.tsx
+Error:   [31m×[0m Expected corresponding JSX closing tag for <div>
+     ╭─[[36;1;4mC:\Users\vasee\Documents\projects\inventos\src\components\assetflow\settings\customization\components\TypesColumn.tsx[0m:118:1]
+ [2m115[0m │           #{t.id}
+ [2m116[0m │         </span>
+ [2m117[0m │       </span>
+ [2m118[0m │     </fieldset>
+     · [35;1m      ────────[0m
+ [2m119[0m │   );
+ [2m120[0m │ };
+ [2m120[0m │ 
+     ╰────
+
+Caused by:
+    Syntax Error
+
+Import trace for requested module:
+./src/components/assetflow/settings/customization/components/TypesColumn.tsx
+./src/components/assetflow/settings/customization/CatalogAdmin.tsx
+./src/components/assetflow/settings/CustomizationPage.tsx
+./app/settings/customization/page.tsx
+2025-12-21T21:21:12.933Z [ERROR]  [31m[1m⨯[22m[39m ./src/components/assetflow/settings/customization/components/TypesColumn.tsx
+Error:   [31m×[0m Expected corresponding JSX closing tag for <div>
+     ╭─[[36;1;4mC:\Users\vasee\Documents\projects\inventos\src\components\assetflow\settings\customization\components\TypesColumn.tsx[0m:118:1]
+ [2m115[0m │           #{t.id}
+ [2m116[0m │         </span>
+ [2m117[0m │       </span>
+ [2m118[0m │     </fieldset>
+     · [35;1m      ────────[0m
+ [2m119[0m │   );
+ [2m120[0m │ };
+ [2m120[0m │ 
+     ╰────
+
+Caused by:
+    Syntax Error
+
+Import trace for requested module:
+./src/components/assetflow/settings/customization/components/TypesColumn.tsx
+./src/components/assetflow/settings/customization/CatalogAdmin.tsx
+./src/components/assetflow/settings/CustomizationPage.tsx
+./app/settings/customization/page.tsx
+2025-12-21T21:21:12.933Z [ERROR]  [31m[1m⨯[22m[39m ./src/components/assetflow/settings/customization/components/TypesColumn.tsx
+Error:   [31m×[0m Expected corresponding JSX closing tag for <div>
+     ╭─[[36;1;4mC:\Users\vasee\Documents\projects\inventos\src\components\assetflow\settings\customization\components\TypesColumn.tsx[0m:118:1]
+ [2m115[0m │           #{t.id}
+ [2m116[0m │         </span>
+ [2m117[0m │       </span>
+ [2m118[0m │     </fieldset>
+     · [35;1m      ────────[0m
+ [2m119[0m │   );
+ [2m120[0m │ };
+ [2m120[0m │ 
+     ╰────
+
+Caused by:
+    Syntax Error
+
+Import trace for requested module:
+./src/components/assetflow/settings/customization/components/TypesColumn.tsx
+./src/components/assetflow/settings/customization/CatalogAdmin.tsx
+./src/components/assetflow/settings/CustomizationPage.tsx
+./app/settings/customization/page.tsx
+2025-12-21T21:21:12.933Z [ERROR]  [31m[1m⨯[22m[39m ./src/components/assetflow/settings/customization/components/TypesColumn.tsx
+Error:   [31m×[0m Expected corresponding JSX closing tag for <div>
+     ╭─[[36;1;4mC:\Users\vasee\Documents\projects\inventos\src\components\assetflow\settings\customization\components\TypesColumn.tsx[0m:118:1]
+ [2m115[0m │           #{t.id}
+ [2m116[0m │         </span>
+ [2m117[0m │       </span>
+ [2m118[0m │     </fieldset>
+     · [35;1m      ────────[0m
+ [2m119[0m │   );
+ [2m120[0m │ };
+ [2m120[0m │ 
+     ╰────
+
+Caused by:
+    Syntax Error
+
+Import trace for requested module:
+./src/components/assetflow/settings/customization/components/TypesColumn.tsx
+./src/components/assetflow/settings/customization/CatalogAdmin.tsx
+./src/components/assetflow/settings/CustomizationPage.tsx
+./app/settings/customization/page.tsx
+2025-12-21T21:21:42.300Z [ERROR]  [31m[1m⨯[22m[39m ./src/components/assetflow/settings/customization/components/TypesColumn.tsx
+Error:   [31m×[0m Expected corresponding JSX closing tag for <div>
+     ╭─[[36;1;4mC:\Users\vasee\Documents\projects\inventos\src\components\assetflow\settings\customization\components\TypesColumn.tsx[0m:118:1]
+ [2m115[0m │           #{t.id}
+ [2m116[0m │         </span>
+ [2m117[0m │       </span>
+ [2m118[0m │     </fieldset>
+     · [35;1m      ────────[0m
+ [2m119[0m │   );
+ [2m120[0m │ };
+ [2m120[0m │ 
+     ╰────
+
+Caused by:
+    Syntax Error
+
+Import trace for requested module:
+./src/components/assetflow/settings/customization/components/TypesColumn.tsx
+./src/components/assetflow/settings/customization/CatalogAdmin.tsx
+./src/components/assetflow/settings/CustomizationPage.tsx
+./app/settings/customization/page.tsx
+2025-12-21T21:21:42.300Z [ERROR]  [31m[1m⨯[22m[39m ./src/components/assetflow/settings/customization/components/TypesColumn.tsx
+Error:   [31m×[0m Expected corresponding JSX closing tag for <div>
+     ╭─[[36;1;4mC:\Users\vasee\Documents\projects\inventos\src\components\assetflow\settings\customization\components\TypesColumn.tsx[0m:118:1]
+ [2m115[0m │           #{t.id}
+ [2m116[0m │         </span>
+ [2m117[0m │       </span>
+ [2m118[0m │     </fieldset>
+     · [35;1m      ────────[0m
+ [2m119[0m │   );
+ [2m120[0m │ };
+ [2m120[0m │ 
+     ╰────
+
+Caused by:
+    Syntax Error
+
+Import trace for requested module:
+./src/components/assetflow/settings/customization/components/TypesColumn.tsx
+./src/components/assetflow/settings/customization/CatalogAdmin.tsx
+./src/components/assetflow/settings/CustomizationPage.tsx
+./app/settings/customization/page.tsx
+2025-12-21T21:21:42.300Z [ERROR]  [31m[1m⨯[22m[39m ./src/components/assetflow/settings/customization/components/TypesColumn.tsx
+Error:   [31m×[0m Expected corresponding JSX closing tag for <div>
+     ╭─[[36;1;4mC:\Users\vasee\Documents\projects\inventos\src\components\assetflow\settings\customization\components\TypesColumn.tsx[0m:118:1]
+ [2m115[0m │           #{t.id}
+ [2m116[0m │         </span>
+ [2m117[0m │       </span>
+ [2m118[0m │     </fieldset>
+     · [35;1m      ────────[0m
+ [2m119[0m │   );
+ [2m120[0m │ };
+ [2m120[0m │ 
+     ╰────
+
+Caused by:
+    Syntax Error
+
+Import trace for requested module:
+./src/components/assetflow/settings/customization/components/TypesColumn.tsx
+./src/components/assetflow/settings/customization/CatalogAdmin.tsx
+./src/components/assetflow/settings/CustomizationPage.tsx
+./app/settings/customization/page.tsx
+2025-12-21T21:21:42.300Z [ERROR]  [31m[1m⨯[22m[39m ./src/components/assetflow/settings/customization/components/TypesColumn.tsx
+Error:   [31m×[0m Expected corresponding JSX closing tag for <div>
+     ╭─[[36;1;4mC:\Users\vasee\Documents\projects\inventos\src\components\assetflow\settings\customization\components\TypesColumn.tsx[0m:118:1]
+ [2m115[0m │           #{t.id}
+ [2m116[0m │         </span>
+ [2m117[0m │       </span>
+ [2m118[0m │     </fieldset>
+     · [35;1m      ────────[0m
+ [2m119[0m │   );
+ [2m120[0m │ };
+ [2m120[0m │ 
+     ╰────
+
+Caused by:
+    Syntax Error
+
+Import trace for requested module:
+./src/components/assetflow/settings/customization/components/TypesColumn.tsx
+./src/components/assetflow/settings/customization/CatalogAdmin.tsx
+./src/components/assetflow/settings/CustomizationPage.tsx
+./app/settings/customization/page.tsx
+2025-12-21T21:21:42.300Z [ERROR]  [31m[1m⨯[22m[39m ./src/components/assetflow/settings/customization/components/TypesColumn.tsx
+Error:   [31m×[0m Expected corresponding JSX closing tag for <div>
+     ╭─[[36;1;4mC:\Users\vasee\Documents\projects\inventos\src\components\assetflow\settings\customization\components\TypesColumn.tsx[0m:118:1]
+ [2m115[0m │           #{t.id}
+ [2m116[0m │         </span>
+ [2m117[0m │       </span>
+ [2m118[0m │     </fieldset>
+     · [35;1m      ────────[0m
+ [2m119[0m │   );
+ [2m120[0m │ };
+ [2m120[0m │ 
+     ╰────
+
+Caused by:
+    Syntax Error
+
+Import trace for requested module:
+./src/components/assetflow/settings/customization/components/TypesColumn.tsx
+./src/components/assetflow/settings/customization/CatalogAdmin.tsx
+./src/components/assetflow/settings/CustomizationPage.tsx
+./app/settings/customization/page.tsx
+2025-12-21T21:21:42.300Z [ERROR]  [31m[1m⨯[22m[39m ./src/components/assetflow/settings/customization/components/TypesColumn.tsx
+Error:   [31m×[0m Expected corresponding JSX closing tag for <div>
+     ╭─[[36;1;4mC:\Users\vasee\Documents\projects\inventos\src\components\assetflow\settings\customization\components\TypesColumn.tsx[0m:118:1]
+ [2m115[0m │           #{t.id}
+ [2m116[0m │         </span>
+ [2m117[0m │       </span>
+ [2m118[0m │     </fieldset>
+     · [35;1m      ────────[0m
+ [2m119[0m │   );
+ [2m120[0m │ };
+ [2m120[0m │ 
+     ╰────
+
+Caused by:
+    Syntax Error
+
+Import trace for requested module:
+./src/components/assetflow/settings/customization/components/TypesColumn.tsx
+./src/components/assetflow/settings/customization/CatalogAdmin.tsx
+./src/components/assetflow/settings/CustomizationPage.tsx
+./app/settings/customization/page.tsx
+2025-12-21T21:21:42.301Z [ERROR]  [31m[1m⨯[22m[39m ./src/components/assetflow/settings/customization/components/TypesColumn.tsx
+Error:   [31m×[0m Expected corresponding JSX closing tag for <div>
+     ╭─[[36;1;4mC:\Users\vasee\Documents\projects\inventos\src\components\assetflow\settings\customization\components\TypesColumn.tsx[0m:118:1]
+ [2m115[0m │           #{t.id}
+ [2m116[0m │         </span>
+ [2m117[0m │       </span>
+ [2m118[0m │     </fieldset>
+     · [35;1m      ────────[0m
+ [2m119[0m │   );
+ [2m120[0m │ };
+ [2m120[0m │ 
+     ╰────
+
+Caused by:
+    Syntax Error
+
+Import trace for requested module:
+./src/components/assetflow/settings/customization/components/TypesColumn.tsx
+./src/components/assetflow/settings/customization/CatalogAdmin.tsx
+./src/components/assetflow/settings/CustomizationPage.tsx
+./app/settings/customization/page.tsx
+2025-12-21T21:21:42.301Z [ERROR]  [31m[1m⨯[22m[39m ./src/components/assetflow/settings/customization/components/TypesColumn.tsx
+Error:   [31m×[0m Expected corresponding JSX closing tag for <div>
+     ╭─[[36;1;4mC:\Users\vasee\Documents\projects\inventos\src\components\assetflow\settings\customization\components\TypesColumn.tsx[0m:118:1]
+ [2m115[0m │           #{t.id}
+ [2m116[0m │         </span>
+ [2m117[0m │       </span>
+ [2m118[0m │     </fieldset>
+     · [35;1m      ────────[0m
+ [2m119[0m │   );
+ [2m120[0m │ };
+ [2m120[0m │ 
+     ╰────
+
+Caused by:
+    Syntax Error
+
+Import trace for requested module:
+./src/components/assetflow/settings/customization/components/TypesColumn.tsx
+./src/components/assetflow/settings/customization/CatalogAdmin.tsx
+./src/components/assetflow/settings/CustomizationPage.tsx
+./app/settings/customization/page.tsx
+2025-12-21T21:21:42.301Z [ERROR]  [31m[1m⨯[22m[39m ./src/components/assetflow/settings/customization/components/TypesColumn.tsx
+Error:   [31m×[0m Expected corresponding JSX closing tag for <div>
+     ╭─[[36;1;4mC:\Users\vasee\Documents\projects\inventos\src\components\assetflow\settings\customization\components\TypesColumn.tsx[0m:118:1]
+ [2m115[0m │           #{t.id}
+ [2m116[0m │         </span>
+ [2m117[0m │       </span>
+ [2m118[0m │     </fieldset>
+     · [35;1m      ────────[0m
+ [2m119[0m │   );
+ [2m120[0m │ };
+ [2m120[0m │ 
+     ╰────
+
+Caused by:
+    Syntax Error
+
+Import trace for requested module:
+./src/components/assetflow/settings/customization/components/TypesColumn.tsx
+./src/components/assetflow/settings/customization/CatalogAdmin.tsx
+./src/components/assetflow/settings/CustomizationPage.tsx
+./app/settings/customization/page.tsx
+2025-12-21T21:21:42.301Z [ERROR]  [31m[1m⨯[22m[39m ./src/components/assetflow/settings/customization/components/TypesColumn.tsx
+Error:   [31m×[0m Expected corresponding JSX closing tag for <div>
+     ╭─[[36;1;4mC:\Users\vasee\Documents\projects\inventos\src\components\assetflow\settings\customization\components\TypesColumn.tsx[0m:118:1]
+ [2m115[0m │           #{t.id}
+ [2m116[0m │         </span>
+ [2m117[0m │       </span>
+ [2m118[0m │     </fieldset>
+     · [35;1m      ────────[0m
+ [2m119[0m │   );
+ [2m120[0m │ };
+ [2m120[0m │ 
+     ╰────
+
+Caused by:
+    Syntax Error
+
+Import trace for requested module:
+./src/components/assetflow/settings/customization/components/TypesColumn.tsx
+./src/components/assetflow/settings/customization/CatalogAdmin.tsx
+./src/components/assetflow/settings/CustomizationPage.tsx
+./app/settings/customization/page.tsx
+2025-12-21T21:21:42.301Z [ERROR]  [31m[1m⨯[22m[39m ./src/components/assetflow/settings/customization/components/TypesColumn.tsx
+Error:   [31m×[0m Expected corresponding JSX closing tag for <div>
+     ╭─[[36;1;4mC:\Users\vasee\Documents\projects\inventos\src\components\assetflow\settings\customization\components\TypesColumn.tsx[0m:118:1]
+ [2m115[0m │           #{t.id}
+ [2m116[0m │         </span>
+ [2m117[0m │       </span>
+ [2m118[0m │     </fieldset>
+     · [35;1m      ────────[0m
+ [2m119[0m │   );
+ [2m120[0m │ };
+ [2m120[0m │ 
+     ╰────
+
+Caused by:
+    Syntax Error
+
+Import trace for requested module:
+./src/components/assetflow/settings/customization/components/TypesColumn.tsx
+./src/components/assetflow/settings/customization/CatalogAdmin.tsx
+./src/components/assetflow/settings/CustomizationPage.tsx
+./app/settings/customization/page.tsx
+2025-12-21T21:21:42.301Z [ERROR]  [31m[1m⨯[22m[39m ./src/components/assetflow/settings/customization/components/TypesColumn.tsx
+Error:   [31m×[0m Expected corresponding JSX closing tag for <div>
+     ╭─[[36;1;4mC:\Users\vasee\Documents\projects\inventos\src\components\assetflow\settings\customization\components\TypesColumn.tsx[0m:118:1]
+ [2m115[0m │           #{t.id}
+ [2m116[0m │         </span>
+ [2m117[0m │       </span>
+ [2m118[0m │     </fieldset>
+     · [35;1m      ────────[0m
+ [2m119[0m │   );
+ [2m120[0m │ };
+ [2m120[0m │ 
+     ╰────
+
+Caused by:
+    Syntax Error
+
+Import trace for requested module:
+./src/components/assetflow/settings/customization/components/TypesColumn.tsx
+./src/components/assetflow/settings/customization/CatalogAdmin.tsx
+./src/components/assetflow/settings/CustomizationPage.tsx
+./app/settings/customization/page.tsx
+2025-12-21T21:21:42.301Z [ERROR]  [31m[1m⨯[22m[39m ./src/components/assetflow/settings/customization/components/TypesColumn.tsx
+Error:   [31m×[0m Expected corresponding JSX closing tag for <div>
+     ╭─[[36;1;4mC:\Users\vasee\Documents\projects\inventos\src\components\assetflow\settings\customization\components\TypesColumn.tsx[0m:118:1]
+ [2m115[0m │           #{t.id}
+ [2m116[0m │         </span>
+ [2m117[0m │       </span>
+ [2m118[0m │     </fieldset>
+     · [35;1m      ────────[0m
+ [2m119[0m │   );
+ [2m120[0m │ };
+ [2m120[0m │ 
+     ╰────
+
+Caused by:
+    Syntax Error
+
+Import trace for requested module:
+./src/components/assetflow/settings/customization/components/TypesColumn.tsx
+./src/components/assetflow/settings/customization/CatalogAdmin.tsx
+./src/components/assetflow/settings/CustomizationPage.tsx
+./app/settings/customization/page.tsx
+2025-12-21T21:21:42.302Z [ERROR]  [31m[1m⨯[22m[39m ./src/components/assetflow/settings/customization/components/TypesColumn.tsx
+Error:   [31m×[0m Expected corresponding JSX closing tag for <div>
+     ╭─[[36;1;4mC:\Users\vasee\Documents\projects\inventos\src\components\assetflow\settings\customization\components\TypesColumn.tsx[0m:118:1]
+ [2m115[0m │           #{t.id}
+ [2m116[0m │         </span>
+ [2m117[0m │       </span>
+ [2m118[0m │     </fieldset>
+     · [35;1m      ────────[0m
+ [2m119[0m │   );
+ [2m120[0m │ };
+ [2m120[0m │ 
+     ╰────
+
+Caused by:
+    Syntax Error
+
+Import trace for requested module:
+./src/components/assetflow/settings/customization/components/TypesColumn.tsx
+./src/components/assetflow/settings/customization/CatalogAdmin.tsx
+./src/components/assetflow/settings/CustomizationPage.tsx
+./app/settings/customization/page.tsx
+2025-12-21T21:21:42.302Z [ERROR]  [31m[1m⨯[22m[39m ./src/components/assetflow/settings/customization/components/TypesColumn.tsx
+Error:   [31m×[0m Expected corresponding JSX closing tag for <div>
+     ╭─[[36;1;4mC:\Users\vasee\Documents\projects\inventos\src\components\assetflow\settings\customization\components\TypesColumn.tsx[0m:118:1]
+ [2m115[0m │           #{t.id}
+ [2m116[0m │         </span>
+ [2m117[0m │       </span>
+ [2m118[0m │     </fieldset>
+     · [35;1m      ────────[0m
+ [2m119[0m │   );
+ [2m120[0m │ };
+ [2m120[0m │ 
+     ╰────
+
+Caused by:
+    Syntax Error
+
+Import trace for requested module:
+./src/components/assetflow/settings/customization/components/TypesColumn.tsx
+./src/components/assetflow/settings/customization/CatalogAdmin.tsx
+./src/components/assetflow/settings/CustomizationPage.tsx
+./app/settings/customization/page.tsx
+2025-12-21T21:21:57.115Z [ERROR]  [31m[1m⨯[22m[39m ./src/components/assetflow/settings/customization/components/TypesColumn.tsx
+Error:   [31m×[0m Expected corresponding JSX closing tag for <div>
+     ╭─[[36;1;4mC:\Users\vasee\Documents\projects\inventos\src\components\assetflow\settings\customization\components\TypesColumn.tsx[0m:118:1]
+ [2m115[0m │           #{t.id}
+ [2m116[0m │         </span>
+ [2m117[0m │       </span>
+ [2m118[0m │     </fieldset>
+     · [35;1m      ────────[0m
+ [2m119[0m │   );
+ [2m120[0m │ };
+ [2m120[0m │ 
+     ╰────
+
+Caused by:
+    Syntax Error
+
+Import trace for requested module:
+./src/components/assetflow/settings/customization/components/TypesColumn.tsx
+./src/components/assetflow/settings/customization/CatalogAdmin.tsx
+./src/components/assetflow/settings/CustomizationPage.tsx
+./app/settings/customization/page.tsx
+2025-12-21T21:21:57.115Z [ERROR]  [31m[1m⨯[22m[39m ./src/components/assetflow/settings/customization/components/TypesColumn.tsx
+Error:   [31m×[0m Expected corresponding JSX closing tag for <div>
+     ╭─[[36;1;4mC:\Users\vasee\Documents\projects\inventos\src\components\assetflow\settings\customization\components\TypesColumn.tsx[0m:118:1]
+ [2m115[0m │           #{t.id}
+ [2m116[0m │         </span>
+ [2m117[0m │       </span>
+ [2m118[0m │     </fieldset>
+     · [35;1m      ────────[0m
+ [2m119[0m │   );
+ [2m120[0m │ };
+ [2m120[0m │ 
+     ╰────
+
+Caused by:
+    Syntax Error
+
+Import trace for requested module:
+./src/components/assetflow/settings/customization/components/TypesColumn.tsx
+./src/components/assetflow/settings/customization/CatalogAdmin.tsx
+./src/components/assetflow/settings/CustomizationPage.tsx
+./app/settings/customization/page.tsx
+2025-12-21T21:21:57.116Z [ERROR]  [31m[1m⨯[22m[39m ./src/components/assetflow/settings/customization/components/TypesColumn.tsx
+Error:   [31m×[0m Expected corresponding JSX closing tag for <div>
+     ╭─[[36;1;4mC:\Users\vasee\Documents\projects\inventos\src\components\assetflow\settings\customization\components\TypesColumn.tsx[0m:118:1]
+ [2m115[0m │           #{t.id}
+ [2m116[0m │         </span>
+ [2m117[0m │       </span>
+ [2m118[0m │     </fieldset>
+     · [35;1m      ────────[0m
+ [2m119[0m │   );
+ [2m120[0m │ };
+ [2m120[0m │ 
+     ╰────
+
+Caused by:
+    Syntax Error
+
+Import trace for requested module:
+./src/components/assetflow/settings/customization/components/TypesColumn.tsx
+./src/components/assetflow/settings/customization/CatalogAdmin.tsx
+./src/components/assetflow/settings/CustomizationPage.tsx
+./app/settings/customization/page.tsx
+2025-12-21T21:21:57.116Z [ERROR]  [31m[1m⨯[22m[39m ./src/components/assetflow/settings/customization/components/TypesColumn.tsx
+Error:   [31m×[0m Expected corresponding JSX closing tag for <div>
+     ╭─[[36;1;4mC:\Users\vasee\Documents\projects\inventos\src\components\assetflow\settings\customization\components\TypesColumn.tsx[0m:118:1]
+ [2m115[0m │           #{t.id}
+ [2m116[0m │         </span>
+ [2m117[0m │       </span>
+ [2m118[0m │     </fieldset>
+     · [35;1m      ────────[0m
+ [2m119[0m │   );
+ [2m120[0m │ };
+ [2m120[0m │ 
+     ╰────
+
+Caused by:
+    Syntax Error
+
+Import trace for requested module:
+./src/components/assetflow/settings/customization/components/TypesColumn.tsx
+./src/components/assetflow/settings/customization/CatalogAdmin.tsx
+./src/components/assetflow/settings/CustomizationPage.tsx
+./app/settings/customization/page.tsx
+2025-12-21T21:21:57.116Z [ERROR]  [31m[1m⨯[22m[39m ./src/components/assetflow/settings/customization/components/TypesColumn.tsx
+Error:   [31m×[0m Expected corresponding JSX closing tag for <div>
+     ╭─[[36;1;4mC:\Users\vasee\Documents\projects\inventos\src\components\assetflow\settings\customization\components\TypesColumn.tsx[0m:118:1]
+ [2m115[0m │           #{t.id}
+ [2m116[0m │         </span>
+ [2m117[0m │       </span>
+ [2m118[0m │     </fieldset>
+     · [35;1m      ────────[0m
+ [2m119[0m │   );
+ [2m120[0m │ };
+ [2m120[0m │ 
+     ╰────
+
+Caused by:
+    Syntax Error
+
+Import trace for requested module:
+./src/components/assetflow/settings/customization/components/TypesColumn.tsx
+./src/components/assetflow/settings/customization/CatalogAdmin.tsx
+./src/components/assetflow/settings/CustomizationPage.tsx
+./app/settings/customization/page.tsx
+2025-12-21T21:21:57.116Z [ERROR]  [31m[1m⨯[22m[39m ./src/components/assetflow/settings/customization/components/TypesColumn.tsx
+Error:   [31m×[0m Expected corresponding JSX closing tag for <div>
+     ╭─[[36;1;4mC:\Users\vasee\Documents\projects\inventos\src\components\assetflow\settings\customization\components\TypesColumn.tsx[0m:118:1]
+ [2m115[0m │           #{t.id}
+ [2m116[0m │         </span>
+ [2m117[0m │       </span>
+ [2m118[0m │     </fieldset>
+     · [35;1m      ────────[0m
+ [2m119[0m │   );
+ [2m120[0m │ };
+ [2m120[0m │ 
+     ╰────
+
+Caused by:
+    Syntax Error
+
+Import trace for requested module:
+./src/components/assetflow/settings/customization/components/TypesColumn.tsx
+./src/components/assetflow/settings/customization/CatalogAdmin.tsx
+./src/components/assetflow/settings/CustomizationPage.tsx
+./app/settings/customization/page.tsx
+2025-12-21T21:21:57.116Z [ERROR]  [31m[1m⨯[22m[39m ./src/components/assetflow/settings/customization/components/TypesColumn.tsx
+Error:   [31m×[0m Expected corresponding JSX closing tag for <div>
+     ╭─[[36;1;4mC:\Users\vasee\Documents\projects\inventos\src\components\assetflow\settings\customization\components\TypesColumn.tsx[0m:118:1]
+ [2m115[0m │           #{t.id}
+ [2m116[0m │         </span>
+ [2m117[0m │       </span>
+ [2m118[0m │     </fieldset>
+     · [35;1m      ────────[0m
+ [2m119[0m │   );
+ [2m120[0m │ };
+ [2m120[0m │ 
+     ╰────
+
+Caused by:
+    Syntax Error
+
+Import trace for requested module:
+./src/components/assetflow/settings/customization/components/TypesColumn.tsx
+./src/components/assetflow/settings/customization/CatalogAdmin.tsx
+./src/components/assetflow/settings/CustomizationPage.tsx
+./app/settings/customization/page.tsx
+2025-12-21T21:21:57.117Z [ERROR]  [31m[1m⨯[22m[39m ./src/components/assetflow/settings/customization/components/TypesColumn.tsx
+Error:   [31m×[0m Expected corresponding JSX closing tag for <div>
+     ╭─[[36;1;4mC:\Users\vasee\Documents\projects\inventos\src\components\assetflow\settings\customization\components\TypesColumn.tsx[0m:118:1]
+ [2m115[0m │           #{t.id}
+ [2m116[0m │         </span>
+ [2m117[0m │       </span>
+ [2m118[0m │     </fieldset>
+     · [35;1m      ────────[0m
+ [2m119[0m │   );
+ [2m120[0m │ };
+ [2m120[0m │ 
+     ╰────
+
+Caused by:
+    Syntax Error
+
+Import trace for requested module:
+./src/components/assetflow/settings/customization/components/TypesColumn.tsx
+./src/components/assetflow/settings/customization/CatalogAdmin.tsx
+./src/components/assetflow/settings/CustomizationPage.tsx
+./app/settings/customization/page.tsx
+2025-12-21T21:21:57.117Z [ERROR]  [31m[1m⨯[22m[39m ./src/components/assetflow/settings/customization/components/TypesColumn.tsx
+Error:   [31m×[0m Expected corresponding JSX closing tag for <div>
+     ╭─[[36;1;4mC:\Users\vasee\Documents\projects\inventos\src\components\assetflow\settings\customization\components\TypesColumn.tsx[0m:118:1]
+ [2m115[0m │           #{t.id}
+ [2m116[0m │         </span>
+ [2m117[0m │       </span>
+ [2m118[0m │     </fieldset>
+     · [35;1m      ────────[0m
+ [2m119[0m │   );
+ [2m120[0m │ };
+ [2m120[0m │ 
+     ╰────
+
+Caused by:
+    Syntax Error
+
+Import trace for requested module:
+./src/components/assetflow/settings/customization/components/TypesColumn.tsx
+./src/components/assetflow/settings/customization/CatalogAdmin.tsx
+./src/components/assetflow/settings/CustomizationPage.tsx
+./app/settings/customization/page.tsx
+2025-12-21T21:21:57.117Z [ERROR]  [31m[1m⨯[22m[39m ./src/components/assetflow/settings/customization/components/TypesColumn.tsx
+Error:   [31m×[0m Expected corresponding JSX closing tag for <div>
+     ╭─[[36;1;4mC:\Users\vasee\Documents\projects\inventos\src\components\assetflow\settings\customization\components\TypesColumn.tsx[0m:118:1]
+ [2m115[0m │           #{t.id}
+ [2m116[0m │         </span>
+ [2m117[0m │       </span>
+ [2m118[0m │     </fieldset>
+     · [35;1m      ────────[0m
+ [2m119[0m │   );
+ [2m120[0m │ };
+ [2m120[0m │ 
+     ╰────
+
+Caused by:
+    Syntax Error
+
+Import trace for requested module:
+./src/components/assetflow/settings/customization/components/TypesColumn.tsx
+./src/components/assetflow/settings/customization/CatalogAdmin.tsx
+./src/components/assetflow/settings/CustomizationPage.tsx
+./app/settings/customization/page.tsx
+2025-12-21T21:21:57.117Z [ERROR]  [31m[1m⨯[22m[39m ./src/components/assetflow/settings/customization/components/TypesColumn.tsx
+Error:   [31m×[0m Expected corresponding JSX closing tag for <div>
+     ╭─[[36;1;4mC:\Users\vasee\Documents\projects\inventos\src\components\assetflow\settings\customization\components\TypesColumn.tsx[0m:118:1]
+ [2m115[0m │           #{t.id}
+ [2m116[0m │         </span>
+ [2m117[0m │       </span>
+ [2m118[0m │     </fieldset>
+     · [35;1m      ────────[0m
+ [2m119[0m │   );
+ [2m120[0m │ };
+ [2m120[0m │ 
+     ╰────
+
+Caused by:
+    Syntax Error
+
+Import trace for requested module:
+./src/components/assetflow/settings/customization/components/TypesColumn.tsx
+./src/components/assetflow/settings/customization/CatalogAdmin.tsx
+./src/components/assetflow/settings/CustomizationPage.tsx
+./app/settings/customization/page.tsx
+2025-12-21T21:21:57.117Z [ERROR]  [31m[1m⨯[22m[39m ./src/components/assetflow/settings/customization/components/TypesColumn.tsx
+Error:   [31m×[0m Expected corresponding JSX closing tag for <div>
+     ╭─[[36;1;4mC:\Users\vasee\Documents\projects\inventos\src\components\assetflow\settings\customization\components\TypesColumn.tsx[0m:118:1]
+ [2m115[0m │           #{t.id}
+ [2m116[0m │         </span>
+ [2m117[0m │       </span>
+ [2m118[0m │     </fieldset>
+     · [35;1m      ────────[0m
+ [2m119[0m │   );
+ [2m120[0m │ };
+ [2m120[0m │ 
+     ╰────
+
+Caused by:
+    Syntax Error
+
+Import trace for requested module:
+./src/components/assetflow/settings/customization/components/TypesColumn.tsx
+./src/components/assetflow/settings/customization/CatalogAdmin.tsx
+./src/components/assetflow/settings/CustomizationPage.tsx
+./app/settings/customization/page.tsx
+2025-12-21T21:21:57.117Z [ERROR]  [31m[1m⨯[22m[39m ./src/components/assetflow/settings/customization/components/TypesColumn.tsx
+Error:   [31m×[0m Expected corresponding JSX closing tag for <div>
+     ╭─[[36;1;4mC:\Users\vasee\Documents\projects\inventos\src\components\assetflow\settings\customization\components\TypesColumn.tsx[0m:118:1]
+ [2m115[0m │           #{t.id}
+ [2m116[0m │         </span>
+ [2m117[0m │       </span>
+ [2m118[0m │     </fieldset>
+     · [35;1m      ────────[0m
+ [2m119[0m │   );
+ [2m120[0m │ };
+ [2m120[0m │ 
+     ╰────
+
+Caused by:
+    Syntax Error
+
+Import trace for requested module:
+./src/components/assetflow/settings/customization/components/TypesColumn.tsx
+./src/components/assetflow/settings/customization/CatalogAdmin.tsx
+./src/components/assetflow/settings/CustomizationPage.tsx
+./app/settings/customization/page.tsx
+2025-12-21T21:21:57.117Z [ERROR]  [31m[1m⨯[22m[39m ./src/components/assetflow/settings/customization/components/TypesColumn.tsx
+Error:   [31m×[0m Expected corresponding JSX closing tag for <div>
+     ╭─[[36;1;4mC:\Users\vasee\Documents\projects\inventos\src\components\assetflow\settings\customization\components\TypesColumn.tsx[0m:118:1]
+ [2m115[0m │           #{t.id}
+ [2m116[0m │         </span>
+ [2m117[0m │       </span>
+ [2m118[0m │     </fieldset>
+     · [35;1m      ────────[0m
+ [2m119[0m │   );
+ [2m120[0m │ };
+ [2m120[0m │ 
+     ╰────
+
+Caused by:
+    Syntax Error
+
+Import trace for requested module:
+./src/components/assetflow/settings/customization/components/TypesColumn.tsx
+./src/components/assetflow/settings/customization/CatalogAdmin.tsx
+./src/components/assetflow/settings/CustomizationPage.tsx
+./app/settings/customization/page.tsx
+2025-12-21T21:21:57.118Z [ERROR]  [31m[1m⨯[22m[39m ./src/components/assetflow/settings/customization/components/TypesColumn.tsx
+Error:   [31m×[0m Expected corresponding JSX closing tag for <div>
+     ╭─[[36;1;4mC:\Users\vasee\Documents\projects\inventos\src\components\assetflow\settings\customization\components\TypesColumn.tsx[0m:118:1]
+ [2m115[0m │           #{t.id}
+ [2m116[0m │         </span>
+ [2m117[0m │       </span>
+ [2m118[0m │     </fieldset>
+     · [35;1m      ────────[0m
+ [2m119[0m │   );
+ [2m120[0m │ };
+ [2m120[0m │ 
+     ╰────
+
+Caused by:
+    Syntax Error
+
+Import trace for requested module:
+./src/components/assetflow/settings/customization/components/TypesColumn.tsx
+./src/components/assetflow/settings/customization/CatalogAdmin.tsx
+./src/components/assetflow/settings/CustomizationPage.tsx
+./app/settings/customization/page.tsx
+2025-12-21T21:22:02.626Z [ERROR]  [31m[1m⨯[22m[39m ./src/components/assetflow/settings/customization/components/TypesColumn.tsx
+Error:   [31m×[0m Expected corresponding JSX closing tag for <div>
+     ╭─[[36;1;4mC:\Users\vasee\Documents\projects\inventos\src\components\assetflow\settings\customization\components\TypesColumn.tsx[0m:118:1]
+ [2m115[0m │           #{t.id}
+ [2m116[0m │         </span>
+ [2m117[0m │       </span>
+ [2m118[0m │     </fieldset>
+     · [35;1m      ────────[0m
+ [2m119[0m │   );
+ [2m120[0m │ };
+ [2m120[0m │ 
+     ╰────
+
+Caused by:
+    Syntax Error
+
+Import trace for requested module:
+./src/components/assetflow/settings/customization/components/TypesColumn.tsx
+./src/components/assetflow/settings/customization/CatalogAdmin.tsx
+./src/components/assetflow/settings/CustomizationPage.tsx
+./app/settings/customization/page.tsx
+2025-12-21T21:22:02.626Z [ERROR]  [31m[1m⨯[22m[39m ./src/components/assetflow/settings/customization/components/TypesColumn.tsx
+Error:   [31m×[0m Expected corresponding JSX closing tag for <div>
+     ╭─[[36;1;4mC:\Users\vasee\Documents\projects\inventos\src\components\assetflow\settings\customization\components\TypesColumn.tsx[0m:118:1]
+ [2m115[0m │           #{t.id}
+ [2m116[0m │         </span>
+ [2m117[0m │       </span>
+ [2m118[0m │     </fieldset>
+     · [35;1m      ────────[0m
+ [2m119[0m │   );
+ [2m120[0m │ };
+ [2m120[0m │ 
+     ╰────
+
+Caused by:
+    Syntax Error
+
+Import trace for requested module:
+./src/components/assetflow/settings/customization/components/TypesColumn.tsx
+./src/components/assetflow/settings/customization/CatalogAdmin.tsx
+./src/components/assetflow/settings/CustomizationPage.tsx
+./app/settings/customization/page.tsx
+2025-12-21T21:22:02.626Z [ERROR]  [31m[1m⨯[22m[39m ./src/components/assetflow/settings/customization/components/TypesColumn.tsx
+Error:   [31m×[0m Expected corresponding JSX closing tag for <div>
+     ╭─[[36;1;4mC:\Users\vasee\Documents\projects\inventos\src\components\assetflow\settings\customization\components\TypesColumn.tsx[0m:118:1]
+ [2m115[0m │           #{t.id}
+ [2m116[0m │         </span>
+ [2m117[0m │       </span>
+ [2m118[0m │     </fieldset>
+     · [35;1m      ────────[0m
+ [2m119[0m │   );
+ [2m120[0m │ };
+ [2m120[0m │ 
+     ╰────
+
+Caused by:
+    Syntax Error
+
+Import trace for requested module:
+./src/components/assetflow/settings/customization/components/TypesColumn.tsx
+./src/components/assetflow/settings/customization/CatalogAdmin.tsx
+./src/components/assetflow/settings/CustomizationPage.tsx
+./app/settings/customization/page.tsx
+2025-12-21T21:22:02.626Z [ERROR]  [31m[1m⨯[22m[39m ./src/components/assetflow/settings/customization/components/TypesColumn.tsx
+Error:   [31m×[0m Expected corresponding JSX closing tag for <div>
+     ╭─[[36;1;4mC:\Users\vasee\Documents\projects\inventos\src\components\assetflow\settings\customization\components\TypesColumn.tsx[0m:118:1]
+ [2m115[0m │           #{t.id}
+ [2m116[0m │         </span>
+ [2m117[0m │       </span>
+ [2m118[0m │     </fieldset>
+     · [35;1m      ────────[0m
+ [2m119[0m │   );
+ [2m120[0m │ };
+ [2m120[0m │ 
+     ╰────
+
+Caused by:
+    Syntax Error
+
+Import trace for requested module:
+./src/components/assetflow/settings/customization/components/TypesColumn.tsx
+./src/components/assetflow/settings/customization/CatalogAdmin.tsx
+./src/components/assetflow/settings/CustomizationPage.tsx
+./app/settings/customization/page.tsx
+2025-12-21T21:22:02.627Z [ERROR]  [31m[1m⨯[22m[39m ./src/components/assetflow/settings/customization/components/TypesColumn.tsx
+Error:   [31m×[0m Expected corresponding JSX closing tag for <div>
+     ╭─[[36;1;4mC:\Users\vasee\Documents\projects\inventos\src\components\assetflow\settings\customization\components\TypesColumn.tsx[0m:118:1]
+ [2m115[0m │           #{t.id}
+ [2m116[0m │         </span>
+ [2m117[0m │       </span>
+ [2m118[0m │     </fieldset>
+     · [35;1m      ────────[0m
+ [2m119[0m │   );
+ [2m120[0m │ };
+ [2m120[0m │ 
+     ╰────
+
+Caused by:
+    Syntax Error
+
+Import trace for requested module:
+./src/components/assetflow/settings/customization/components/TypesColumn.tsx
+./src/components/assetflow/settings/customization/CatalogAdmin.tsx
+./src/components/assetflow/settings/CustomizationPage.tsx
+./app/settings/customization/page.tsx
+2025-12-21T21:22:02.627Z [ERROR]  [31m[1m⨯[22m[39m ./src/components/assetflow/settings/customization/components/TypesColumn.tsx
+Error:   [31m×[0m Expected corresponding JSX closing tag for <div>
+     ╭─[[36;1;4mC:\Users\vasee\Documents\projects\inventos\src\components\assetflow\settings\customization\components\TypesColumn.tsx[0m:118:1]
+ [2m115[0m │           #{t.id}
+ [2m116[0m │         </span>
+ [2m117[0m │       </span>
+ [2m118[0m │     </fieldset>
+     · [35;1m      ────────[0m
+ [2m119[0m │   );
+ [2m120[0m │ };
+ [2m120[0m │ 
+     ╰────
+
+Caused by:
+    Syntax Error
+
+Import trace for requested module:
+./src/components/assetflow/settings/customization/components/TypesColumn.tsx
+./src/components/assetflow/settings/customization/CatalogAdmin.tsx
+./src/components/assetflow/settings/CustomizationPage.tsx
+./app/settings/customization/page.tsx
+2025-12-21T21:22:02.627Z [ERROR]  [31m[1m⨯[22m[39m ./src/components/assetflow/settings/customization/components/TypesColumn.tsx
+Error:   [31m×[0m Expected corresponding JSX closing tag for <div>
+     ╭─[[36;1;4mC:\Users\vasee\Documents\projects\inventos\src\components\assetflow\settings\customization\components\TypesColumn.tsx[0m:118:1]
+ [2m115[0m │           #{t.id}
+ [2m116[0m │         </span>
+ [2m117[0m │       </span>
+ [2m118[0m │     </fieldset>
+     · [35;1m      ────────[0m
+ [2m119[0m │   );
+ [2m120[0m │ };
+ [2m120[0m │ 
+     ╰────
+
+Caused by:
+    Syntax Error
+
+Import trace for requested module:
+./src/components/assetflow/settings/customization/components/TypesColumn.tsx
+./src/components/assetflow/settings/customization/CatalogAdmin.tsx
+./src/components/assetflow/settings/CustomizationPage.tsx
+./app/settings/customization/page.tsx
+2025-12-21T21:22:02.627Z [ERROR]  [31m[1m⨯[22m[39m ./src/components/assetflow/settings/customization/components/TypesColumn.tsx
+Error:   [31m×[0m Expected corresponding JSX closing tag for <div>
+     ╭─[[36;1;4mC:\Users\vasee\Documents\projects\inventos\src\components\assetflow\settings\customization\components\TypesColumn.tsx[0m:118:1]
+ [2m115[0m │           #{t.id}
+ [2m116[0m │         </span>
+ [2m117[0m │       </span>
+ [2m118[0m │     </fieldset>
+     · [35;1m      ────────[0m
+ [2m119[0m │   );
+ [2m120[0m │ };
+ [2m120[0m │ 
+     ╰────
+
+Caused by:
+    Syntax Error
+
+Import trace for requested module:
+./src/components/assetflow/settings/customization/components/TypesColumn.tsx
+./src/components/assetflow/settings/customization/CatalogAdmin.tsx
+./src/components/assetflow/settings/CustomizationPage.tsx
+./app/settings/customization/page.tsx
+2025-12-21T21:22:02.627Z [ERROR]  [31m[1m⨯[22m[39m ./src/components/assetflow/settings/customization/components/TypesColumn.tsx
+Error:   [31m×[0m Expected corresponding JSX closing tag for <div>
+     ╭─[[36;1;4mC:\Users\vasee\Documents\projects\inventos\src\components\assetflow\settings\customization\components\TypesColumn.tsx[0m:118:1]
+ [2m115[0m │           #{t.id}
+ [2m116[0m │         </span>
+ [2m117[0m │       </span>
+ [2m118[0m │     </fieldset>
+     · [35;1m      ────────[0m
+ [2m119[0m │   );
+ [2m120[0m │ };
+ [2m120[0m │ 
+     ╰────
+
+Caused by:
+    Syntax Error
+
+Import trace for requested module:
+./src/components/assetflow/settings/customization/components/TypesColumn.tsx
+./src/components/assetflow/settings/customization/CatalogAdmin.tsx
+./src/components/assetflow/settings/CustomizationPage.tsx
+./app/settings/customization/page.tsx
+2025-12-21T21:22:02.627Z [ERROR]  [31m[1m⨯[22m[39m ./src/components/assetflow/settings/customization/components/TypesColumn.tsx
+Error:   [31m×[0m Expected corresponding JSX closing tag for <div>
+     ╭─[[36;1;4mC:\Users\vasee\Documents\projects\inventos\src\components\assetflow\settings\customization\components\TypesColumn.tsx[0m:118:1]
+ [2m115[0m │           #{t.id}
+ [2m116[0m │         </span>
+ [2m117[0m │       </span>
+ [2m118[0m │     </fieldset>
+     · [35;1m      ────────[0m
+ [2m119[0m │   );
+ [2m120[0m │ };
+ [2m120[0m │ 
+     ╰────
+
+Caused by:
+    Syntax Error
+
+Import trace for requested module:
+./src/components/assetflow/settings/customization/components/TypesColumn.tsx
+./src/components/assetflow/settings/customization/CatalogAdmin.tsx
+./src/components/assetflow/settings/CustomizationPage.tsx
+./app/settings/customization/page.tsx
+2025-12-21T21:22:02.627Z [ERROR]  [31m[1m⨯[22m[39m ./src/components/assetflow/settings/customization/components/TypesColumn.tsx
+Error:   [31m×[0m Expected corresponding JSX closing tag for <div>
+     ╭─[[36;1;4mC:\Users\vasee\Documents\projects\inventos\src\components\assetflow\settings\customization\components\TypesColumn.tsx[0m:118:1]
+ [2m115[0m │           #{t.id}
+ [2m116[0m │         </span>
+ [2m117[0m │       </span>
+ [2m118[0m │     </fieldset>
+     · [35;1m      ────────[0m
+ [2m119[0m │   );
+ [2m120[0m │ };
+ [2m120[0m │ 
+     ╰────
+
+Caused by:
+    Syntax Error
+
+Import trace for requested module:
+./src/components/assetflow/settings/customization/components/TypesColumn.tsx
+./src/components/assetflow/settings/customization/CatalogAdmin.tsx
+./src/components/assetflow/settings/CustomizationPage.tsx
+./app/settings/customization/page.tsx
+2025-12-21T21:22:02.628Z [ERROR]  [31m[1m⨯[22m[39m ./src/components/assetflow/settings/customization/components/TypesColumn.tsx
+Error:   [31m×[0m Expected corresponding JSX closing tag for <div>
+     ╭─[[36;1;4mC:\Users\vasee\Documents\projects\inventos\src\components\assetflow\settings\customization\components\TypesColumn.tsx[0m:118:1]
+ [2m115[0m │           #{t.id}
+ [2m116[0m │         </span>
+ [2m117[0m │       </span>
+ [2m118[0m │     </fieldset>
+     · [35;1m      ────────[0m
+ [2m119[0m │   );
+ [2m120[0m │ };
+ [2m120[0m │ 
+     ╰────
+
+Caused by:
+    Syntax Error
+
+Import trace for requested module:
+./src/components/assetflow/settings/customization/components/TypesColumn.tsx
+./src/components/assetflow/settings/customization/CatalogAdmin.tsx
+./src/components/assetflow/settings/CustomizationPage.tsx
+./app/settings/customization/page.tsx
+2025-12-21T21:22:02.628Z [ERROR]  [31m[1m⨯[22m[39m ./src/components/assetflow/settings/customization/components/TypesColumn.tsx
+Error:   [31m×[0m Expected corresponding JSX closing tag for <div>
+     ╭─[[36;1;4mC:\Users\vasee\Documents\projects\inventos\src\components\assetflow\settings\customization\components\TypesColumn.tsx[0m:118:1]
+ [2m115[0m │           #{t.id}
+ [2m116[0m │         </span>
+ [2m117[0m │       </span>
+ [2m118[0m │     </fieldset>
+     · [35;1m      ────────[0m
+ [2m119[0m │   );
+ [2m120[0m │ };
+ [2m120[0m │ 
+     ╰────
+
+Caused by:
+    Syntax Error
+
+Import trace for requested module:
+./src/components/assetflow/settings/customization/components/TypesColumn.tsx
+./src/components/assetflow/settings/customization/CatalogAdmin.tsx
+./src/components/assetflow/settings/CustomizationPage.tsx
+./app/settings/customization/page.tsx
+2025-12-21T21:22:02.628Z [ERROR]  [31m[1m⨯[22m[39m ./src/components/assetflow/settings/customization/components/TypesColumn.tsx
+Error:   [31m×[0m Expected corresponding JSX closing tag for <div>
+     ╭─[[36;1;4mC:\Users\vasee\Documents\projects\inventos\src\components\assetflow\settings\customization\components\TypesColumn.tsx[0m:118:1]
+ [2m115[0m │           #{t.id}
+ [2m116[0m │         </span>
+ [2m117[0m │       </span>
+ [2m118[0m │     </fieldset>
+     · [35;1m      ────────[0m
+ [2m119[0m │   );
+ [2m120[0m │ };
+ [2m120[0m │ 
+     ╰────
+
+Caused by:
+    Syntax Error
+
+Import trace for requested module:
+./src/components/assetflow/settings/customization/components/TypesColumn.tsx
+./src/components/assetflow/settings/customization/CatalogAdmin.tsx
+./src/components/assetflow/settings/CustomizationPage.tsx
+./app/settings/customization/page.tsx
+2025-12-21T21:22:02.628Z [ERROR]  [31m[1m⨯[22m[39m ./src/components/assetflow/settings/customization/components/TypesColumn.tsx
+Error:   [31m×[0m Expected corresponding JSX closing tag for <div>
+     ╭─[[36;1;4mC:\Users\vasee\Documents\projects\inventos\src\components\assetflow\settings\customization\components\TypesColumn.tsx[0m:118:1]
+ [2m115[0m │           #{t.id}
+ [2m116[0m │         </span>
+ [2m117[0m │       </span>
+ [2m118[0m │     </fieldset>
+     · [35;1m      ────────[0m
+ [2m119[0m │   );
+ [2m120[0m │ };
+ [2m120[0m │ 
+     ╰────
+
+Caused by:
+    Syntax Error
+
+Import trace for requested module:
+./src/components/assetflow/settings/customization/components/TypesColumn.tsx
+./src/components/assetflow/settings/customization/CatalogAdmin.tsx
+./src/components/assetflow/settings/CustomizationPage.tsx
+./app/settings/customization/page.tsx

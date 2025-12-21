@@ -66,7 +66,11 @@ export default function CatalogAdmin() {
       await load();
       setError(null);
     } catch (e: any) {
-      setError(e?.message || "Failed to load catalog");
+      const msg = e?.message || "Failed to load catalog";
+      setError(msg);
+      try {
+        toast.error(msg);
+      } catch {}
     }
   }, [load]);
 
@@ -262,6 +266,7 @@ export default function CatalogAdmin() {
           setConfirmOpen={setConfirmOpen}
           setNewCategory={setNewCategory}
           addCategory={addCategory}
+          refresh={load}
         />
 
         <TypesColumn

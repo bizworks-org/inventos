@@ -123,16 +123,12 @@ export function useBackupRestore() {
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-<<<<<<< HEAD
-      a.download = serverFilename;
-=======
       a.download = `inventos-backup-${new Date()
         .toISOString()
         .split(":")
         .join("-")
         .split(".")
         .join("-")}.bin`;
->>>>>>> f9db60b150a1096c2cd789083e856d98de0fb3a9
       a.rel = "noopener noreferrer";
       a.click();
       a.remove();
