@@ -5,6 +5,7 @@ import Papa from "papaparse";
 import { AssetFlowLayout } from "../layout/AssetFlowLayout";
 import { Button } from "../../ui/button";
 import { useMe } from "../layout/MeContext";
+import FullPageLoader from "../../ui/FullPageLoader";
 
 type Props = {
   onNavigate?: (page: string, itemId?: string, params?: Record<string, any>) => void;
@@ -50,8 +51,13 @@ export function AuditPage({ onNavigate, onSearch }: Readonly<Props>) {
   const { me } = useMe();
   const [locations, setLocations] = useState<LocationRow[]>([]);
   const [selectedLocation, setSelectedLocation] = useState<string>("");
+  const [auditorName, setAuditorName] = useState<string>("");
   const [file, setFile] = useState<File | null>(null);
   const [csvSerials, setCsvSerials] = useState<string[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [showAuditHistory, setShowAuditHistory] = useState(false);
+  const [auditHistory, setAuditHistory] = useState<any[]>([]);
+  const [loadingHistory, setLoadingHistory] = useState(false);
 
   useEffect(() => {
     // This page is restricted to superadmin.
@@ -75,7 +81,8 @@ export function AuditPage({ onNavigate, onSearch }: Readonly<Props>) {
               "assetflow:locations",
               JSON.stringify(rows.filter(Boolean))
             );
-          } catch {}
+          } catch { }
+          setIsLoading(false);
           return;
         }
       } catch {
@@ -84,12 +91,16 @@ export function AuditPage({ onNavigate, onSearch }: Readonly<Props>) {
 
       try {
         const raw = localStorage.getItem("assetflow:locations");
-        if (!raw) return;
+        if (!raw) {
+          setIsLoading(false);
+          return;
+        }
         const parsed = JSON.parse(raw);
         if (Array.isArray(parsed)) setLocations(parsed.filter(Boolean));
       } catch {
         // ignore
       }
+      setIsLoading(false);
     };
 
     load();
@@ -130,6 +141,10 @@ export function AuditPage({ onNavigate, onSearch }: Readonly<Props>) {
   }, [results]);
 
   const handleImport = async () => {
+    if (!auditorName.trim()) {
+      alert("Enter your name before importing");
+      return;
+    }
     if (!selectedLocation) {
       alert("Select a location before importing");
       return;
@@ -143,7 +158,7 @@ export function AuditPage({ onNavigate, onSearch }: Readonly<Props>) {
       const res = await fetch("/api/audits/compare", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ location: selectedLocation, serials: csvSerials }),
+        body: JSON.stringify({ location: selectedLocation, serials: csvSerials, auditorName: auditorName.trim() }),
       });
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));
@@ -159,6 +174,24 @@ export function AuditPage({ onNavigate, onSearch }: Readonly<Props>) {
     }
   };
 
+  const handleShowAuditHistory = async () => {
+    setLoadingHistory(true);
+    try {
+      const res = await fetch("/api/audits/history?limit=50");
+      if (!res.ok) {
+        throw new Error("Failed to fetch audit history");
+      }
+      const data = await res.json();
+      setAuditHistory(data.data || []);
+      setShowAuditHistory(true);
+    } catch (err: any) {
+      console.error("Failed to fetch audit history:", err);
+      alert("Failed to load audit history");
+    } finally {
+      setLoadingHistory(false);
+    }
+  };
+
   const handleShowUnscanned = () => {
     if (!results?.unscanned || results.unscanned.length === 0) {
       alert("No unscanned assets found for this location");
@@ -170,11 +203,13 @@ export function AuditPage({ onNavigate, onSearch }: Readonly<Props>) {
   };
 
   return (
-    <AssetFlowLayout
-      breadcrumbs={[{ label: "Home", href: "/dashboard" }, { label: "Audit" }]}
-      currentPage="audit"
-      onSearch={onSearch}
-    >
+    <>
+      {isLoading && <FullPageLoader message="Loading locations..." />}
+      <AssetFlowLayout
+        breadcrumbs={[{ label: "Home", href: "/dashboard" }, { label: "Audit" }]}
+        currentPage="audit"
+        onSearch={onSearch}
+      >
       <div className="flex items-center justify-between mb-8">
         <div>
           <h1 className="text-3xl font-bold text-[#1a1d2e] mb-2">Audit</h1>
@@ -182,115 +217,123 @@ export function AuditPage({ onNavigate, onSearch }: Readonly<Props>) {
             Upload a CSV of serial numbers and reconcile with a location.
           </p>
         </div>
+        <Button
+          onClick={handleShowAuditHistory}
+          variant="outline"
+          size="sm"
+          disabled={loadingHistory}
+        >
+          {loadingHistory ? "Loading..." : "Show Audit History"}
+        </Button>
       </div>
 
       <div className="rounded-2xl border bg-white p-6 shadow-sm">
         {me && me.role !== "superadmin" ? (
           <div className="text-sm text-[#64748b]">Forbidden</div>
         ) : (
-        <div>
-          <div className="flex flex-col md:flex-row md:items-end gap-4">
-            <div className="w-full md:w-56">
-              <label className="mb-2 block text-sm font-medium">Location</label>
-              <select
-                value={selectedLocation}
-                onChange={(e) => setSelectedLocation(e.target.value)}
-                className="w-full rounded-lg border bg-card px-4 py-2.5"
-              >
-                <option value="">Select location</option>
-                {locationOptions.map((o) => (
-                  <option key={o.value} value={o.value}>
-                    {o.label}
-                  </option>
-                ))}
-              </select>
-              {locationOptions.length === 0 && (
-                <p className="mt-2 text-xs text-[#64748b]">
-                  No locations found. Add locations in Settings → Customization.
-                </p>
-              )}
-            </div>
+          <div>
+            <div className="mt-6 p-3 bg-white">
+              <div className="flex items-center gap-4">
+                <div className="w-56">
+                  <label className="mb-1 block text-sm font-medium">Auditor Name</label>
+                  <input
+                    type="text"
+                    value={auditorName}
+                    onChange={(e) => setAuditorName(e.target.value)}
+                    placeholder="Enter your name"
+                    className="w-full rounded-lg border bg-white px-3 py-2 text-sm"
+                  />
+                </div>
 
-            <div className="w-full md:flex-1 md:min-w-[360px]">
-              <label className="mb-2 block text-sm font-medium">CSV Upload</label>
-              <label className="flex items-center justify-center w-full rounded-xl border-2 border-dashed border-gray-300 bg-gray-50 px-4 py-6 cursor-pointer hover:bg-gray-100 transition dark:bg-gray-900 dark:border-gray-700 dark:hover:bg-gray-800">
-                <input
-                  type="file"
-                  accept=".csv,text/csv"
-                  onChange={(e) => onPickFile(e.target.files?.[0] ?? null)}
-                  className="sr-only"
-                />
-                <div className="text-center">
-                  <div className="text-sm font-medium text-[#1a1d2e]">
-                    {file ? file.name : "Click to select a CSV file"}
+                <div className="w-56">
+                  <label className="mb-1 block text-sm font-medium">Location</label>
+                  <select
+                    value={selectedLocation}
+                    onChange={(e) => setSelectedLocation(e.target.value)}
+                    className="w-full rounded-lg border bg-card px-3 py-2"
+                  >
+                    <option value="">Select location</option>
+                    {locationOptions.map((o) => (
+                      <option key={`tmp-${o.value}`} value={o.value}>
+                        {o.label.toUpperCase()}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="w-auto flex-1">
+                  <label className="mb-1 block text-sm font-medium">CSV Upload</label>
+                  <div className="relative">
+                    <div className="h-10 rounded-md border px-3 flex items-center bg-gray-50">
+                      <span className="truncate text-sm text-[#1a1d2e]">
+                        {file ? file.name : "No file selected"}
+                      </span>
+                    </div>
+                    <input
+                      type="file"
+                      accept=".csv,text/csv"
+                      onChange={(e) => onPickFile(e.target.files?.[0] ?? null)}
+                      className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                      aria-hidden="true"
+                    />
                   </div>
-                  <div className="mt-1 text-xs text-[#64748b]">
-                    One serial number per row (or a column named Serial / Serial Number)
+                </div>
+
+                <div className="w-56 flex-shrink-0">
+                  <label className="mb-1 block text-sm font-medium opacity-0">Actions</label>
+                  <div className="flex gap-2 justify-end">
+                    <Button
+                      onClick={() => {
+                        setResults(null);
+                        onPickFile(null);
+                        setAuditorName("");
+                      }}
+                      variant="outline"
+                      size={"sm" as any}
+                    >
+                      Reset
+                    </Button>
+                    <Button onClick={handleImport} variant="default" size={"sm" as any}>
+                      {loadingScan ? "Scanning…" : "Import"}
+                    </Button>
+                    <Button onClick={handleShowUnscanned} variant="outline" size={"sm" as any}>
+                      Unscanned
+                    </Button>
                   </div>
                 </div>
-              </label>
-            </div>
-
-            <div className="w-full md:w-auto flex flex-wrap gap-2 md:justify-end">
-              <Button
-                onClick={() => {
-                  setResults(null);
-                  onPickFile(null);
-                }}
-                variant="outline"
-                disabled={!file && !results}
-              >
-                Reset
-              </Button>
-              <Button
-                onClick={handleImport}
-                variant="default"
-                disabled={loadingScan || csvSerials.length === 0 || !selectedLocation}
-              >
-                {loadingScan ? "Scanning…" : "Import"}
-              </Button>
-              <Button
-                onClick={handleShowUnscanned}
-                variant="outline"
-                disabled={
-                  !results ||
-                  !results.unscanned ||
-                  results.unscanned.length === 0
-                }
-              >
-                Unscanned
-              </Button>
-            </div>
-          </div>
-
-          {results && (
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mt-4">
-              <div className="min-h-[84px] rounded-xl border border-green-200 bg-green-50 p-3 flex flex-col justify-between dark:border-green-900 dark:bg-green-950/30">
-                <div className="text-xs text-green-700 dark:text-green-300">Found</div>
-                <div className="text-2xl font-semibold text-green-800 dark:text-green-200">
-                  {summary.foundCount}
-                </div>
-              </div>
-              <div className="min-h-[84px] rounded-xl border border-red-200 bg-red-50 p-3 flex flex-col justify-between dark:border-red-900 dark:bg-red-950/30">
-                <div className="text-xs text-red-700 dark:text-red-300">New</div>
-                <div className="text-2xl font-semibold text-red-800 dark:text-red-200">
-                  {summary.newCount}
-                </div>
-              </div>
-              <div className="min-h-[84px] rounded-xl border border-amber-200 bg-amber-50 p-3 flex flex-col justify-between dark:border-amber-900 dark:bg-amber-950/30">
-                <div className="text-xs text-amber-700 dark:text-amber-300">Different Location</div>
-                <div className="text-2xl font-semibold text-amber-800 dark:text-amber-200">
-                  {summary.differentLocationCount}
-                </div>
-              </div>
-              <div className="min-h-[84px] rounded-xl border border-slate-200 bg-slate-50 p-3 flex flex-col justify-between dark:border-slate-800 dark:bg-slate-900">
-                <div className="text-xs text-slate-700 dark:text-slate-300">Unscanned</div>
-                <div className="text-2xl font-semibold text-slate-900 dark:text-slate-100">
-                  {summary.unscannedCount}
-                </div>
               </div>
             </div>
-          )}
+            <div className="mt-1 ml-96 text-xs hidden text-[#64748b]">
+              One serial number per row (or a column named Serial / Serial Number)
+            </div>
+            {results && (
+              <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mt-4">
+                <div className="min-h-[84px] rounded-xl border border-green-200 bg-green-50 p-3 flex flex-col justify-between items-center text-center dark:border-green-900 dark:bg-green-950/30">
+                  <div className="text-xs text-green-700 dark:text-green-300">Found</div>
+                  <div className="text-2xl font-semibold text-green-800 dark:text-green-200">
+                    {summary.foundCount}
+                  </div>
+                </div>
+                <div className="min-h-[84px] rounded-xl border border-red-200 bg-red-50 p-3 flex flex-col justify-between items-center text-center dark:border-red-900 dark:bg-red-950/30">
+                  <div className="text-xs text-red-700 dark:text-red-300">New</div>
+                  <div className="text-2xl font-semibold text-red-800 dark:text-red-200">
+                    {summary.newCount}
+                  </div>
+                </div>
+                <div className="min-h-[84px] rounded-xl border border-amber-200 bg-amber-50 p-3 flex flex-col justify-between items-center text-center dark:border-amber-900 dark:bg-amber-950/30">
+                  <div className="text-xs text-amber-700 dark:text-amber-300">Different Location</div>
+                  <div className="text-2xl font-semibold text-amber-800 dark:text-amber-200">
+                    {summary.differentLocationCount}
+                  </div>
+                </div>
+                <div className="min-h-[84px] rounded-xl border border-slate-200 bg-slate-50 p-3 flex flex-col justify-between items-center text-center dark:border-slate-800 dark:bg-slate-900">
+                  <div className="text-xs text-slate-700 dark:text-slate-300">Unscanned</div>
+                  <div className="text-2xl font-semibold text-slate-900 dark:text-slate-100">
+                    {summary.unscannedCount}
+                  </div>
+                </div>
+              </div>
+            )}
 
             {csvSerials.length > 0 && (
               <div className="mt-4">
@@ -298,7 +341,7 @@ export function AuditPage({ onNavigate, onSearch }: Readonly<Props>) {
                 <p className="text-xs text-[#64748b]">
                   {csvSerials.length} unique serial number(s) detected.
                 </p>
-                <details className="mt-2">
+                <details className="mt-2 hidden">
                   <summary className="cursor-pointer text-xs font-medium">
                     Preview
                   </summary>
@@ -316,7 +359,7 @@ export function AuditPage({ onNavigate, onSearch }: Readonly<Props>) {
               </div>
             )}
 
-            <p className="mt-4 text-xs text-[#64748b]">
+            <p className="mt-4 hidden text-xs text-[#64748b]">
               Matching, unscanned view, and cross-location flags appear below after import.
             </p>
           </div>
@@ -326,7 +369,7 @@ export function AuditPage({ onNavigate, onSearch }: Readonly<Props>) {
       {results && (
         <div id="audit-results" className="mt-6 bg-white rounded-2xl border p-4 shadow-sm">
           <h3 className="font-medium mb-3">Results</h3>
-          <p className="text-xs text-[#64748b] mb-2">
+          <p className="text-xs hidden text-[#64748b] mb-2">
             Found: {summary.foundCount} — New: {summary.newCount} — Different
             Location: {summary.differentLocationCount}
           </p>
@@ -423,6 +466,62 @@ export function AuditPage({ onNavigate, onSearch }: Readonly<Props>) {
           </div>
         </div>
       )}
-    </AssetFlowLayout>
+
+      {showAuditHistory && (
+        <div className="mt-6 bg-white rounded-2xl border p-4 shadow-sm">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="font-medium text-lg">Audit History</h3>
+            <Button
+              onClick={() => setShowAuditHistory(false)}
+              variant="outline"
+              size="sm"
+            >
+              Close
+            </Button>
+          </div>
+          {auditHistory.length === 0 ? (
+            <p className="text-sm text-[#64748b]">No audit records found.</p>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="text-xs text-left text-gray-500 border-b">
+                    <th className="px-3 py-2">Auditor Name</th>
+                    <th className="px-3 py-2">Location</th>
+                    <th className="px-3 py-2">Date & Time</th>
+                    <th className="px-3 py-2 text-center">Total Scanned</th>
+                    <th className="px-3 py-2 text-center">Found</th>
+                    <th className="px-3 py-2 text-center">Missing</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {auditHistory.map((audit: any, idx: number) => (
+                    <tr key={audit.auditId || idx} className="border-t hover:bg-gray-50">
+                      <td className="px-3 py-2 font-medium text-[#1a1d2e]">{audit.auditorName}</td>
+                      <td className="px-3 py-2">{audit.location || "—"}</td>
+                      <td className="px-3 py-2 text-[#64748b]">
+                        {new Date(audit.timestamp).toLocaleString()}
+                      </td>
+                      <td className="px-3 py-2 text-center font-semibold">{audit.totalItems}</td>
+                      <td className="px-3 py-2 text-center">
+                        <span className="inline-flex items-center rounded-full bg-green-100 px-2.5 py-0.5 text-xs font-medium text-green-700 dark:bg-green-900/40 dark:text-green-200">
+                          {audit.foundItems}
+                        </span>
+                      </td>
+                      <td className="px-3 py-2 text-center">
+                        <span className="inline-flex items-center rounded-full bg-red-100 px-2.5 py-0.5 text-xs font-medium text-red-700 dark:bg-red-900/40 dark:text-red-200">
+                          {audit.missingItems}
+                        </span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+      )}
+      </AssetFlowLayout>
+    </>
   );
 }
