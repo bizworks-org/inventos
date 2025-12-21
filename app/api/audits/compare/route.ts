@@ -1,10 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requirePermission } from "@/lib/auth/permissions";
 import { query } from "@/lib/db";
+import { v4 as uuidv4 } from "uuid";
 
 type Payload = {
   location?: string;
   serials?: string[];
+  auditorName?: string;
 };
 
 export async function POST(req: NextRequest) {
@@ -18,9 +20,10 @@ export async function POST(req: NextRequest) {
       ? body!.serials!.map((s) => String(s || "").trim()).filter(Boolean)
       : [];
     const location = body?.location ? String(body.location) : "";
+    const auditorName = body?.auditorName ? String(body.auditorName).trim() : "Unknown";
 
     // Prepare empty response shape
-    const resp: any = { found: [], missing: [], unscanned: [] };
+    const resp: any = { found: [], missing: [], unscanned: [], auditId: "" };
 
     if (serials.length === 0) {
       return NextResponse.json({ error: "No serials provided" }, { status: 400 });
@@ -79,6 +82,40 @@ export async function POST(req: NextRequest) {
       for (const f of resp.found) {
         f.differentLocation = !!(f.location && location && f.location !== location);
       }
+    }
+
+    // Save audit record to database
+    const auditId = uuidv4();
+    try {
+      await query(
+        `INSERT INTO audits (audit_id, name, location, created_by) VALUES (:audit_id, :name, :location, :created_by)`,
+        {
+          audit_id: auditId,
+          name: auditorName,
+          location: location,
+          created_by: auditorName,
+        }
+      );
+
+      // Save audit items
+      for (let i = 0; i < serials.length; i++) {
+        const sn = serials[i];
+        const hit = foundMap.get(sn);
+        await query(
+          `INSERT INTO audit_items (audit_id, serial_number, asset_id, found) VALUES (:audit_id, :serial_number, :asset_id, :found)`,
+          {
+            audit_id: auditId,
+            serial_number: sn,
+            asset_id: hit?.assetId || null,
+            found: hit ? 1 : 0,
+          }
+        );
+      }
+
+      resp.auditId = auditId;
+    } catch (dbErr: any) {
+      console.error("Failed to save audit record:", dbErr);
+      // Don't fail the whole request if audit save fails, just log it
     }
 
     return NextResponse.json(resp);
