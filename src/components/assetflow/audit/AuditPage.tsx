@@ -17,8 +17,7 @@ type LocationRow = { id?: string; code?: string; name?: string };
 type ParsedSerialRow = { serial?: string };
 
 function normalizeSerial(input: unknown): string {
-  const s = String(input ?? "").trim();
-  return s;
+  return String(input ?? "").trim();
 }
 
 function parseSerialsFromCsvText(text: string): string[] {
@@ -86,7 +85,7 @@ export function AuditPage({ onNavigate, onSearch }: Readonly<Props>) {
           return;
         }
       } catch {
-        // ignore and fall back below
+        console.error("Failed to fetch locations from server");
       }
 
       try {
@@ -98,7 +97,7 @@ export function AuditPage({ onNavigate, onSearch }: Readonly<Props>) {
         const parsed = JSON.parse(raw);
         if (Array.isArray(parsed)) setLocations(parsed.filter(Boolean));
       } catch {
-        // ignore
+        console.error("Failed to load cached locations");
       }
       setIsLoading(false);
     };
@@ -219,9 +218,10 @@ export function AuditPage({ onNavigate, onSearch }: Readonly<Props>) {
         </div>
         <Button
           onClick={handleShowAuditHistory}
-          variant="outline"
+          variant="default"
           size="sm"
           disabled={loadingHistory}
+          style={{ backgroundImage: "linear-gradient(to right, #6366f1, #8b5cf6)", color: "white" }}
         >
           {loadingHistory ? "Loading..." : "Show Audit History"}
         </Button>
@@ -262,7 +262,9 @@ export function AuditPage({ onNavigate, onSearch }: Readonly<Props>) {
                 </div>
 
                 <div className="w-auto flex-1">
-                  <label className="mb-1 block text-sm font-medium">CSV Upload</label>
+                  <label htmlFor="audit-csv-upload" className="mb-1 block text-sm font-medium">
+                    CSV Upload
+                  </label>
                   <div className="relative">
                     <div className="h-10 rounded-md border px-3 flex items-center bg-gray-50">
                       <span className="truncate text-sm text-[#1a1d2e]">
@@ -270,11 +272,11 @@ export function AuditPage({ onNavigate, onSearch }: Readonly<Props>) {
                       </span>
                     </div>
                     <input
+                      id="audit-csv-upload"
                       type="file"
                       accept=".csv,text/csv"
                       onChange={(e) => onPickFile(e.target.files?.[0] ?? null)}
                       className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-                      aria-hidden="true"
                     />
                   </div>
                 </div>
@@ -285,8 +287,14 @@ export function AuditPage({ onNavigate, onSearch }: Readonly<Props>) {
                     <Button
                       onClick={() => {
                         setResults(null);
-                        onPickFile(null);
+                        setFile(null);
+                        setCsvSerials([]);
                         setAuditorName("");
+                        setSelectedLocation("");
+                        setShowAuditHistory(false);
+                        setAuditHistory([]);
+                        const inp = document.getElementById("audit-csv-upload") as HTMLInputElement | null;
+                        if (inp) inp.value = "";
                       }}
                       variant="outline"
                       size={"sm" as any}
@@ -388,35 +396,41 @@ export function AuditPage({ onNavigate, onSearch }: Readonly<Props>) {
               <tbody>
                 {csvSerials.map((s, idx) => {
                   const hit = results.found.find((f: any) => f.serialNumber === s);
-                  const rowClass = !hit
-                    ? "bg-red-50 dark:bg-red-950/30"
-                    : hit.differentLocation
-                      ? "bg-amber-50 dark:bg-amber-950/30"
-                      : "bg-green-50 dark:bg-green-950/30";
+                  const isDifferentLocation = Boolean(hit?.differentLocation);
+
+                  let rowClass = "bg-green-50 dark:bg-green-950/30";
+                  let foundPill = (
+                    <span className="inline-flex items-center rounded-full bg-green-100 px-2 py-0.5 text-xs font-medium text-green-700 dark:bg-green-900/40 dark:text-green-200">
+                      Found
+                    </span>
+                  );
+
+                  if (!hit) {
+                    rowClass = "bg-red-50 dark:bg-red-950/30";
+                    foundPill = (
+                      <span className="inline-flex items-center rounded-full bg-red-100 px-2 py-0.5 text-xs font-medium text-red-700 dark:bg-red-900/40 dark:text-red-200">
+                        New
+                      </span>
+                    );
+                  } else if (isDifferentLocation) {
+                    rowClass = "bg-amber-50 dark:bg-amber-950/30";
+                    foundPill = (
+                      <span className="inline-flex items-center rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-700 dark:bg-amber-900/40 dark:text-amber-200">
+                        Found (Different)
+                      </span>
+                    );
+                  }
+
                   return (
                     <tr key={s} className={`border-t ${rowClass}`}>
                       <td className="px-3 py-2 align-top">{idx + 1}</td>
                       <td className="px-3 py-2 font-mono align-top">{s}</td>
-                      <td className="px-3 py-2 align-top">
-                        {!hit ? (
-                          <span className="inline-flex items-center rounded-full bg-red-100 px-2 py-0.5 text-xs font-medium text-red-700 dark:bg-red-900/40 dark:text-red-200">
-                            New
-                          </span>
-                        ) : hit.differentLocation ? (
-                          <span className="inline-flex items-center rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-700 dark:bg-amber-900/40 dark:text-amber-200">
-                            Found (Different)
-                          </span>
-                        ) : (
-                          <span className="inline-flex items-center rounded-full bg-green-100 px-2 py-0.5 text-xs font-medium text-green-700 dark:bg-green-900/40 dark:text-green-200">
-                            Found
-                          </span>
-                        )}
-                      </td>
+                      <td className="px-3 py-2 align-top">{foundPill}</td>
                       <td className="px-3 py-2 align-top">{hit?.assetId ?? "—"}</td>
                       <td className="px-3 py-2 align-top">{hit?.status ?? "—"}</td>
                       <td className="px-3 py-2 align-top">
                         {hit?.location ? (
-                          <span className={hit.differentLocation ? "text-amber-800" : "text-gray-700"}>
+                          <span className={isDifferentLocation ? "text-amber-800" : "text-gray-700"}>
                             {hit.location}
                           </span>
                         ) : (
