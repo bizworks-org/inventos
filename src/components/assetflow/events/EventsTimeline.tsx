@@ -130,6 +130,41 @@ function formatValue(v: any, fieldName?: string): string {
 export function EventsTimeline(props: Readonly<EventsTimelineProps>) {
   const { events } = props;
   const [expandedEventId, setExpandedEventId] = useState<string | null>(null);
+  const topScrollerRef = React.useRef<HTMLDivElement | null>(null);
+  const bottomScrollerRef = React.useRef<HTMLDivElement | null>(null);
+  const tableRef = React.useRef<HTMLTableElement | null>(null);
+  const [topInnerWidth, setTopInnerWidth] = useState<number>(0);
+  const [showTopScroller, setShowTopScroller] = useState<boolean>(false);
+
+  React.useEffect(() => {
+    const update = () => {
+      const bottom = bottomScrollerRef.current;
+      if (!bottom) return;
+      setTopInnerWidth(bottom.scrollWidth);
+      setShowTopScroller(bottom.scrollWidth > bottom.clientWidth + 2);
+    };
+    update();
+    window.addEventListener("resize", update);
+    const ro = new ResizeObserver(update);
+    if (bottomScrollerRef.current) ro.observe(bottomScrollerRef.current);
+    if (tableRef.current) ro.observe(tableRef.current);
+    return () => {
+      window.removeEventListener("resize", update);
+      ro.disconnect();
+    };
+  }, []);
+
+  // Sync scroll positions both ways
+  const onTopScroll = (e: React.UIEvent<HTMLDivElement>) => {
+    const top = e.currentTarget;
+    const bottom = bottomScrollerRef.current;
+    if (bottom) bottom.scrollLeft = top.scrollLeft;
+  };
+  const onBottomScroll = (e: React.UIEvent<HTMLDivElement>) => {
+    const bottom = e.currentTarget;
+    const top = topScrollerRef.current;
+    if (top) top.scrollLeft = bottom.scrollLeft;
+  };
 
   if (events.length === 0) {
     return (
@@ -162,8 +197,20 @@ export function EventsTimeline(props: Readonly<EventsTimelineProps>) {
       transition={{ duration: 0.4, delay: 0.4 }}
       className="bg-white rounded-2xl border border-[rgba(0,0,0,0.08)] shadow-sm"
     >
-      <div className="overflow-x-auto">
-        <table className="w-full">
+      {/* Top scrollbar: visible when table overflows horizontally */}
+      {showTopScroller && (
+        <div
+          ref={topScrollerRef}
+          onScroll={onTopScroll}
+          className="overflow-x-auto overflow-y-hidden scrollbar-hidden"
+          style={{ WebkitOverflowScrolling: "touch" }}
+        >
+          <div style={{ width: topInnerWidth }} />
+        </div>
+      )}
+
+      <div ref={bottomScrollerRef} className="overflow-x-auto" onScroll={onBottomScroll}>
+        <table ref={tableRef} className="w-full">
           <thead>
             <tr className="bg-gradient-to-r from-[#f8f9ff] to-[#f5f7ff] border-b border-[rgba(0,0,0,0.08)]">
               <th className="px-4 py-3 text-left text-xs font-semibold text-[#64748b] uppercase tracking-wider">

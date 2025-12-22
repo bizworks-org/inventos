@@ -485,13 +485,70 @@ export function AuditPage({ onNavigate, onSearch }: Readonly<Props>) {
         <div className="mt-6 bg-white rounded-2xl border p-4 shadow-sm">
           <div className="flex items-center justify-between mb-4">
             <h3 className="font-medium text-lg">Audit History</h3>
-            <Button
-              onClick={() => setShowAuditHistory(false)}
-              variant="outline"
-              size="sm"
-            >
-              Close
-            </Button>
+            <div className="flex items-center gap-2">
+              {auditHistory.length > 0 && (
+                <Button
+                  onClick={() => {
+                    // Build CSV from auditHistory
+                    try {
+                      const escapeCell = (v: any) => {
+                        if (v === null || v === undefined) return "";
+                        const s = String(v);
+                        if (/[",\n]/.test(s)) return `"${s.replace(/"/g, '""')}"`;
+                        return s;
+                      };
+
+                      const headers = [
+                        "auditId",
+                        "auditorName",
+                        "location",
+                        "timestamp",
+                        "totalItems",
+                        "foundItems",
+                        "missingItems",
+                      ];
+
+                      const rows = auditHistory.map((a: any) => [
+                        a.auditId ?? "",
+                        a.auditorName ?? "",
+                        a.location ?? "",
+                        a.timestamp ? new Date(a.timestamp).toISOString() : "",
+                        a.totalItems ?? "",
+                        a.foundItems ?? "",
+                        a.missingItems ?? "",
+                      ]);
+
+                      const csv = [headers.join(","), ...rows.map((r) => r.map(escapeCell).join(","))].join("\r\n");
+                      const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+                      const url = URL.createObjectURL(blob);
+                      const a = document.createElement("a");
+                      a.href = url;
+                      const namePart = new Date().toISOString().slice(0,19).replace(/[:T]/g, "-");
+                      a.download = `audit-history-${namePart}.csv`;
+                      document.body.appendChild(a);
+                      a.click();
+                      a.remove();
+                      URL.revokeObjectURL(url);
+                    } catch (err) {
+                      console.error("Failed to export audit history:", err);
+                      alert("Failed to export audit history");
+                    }
+                  }}
+                  variant="default"
+                  size="sm"
+                  style={{ backgroundImage: "linear-gradient(to right, #6366f1, #8b5cf6)", color: "white" }}
+                >
+                  Download CSV
+                </Button>
+              )}
+              <Button
+                onClick={() => setShowAuditHistory(false)}
+                variant="outline"
+                size="sm"
+              >
+                Close
+              </Button>
+            </div>
           </div>
           {auditHistory.length === 0 ? (
             <p className="text-sm text-[#64748b]">No audit records found.</p>
