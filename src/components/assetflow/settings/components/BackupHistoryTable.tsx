@@ -204,7 +204,8 @@ export function BackupHistoryTable({
   // Generate checksum for file integrity verification
   const generateChecksum = async (buffer: Uint8Array): Promise<string> => {
     try {
-      const hashBuffer = await crypto.subtle.digest("SHA-256", buffer);
+      // Use the underlying ArrayBuffer for the digest call to satisfy typing
+      const hashBuffer = await crypto.subtle.digest("SHA-256", buffer.buffer as ArrayBuffer);
       return Array.from(new Uint8Array(hashBuffer))
         .map((b) => b.toString(16).padStart(2, "0"))
         .join("");
@@ -526,7 +527,7 @@ export function BackupHistoryTable({
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction
-              onClick={() => restoreConfirm && handleRestore(restoreConfirm)}
+              onClick={() => restoreConfirm && onRestore(restoreConfirm)}
               className="bg-blue-600 hover:bg-blue-700"
             >
               Restore

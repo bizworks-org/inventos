@@ -10,14 +10,17 @@ export async function GET(req: NextRequest) {
       { error: "unauthorized" },
       { status: "status" in guard ? guard.status : 401 }
     );
+  // keep requested name and path in scope for error handling
+  let requestedName: string | null = null;
+  let filePath = "";
 
   try {
     const url = new URL(req.url);
-    const name = url.searchParams.get("name");
-    if (!name) return NextResponse.json({ error: "name required" }, { status: 400 });
+    requestedName = url.searchParams.get("name");
+    if (!requestedName) return NextResponse.json({ error: "name required" }, { status: 400 });
 
     const localDir = process.env.BACKUP_LOCAL_PATH || "C:\\Users\\Harshada Vikhe\\Downloads\\BizWorks\\inventos\\Data";
-    const filePath = path.join(localDir, name);
+    filePath = path.join(localDir, requestedName);
 
     const buf = await fs.readFile(filePath);
 
@@ -25,14 +28,14 @@ export async function GET(req: NextRequest) {
       status: 200,
       headers: {
         "Content-Type": "application/octet-stream",
-        "Content-Disposition": `attachment; filename="${path.basename(name)}"`,
+        "Content-Disposition": `attachment; filename="${path.basename(requestedName)}"`,
       },
     });
   } catch (e: any) {
     console.error("Backup file access error:", e);
     if (e?.code === "ENOENT") {
       return NextResponse.json({ 
-        error: `Backup file not found at ${filePath}. Please ensure backups are being saved locally.` 
+        error: `Backup file not found at ${filePath || "<unknown path>"}. Please ensure backups are being saved locally.` 
       }, { status: 404 });
     }
     if (e?.code === "EACCES") {

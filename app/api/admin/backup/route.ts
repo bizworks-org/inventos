@@ -196,6 +196,28 @@ async function restoreAllTables(dump: Record<string, any>) {
   } catch {}
 }
 
+async function restoreSelectedTables(dump: Record<string, any>, tables: string[]) {
+  try {
+    await query("SET FOREIGN_KEY_CHECKS=0");
+  } catch {}
+
+  for (const table of tables) {
+    if (!Object.prototype.hasOwnProperty.call(dump, table)) {
+      console.warn(`Requested table ${table} not present in backup`);
+      continue;
+    }
+    try {
+      await restoreTable(table, dump[table] as any[]);
+    } catch (e) {
+      console.warn(`Failed restoring selected table ${table}:`, e?.message || e);
+    }
+  }
+
+  try {
+    await query("SET FOREIGN_KEY_CHECKS=1");
+  } catch {}
+}
+
 export async function POST(req: NextRequest) {
   const guard = await requirePermission("manage_users");
   if (!guard.ok)
