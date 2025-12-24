@@ -26,8 +26,8 @@ export function useBackupRestore() {
   const [previewing, setPreviewing] = useState(false);
   const [restoreInProgress, setRestoreInProgress] = useState(false);
   const [selectiveRestoreOpen, setSelectiveRestoreOpen] = useState(false);
-  const [selectiveRestoreBackup, setSelectiveRestoreBackup] = useState<BackupHistory | null>(null);
-  const [selectiveRestoreStats, setSelectiveRestoreStats] = useState<Record<string, any> | null>(null);
+  const [selectiveRestoreBackup] = useState<BackupHistory | null>(null);
+  const [selectiveRestoreStats] = useState<Record<string, any> | null>(null);
   const [selectedTables, setSelectedTables] = useState<string[]>([]);
   const [backupHistory, setBackupHistory] = useState<BackupHistory[]>([]);
   const [selectedBackupId, setSelectedBackupId] = useState<string | null>(null);
@@ -298,7 +298,8 @@ export function useBackupRestore() {
       toast.success("Backup removed from history");
       return true;
     } catch (e: any) {
-      toast.error("Failed to delete backup history entry");
+      console.error("Failed to delete backup history entry:", e);
+      toast.error(e?.message || "Failed to delete backup history entry");
       return false;
     }
   }, [loadBackupHistory, saveBackupHistory]);

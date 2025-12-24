@@ -26,6 +26,49 @@ export function AssetOverviewChart() {
 
   const data = useMemo(() => dist, [dist]);
 
+  let chartSection;
+  if (error) {
+    chartSection = null;
+  } else if (data.length === 0) {
+    chartSection = <div className="h-[300px] flex items-center justify-center text-sm text-[#64748b]">No data</div>;
+  } else {
+    chartSection = (
+      <ResponsiveContainer width="100%" height={300}>
+        <BarChart data={data} margin={{ top: 20, right: 30, left: 20, bottom: 20 }}>
+          <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+          <XAxis 
+            dataKey="name" 
+            tick={{ fill: '#64748b', fontSize: 12 }}
+            axisLine={{ stroke: '#e5e7eb' }}
+          />
+          <YAxis 
+            tick={{ fill: '#64748b', fontSize: 12 }}
+            axisLine={{ stroke: '#e5e7eb' }}
+          />
+          <Tooltip 
+            contentStyle={{
+              backgroundColor: '#1a1d2e',
+              border: 'none',
+              borderRadius: '8px',
+              boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)',
+              color: '#fff'
+            }}
+            cursor={{ fill: 'rgba(99, 102, 241, 0.1)' }}
+          />
+          <Bar 
+            dataKey="count" 
+            radius={[8, 8, 0, 0]}
+            animationDuration={1000}
+          >
+            {data.map((entry, index) => (
+              <Cell key={entry.name} fill={COLORS[index % COLORS.length]} />
+            ))}
+          </Bar>
+        </BarChart>
+      </ResponsiveContainer>
+    );
+  }
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
@@ -38,43 +81,7 @@ export function AssetOverviewChart() {
         <p className="text-sm text-[#64748b] mt-1">Overview of IT assets across different types</p>
       </div>
 
-      {data.length === 0 && !error ? (
-        <div className="h-[300px] flex items-center justify-center text-sm text-[#64748b]">No data</div>
-      ) : !error ? (
-        <ResponsiveContainer width="100%" height={300}>
-          <BarChart data={data} margin={{ top: 20, right: 30, left: 20, bottom: 20 }}>
-            <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-            <XAxis 
-              dataKey="name" 
-              tick={{ fill: '#64748b', fontSize: 12 }}
-              axisLine={{ stroke: '#e5e7eb' }}
-            />
-            <YAxis 
-              tick={{ fill: '#64748b', fontSize: 12 }}
-              axisLine={{ stroke: '#e5e7eb' }}
-            />
-            <Tooltip 
-              contentStyle={{
-                backgroundColor: '#1a1d2e',
-                border: 'none',
-                borderRadius: '8px',
-                boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)',
-                color: '#fff'
-              }}
-              cursor={{ fill: 'rgba(99, 102, 241, 0.1)' }}
-            />
-            <Bar 
-              dataKey="count" 
-              radius={[8, 8, 0, 0]}
-              animationDuration={1000}
-            >
-              {data.map((entry, index) => (
-                <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-              ))}
-            </Bar>
-          </BarChart>
-        </ResponsiveContainer>
-      ) : null}
+      {chartSection}
 
       {/* Legend or message */}
       {error ? null : (

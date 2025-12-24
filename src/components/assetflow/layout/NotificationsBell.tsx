@@ -1,6 +1,6 @@
 "use client";
 
-import { Bell, Check, Loader2 } from "lucide-react";
+import { Bell } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import NotificationsPopup from './NotificationsPopup';
 import { Button } from '@/components/ui/button';
@@ -100,11 +100,14 @@ export function NotificationsBell() {
     const refreshHandler = () => {
       fetchItems().catch(() => void 0);
     };
-    window.addEventListener('open-notifications', openHandler as EventListener);
-    window.addEventListener('refresh-notifications', refreshHandler as EventListener);
+
+    const eventTarget = globalThis as unknown as Window;
+
+    eventTarget.addEventListener('open-notifications', openHandler as EventListener);
+    eventTarget.addEventListener('refresh-notifications', refreshHandler as EventListener);
     return () => {
-      window.removeEventListener('open-notifications', openHandler as EventListener);
-      window.removeEventListener('refresh-notifications', refreshHandler as EventListener);
+      eventTarget.removeEventListener('open-notifications', openHandler as EventListener);
+      eventTarget.removeEventListener('refresh-notifications', refreshHandler as EventListener);
     };
   }, []);
 

@@ -986,7 +986,7 @@ function SettingsPageImpl({
                   administrators only.
                 </p>
 
-                {me?.role === "admin" ? (
+                {me?.role === "admin" || me?.role === "superadmin" ? (
                   <div className="pt-4">
                     <div className="flex items-center gap-3 mb-4">
                       <input

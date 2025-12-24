@@ -28,8 +28,8 @@ type Props = {
   onClose: () => void;
 };
 
-export default function NotificationsPopup({ items, loading, error, markingAll, unreadCount, onMarkAll, onMarkOne, onClose }: Props) {
-  const containerRef = useRef<HTMLDivElement | null>(null);
+export default function NotificationsPopup({ items, loading, error, markingAll, unreadCount, onMarkAll, onMarkOne, onClose }: Readonly<Props>) {
+  const containerRef = useRef<HTMLDialogElement | null>(null);
 
   // Close on Escape and focus management
   useEffect(() => {
@@ -42,12 +42,50 @@ export default function NotificationsPopup({ items, loading, error, markingAll, 
     return () => document.removeEventListener("keydown", onKey);
   }, [onClose]);
 
+  const content = (() => {
+    if (loading) {
+      return <div className="p-4 text-sm text-[#64748b]">Loading…</div>;
+    }
+
+    if (error) {
+      return <div className="p-4 text-sm text-[#ef4444]">{error}</div>;
+    }
+
+    if (items.length === 0) {
+      return <div className="p-4 text-sm text-[#64748b]">No notifications</div>;
+    }
+
+    return items.map((i) => (
+      <div key={i.id} className={`p-4 hover:bg-[#f8f9ff] ${i.read_at ? '' : 'bg-white'}`}>
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            <p className="text-sm font-medium text-[#111827]">{i.title}</p>
+            <p className="text-xs text-[#6b7280] mt-0.5">{i.body}</p>
+            <p className="text-[11px] text-[#9ca3af] mt-1" suppressHydrationWarning>
+              {new Date(i.created_at).toLocaleString()}
+            </p>
+          </div>
+          {!i.read_at && (
+            <Button onClick={() => onMarkOne(i.id)} 
+            variant="destructive"
+            className="text-xs w-10 text-[#10b981] hover:underline">Mark read</Button>
+          )}
+        </div>
+      </div>
+    ));
+  })();
+
   return (
-    <div
+    <dialog
       ref={containerRef}
-      role="dialog"
       aria-label="Notifications"
       tabIndex={-1}
+      open
+      onCancel={(e) => {
+        e.preventDefault();
+        onClose();
+      }}
+      onClose={onClose}
       className="absolute right-0 mt-2 bg-white border border-[rgba(0,0,0,0.08)] rounded-xl shadow-lg overflow-hidden z-50 flex flex-col"
       style={{ width: 480, maxHeight: 360 }}
     >
@@ -65,33 +103,8 @@ export default function NotificationsPopup({ items, loading, error, markingAll, 
       </div>
 
       <div className="flex-1 overflow-y-auto divide-y">
-        {loading ? (
-          <div className="p-4 text-sm text-[#64748b]">Loading…</div>
-        ) : error ? (
-          <div className="p-4 text-sm text-[#ef4444]">{error}</div>
-        ) : items.length === 0 ? (
-          <div className="p-4 text-sm text-[#64748b]">No notifications</div>
-        ) : (
-          items.map(i => (
-            <div key={i.id} className={`p-4 hover:bg-[#f8f9ff] ${i.read_at ? '' : 'bg-white'}`}>
-              <div className="flex items-start justify-between gap-3">
-                <div>
-                  <p className="text-sm font-medium text-[#111827]">{i.title}</p>
-                  <p className="text-xs text-[#6b7280] mt-0.5">{i.body}</p>
-                  <p className="text-[11px] text-[#9ca3af] mt-1" suppressHydrationWarning>
-                    {new Date(i.created_at).toLocaleString()}
-                  </p>
-                </div>
-                {!i.read_at && (
-                  <Button onClick={() => onMarkOne(i.id)} 
-                  variant="destructive"
-                  className="text-xs w-10 text-[#10b981] hover:underline">Mark read</Button>
-                )}
-              </div>
-            </div>
-          ))
-        )}
+        {content}
       </div>
-    </div>
+    </dialog>
   );
 }

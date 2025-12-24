@@ -19,8 +19,22 @@ export async function GET(req: NextRequest) {
     requestedName = url.searchParams.get("name");
     if (!requestedName) return NextResponse.json({ error: "name required" }, { status: 400 });
 
-    const localDir = process.env.BACKUP_LOCAL_PATH || "C:\\Users\\Harshada Vikhe\\Downloads\\BizWorks\\inventos\\Data";
-    filePath = path.join(localDir, requestedName);
+    const localDir = path.resolve(
+      process.env.BACKUP_LOCAL_PATH ?? String.raw`C:\Users\Harshada Vikhe\Downloads\BizWorks\inventos\Data`
+    );
+
+    // Prevent path traversal by only allowing a simple filename (no directories)
+    const safeName = path.basename(requestedName);
+    if (safeName !== requestedName) {
+      return NextResponse.json({ error: "invalid name" }, { status: 400 });
+    }
+
+    const resolvedPath = path.resolve(localDir, safeName);
+    if (!resolvedPath.startsWith(localDir + path.sep)) {
+      return NextResponse.json({ error: "invalid name" }, { status: 400 });
+    }
+
+    filePath = resolvedPath;
 
     const buf = await fs.readFile(filePath);
 

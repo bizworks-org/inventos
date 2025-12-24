@@ -35,7 +35,7 @@ export function Header({ breadcrumbs = [], onSearch }: Readonly<HeaderProps>) {
                   ? "/dashboard"
                   : crumb.href;
               return (
-                <div key={index} className="flex items-center gap-2">
+                <div key={`${crumb.label}-${crumb.href || index}`} className="flex items-center gap-2">
                   {index > 0 && <span className="text-[#a0a4b8]">/</span>}
                   {href ? (
                     <a

@@ -20,6 +20,18 @@ function normalizeSerial(input: unknown): string {
   return String(input ?? "").trim();
 }
 
+function safeDownloadFilename(input: string): string {
+  // Whitelist filename characters to reduce DOM-XSS and header injection risks.
+  const cleaned = String(input ?? "")
+    .normalize("NFKD")
+    .replace(/[^\w.\-]+/g, "-")
+    .replace(/-+/g, "-")
+    .replace(/^-|-$/g, "")
+    .slice(0, 180);
+
+  return cleaned || "download.csv";
+}
+
 function parseSerialsFromCsvText(text: string): string[] {
   const parsed = Papa.parse<ParsedSerialRow>(text, {
     header: true,
@@ -27,7 +39,7 @@ function parseSerialsFromCsvText(text: string): string[] {
   });
 
   const fromHeadered = (parsed.data || [])
-    .map((r) => normalizeSerial((r as any).serial ?? (r as any).Serial ?? (r as any)["Serial Number"] ?? (r as any)["serial number"]))
+    .map((r) => normalizeSerial(r.serial ?? r.Serial ?? r["Serial Number"] ?? r["serial number"]))
     .filter(Boolean);
 
   // If no header match, fall back to first-column extraction.
@@ -107,10 +119,11 @@ export function AuditPage({ onNavigate, onSearch }: Readonly<Props>) {
 
   const locationOptions = useMemo(() => {
     return locations
-      .map((l) => ({
-        value: (l.code ?? l.name ?? "").toString(),
-        label: `${(l.code ?? l.name ?? "").toString()}${l.name ? ` — ${l.name}` : ""}`,
-      }))
+      .map((l) => {
+        const value = (l.code ?? l.name ?? "").toString();
+        const label = l.name ? value + " — " + l.name : value;
+        return { value, label };
+      })
       .filter((x) => x.value.trim() !== "");
   }, [locations]);
 
@@ -521,14 +534,18 @@ export function AuditPage({ onNavigate, onSearch }: Readonly<Props>) {
                       const csv = [headers.join(","), ...rows.map((r) => r.map(escapeCell).join(","))].join("\r\n");
                       const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
                       const url = URL.createObjectURL(blob);
+
                       const a = document.createElement("a");
                       a.href = url;
-                      const namePart = new Date().toISOString().slice(0,19).replace(/[:T]/g, "-");
-                      a.download = `audit-history-${namePart}.csv`;
-                      document.body.appendChild(a);
+
+                      const namePart = new Date().toISOString().slice(0, 19).replace(/[:T]/g, "-");
+                      a.download = safeDownloadFilename(`audit-history-${namePart}.csv`);
+
+                      // Trigger download without inserting a dynamically configured element into the DOM.
                       a.click();
-                      a.remove();
-                      URL.revokeObjectURL(url);
+
+                      // Revoke after the click is dispatched to avoid interrupting the download.
+                      setTimeout(() => URL.revokeObjectURL(url), 0);
                     } catch (err) {
                       console.error("Failed to export audit history:", err);
                       alert("Failed to export audit history");

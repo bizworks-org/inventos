@@ -1,4 +1,5 @@
 "use client";
+import { sanitizeUrl } from "@braintree/sanitize-url";
 import {
   Home,
   Package,
@@ -22,9 +23,6 @@ function sanitizeImageUrl(u?: string | null): string | null {
     const s = u.trim();
     if (!s) return null;
 
-    const runningInBrowser =
-      typeof globalThis !== "undefined" && (globalThis as any).window !== undefined;
-
     const allowedDataImageRE =
       /^data:image\/(png|jpeg|jpg|webp|gif|avif);base64,[A-Za-z0-9+/]+={0,2}$/i;
     if (s.startsWith("data:image/")) {
@@ -33,9 +31,14 @@ function sanitizeImageUrl(u?: string | null): string | null {
       return null;
     }
 
-    if (!runningInBrowser) return null;
+    // Use a sanitizer that static analyzers commonly recognize, then enforce protocol allowlist.
+    const sanitized = sanitizeUrl(s);
+    if (!sanitized || sanitized === "about:blank") return null;
 
-    const parsed = new URL(s, (globalThis as any).window.location.origin);
+    const base =
+      typeof window !== "undefined" ? window.location.origin : "http://localhost";
+    const parsed = new URL(sanitized, base);
+
     if (
       (parsed.protocol === "http:" || parsed.protocol === "https:") &&
       parsed.href.length < 2000
