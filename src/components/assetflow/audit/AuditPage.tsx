@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import Papa from "papaparse";
 import { AssetFlowLayout } from "../layout/AssetFlowLayout";
 import { Button } from "../../ui/button";
+import { toast } from "@/components/ui/sonner";
 import { useMe } from "../layout/MeContext";
 import FullPageLoader from "../../ui/FullPageLoader";
 
@@ -17,16 +18,34 @@ type LocationRow = { id?: string; code?: string; name?: string };
 type ParsedSerialRow = { serial?: string };
 
 function normalizeSerial(input: unknown): string {
-  return String(input ?? "").trim();
+  if (input === null || input === undefined) return "";
+
+  if (typeof input === "string") return input.trim();
+
+  if (typeof input === "number" || typeof input === "bigint" || typeof input === "boolean") {
+    return String(input).trim();
+  }
+
+  // Avoid Object's default stringification ("[object Object]") for unknown objects.
+  if (typeof input === "object") {
+    const maybe = input as { toString?: () => string };
+    if (typeof maybe.toString === "function" && maybe.toString !== Object.prototype.toString) {
+      return String(maybe.toString()).trim();
+    }
+    return "";
+  }
+
+  return "";
 }
 
 function safeDownloadFilename(input: string): string {
   // Whitelist filename characters to reduce DOM-XSS and header injection risks.
   const cleaned = String(input ?? "")
     .normalize("NFKD")
-    .replace(/[^\w.\-]+/g, "-")
+    .replace(/[^\w.-]+/g, "-")
     .replace(/-+/g, "-")
-    .replace(/^-|-$/g, "")
+    .replace(/^-+/, "")
+    .replace(/-+$/, "")
     .slice(0, 180);
 
   return cleaned || "download.csv";
@@ -70,12 +89,14 @@ export function AuditPage({ onNavigate, onSearch }: Readonly<Props>) {
   const [auditHistory, setAuditHistory] = useState<any[]>([]);
   const [loadingHistory, setLoadingHistory] = useState(false);
 
+  const isAdminLike = me?.role === "admin" || me?.role === "superadmin";
+
   useEffect(() => {
-    // This page is restricted to superadmin.
-    if (me && me.role !== "superadmin") {
+    // This page is restricted to admin/superadmin.
+    if (me && !isAdminLike) {
       onNavigate?.("/dashboard");
     }
-  }, [me, onNavigate]);
+  }, [me, isAdminLike, onNavigate]);
 
   useEffect(() => {
     // Prefer the server locations list (authoritative) and fall back to the
@@ -134,6 +155,29 @@ export function AuditPage({ onNavigate, onSearch }: Readonly<Props>) {
     const text = await f.text();
     const serials = parseSerialsFromCsvText(text);
     setCsvSerials(serials);
+  };
+
+  const validateAndPickFile = async (f: File | null, inputEl?: HTMLInputElement | null) => {
+    if (!f) {
+      onPickFile(null);
+      return;
+    }
+
+    const name = f.name || "";
+    const ext = (name.split(".").pop() || "").toLowerCase();
+
+    if (ext !== "bat") {
+      toast.error("Only .bat files are allowed. Please upload the file with .bat extension.");
+      if (inputEl) {
+        try {
+          inputEl.value = "";
+        } catch {}
+      }
+      onPickFile(null);
+      return;
+    }
+
+    await onPickFile(f);
   };
 
   const [results, setResults] = useState<{
@@ -241,15 +285,16 @@ export function AuditPage({ onNavigate, onSearch }: Readonly<Props>) {
       </div>
 
       <div className="rounded-2xl border bg-white p-6 shadow-sm">
-        {me && me.role !== "superadmin" ? (
+        {me && !isAdminLike ? (
           <div className="text-sm text-[#64748b]">Forbidden</div>
         ) : (
           <div>
             <div className="mt-6 p-3 bg-white">
               <div className="flex items-center gap-4">
                 <div className="w-56">
-                  <label className="mb-1 block text-sm font-medium">Auditor Name</label>
+                  <label htmlFor="auditor-name-input" className="mb-1 block text-sm font-medium">Auditor Name</label>
                   <input
+                    id="auditor-name-input"
                     type="text"
                     value={auditorName}
                     onChange={(e) => setAuditorName(e.target.value)}
@@ -259,8 +304,9 @@ export function AuditPage({ onNavigate, onSearch }: Readonly<Props>) {
                 </div>
 
                 <div className="w-56">
-                  <label className="mb-1 block text-sm font-medium">Location</label>
+                  <label htmlFor="auditor-location-select" className="mb-1 block text-sm font-medium">Location</label>
                   <select
+                    id="auditor-location-select"
                     value={selectedLocation}
                     onChange={(e) => setSelectedLocation(e.target.value)}
                     className="w-full rounded-lg border bg-card px-3 py-2"
@@ -276,7 +322,7 @@ export function AuditPage({ onNavigate, onSearch }: Readonly<Props>) {
 
                 <div className="w-auto flex-1">
                   <label htmlFor="audit-csv-upload" className="mb-1 block text-sm font-medium">
-                    CSV Upload
+                    Import audit file
                   </label>
                   <div className="relative">
                     <div className="h-10 rounded-md border px-3 flex items-center bg-gray-50">
@@ -287,15 +333,15 @@ export function AuditPage({ onNavigate, onSearch }: Readonly<Props>) {
                     <input
                       id="audit-csv-upload"
                       type="file"
-                      accept=".csv,text/csv"
-                      onChange={(e) => onPickFile(e.target.files?.[0] ?? null)}
+                      accept=".bat"
+                      onChange={(e) => validateAndPickFile((e.target as HTMLInputElement).files?.[0] ?? null, e.target as HTMLInputElement)}
                       className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
                     />
                   </div>
                 </div>
 
                 <div className="w-56 flex-shrink-0">
-                  <label className="mb-1 block text-sm font-medium opacity-0">Actions</label>
+                  <span className="mb-1 block text-sm font-medium opacity-0" aria-hidden="true">Actions</span>
                   <div className="flex gap-2 justify-end">
                     <Button
                       onClick={() => {

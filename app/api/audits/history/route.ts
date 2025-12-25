@@ -9,8 +9,8 @@ export async function GET(req: NextRequest) {
 
   try {
     const searchParams = req.nextUrl.searchParams;
-    const limit = Math.min(parseInt(searchParams.get("limit") || "50"), 500);
-    const offset = parseInt(searchParams.get("offset") || "0");
+    const limit = Math.min(Number.parseInt(searchParams.get("limit") || "50"), 500);
+    const offset = Number.parseInt(searchParams.get("offset") || "0");
 
     // Fetch audit records with summary counts
     const audits = await query(
@@ -44,9 +44,9 @@ export async function GET(req: NextRequest) {
       location: a.location,
       createdBy: a.created_by,
       timestamp: a.ts,
-      totalItems: parseInt(a.total_items || 0),
-      foundItems: parseInt(a.found_items || 0),
-      missingItems: parseInt(a.missing_items || 0),
+      totalItems: Number.parseInt(a.total_items || 0),
+      foundItems: Number.parseInt(a.found_items || 0),
+      missingItems: Number.parseInt(a.missing_items || 0),
     }));
 
     return NextResponse.json({

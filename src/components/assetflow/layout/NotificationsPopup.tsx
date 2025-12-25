@@ -76,7 +76,7 @@ export default function NotificationsPopup({ items, loading, error, markingAll, 
   })();
 
   return (
-    <dialog
+      <dialog
       ref={containerRef}
       aria-label="Notifications"
       tabIndex={-1}
@@ -86,7 +86,7 @@ export default function NotificationsPopup({ items, loading, error, markingAll, 
         onClose();
       }}
       onClose={onClose}
-      className="absolute right-0 mt-2 bg-white border border-[rgba(0,0,0,0.08)] rounded-xl shadow-lg overflow-hidden z-50 flex flex-col"
+      className="fixed right-4 top-16 bg-white border border-[rgba(0,0,0,0.08)] rounded-xl shadow-lg overflow-hidden z-50 flex flex-col"
       style={{ width: 480, maxHeight: 360 }}
     >
       <div className="flex items-center justify-between px-4 py-2 border-b shrink-0">

@@ -24,7 +24,7 @@ function sanitizeImageUrl(u?: string | null): string | null {
     if (!s) return null;
 
     const allowedDataImageRE =
-      /^data:image\/(png|jpeg|jpg|webp|gif|avif);base64,[A-Za-z0-9+/]+={0,2}$/i;
+      /^data:image\/(png|jpeg|jpg|webp|gif|avif);base64,[A-Z0-9+/]+={0,2}$/i;
     if (s.startsWith("data:image/")) {
       const normalized = s.split(/\s+/).join("");
       if (allowedDataImageRE.test(normalized)) return normalized;
@@ -226,9 +226,9 @@ export function Sidebar({
       me?.role === "superadmin";
 
     // Start with base items
-    // Audit is restricted to superadmin
+    // Audit is restricted to admin/superadmin
     const base: NavItem[] = navItems.filter((i) => {
-      if (i.id === "audit") return me?.role === "superadmin";
+      if (i.id === "audit") return isAdminLike;
       return true;
     });
     const idx = base.findIndex((i) => i.id === "settings");
