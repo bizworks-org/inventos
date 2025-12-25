@@ -35,8 +35,8 @@ function sanitizeImageUrl(u?: string | null): string | null {
     const sanitized = sanitizeUrl(s);
     if (!sanitized || sanitized === "about:blank") return null;
 
-    const base =
-      typeof window !== "undefined" ? window.location.origin : "http://localhost";
+    const win = (globalThis as unknown as { window?: Window }).window;
+    const base = win?.location?.origin ?? "http://localhost";
     const parsed = new URL(sanitized, base);
 
     if (
@@ -115,25 +115,29 @@ export function Sidebar({
   const [me, setMe] = useState<typeof meProp | undefined>(meProp ?? undefined);
   // Branding state (SSR-provided to avoid flicker)
   const [brandLogo, setBrandLogo] = useState<string | null>(() => {
-    if (typeof document === "undefined") return null;
-    const v = document.documentElement.dataset.brandLogo || "";
+    const doc = (globalThis as unknown as { document?: Document }).document;
+    if (doc === undefined) return null;
+    const v = doc.documentElement.dataset.brandLogo || "";
     return sanitizeImageUrl(v);
   });
   // Re-validate/sanitize at render-time to ensure any client-side changes are checked
   // before being used in a DOM-sensitive attribute like `src`.
   const [brandName, setBrandName] = useState<string>(() => {
-    if (typeof document === "undefined") return "Inventos";
-    return document.documentElement.dataset.brandName || "Inventos";
+    const doc = (globalThis as unknown as { document?: Document }).document;
+    if (doc === undefined) return "Inventos";
+    return doc.documentElement.dataset.brandName || "Inventos";
   });
   // Persist admin visibility once detected in the client session
   const [everAdmin, setEverAdmin] = useState<boolean>(() => {
-    if (typeof document === "undefined") return false;
-    return document.documentElement.dataset.admin === "true";
+    const doc = (globalThis as unknown as { document?: Document }).document;
+    if (doc === undefined) return false;
+    return doc.documentElement.dataset.admin === "true";
   });
   // Track server-provided admin hint and react to changes immediately (e.g., right after login)
   const [serverAdminHint, setServerAdminHint] = useState<boolean>(() => {
-    if (typeof document === "undefined") return false;
-    return document.documentElement.dataset.admin === "true";
+    const doc = (globalThis as unknown as { document?: Document }).document;
+    if (doc === undefined) return false;
+    return doc.documentElement.dataset.admin === "true";
   });
   const pathById: Record<string, string> = {
     dashboard: "/dashboard",
@@ -175,10 +179,9 @@ export function Sidebar({
 
   // When we know the user is admin (from me or server hint), latch everAdmin=true for this session
   useEffect(() => {
+    const doc = (globalThis as unknown as { document?: Document }).document;
     const serverIsAdmin =
-      typeof document === "undefined"
-        ? false
-        : document.documentElement.dataset.admin === "true";
+      doc === undefined ? false : doc.documentElement.dataset.admin === "true";
     setServerAdminHint(serverIsAdmin);
     if (serverIsAdmin || me?.role === "admin" || me?.role === "superadmin")
       setEverAdmin(true);
@@ -186,8 +189,10 @@ export function Sidebar({
 
   // Observe mutations to <html data-admin="…"> so admin links appear instantly after login without refresh
   useEffect(() => {
-    if (typeof document === "undefined") return;
-    const el = document.documentElement;
+    const doc = (globalThis as unknown as { document?: Document }).document;
+    if (doc === undefined) return;
+
+    const el = doc.documentElement;
     const update = () => {
       const adminV = el.dataset.admin === "true";
       setServerAdminHint(adminV);
